@@ -1,26 +1,38 @@
+<!--
+Title: same convention as our commits (CONTRIBUTING.md §4), imperative and specific.
+  feat(agents): show templates in the agent list
+  fix(auth): redirect to login when the token has expired
+Types: feat | fix | docs | style | refactor | test | chore
+-->
 
-## PR title
+Closes #
 
-Keep it short but specific.
-- ✅ "Added color for widgets"
-- ❌ "Added color" (missing context)
-- ❌ "New field for widgets" (too general)
-- ❌ "Added new color field for widgets, using a third-party component
-  called awsome-color, also changed repos and models" (too specific — save
-  details for the description)
+## What this does
 
-## Functional description of work done
+<!-- One or two sentences anyone in the team can follow, including the customer. Optional screenshots or a short clip for UI changes. -->
 
-- Write your description here
-- Add screenshots to give context
+## How it works
 
-## Brief technical description of work done
+<!-- Short technical description: main files or components touched, decisions worth knowing about, anything you are unsure about and want the reviewer to look at closely. -->
 
-- Write your technical description here. 
+## How to test it
+
+<!-- Steps the reviewer follows to see it working. If the issue has a "How to demo", it should match. -->
+
+1.
+2.
 
 ## Checklist
 
-- [ ] My code follows the project's style guidelines
-- [ ] I have tested my changes locally
-- [ ] I have updated documentation where needed
-- [ ] I have added/updated tests where relevant
+- [ ] Title follows the commit convention
+- [ ] Every "resolved when" box in the issue is true — or I say below which ones are not and why
+- [ ] `npm run lint`, `npm run format:check` and `npm run test` pass locally
+- [ ] Tests added or updated for the new behaviour
+- [ ] Documentation updated where the change needs it (README, `docs/`, comments)
+- [ ] UI follows `docs/design-guide.md`: shared components, palette tokens, no hard-coded colours or spacing
+- [ ] New environment variables are in `.env.example` with a dummy value — no real secrets anywhere
+- [ ] No real personal data in code, tests or demo agents
+
+## Anything left over
+
+<!-- Known technical debt or follow-up work. Open an issue and link it here rather than leaving it unsaid. Write "nothing" if there is none. -->

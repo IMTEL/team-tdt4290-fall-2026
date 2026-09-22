@@ -1,0 +1,25 @@
+// ESLint flat config. Prettier handles formatting, so eslint-config-prettier
+// switches off every formatting rule here — never fight the formatter in lint.
+//
+// This file assumes Next.js. If we go for React + Vite instead, replace the
+// compat.extends(...) block with the typescript-eslint and react plugins directly.
+import { FlatCompat } from '@eslint/eslintrc';
+import eslintConfigPrettier from 'eslint-config-prettier';
+
+const compat = new FlatCompat({ baseDirectory: import.meta.dirname });
+
+export default [
+  {
+    ignores: ['node_modules/**', '.next/**', 'out/**', 'build/**', 'dist/**', 'coverage/**'],
+  },
+  ...compat.extends('next/core-web-vitals', 'next/typescript'),
+  {
+    rules: {
+      // Unused variables are an error, except arguments deliberately named _something.
+      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
+      // Leftover console.log should not reach main; warn instead of blocking work in progress.
+      'no-console': ['warn', { allow: ['warn', 'error'] }],
+    },
+  },
+  eslintConfigPrettier,
+];
