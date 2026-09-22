@@ -5,11 +5,18 @@ title: ""
 labels: bug
 ---
 
+Steps to reproduce:
+
+1.
+2.
+
+Expected:
+Actual:
+Where: <!-- browser, local or test environment, branch -->
+
+<!-- Add screenshots or console output if they help. -->
+
 This issue is resolved when:
 
 - [ ]
 - [ ]
-- [ ]
-
-Bug description:
-<!-- What's wrong, and how do you reproduce it? Add screenshots if helpful. -->
