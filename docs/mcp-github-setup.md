@@ -42,6 +42,7 @@ it's set as a local environment variable instead, referenced from
 ### Windows
 
 **Option A — Settings UI:**
+
 1. Press the Windows key, search for and open **"Edit the system
    environment variables"**
 2. Click **Environment Variables...**
@@ -51,6 +52,7 @@ it's set as a local environment variable instead, referenced from
 6. Click OK on all windows to save
 
 **Option B — PowerShell:**
+
 ```powershell
 [System.Environment]::SetEnvironmentVariable("GITHUB_PERSONAL_ACCESS_TOKEN", "your_token_here", "User")
 ```
@@ -60,6 +62,7 @@ afterward — a window opened before the variable was set won't see it.
 
 If PowerShell blocks `npm`/`claude` with a script-execution error, run this
 once (safe, only affects your own user account):
+
 ```powershell
 Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
 ```
@@ -67,9 +70,11 @@ Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
 ### macOS / Linux
 
 Add this line to your shell profile (`~/.zshrc`, `~/.bashrc`, etc.):
+
 ```bash
 export GITHUB_PERSONAL_ACCESS_TOKEN="your_token_here"
 ```
+
 Then reload it (`source ~/.zshrc`) or open a new terminal window.
 
 ## 3. Verify the connection
@@ -80,6 +85,7 @@ In a **freshly opened** terminal, confirm the variable is set:
 # PowerShell
 echo $env:GITHUB_PERSONAL_ACCESS_TOKEN
 ```
+
 ```bash
 # bash/zsh
 echo $GITHUB_PERSONAL_ACCESS_TOKEN
@@ -87,22 +93,25 @@ echo $GITHUB_PERSONAL_ACCESS_TOKEN
 
 Then, with Docker Desktop running, start Claude Code in the project folder
 and check the MCP server status:
+
 ```
 claude
 ```
+
 ```
 claude mcp list
 ```
+
 `github` should show as connected. In Cursor, the same `.mcp.json` is picked
 up automatically — check its MCP settings panel to confirm the `github`
 server is connected.
 
 ## Troubleshooting
 
-| Symptom | Fix |
-|---|---|
-| "Connection closed" / server won't connect | Docker Desktop isn't running — start it and retry |
-| Env var shows blank after setting it | You're checking in the same window you set it in — open a new one |
-| "Incompatible auth server: does not support dynamic client registration" | You're on an old config trying OAuth — this repo's `.mcp.json` already uses the PAT/Docker method instead |
-| Repo doesn't show up when creating a fine-grained token | The org (IMTEL) doesn't allow fine-grained PATs, or requires approval — use a classic token with the `repo` scope instead |
-| `npm`/`claude` not recognized or blocked by PowerShell | Run `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned` (see above), or use the `.cmd` variant, e.g. `claude.cmd` |
+| Symptom                                                                  | Fix                                                                                                                       |
+| ------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------- |
+| "Connection closed" / server won't connect                               | Docker Desktop isn't running — start it and retry                                                                         |
+| Env var shows blank after setting it                                     | You're checking in the same window you set it in — open a new one                                                         |
+| "Incompatible auth server: does not support dynamic client registration" | You're on an old config trying OAuth — this repo's `.mcp.json` already uses the PAT/Docker method instead                 |
+| Repo doesn't show up when creating a fine-grained token                  | The org (IMTEL) doesn't allow fine-grained PATs, or requires approval — use a classic token with the `repo` scope instead |
+| `npm`/`claude` not recognized or blocked by PowerShell                   | Run `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned` (see above), or use the `.cmd` variant, e.g. `claude.cmd`       |

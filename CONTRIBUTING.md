@@ -44,13 +44,13 @@ Branch from `main`. Name:
 <type>/<issue-number>-<short-slug>
 ```
 
-| Type | Use |
-|---|---|
-| `feat` | new functionality |
-| `fix` | bug fix |
-| `docs` | documentation only |
+| Type    | Use                       |
+| ------- | ------------------------- |
+| `feat`  | new functionality         |
+| `fix`   | bug fix                   |
+| `docs`  | documentation only        |
 | `chore` | tooling, CI, dependencies |
-| `spike` | throw-away exploration |
+| `spike` | throw-away exploration    |
 
 Examples: `feat/12-test-chat`, `fix/7-empty-agent-list`, `chore/2-ci-pipeline`.
 
@@ -70,15 +70,15 @@ We follow [Conventional Commits 1.0](https://www.conventionalcommits.org/). RAGd
 
 **Types** (only these):
 
-| Type | When |
-|---|---|
-| `feat` | a new feature for the user |
-| `fix` | a bug fix |
-| `docs` | documentation only |
-| `style` | formatting, no logic change |
+| Type       | When                                            |
+| ---------- | ----------------------------------------------- |
+| `feat`     | a new feature for the user                      |
+| `fix`      | a bug fix                                       |
+| `docs`     | documentation only                              |
+| `style`    | formatting, no logic change                     |
 | `refactor` | code change that is neither a fix nor a feature |
-| `test` | adding or fixing tests |
-| `chore` | build, CI, dependencies, tooling |
+| `test`     | adding or fixing tests                          |
+| `chore`    | build, CI, dependencies, tooling                |
 
 **Scope** is optional and names the part touched: `chat`, `auth`, `agents`, `questionnaire`, `templates`, `ci`, `deploy`.
 
@@ -117,18 +117,18 @@ What a reviewer checks: does it do what the issue says, can I run it, are the "r
 
 Every pull request runs, and all of them must pass before merging:
 
-| Check | Command |
-|---|---|
-| Build | `npm run build` |
-| Lint | `npm run lint` (ESLint) |
+| Check      | Command                           |
+| ---------- | --------------------------------- |
+| Build      | `npm run build`                   |
+| Lint       | `npm run lint` (ESLint)           |
 | Formatting | `npm run format:check` (Prettier) |
-| Tests | `npm run test` |
+| Tests      | `npm run test`                    |
 
 Run them locally first — a red pipeline blocks your reviewer too. Never merge with CI red, and never disable a check to get a PR through: if a check is wrong, fix the check in its own PR.
 
 ### Branch protection on `main`
 
-Configured in *Settings → Branches* (kept here so we can restore it if it is ever lost):
+Configured in _Settings → Branches_ (kept here so we can restore it if it is ever lost):
 
 - Require a pull request before merging — **1 approval**
 - Dismiss stale approvals when new commits are pushed

@@ -1,7 +1,7 @@
 ---
 name: Task
 about: A technical sub-task of a user story, a spike, or setup work
-title: ""
+title: ''
 labels: task
 ---
 
