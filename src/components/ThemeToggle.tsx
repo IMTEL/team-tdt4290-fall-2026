@@ -21,13 +21,14 @@ const THEMES = [
 
 export function ThemeToggle() {
   const { theme, setTheme } = useTheme();
-  const [mounted, setMounted] = React.useState(false);
 
-  // The resolved theme is only known in the browser, so the icons are rendered
-  // after mount to keep the server and first client render identical.
-  React.useEffect(() => {
-    setMounted(true);
-  }, []);
+  // Theme icons must wait for the browser; useSyncExternalStore keeps the
+  // server and first client render identical without a mount effect.
+  const mounted = React.useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false,
+  );
 
   return (
     <DropdownMenu>
