@@ -26,14 +26,14 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    // The font variables belong on <html>: Tailwind's preflight resolves
-    // font-family there, so defining them on <body> leaves it falling back.
+    // The font variables must stay on <html>: globals.css sets font-family
+    // there, so defining them on <body> would leave it on the fallback font.
     <html
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable}`}
       suppressHydrationWarning
     >
-      <body className="antialiased">
+      <body>
         <ThemeProvider
           attribute="class"
           defaultTheme="system"

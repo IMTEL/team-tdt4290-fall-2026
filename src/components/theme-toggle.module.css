@@ -1,0 +1,38 @@
+/* The two icons sit on top of each other and cross-fade when .dark flips.
+   Selectors are written as svg.<class> so they outrank the generic icon
+   sizing in button.module.css. */
+
+svg.sun,
+svg.moon {
+  width: 1.2rem;
+  height: 1.2rem;
+  transition: transform var(--duration) var(--ease);
+}
+
+svg.sun {
+  transform: rotate(0deg) scale(1);
+}
+
+svg.moon {
+  position: absolute;
+  transform: rotate(90deg) scale(0);
+}
+
+:global(.dark) svg.sun {
+  transform: rotate(-90deg) scale(0);
+}
+
+:global(.dark) svg.moon {
+  transform: rotate(0deg) scale(1);
+}
+
+/* Reserves the icon box before mount so the navbar does not shift. */
+.placeholder {
+  display: block;
+  width: 1.2rem;
+  height: 1.2rem;
+}
+
+.itemSelected {
+  background-color: var(--accent);
+}

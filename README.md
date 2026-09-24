@@ -32,18 +32,18 @@ The product is a _conversational agent configurator_; the job interview is the f
 
 We use the stack the customer proposed in the project brief, and reuse existing IMTEL modules instead of building from scratch.
 
-| Layer     | Choice                                                                                                                                                                                                                                                                   |
-| --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Frontend  | Next.js 15 (App Router, TypeScript, `src/`)                                                                                                                                                                                                                              |
-| Styling   | **Tailwind CSS v4**, configured entirely from CSS — no `tailwind.config.js`                                                                                                                                                                                              |
-| UI        | **shadcn/ui** (style `new-york`, base colour `neutral`) in `src/components/ui/`, composed into our own components in `src/components/`                                                                                                                                   |
-| Colours   | **Theme tokens only** — `bg-background`, `text-muted-foreground`, `border-border` and friends, defined once as oklch custom properties in `src/app/globals.css`. Never a raw hex or a palette class like `bg-gray-50` in a component: that is what makes dark mode work. |
-| Icons     | `lucide-react`                                                                                                                                                                                                                                                           |
-| Dark mode | `next-themes`, class strategy, light / dark / system                                                                                                                                                                                                                     |
-| Backend   | RAGdoll (Python 3, FastAPI, MongoDB, Docker Compose, `uv`, Ruff, pytest)                                                                                                                                                                                                 |
-| LLMs      | IDUN (NTNU), through RAGdoll                                                                                                                                                                                                                                             |
-| Auth      | RAGdoll's Keycloak                                                                                                                                                                                                                                                       | <!-- TODO: Are we using this or another auth? --> |
-| CI        | GitHub Actions: build, lint (ESLint), format check (Prettier) and tests on every pull request                                                                                                                                                                            |
+| Layer     | Choice                                                                                                                                                                                                                                    |
+| --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Frontend  | Next.js 15 (App Router, TypeScript, `src/`)                                                                                                                                                                                               |
+| Styling   | **Modular CSS** — one `*.module.css` per component, next to the component. No global stylesheet except the tokens and reset in `src/app/globals.css`                                                                                      |
+| UI        | Our own **component library** in `src/components/`, with the unstyled primitives in `src/components/ui/` built on headless Radix components                                                                                               |
+| Colours   | **Theme tokens only** — `var(--background)`, `var(--muted-foreground)`, `var(--border)` and friends, defined once as oklch custom properties in `src/app/globals.css`. Never a raw hex in a component: that is what makes dark mode work. |
+| Icons     | `lucide-react`                                                                                                                                                                                                                            |
+| Dark mode | `next-themes`, class strategy, light / dark / system                                                                                                                                                                                      |
+| Backend   | RAGdoll (Python 3, FastAPI, MongoDB, Docker Compose, `uv`, Ruff, pytest)                                                                                                                                                                  |
+| LLMs      | IDUN (NTNU), through RAGdoll                                                                                                                                                                                                              |
+| Auth      | RAGdoll's Keycloak                                                                                                                                                                                                                        | <!-- TODO: Are we using this or another auth? --> |
+| CI        | GitHub Actions: build, lint (ESLint), format check (Prettier) and tests on every pull request                                                                                                                                             |
 
 The palette, the spacing and type scale, and the rules for using the components are in [`docs/design-guide.md`](docs/design-guide.md). Read it before writing UI code.
 
@@ -103,33 +103,31 @@ Never commit `.env`. The IDUN key must not appear anywhere in this repo.
 docs/design-guide.md  colour palette, component library, CSS rules
 docs/decisions/       one page per design decision (ADR)
 public/               static assets served at the site root
-src/app/              routes (App Router); globals.css holds the theme tokens
-src/components/       our own components, e.g. navbar and theme toggle
-src/components/ui/    shadcn/ui primitives — regenerated by the CLI, edit with care
+src/app/              routes (App Router); globals.css holds the tokens and reset
+src/components/       our own components, each with its own *.module.css
+src/components/ui/    low-level primitives (button, dropdown menu) built on Radix
 src/lib/              framework-free helpers: api.ts (backend client), utils.ts (cn)
 ```
 
 Conventions worth knowing before adding code:
 
-- **Theme tokens only.** Use `bg-background`, `text-muted-foreground`,
-  `border-border` and friends. A hardcoded `bg-white` or `bg-gray-50` will look
-  wrong in dark mode.
-- **Tailwind v4 is configured from CSS**, in `src/app/globals.css`. There is no
-  `tailwind.config.js` and there should never be one.
+- **One stylesheet per component.** A component lives next to its
+  `*.module.css` and imports it as `styles`. Nothing but tokens and the reset
+  belongs in `src/app/globals.css`.
+- **Theme tokens only.** Use `var(--background)`, `var(--muted-foreground)`,
+  `var(--border)` and friends. A hardcoded `#fff` will look wrong in dark mode.
+  For a translucent shade, mix instead of inventing a colour:
+  `color-mix(in oklab, var(--accent) 50%, transparent)`.
+- **Spacing and radii** come from the tokens too: `var(--radius-md)` for
+  controls, `var(--radius-xl)` for cards, `var(--shadow-sm)` for elevation.
+- **Borders are opt-in.** The reset gives every element `border: 0 solid
+var(--border)`, so `border-width: 1px` is enough to get the themed colour.
+- **Dark mode** is a `.dark` class on `<html>`. Components never check it —
+  they read tokens, and the tokens change. The one exception is
+  `theme-toggle.module.css`, which uses `:global(.dark)` to cross-fade its icons.
 - **Navbar links** come from the `NAV_LINKS` array in
   [`src/components/navbar.tsx`](src/components/navbar.tsx). Add a route there and
   active highlighting comes for free.
-- **New shadcn components**: add them from the `new-york` registry by URL, so they
-  match the ones already here (they import `cn` from `@/lib/utils` and use the
-  individual `@radix-ui/*` packages):
-
-  ```bash
-  npx shadcn@latest add https://ui.shadcn.com/r/styles/new-york/card.json
-  ```
-
-  A plain `npx shadcn@latest add card` resolves to a newer registry variant that
-  imports from the `radix-ui` umbrella package and a separate `cn` package instead.
-  Do not mix the two.
 
 ## Team
 

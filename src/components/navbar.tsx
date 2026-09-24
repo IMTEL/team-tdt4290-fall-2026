@@ -6,6 +6,7 @@ import { Bot } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
 import { ThemeToggle } from '@/components/theme-toggle';
+import styles from './navbar.module.css';
 
 // Add a route here and it shows up in the navbar with active highlighting.
 // Only routes that actually exist belong in this list.
@@ -19,31 +20,29 @@ export function Navbar() {
   const pathname = usePathname();
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <nav className="mx-auto flex h-14 max-w-5xl items-center gap-3 px-4 sm:gap-6 sm:px-6">
-        <Link href="/" className="flex shrink-0 items-center gap-2 font-semibold tracking-tight">
-          <Bot className="size-5" aria-hidden="true" />
-          <span className="hidden sm:inline">Interviewer Agent Configurator</span>
-          <span className="sm:hidden">IAC</span>
+    <header className={styles.header}>
+      <nav className={styles.nav}>
+        <Link href="/" className={styles.wordmark}>
+          <Bot className={styles.wordmarkIcon} aria-hidden="true" />
+          <span className={styles.wordmarkLong}>Interviewer Agent Configurator</span>
+          <span className={styles.wordmarkShort}>IAC</span>
         </Link>
 
-        <ul className="flex flex-1 items-center gap-1 overflow-x-auto">
-          {NAV_LINKS.map((link) => (
-            <li key={link.href}>
-              <Link
-                href={link.href}
-                aria-current={isActive(pathname, link.href) ? 'page' : undefined}
-                className={cn(
-                  'rounded-md px-3 py-1.5 text-sm transition-colors',
-                  isActive(pathname, link.href)
-                    ? 'bg-accent font-medium text-accent-foreground'
-                    : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground',
-                )}
-              >
-                {link.label}
-              </Link>
-            </li>
-          ))}
+        <ul className={styles.links}>
+          {NAV_LINKS.map((link) => {
+            const active = isActive(pathname, link.href);
+            return (
+              <li key={link.href}>
+                <Link
+                  href={link.href}
+                  aria-current={active ? 'page' : undefined}
+                  className={cn(styles.link, active && styles.linkActive)}
+                >
+                  {link.label}
+                </Link>
+              </li>
+            );
+          })}
         </ul>
 
         <ThemeToggle />

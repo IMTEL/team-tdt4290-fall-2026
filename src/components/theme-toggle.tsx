@@ -11,6 +11,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import styles from './theme-toggle.module.css';
 
 const THEMES = [
   { value: 'light', label: 'Light' },
@@ -34,11 +35,11 @@ export function ThemeToggle() {
         <Button variant="ghost" size="icon" aria-label="Change theme">
           {mounted ? (
             <>
-              <Sun className="size-[1.2rem] scale-100 rotate-0 transition-all dark:scale-0 dark:-rotate-90" />
-              <Moon className="absolute size-[1.2rem] scale-0 rotate-90 transition-all dark:scale-100 dark:rotate-0" />
+              <Sun className={styles.sun} />
+              <Moon className={styles.moon} />
             </>
           ) : (
-            <span className="size-[1.2rem]" />
+            <span className={styles.placeholder} />
           )}
         </Button>
       </DropdownMenuTrigger>
@@ -47,7 +48,7 @@ export function ThemeToggle() {
           <DropdownMenuItem
             key={option.value}
             onClick={() => setTheme(option.value)}
-            className={mounted && theme === option.value ? 'bg-accent' : undefined}
+            className={mounted && theme === option.value ? styles.itemSelected : undefined}
           >
             {option.label}
           </DropdownMenuItem>
