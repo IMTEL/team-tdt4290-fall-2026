@@ -13,28 +13,28 @@ import theme from '@/lib/mui-theme';
 // even with light selected in the dropdown. This keeps next-themes as the
 // single source of truth and mirrors its resolved value into MUI.
 function MuiThemeSync() {
-    const { resolvedTheme } = useNextTheme();
-    const { setMode } = useColorScheme();
+  const { resolvedTheme } = useNextTheme();
+  const { setMode } = useColorScheme();
 
-    React.useEffect(() => {
-        if (resolvedTheme === 'light' || resolvedTheme === 'dark') {
-            setMode(resolvedTheme);
-        }
-    }, [resolvedTheme, setMode]);
+  React.useEffect(() => {
+    if (resolvedTheme === 'light' || resolvedTheme === 'dark') {
+      setMode(resolvedTheme);
+    }
+  }, [resolvedTheme, setMode]);
 
-    return null;
+  return null;
 }
 
 // No <CssBaseline /> here on purpose — globals.css already ships its own
 // reset (see the comment at the top of that file). Adding MUI's would
 // fight it: different box-sizing origin, different margin resets.
 export function ThemeRegistry({ children }: { children: React.ReactNode }) {
-    return (
-        <AppRouterCacheProvider options={{ key: 'mui' }}>
-            <ThemeProvider theme={theme}>
-                <MuiThemeSync />
-                {children}
-            </ThemeProvider>
-        </AppRouterCacheProvider>
-    );
+  return (
+    <AppRouterCacheProvider options={{ key: 'mui' }}>
+      <ThemeProvider theme={theme}>
+        <MuiThemeSync />
+        {children}
+      </ThemeProvider>
+    </AppRouterCacheProvider>
+  );
 }
