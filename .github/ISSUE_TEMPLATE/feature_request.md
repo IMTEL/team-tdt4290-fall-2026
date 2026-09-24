@@ -1,7 +1,7 @@
 ---
 name: User story
 about: A story from the product backlog
-title: ""
+title: ''
 labels: user-story
 ---
 
