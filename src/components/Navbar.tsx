@@ -6,7 +6,7 @@ import { Bot } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
 import { ThemeToggle } from '@/components/ThemeToggle';
-import styles from './Navbars.module.css';
+import styles from './Navbar.module.css';
 
 // Add a route here and it shows up in the navbar with active highlighting.
 // Only routes that actually exist belong in this list.
