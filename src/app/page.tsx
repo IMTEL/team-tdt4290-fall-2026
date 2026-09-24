@@ -1,4 +1,4 @@
-import { Button } from '@/components/ui/Buttons';
+import { Button } from '@/components/ui/Button';
 import styles from './page.module.css';
 
 export default function Home() {
