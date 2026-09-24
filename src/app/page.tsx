@@ -1,4 +1,5 @@
-import { Button } from '@/components/ui/Button';
+// import { Button } from '@/components/ui/Button';
+import Button from '@mui/material/Button';
 import styles from './page.module.css';
 
 export default function Home() {
@@ -18,8 +19,8 @@ export default function Home() {
         </p>
         <div className={styles.actions}>
           <Button>Default</Button>
-          <Button variant="outline">Outline</Button>
-          <Button variant="secondary">Secondary</Button>
+          <Button variant="outlined">Outlined</Button>
+          <Button variant="contained">Contained</Button>
         </div>
       </section>
     </div>
