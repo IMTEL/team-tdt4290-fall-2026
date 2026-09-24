@@ -28,6 +28,8 @@
     "react-dom": "19.1.0"
   },
   "devDependencies": {
+    "@emnapi/runtime": "^1.11.3",
+    "@emnapi/core": "^1.11.3",
     "@eslint/eslintrc": "^3",
     "@types/node": "^20",
     "@types/react": "^19",
