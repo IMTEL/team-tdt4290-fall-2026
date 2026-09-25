@@ -29,3 +29,19 @@
 .textField :global(.MuiOutlinedInput-root) {
     border-radius: 10px;
 }
+
+.buttonContainer {
+    display: flex;
+    justify-content: center;
+    gap: 1.5rem;
+}
+
+.logInButton {
+    max-height: 50%;
+    width: 25%;
+}
+
+.forgotPasswordButton {
+    max-height: 50%;
+    width: 25%;
+}
