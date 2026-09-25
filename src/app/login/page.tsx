@@ -18,5 +18,5 @@ export default function LogInPage() {
                 </CardContent>
             </Card>
         </div>
-    )
+    );
 }
