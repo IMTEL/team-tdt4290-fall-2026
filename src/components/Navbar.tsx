@@ -3,11 +3,15 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Bot } from 'lucide-react';
+<<<<<<< HEAD
 import AppBar from '@mui/material/AppBar';
 import Toolbar from '@mui/material/Toolbar';
+=======
+>>>>>>> 73a0a3b (feat: add basic log in page)
 import { cn } from '@/lib/utils';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import styles from './Navbar.module.css';
+import LogInPageButton from './login/LogInPageButton';
 
 // Add a route here and it shows up in the navbar with active highlighting.
 // Only routes that actually exist belong in this list.
@@ -56,7 +60,13 @@ export function Navbar() {
         </ul>
 
         <ThemeToggle />
+<<<<<<< HEAD
       </Toolbar>
     </AppBar>
+=======
+        <LogInPageButton />
+      </nav>
+    </header>
+>>>>>>> 73a0a3b (feat: add basic log in page)
   );
 }
