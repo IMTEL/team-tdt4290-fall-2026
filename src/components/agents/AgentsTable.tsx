@@ -1,5 +1,6 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
 import { DataGrid, type GridColDef } from '@mui/x-data-grid';
 import type { Agent } from '@/lib/types';
 
@@ -19,11 +20,14 @@ interface AgentsTableProps {
 }
 
 export function AgentsTable({ agents }: AgentsTableProps) {
+    const router = useRouter();
+
     return (
       <DataGrid
         rows={agents}
         columns={columns}
         disableRowSelectionOnClick
+        onRowClick={(params) => router.push(`/browse-agents/${params.row.id}`)}
         initialState={{
           pagination: { paginationModel: { pageSize: 10 } },
         }}
