@@ -1,3 +1,5 @@
+import { askAgent, RagdollError, type RagdollErrorKind } from '@/server/ragdoll';
+
 type ChatMessage = { role: 'user' | 'assistant'; content: string };
 
 function isChatMessage(value: unknown): value is ChatMessage {
@@ -5,6 +7,14 @@ function isChatMessage(value: unknown): value is ChatMessage {
   const { role, content } = value as Record<string, unknown>;
   return (role === 'user' || role === 'assistant') && typeof content === 'string';
 }
+
+// What the browser gets for each RAGdoll failure. Never RAGdoll's own message.
+const errorResponses: Record<RagdollErrorKind, { status: number; error: string }> = {
+  config: { status: 500, error: 'Server configuration error' },
+  timeout: { status: 504, error: 'Request to RAGdoll API timed out' },
+  unreachable: { status: 502, error: 'Error from RAGdoll API' },
+  'bad-response': { status: 502, error: 'Invalid response from RAGdoll API' },
+};
 
 // Forwards the chat history to RAGdoll from the server, so the access key never reaches the browser.
 export async function POST(request: Request) {
@@ -24,48 +34,23 @@ export async function POST(request: Request) {
     return Response.json({ error: 'Invalid JSON' }, { status: 400 });
   }
 
-  const ragdollApiUrl = process.env.RAGDOLL_API_URL;
-  const ragdollAgentId = process.env.RAGDOLL_AGENT_ID;
-  const ragdollAccessKey = process.env.RAGDOLL_ACCESS_KEY;
-
-  if (!ragdollApiUrl || !ragdollAgentId || !ragdollAccessKey) {
-    console.error('Missing RAGdoll configuration in environment variables');
-    return Response.json({ error: 'Server configuration error' }, { status: 500 });
+  const agentId = process.env.RAGDOLL_AGENT_ID;
+  const accessKey = process.env.RAGDOLL_ACCESS_KEY;
+  if (!agentId || !accessKey) {
+    console.error('Missing RAGdoll agent settings in environment variables');
+    return Response.json({ error: errorResponses.config.error }, { status: 500 });
   }
 
   try {
-    const res = await fetch(`${ragdollApiUrl}/api/chat/ask`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        agent_id: ragdollAgentId,
-        access_key: ragdollAccessKey,
-        chat_log: messages,
-      }),
-      signal: AbortSignal.timeout(30000), // 30 seconds timeout
-    });
-
-    if (!res.ok) {
-      console.error('Error from RAGdoll API:', res.status, await res.text());
-      return Response.json({ error: 'Error from RAGdoll API' }, { status: 502 });
-    }
-
-    // RAGdoll wraps the pipeline result: { response: { id, model, context_used, ..., response: '<text>' } }
-    const data = await res.json();
-    const reply = data?.response?.response;
-
-    if (typeof reply !== 'string') {
-      console.error('Invalid response from RAGdoll API:', data);
-      return Response.json({ error: 'Invalid response from RAGdoll API' }, { status: 502 });
-    }
-
+    const reply = await askAgent({ id: agentId, accessKey }, messages);
     return Response.json({ response: reply });
   } catch (error) {
-    if (error instanceof Error && error.name === 'TimeoutError') {
-      console.error('Request to RAGdoll API timed out:', error);
-      return Response.json({ error: 'Request to RAGdoll API timed out' }, { status: 504 });
-    }
-    console.error('Error forwarding request to RAGdoll API:', error);
-    return Response.json({ error: 'Error forwarding request to RAGdoll API' }, { status: 502 });
+    console.error('Error asking the RAGdoll agent:', error);
+    // Anything that is not a RagdollError is a bug in our code, not a RAGdoll problem.
+    const { status, error: message } =
+      error instanceof RagdollError
+        ? errorResponses[error.kind]
+        : { status: 500, error: 'Internal server error' };
+    return Response.json({ error: message }, { status });
   }
 }
