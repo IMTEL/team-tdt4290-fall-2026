@@ -14,6 +14,7 @@ import styles from './Navbar.module.css';
 const NAV_LINKS: { href: string; label: string }[] = [
   { href: '/', label: 'Home' },
   { href: '/configure', label: 'Konfigurer' },
+  { href: '/test-chat', label: 'Test intervjuer' },
 ];
 
 function isActive(pathname: string, href: string) {
