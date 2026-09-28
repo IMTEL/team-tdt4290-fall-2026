@@ -12,7 +12,10 @@ import styles from './Navbar.module.css';
 
 // Add a route here and it shows up in the navbar with active highlighting.
 // Only routes that actually exist belong in this list.
-const NAV_LINKS: { href: string; label: string }[] = [{ href: '/', label: 'Home' }];
+const NAV_LINKS: { href: string; label: string }[] = [
+  { href: '/', label: 'Home' },
+  { href: '/browse-agents', label: 'Browse Agents' },
+];
 
 function isActive(pathname: string, href: string) {
   return href === '/' ? pathname === '/' : pathname.startsWith(href);
