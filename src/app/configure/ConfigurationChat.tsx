@@ -37,7 +37,7 @@ export function ConfigurationChat() {
     setError(null);
 
     try {
-      const reply = await sendToAgent(history, controller.signal);
+      const reply = await sendToAgent('configurator', history, controller.signal);
       setMessages((prev) => [
         ...prev,
         { id: crypto.randomUUID(), role: 'assistant', content: reply },

@@ -30,7 +30,7 @@ function setup() {
 }
 
 const sentHistory = (call: number) =>
-  sendMock.mock.calls[call][0].map(({ role, content }) => ({ role, content }));
+  sendMock.mock.calls[call][1].map(({ role, content }) => ({ role, content }));
 
 describe('ConfigurationChat', () => {
   afterEach(() => {
@@ -62,13 +62,14 @@ describe('ConfigurationChat', () => {
     expect(screen.queryByText('Assistenten skriver …')).not.toBeInTheDocument();
   });
 
-  it('sends the whole conversation, greeting included', async () => {
+  it('sends the whole conversation, greeting included, to the configurator agent', async () => {
     sendMock.mockResolvedValue('Neste spørsmål');
     const { user, box } = setup();
 
     await user.type(box, 'Butikkmedarbeider{Enter}');
     await screen.findByText('Neste spørsmål');
 
+    expect(sendMock.mock.calls[0][0]).toBe('configurator');
     expect(sentHistory(0)).toEqual([
       { role: 'assistant', content: expect.stringContaining('Hei!') },
       { role: 'user', content: 'Butikkmedarbeider' },
@@ -113,7 +114,7 @@ describe('ConfigurationChat', () => {
     const { user, box, unmount } = setup();
 
     await user.type(box, 'Hei{Enter}');
-    const signal = sendMock.mock.calls[0][1];
+    const signal = sendMock.mock.calls[0][2];
     unmount();
 
     expect(signal?.aborted).toBe(true);
