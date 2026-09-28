@@ -1,0 +1,10 @@
+.testChat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.toolbar {
+  display: flex;
+  justify-content: flex-end;
+}

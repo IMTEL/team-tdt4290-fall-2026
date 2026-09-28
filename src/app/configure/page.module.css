@@ -27,16 +27,3 @@
   color: var(--muted-foreground);
   text-wrap: pretty;
 }
-
-/* Message list on top (scrolls inside), input pinned to the bottom. Fixed height so the page
-   doesn't grow with every message. */
-.chat {
-  display: flex;
-  flex-direction: column;
-  height: 70vh;
-  min-height: 24rem;
-  overflow: hidden;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  background: var(--card);
-}

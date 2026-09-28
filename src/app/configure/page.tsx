@@ -21,9 +21,7 @@ export default function ConfigurePage() {
         </p>
       </header>
 
-      <div className={styles.chat}>
-        <ConfigurationChat />
-      </div>
+      <ConfigurationChat />
     </div>
   );
 }

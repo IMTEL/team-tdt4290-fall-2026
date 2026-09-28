@@ -20,7 +20,7 @@ export function AgentChat({ send, initialMessages }: AgentChatProps) {
   const { messages, isWaiting, error, sendMessage, retry } = useChat(send, initialMessages);
 
   return (
-    <>
+    <div className={styles.chat}>
       <MessageList messages={messages} isTyping={isWaiting} />
       {error && (
         <Alert
@@ -36,6 +36,6 @@ export function AgentChat({ send, initialMessages }: AgentChatProps) {
         </Alert>
       )}
       <ChatInput onSend={sendMessage} disabled={isWaiting || error !== null} />
-    </>
+    </div>
   );
 }

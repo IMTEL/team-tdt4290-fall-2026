@@ -4,7 +4,7 @@ Prompt for the interviewer agent used in the test chat (`/test-chat`). Paste the
 
 The **Konfigurasjon** section is filled in by hand with a fictional example. Later the prompt builder will fill it from the `KONFIGURASJON` block of the configuration chat (see `configurator.nb.md`); the field names are the same on purpose.
 
-The page sends a fixed greeting as the first assistant turn (it costs no LLM call):
+The page sends a fixed greeting as the first assistant turn (it costs no LLM call). It lives in `src/app/test-chat/TestChat.tsx`; if you change it, change the **Samtalen så langt** section too:
 
 > Hei, og velkommen til intervjuet. Kan du starte med å fortelle litt om deg selv?
 
