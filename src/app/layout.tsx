@@ -30,7 +30,7 @@ export default function RootLayout({
     // The font variables must stay on <html>: globals.css sets font-family
     // there, so defining them on <body> would leave it on the fallback font.
     <html
-      lang="en"
+      lang="nb"
       className={`${geistSans.variable} ${geistMono.variable}`}
       suppressHydrationWarning
     >
