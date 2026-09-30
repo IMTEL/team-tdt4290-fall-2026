@@ -16,6 +16,7 @@ const NAV_LINKS: { href: string; label: string }[] = [
   { href: '/', label: 'Home' },
   { href: '/browse-agents', label: 'Browse Agents' },
   { href: '/configure', label: 'Konfigurer' },
+  { href: '/test-chat', label: 'Test intervjuer' },
 ];
 
 function isActive(pathname: string, href: string) {
