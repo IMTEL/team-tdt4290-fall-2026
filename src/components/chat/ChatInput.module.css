@@ -1,0 +1,8 @@
+/* align-items: flex-end keeps the button at the bottom when the textarea grows. */
+.form {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-end;
+  padding: 1rem;
+  border-top: 1px solid var(--border);
+}
