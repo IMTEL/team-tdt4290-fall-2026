@@ -53,33 +53,205 @@ Accessibility is part of the brief: counsellors are non-technical users, and the
 
 ## Running locally
 
-<!-- TODO: -->
+The app needs three things running on your machine:
+
+| What                    | Where it comes from                                           | URL                     |
+| ----------------------- | ------------------------------------------------------------- | ----------------------- |
+| Our frontend            | this repo, `npm run dev`                                      | <http://localhost:3000> |
+| RAGdoll backend         | the RAGdoll repo, Docker Compose                              | <http://localhost:8000> |
+| Keycloak (login)        | the RAGdoll repo, same Docker Compose                         | <http://localhost:8080> |
+| MongoDB, LibreTranslate | the RAGdoll repo, same Docker Compose (needed by the backend) | ports 27017 and 5000    |
+
+How logging in works: our **Log in** button sends you to RAGdoll's Keycloak. After you sign in there,
+our server hands the Keycloak token to RAGdoll (`POST /api/login`) and gets RAGdoll's own session
+token back. That token stays in an encrypted cookie; the browser calls RAGdoll only through our proxy
+at `/api/backend/*`, which adds the token. The code is in `src/lib/auth-options.ts`.
+
+The start page and its chat work without RAGdoll running. Logging in, `/configure` and
+`/browse-agents` need it.
 
 ### Prerequisites
 
-- Node.js 24 (the version in [`.nvmrc`](.nvmrc) — `nvm use` picks it up)
-- npm 10 or newer
+- Node.js 24 (the version in [`.nvmrc`](.nvmrc); `nvm use` picks it up) and npm 10 or newer
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/), started
+- Python 3 (only to generate one key below; macOS has it)
+- RAGdoll cloned **next to** this repo:
 
-### 1. Frontend (this repo)
+  ```bash
+  cd ..   # the folder that contains team-tdt4290-fall-2026
+  git clone git@github.com:IMTEL/RAGdoll.git
+  ```
+
+  ```
+  some-folder/
+  ├── RAGdoll/
+  └── team-tdt4290-fall-2026/
+  ```
+
+- Free ports 3000, 5000, 8000, 8080 and 27017. **On macOS, port 5000 is taken by AirPlay
+  Receiver**: turn it off in System Settings → General → AirDrop & Handoff (see
+  [Troubleshooting](#troubleshooting) for another way).
+
+### 1. Start RAGdoll (backend and Keycloak)
+
+All commands in this step run in the **RAGdoll** folder.
+
+1. Create RAGdoll's `.env` (first time only):
+
+   ```bash
+   cd ../RAGdoll
+   cp .env.example .env
+   ```
+
+2. RAGdoll's `.env.example` is a template for the production server, and two of its placeholders
+   stop the backend from starting. Generate real values:
+
+   ```bash
+   python3 -c "import base64, os; print(base64.urlsafe_b64encode(os.urandom(32)).decode())"   # FERNET_KEY
+   openssl rand -base64 48                                                                    # JWT_SECRET
+   ```
+
+   Open `RAGdoll/.env` and paste them in:
+
+   | Variable     | Set it to                           | Why                                                                   |
+   | ------------ | ----------------------------------- | --------------------------------------------------------------------- |
+   | `FERNET_KEY` | the output of the `python3` command | The placeholder is not a valid key, and the backend crashes on start. |
+   | `JWT_SECRET` | the output of the `openssl` command | RAGdoll signs its session tokens with it.                             |
+   | `ENV`        | leave it as `prod`                  | With `dev`, RAGdoll ignores the database address from Docker Compose. |
+
+   Leave the rest alone. `docker-compose.local.yml` overrides the Keycloak and MongoDB settings with
+   local ones.
+
+3. Start everything:
+
+   ```bash
+   docker compose -f docker-compose.local.yml up -d
+   ```
+
+   The first start takes several minutes: Docker builds the backend image and LibreTranslate
+   downloads its language models. Later starts take seconds.
+
+4. Check that it is up:
+
+   ```bash
+   docker compose -f docker-compose.local.yml ps   # mongodb, keycloak, libretranslate, backend: "healthy"
+   curl http://localhost:8000/ping                  # answers 200
+   ```
+
+   If `backend` says "Restarting", read its log: `docker logs --tail 30 ragdoll-backend`.
+
+### 2. Configure Keycloak (first time only)
+
+Keycloak needs to know it may send users back to our app after they log out. Without this, **Log
+out** ends on a Keycloak page saying "Invalid redirect uri".
+
+Once RAGdoll is running, run this from **this** repo (it needs nothing from `npm install`):
 
 ```bash
+cd ../team-tdt4290-fall-2026
+npm run keycloak:setup
+```
+
+It prints `✓ Keycloak is set up` when done. If Keycloak has only just started, wait half a minute
+and run it again. The script is [`scripts/keycloak-setup.mjs`](scripts/keycloak-setup.mjs); it
+sets **Valid post logout redirect URIs** to `+` on the `ragdoll-config` client. To do the same by
+hand, open <http://localhost:8080/admin> (log in as `admin` / `admin`), choose the **ragdoll**
+realm, then **Clients** → **ragdoll-config**.
+
+Keycloak keeps this setting in its Docker volume, so it survives restarts. Run the script again
+after `docker compose ... down -v`. Running it twice does no harm.
+
+The realm comes with a test user: **`test@example.com`** / **`test`**. You can also register new
+users from our login page.
+
+### 3. Start the frontend (this repo)
+
+Back in **this** repo:
+
+```bash
+cd ../team-tdt4290-fall-2026
 npm install
-cp .env.example .env.local   # then fill in the values you need
+cp .env.example .env
+```
+
+Open `.env`. The values in `.env.example` already match the local RAGdoll, except:
+
+| Variable                                                    | What to do                                                                                                                                    |
+| ----------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| `NEXTAUTH_SECRET`                                           | Replace with the output of `openssl rand -base64 32`. It encrypts the login cookie.                                                           |
+| `RAGDOLL_API_URL`, `RAGDOLL_AGENT_ID`, `RAGDOLL_ACCESS_KEY` | Only for the chat on the start page, which talks to the deployed RAGdoll. Ask the team for the agent id and access key. Not needed to log in. |
+
+For reference, the login settings for local testing are:
+
+```bash
+NEXTAUTH_URL=http://localhost:3000
+BACKEND_API_URL=http://localhost:8000
+KEYCLOAK_CLIENT_ID=ragdoll-config
+KEYCLOAK_CLIENT_SECRET=ragdoll-config-secret
+KEYCLOAK_ISSUER=http://localhost:8080/realms/ragdoll
+```
+
+Then start the app:
+
+```bash
 npm run dev
 ```
 
-The app runs on <http://localhost:3000>.
+The app runs on <http://localhost:3000>. Next.js reads `.env` only when it starts, so restart
+`npm run dev` after changing it.
 
 `npm run build` makes a production build and `npm run start` serves it.
 
-### 2. Backend
+### 4. Test the login
 
-The backend is [RAGdoll](https://github.com/IMTEL/RAGdoll), in its own repository.
-Nothing in this repo calls it yet — [`src/lib/api.ts`](src/lib/api.ts) is the single
-place where that will happen, and it reads `NEXT_PUBLIC_BACKEND_API_URL`
-(default `http://localhost:8000`). The start page works without a backend running.
+It helps to keep RAGdoll's log open in a second terminal (in the RAGdoll folder), so you can see each
+call arrive:
 
-### 3. Checks
+```bash
+docker compose -f docker-compose.local.yml logs -f backend
+```
+
+| #   | Do this                                                                                | You should see                                                                                                 |
+| --- | -------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| 1   | Open <http://localhost:3000/configure> while logged out                                | You are sent to `/login`                                                                                       |
+| 2   | Click **Log in** and sign in as `test@example.com` / `test`                            | You land back on `/configure`; the navbar shows your name and **Log out**; the log shows `POST /api/login` 200 |
+| 3   | In the browser console (F12), run `await (await fetch('/api/backend/agents/')).json()` | A list (probably `[]`), not an error. This shows the proxy sends RAGdoll's token                               |
+| 4   | Click **Log out**                                                                      | You pass briefly through Keycloak and end on `/login`; the log shows `GET /api/logout`                         |
+| 5   | Run the console command from step 3 again                                              | `{error: 'Not signed in'}`                                                                                     |
+| 6   | Click **Log in** again                                                                 | Keycloak asks for your password again. If it signs you straight in, run `npm run keycloak:setup`               |
+| 7   | Log out and click **Create account**                                                   | Keycloak's registration form opens                                                                             |
+
+**Optional, token refresh:** RAGdoll's session token lasts 15 minutes, and our app renews it
+automatically. To see that without waiting, add `SESSION_TOKEN_TTL=1` to `RAGdoll/.env`, restart
+the backend (`docker compose -f docker-compose.local.yml up -d backend`), log in, wait two minutes
+and repeat step 3. It should still work, and the log shows `POST /api/refresh`. Remove the line
+afterwards.
+
+### 5. Stop RAGdoll
+
+In the RAGdoll folder:
+
+```bash
+docker compose -f docker-compose.local.yml down      # stops everything, keeps users and agents
+docker compose -f docker-compose.local.yml down -v   # also deletes all data, including the Keycloak setting from step 2
+```
+
+### Troubleshooting
+
+| Symptom                                                                                               | Cause and fix                                                                                                                                                                                                                                                                                                                                         |
+| ----------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `open .../docker-compose.local.yml: no such file or directory`                                        | You are in this repo. Run Docker commands in the `RAGdoll` folder.                                                                                                                                                                                                                                                                                    |
+| `ports are not available ... 0.0.0.0:5000 ... address already in use`                                 | macOS AirPlay Receiver uses port 5000. Turn it off (see Prerequisites), or keep it and move LibreTranslate: create `RAGdoll/docker-compose.port-override.yml` containing `services: { libretranslate: { ports: !override ["5001:5000"] } }` and add `-f docker-compose.port-override.yml` to every `docker compose` command. Do not commit that file. |
+| Another `address already in use` (8000, 8080, 27017)                                                  | Something else uses the port, often another project's container. `docker ps` shows which; stop it.                                                                                                                                                                                                                                                    |
+| `ragdoll-backend` keeps restarting, log ends in `Fernet key must be 32 url-safe base64-encoded bytes` | `FERNET_KEY` in `RAGdoll/.env` is still the placeholder. See step 1.2, then `docker compose -f docker-compose.local.yml up -d backend`.                                                                                                                                                                                                               |
+| Backend log shows `localhost:27017: Connection refused`                                               | `ENV=dev` in `RAGdoll/.env`. Set it back to `prod` and restart the backend.                                                                                                                                                                                                                                                                           |
+| Backend log shows `Could not create user indexes: An existing index has the same name`                | Harmless warning; the index already exists. Ignore it.                                                                                                                                                                                                                                                                                                |
+| After Keycloak you land on `/login` with "Log in failed"                                              | Look at the `npm run dev` terminal. `RAGdoll login failed: 401` means RAGdoll rejected the Keycloak token: check `KEYCLOAK_ISSUER` is exactly `http://localhost:8080/realms/ragdoll`. `fetch failed` or `ECONNREFUSED` means the backend is not running. `invalid_client` means `KEYCLOAK_CLIENT_ID` or `KEYCLOAK_CLIENT_SECRET` is wrong.            |
+| "Invalid redirect uri" when logging out                                                               | Run `npm run keycloak:setup` (step 2).                                                                                                                                                                                                                                                                                                                |
+| **Log in** signs you in without asking for a password after you logged out                            | Same as above: run `npm run keycloak:setup`. Without it, the Keycloak session is not ended.                                                                                                                                                                                                                                                           |
+| `NO_SECRET` or `JWT_SESSION_ERROR` in the `npm run dev` terminal                                      | `NEXTAUTH_SECRET` is missing from `.env`, or you changed it while logged in. Set it, restart `npm run dev` and log in again.                                                                                                                                                                                                                          |
+
+### 6. Checks
 
 The same commands CI runs, so you can see failures before opening a pull request:
 
@@ -103,6 +275,7 @@ Never commit `.env`. The IDUN key must not appear anywhere in this repo.
 docs/design-guide.md  colour palette, component library, CSS rules
 docs/decisions/       one page per design decision (ADR)
 public/               static assets served at the site root
+scripts/              developer scripts, e.g. keycloak-setup.mjs (npm run keycloak:setup)
 src/app/              routes (App Router); globals.css holds the tokens and reset
 src/components/       our own components, each with its own *.module.css
 src/components/ui/    low-level primitives (button, dropdown menu) built on Radix

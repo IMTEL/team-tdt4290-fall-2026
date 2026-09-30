@@ -8,6 +8,7 @@ import Toolbar from '@mui/material/Toolbar';
 import { cn } from '@/lib/utils';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import styles from './Navbar.module.css';
+import LogInPageButton from './login/LogInPageButton';
 
 // Add a route here and it shows up in the navbar with active highlighting.
 // Only routes that actually exist belong in this list.
@@ -56,6 +57,7 @@ export function Navbar() {
         </ul>
 
         <ThemeToggle />
+        <LogInPageButton />
       </Toolbar>
     </AppBar>
   );
