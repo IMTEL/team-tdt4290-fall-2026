@@ -1,11 +1,10 @@
-
 import { notFound } from 'next/navigation';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import { mockAgents } from '@/data/mock-agents';
 
 interface AgentDetailPageProps {
-    params: Promise<{agentId: string}>;
+  params: Promise<{ agentId: string }>;
 }
 
 export default async function AgentDetailPage({ params }: AgentDetailPageProps) {

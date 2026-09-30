@@ -9,7 +9,7 @@ export default function BrowseAgentsPage() {
       <Typography variant="h4" component="h1" sx={{ mb: 2 }}>
         Browse Agents
       </Typography>
-      <Box sx={{ height: 'var(--table-height)'}}>
+      <Box sx={{ height: 'var(--table-height)' }}>
         <AgentsTable agents={mockAgents} />
       </Box>
     </Box>
