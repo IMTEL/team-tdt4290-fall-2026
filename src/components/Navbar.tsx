@@ -3,11 +3,8 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Bot } from 'lucide-react';
-<<<<<<< HEAD
 import AppBar from '@mui/material/AppBar';
 import Toolbar from '@mui/material/Toolbar';
-=======
->>>>>>> 73a0a3b (feat: add basic log in page)
 import { cn } from '@/lib/utils';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import styles from './Navbar.module.css';
@@ -60,13 +57,8 @@ export function Navbar() {
         </ul>
 
         <ThemeToggle />
-<<<<<<< HEAD
+        <LogInPageButton />
       </Toolbar>
     </AppBar>
-=======
-        <LogInPageButton />
-      </nav>
-    </header>
->>>>>>> 73a0a3b (feat: add basic log in page)
   );
 }
