@@ -1,0 +1,4 @@
+# Store and check out every text file with LF line endings, on every OS. Prettier expects LF
+# (`endOfLine: "lf"`), so without this, `npm run format:check` fails on Windows machines with
+# core.autocrlf=true while it passes in CI.
+* text=auto eol=lf
