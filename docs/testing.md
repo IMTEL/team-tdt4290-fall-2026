@@ -52,6 +52,32 @@ Unit and component level only:
   the request.
 - `src/app/configure/page.test.tsx`: smoke test for the heading, the chat and the tab title.
 
+Log in (Keycloak via NextAuth, with RAGdoll's own session tokens):
+
+- `src/lib/auth-options.test.ts`: `hasExpired` with its 30 second margin; the `jwt` callback trades
+  the Keycloak token for RAGdoll's tokens on first sign-in (ID token, else access token), keeps a
+  valid token, refreshes an expired one and ends the session when the refresh token has expired;
+  a rejected login or missing `BACKEND_API_URL` fails the sign-in; the `session` callback exposes
+  name and picture but never the tokens.
+- `src/lib/session-tokens.test.ts`: `getSessionToken` returns null when signed out, returns a valid
+  token, refreshes an expired one for the request, and returns null when refresh is impossible or
+  fails.
+- `src/lib/auth.test.ts`: log in and create account call Keycloak with the callback URL (create
+  account with `prompt: 'create'`); log out calls `/api/logout`, clears the NextAuth session and
+  goes to Keycloak's logout URL, falling back to `/login` when the logout route fails.
+- `src/app/api/logout/route.test.ts`: revokes RAGdoll's token, builds the Keycloak logout URL with
+  the ID token hint (or client id) and the way back to `/login`, and still logs out of Keycloak
+  when RAGdoll cannot be reached.
+- `src/app/api/backend/[...path]/route.test.ts`: forwards method, path, query and body to RAGdoll
+  with the session token; 401 when signed out, 500 without `BACKEND_API_URL`, 502 when RAGdoll
+  cannot be reached, and RAGdoll's own status codes passed through.
+- `src/components/login/LoginButtons.test.tsx` and `src/app/login/page.test.tsx`: the buttons log
+  in or sign up and return to `callbackUrl`; the page shows an error for `?error` and sends
+  signed-in users to `/`.
+- `src/components/login/LogInPageButton.test.tsx`: nothing while the session loads, a "Log in" link
+  (marked current on `/login`) when signed out, and the user's name with a working "Log out" button
+  when signed in.
+
 Not covered yet:
 
 - No end-to-end tests in a real browser, and no integration tests against a real RAGdoll.
