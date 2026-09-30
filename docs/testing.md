@@ -51,15 +51,6 @@ Unit and component level only:
   history without repeating the user's message; no technical error text; leaving the page aborts
   the request.
 - `src/app/configure/page.test.tsx`: smoke test for the heading, the chat and the tab title.
-- `src/components/Navbar.test.tsx`: Norwegian name (KFI) and links, the current section marked
-  with `aria-current`, "Logg inn" for visitors and "Logg ut" plus the name for signed-in users.
-- `src/app/page.test.tsx`: smoke test for the Norwegian heading and introduction.
-- `src/app/browse-agents/page.test.tsx` and `[agentId]/page.test.tsx`: the agent table with
-  Norwegian headers, statuses and dates; a row click opens the details page; details show the
-  Norwegian status and date; an unknown id gives the 404 page.
-- `src/components/agents/AgentsTable.test.tsx`: MUI's own table texts ("1–3 av 3", "Ingen rader")
-  come out in Norwegian from the theme.
-- `src/lib/format.test.ts`: Norwegian dates in Oslo time, and a label for every agent status.
 
 Not covered yet:
 
