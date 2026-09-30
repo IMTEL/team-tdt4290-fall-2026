@@ -13,6 +13,7 @@ import styles from './Navbar.module.css';
 // Only routes that actually exist belong in this list.
 const NAV_LINKS: { href: string; label: string }[] = [
   { href: '/', label: 'Home' },
+  { href: '/browse-agents', label: 'Browse Agents' },
   { href: '/configure', label: 'Konfigurer' },
 ];
 
