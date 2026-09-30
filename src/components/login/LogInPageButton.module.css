@@ -1,0 +1,18 @@
+.userName {
+  max-width: 10rem;
+  overflow: hidden;
+  font-size: 0.875rem;
+  color: var(--muted-foreground);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.logOutButton {
+  cursor: pointer;
+}
+
+@media (width < 40rem) {
+  .userName {
+    display: none;
+  }
+}

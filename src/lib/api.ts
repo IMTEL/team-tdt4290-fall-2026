@@ -1,9 +1,10 @@
 /**
- * Thin client for the backend (RAGdoll). Nothing calls this yet — it exists so
- * that every request goes through one place once the API work starts.
+ * Thin client for the backend (RAGdoll). Requests go to our own Next.js proxy at
+ * `/api/backend/*` (see src/app/api/backend/[...path]/route.ts), which adds the signed-in
+ * user's session token and forwards them to RAGdoll. Call it from the browser.
  */
 
-export const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_API_URL ?? '/api/backend'
+export const API_BASE_URL = '/api/backend';
 
 /** Thrown when the backend answers with a non-2xx status. */
 export class ApiError extends Error {
@@ -34,7 +35,7 @@ export class ApiUnreachableError extends Error {
 /**
  * Fetch `path` from the backend and parse the response as JSON.
  *
- * @param path Path relative to the API root, e.g. `/api/health`.
+ * @param path Path relative to the RAGdoll root, e.g. `/agents/`.
  */
 export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   const url = `${API_BASE_URL}${path.startsWith('/') ? path : `/${path}`}`;
