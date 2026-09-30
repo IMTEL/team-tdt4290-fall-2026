@@ -25,14 +25,14 @@ export default async function LogInPage({
         <CardContent className={styles.cardContent}>
           <div className={styles.header}>
             <Typography variant="h5" component="h1" className={styles.title}>
-              Log in
+              Logg inn
             </Typography>
             <Typography variant="body2" className={styles.subtitle}>
-              Log in to configure your interviewer agents.
+              Logg inn for å sette opp intervjuagentene dine.
             </Typography>
           </div>
 
-          {error && <Alert severity="error">Log in failed. Please try again.</Alert>}
+          {error && <Alert severity="error">Innloggingen mislyktes. Prøv igjen.</Alert>}
 
           <div className={styles.actions}>
             <LoginButtons callbackUrl={callbackUrl} />

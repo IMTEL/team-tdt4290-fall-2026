@@ -21,16 +21,16 @@ describe('LogInPage', () => {
   it('shows the log in heading and the Keycloak buttons', async () => {
     await renderPage();
 
-    expect(screen.getByRole('heading', { level: 1, name: 'Log in' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Log in' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Create account' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 1, name: 'Logg inn' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Logg inn' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Opprett konto' })).toBeInTheDocument();
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
 
   it('shows an error when Keycloak sent the user back with ?error', async () => {
     await renderPage({ error: 'OAuthCallback' });
 
-    expect(screen.getByRole('alert')).toHaveTextContent('Log in failed');
+    expect(screen.getByRole('alert')).toHaveTextContent('Innloggingen mislyktes');
   });
 
   it('redirects users who are already signed in to the start page', async () => {
