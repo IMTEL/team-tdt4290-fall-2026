@@ -1,0 +1,10 @@
+// Used by `npm run typecheck`. Same as tsconfig.json but without .next/dev/types: next dev
+// writes route types there and leaves them behind when you switch branches, so tsc would report
+// pages that no longer exist. `next typegen` regenerates .next/types before tsc runs.
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "incremental": false
+  },
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"]
+}

@@ -7,10 +7,13 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "typecheck": "next typegen && tsc --noEmit -p tsconfig.typecheck.json",
     "test": "vitest run",
+    "test:watch": "vitest",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "test:watch": "vitest",
+    "check": "npm run lint && npm run format:check && npm run typecheck && npm run test",
+    "fix": "prettier --write . && eslint --fix",
     "keycloak:setup": "node scripts/keycloak-setup.mjs"
   },
   "dependencies": {
