@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import { mockAgents } from '@/data/mock-agents';
+import { agentStatusLabels, formatDate } from '@/lib/format';
 
 interface AgentDetailPageProps {
   params: Promise<{ agentId: string }>;
@@ -20,9 +21,9 @@ export default async function AgentDetailPage({ params }: AgentDetailPageProps) 
       <Typography variant="h4" component="h1" sx={{ mb: 2 }}>
         {agent.name}
       </Typography>
-      <Typography variant="body1">Status: {agent.status}</Typography>
+      <Typography variant="body1">Status: {agentStatusLabels[agent.status]}</Typography>
       <Typography variant="body1" sx={{ mb: 2 }}>
-        Created: {new Date(agent.createdAt).toLocaleDateString()}
+        Opprettet: {formatDate(agent.createdAt)}
       </Typography>
       <Typography variant="body1">{agent.description}</Typography>
     </Box>
