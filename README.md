@@ -145,14 +145,21 @@ All commands in this step run in the **RAGdoll** folder.
 Keycloak needs to know it may send users back to our app after they log out. Without this, **Log
 out** ends on a Keycloak page saying "Invalid redirect uri".
 
-1. Open <http://localhost:8080/admin> and log in as `admin` / `admin`.
-2. In the realm drop-down at the top left, choose **ragdoll**.
-3. Go to **Clients** → **ragdoll-config**.
-4. Set **Valid post logout redirect URIs** to `+` (meaning "the same as the valid redirect URIs") and
-   click **Save**.
+Once RAGdoll is running, run this from **this** repo (it needs nothing from `npm install`):
 
-Keycloak keeps this in its Docker volume, so it survives restarts. Redo it only after
-`docker compose ... down -v`.
+```bash
+cd ../team-tdt4290-fall-2026
+npm run keycloak:setup
+```
+
+It prints `✓ Keycloak is set up` when done. If Keycloak has only just started, wait half a minute
+and run it again. The script is [`scripts/keycloak-setup.mjs`](scripts/keycloak-setup.mjs); it
+sets **Valid post logout redirect URIs** to `+` on the `ragdoll-config` client. To do the same by
+hand, open <http://localhost:8080/admin> (log in as `admin` / `admin`), choose the **ragdoll**
+realm, then **Clients** → **ragdoll-config**.
+
+Keycloak keeps this setting in its Docker volume, so it survives restarts. Run the script again
+after `docker compose ... down -v`. Running it twice does no harm.
 
 The realm comes with a test user: **`test@example.com`** / **`test`**. You can also register new
 users from our login page.
@@ -211,7 +218,7 @@ docker compose -f docker-compose.local.yml logs -f backend
 | 3   | In the browser console (F12), run `await (await fetch('/api/backend/agents/')).json()` | A list (probably `[]`), not an error. This shows the proxy sends RAGdoll's token                               |
 | 4   | Click **Log out**                                                                      | You pass briefly through Keycloak and end on `/login`; the log shows `GET /api/logout`                         |
 | 5   | Run the console command from step 3 again                                              | `{error: 'Not signed in'}`                                                                                     |
-| 6   | Click **Log in** again                                                                 | Keycloak asks for your password again. If it signs you straight in, step 2 of the setup is missing             |
+| 6   | Click **Log in** again                                                                 | Keycloak asks for your password again. If it signs you straight in, run `npm run keycloak:setup`               |
 | 7   | Log out and click **Create account**                                                   | Keycloak's registration form opens                                                                             |
 
 **Optional, token refresh:** RAGdoll's session token lasts 15 minutes, and our app renews it
@@ -240,8 +247,8 @@ docker compose -f docker-compose.local.yml down -v   # also deletes all data, in
 | Backend log shows `localhost:27017: Connection refused`                                               | `ENV=dev` in `RAGdoll/.env`. Set it back to `prod` and restart the backend.                                                                                                                                                                                                                                                                           |
 | Backend log shows `Could not create user indexes: An existing index has the same name`                | Harmless warning; the index already exists. Ignore it.                                                                                                                                                                                                                                                                                                |
 | After Keycloak you land on `/login` with "Log in failed"                                              | Look at the `npm run dev` terminal. `RAGdoll login failed: 401` means RAGdoll rejected the Keycloak token: check `KEYCLOAK_ISSUER` is exactly `http://localhost:8080/realms/ragdoll`. `fetch failed` or `ECONNREFUSED` means the backend is not running. `invalid_client` means `KEYCLOAK_CLIENT_ID` or `KEYCLOAK_CLIENT_SECRET` is wrong.            |
-| "Invalid redirect uri" when logging out                                                               | Step 2 (Configure Keycloak) is missing.                                                                                                                                                                                                                                                                                                               |
-| **Log in** signs you in without asking for a password after you logged out                            | Same as above: without step 2, the Keycloak session is not ended.                                                                                                                                                                                                                                                                                     |
+| "Invalid redirect uri" when logging out                                                               | Run `npm run keycloak:setup` (step 2).                                                                                                                                                                                                                                                                                                                |
+| **Log in** signs you in without asking for a password after you logged out                            | Same as above: run `npm run keycloak:setup`. Without it, the Keycloak session is not ended.                                                                                                                                                                                                                                                           |
 | `NO_SECRET` or `JWT_SESSION_ERROR` in the `npm run dev` terminal                                      | `NEXTAUTH_SECRET` is missing from `.env`, or you changed it while logged in. Set it, restart `npm run dev` and log in again.                                                                                                                                                                                                                          |
 
 ### 6. Checks
@@ -268,6 +275,7 @@ Never commit `.env`. The IDUN key must not appear anywhere in this repo.
 docs/design-guide.md  colour palette, component library, CSS rules
 docs/decisions/       one page per design decision (ADR)
 public/               static assets served at the site root
+scripts/              developer scripts, e.g. keycloak-setup.mjs (npm run keycloak:setup)
 src/app/              routes (App Router); globals.css holds the tokens and reset
 src/components/       our own components, each with its own *.module.css
 src/components/ui/    low-level primitives (button, dropdown menu) built on Radix

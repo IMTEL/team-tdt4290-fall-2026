@@ -17,6 +17,11 @@ const eslintConfig = defineConfig([
       'no-console': ['warn', { allow: ['warn', 'error'] }],
     },
   },
+  {
+    // Command-line scripts report to the terminal on purpose.
+    files: ['scripts/**'],
+    rules: { 'no-console': 'off' },
+  },
   prettier,
   globalIgnores([
     'node_modules/**',

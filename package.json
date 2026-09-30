@@ -10,7 +10,8 @@
     "test": "vitest run",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "keycloak:setup": "node scripts/keycloak-setup.mjs"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",
