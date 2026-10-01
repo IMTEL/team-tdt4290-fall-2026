@@ -39,7 +39,7 @@ describe('LogInPage', () => {
   it('sends the user back to the page they wanted after logging in', async () => {
     await renderPage({ callbackUrl: '/configure' });
 
-    await userEvent.click(screen.getByRole('button', { name: 'Log in' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Logg inn' }));
 
     expect(keycloakSignIn).toHaveBeenCalledWith('/configure');
   });

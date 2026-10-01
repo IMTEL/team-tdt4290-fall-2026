@@ -15,7 +15,7 @@ describe('LoginButtons', () => {
   it('logs in with Keycloak and returns to the start page by default', async () => {
     render(<LoginButtons />);
 
-    await userEvent.click(screen.getByRole('button', { name: 'Log in' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Logg inn' }));
 
     expect(keycloakSignIn).toHaveBeenCalledWith('/');
     expect(keycloakRegister).not.toHaveBeenCalled();
@@ -24,7 +24,7 @@ describe('LoginButtons', () => {
   it("opens Keycloak's registration form from Create account", async () => {
     render(<LoginButtons />);
 
-    await userEvent.click(screen.getByRole('button', { name: 'Create account' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Opprett konto' }));
 
     expect(keycloakRegister).toHaveBeenCalledWith('/');
     expect(keycloakSignIn).not.toHaveBeenCalled();
@@ -33,8 +33,8 @@ describe('LoginButtons', () => {
   it('sends the user back to the page they wanted after logging in or signing up', async () => {
     render(<LoginButtons callbackUrl="/configure" />);
 
-    await userEvent.click(screen.getByRole('button', { name: 'Log in' }));
-    await userEvent.click(screen.getByRole('button', { name: 'Create account' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Logg inn' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Opprett konto' }));
 
     expect(keycloakSignIn).toHaveBeenCalledWith('/configure');
     expect(keycloakRegister).toHaveBeenCalledWith('/configure');

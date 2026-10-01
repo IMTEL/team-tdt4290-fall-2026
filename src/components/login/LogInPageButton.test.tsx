@@ -44,10 +44,10 @@ describe('LogInPageButton', () => {
 
     render(<LogInPageButton />);
 
-    const link = screen.getByRole('link', { name: 'Log in' });
+    const link = screen.getByRole('link', { name: 'Logg inn' });
     expect(link).toHaveAttribute('href', '/login');
     expect(link).not.toHaveAttribute('aria-current');
-    expect(screen.queryByRole('button', { name: 'Log out' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Logg ut' })).not.toBeInTheDocument();
   });
 
   it('marks the link as the current page on /login', () => {
@@ -56,7 +56,7 @@ describe('LogInPageButton', () => {
 
     render(<LogInPageButton />);
 
-    expect(screen.getByRole('link', { name: 'Log in' })).toHaveAttribute('aria-current', 'page');
+    expect(screen.getByRole('link', { name: 'Logg inn' })).toHaveAttribute('aria-current', 'page');
   });
 
   it("shows the signed-in user's name and a log out button instead of the link", () => {
@@ -65,15 +65,15 @@ describe('LogInPageButton', () => {
     render(<LogInPageButton />);
 
     expect(screen.getByText('Kari Nordmann')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Log out' })).toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: 'Log in' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Logg ut' })).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Logg inn' })).not.toBeInTheDocument();
   });
 
   it('logs the user out when they click Log out', async () => {
     mockSession(signedIn);
     render(<LogInPageButton />);
 
-    await userEvent.click(screen.getByRole('button', { name: 'Log out' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Logg ut' }));
 
     expect(handleSignOut).toHaveBeenCalledTimes(1);
   });
