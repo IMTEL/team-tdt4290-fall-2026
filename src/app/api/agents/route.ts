@@ -3,28 +3,10 @@ import type { NextRequest } from 'next/server';
 import { isConfiguration } from '@/domain/configuration';
 import { getSessionToken } from '@/lib/session-tokens';
 import { toRagdollAgent } from '@/server/agentMapper';
-import { listAgents, RagdollError, saveAgent, type RagdollErrorKind } from '@/server/ragdoll';
+import { configErrorResponse, ragdollErrorResponse } from '@/server/errorResponse';
+import { listAgents, saveAgent } from '@/server/ragdoll';
 
 const MAX_NAME_LENGTH = 100;
-
-// What the browser gets for each RAGdoll failure. Never RAGdoll's own message.
-const errorResponses: Record<RagdollErrorKind, { status: number; error: string }> = {
-  config: { status: 500, error: 'Server configuration error' },
-  timeout: { status: 504, error: 'Request to RAGdoll API timed out' },
-  unreachable: { status: 502, error: 'Error from RAGdoll API' },
-  'bad-response': { status: 502, error: 'Invalid response from RAGdoll API' },
-  unauthorized: { status: 401, error: 'Not signed in' },
-};
-
-function errorResponse(error: unknown) {
-  console.error('Error talking to RAGdoll:', error);
-  // Anything that is not a RagdollError is a bug in our code, not a RAGdoll problem.
-  const { status, error: message } =
-    error instanceof RagdollError
-      ? errorResponses[error.kind]
-      : { status: 500, error: 'Internal server error' };
-  return Response.json({ error: message }, { status });
-}
 
 /** Saves a new interviewer agent, owned by the logged-in counsellor. Returns its id. */
 export async function POST(req: NextRequest) {
@@ -52,14 +34,14 @@ export async function POST(req: NextRequest) {
   const idunKey = process.env.IDUN_API_KEY;
   if (!idunKey) {
     console.error('IDUN_API_KEY is not set');
-    return Response.json({ error: errorResponses.config.error }, { status: 500 });
+    return configErrorResponse();
   }
 
   try {
     const id = await saveAgent(sessionToken, toRagdollAgent(name, configuration, idunKey));
     return Response.json({ id }, { status: 201 });
   } catch (error) {
-    return errorResponse(error);
+    return ragdollErrorResponse(error);
   }
 }
 
@@ -73,6 +55,6 @@ export async function GET(req: NextRequest) {
   try {
     return Response.json({ agents: await listAgents(sessionToken) });
   } catch (error) {
-    return errorResponse(error);
+    return ragdollErrorResponse(error);
   }
 }
