@@ -4,5 +4,5 @@ import { withAuth } from 'next-auth/middleware';
 export default withAuth({ pages: { signIn: '/login' } });
 
 export const config = {
-  matcher: ['/configure/:path*', '/template-picker/:path*', '/browse-agents/:path*'],
+  matcher: ['/configure/:path*', '/browse-agents/:path*', '/test-chat/:path*'],
 };

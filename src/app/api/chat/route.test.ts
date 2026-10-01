@@ -1,20 +1,25 @@
 // @vitest-environment node
+import { NextRequest } from 'next/server';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { getSessionToken } from '@/lib/session-tokens';
 import { askAgent, RagdollError, type RagdollErrorKind } from '@/server/ragdoll';
 import { POST } from './route';
 
 // The RAGdoll adapter has its own tests (src/server/ragdoll.test.ts). Here we only check
-// what the route adds on top: validating the request and turning errors into status codes.
+// what the route adds on top: the session check, validating the request and turning errors
+// into status codes.
+vi.mock('@/lib/session-tokens', () => ({ getSessionToken: vi.fn() }));
 vi.mock('@/server/ragdoll', async (importOriginal) => {
   const original = await importOriginal<typeof import('@/server/ragdoll')>();
   return { ...original, askAgent: vi.fn() };
 });
 
+const getSessionTokenMock = vi.mocked(getSessionToken);
 const askAgentMock = vi.mocked(askAgent);
 
 function chatRequest(body: unknown) {
-  return new Request('http://localhost/api/chat', {
+  return new NextRequest('http://localhost/api/chat', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: typeof body === 'string' ? body : JSON.stringify(body),
@@ -25,6 +30,7 @@ const validBody = { agent: 'configurator', messages: [{ role: 'user', content: '
 
 describe('POST /api/chat', () => {
   beforeEach(() => {
+    getSessionTokenMock.mockResolvedValue('session-token');
     vi.stubEnv('RAGDOLL_CONFIGURATOR_AGENT_ID', 'configurator-123');
     vi.stubEnv('RAGDOLL_CONFIGURATOR_ACCESS_KEY', 'configurator-key');
     vi.stubEnv('RAGDOLL_INTERVIEWER_AGENT_ID', 'interviewer-456');
@@ -36,7 +42,17 @@ describe('POST /api/chat', () => {
   afterEach(() => {
     vi.unstubAllEnvs();
     vi.restoreAllMocks();
+    getSessionTokenMock.mockReset();
     askAgentMock.mockReset();
+  });
+
+  it('answers 401 and asks no agent when the user is not logged in', async () => {
+    getSessionTokenMock.mockResolvedValue(null);
+
+    const res = await POST(chatRequest(validBody));
+
+    expect(res.status).toBe(401);
+    expect(askAgentMock).not.toHaveBeenCalled();
   });
 
   it('asks the configurator agent and returns only the reply text', async () => {

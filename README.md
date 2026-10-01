@@ -84,10 +84,11 @@ The app needs three things running on your machine:
 
 How logging in works: our **Logg inn** button sends you to RAGdoll's Keycloak. After you sign in there,
 our server hands the Keycloak token to RAGdoll (`POST /api/login`) and gets RAGdoll's own session
-token back. That token stays in an encrypted cookie; the browser calls RAGdoll only through our proxy
-at `/api/backend/*`, which adds the token. The code is in `src/lib/auth-options.ts`.
+token back. That token stays in an encrypted cookie. The browser never talks to RAGdoll: it calls our
+own routes under `/api/*` (for example `/api/agents`), which read the token on the server and call
+RAGdoll with it. The login code is in `src/lib/auth-options.ts`.
 
-The start page and its chat work without RAGdoll running. Logging in, `/configure` and
+The start page works without RAGdoll running. Logging in, `/configure`, `/test-chat` and
 `/browse-agents` need it.
 
 ### Prerequisites
@@ -196,10 +197,12 @@ cp .env.example .env
 
 Open `.env`. The values in `.env.example` already match the local RAGdoll, except:
 
-| Variable                                                    | What to do                                                                                                                                    |
-| ----------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| `NEXTAUTH_SECRET`                                           | Replace with the output of `openssl rand -base64 32`. It encrypts the login cookie.                                                           |
-| `RAGDOLL_API_URL`, `RAGDOLL_AGENT_ID`, `RAGDOLL_ACCESS_KEY` | Only for the chat on the start page, which talks to the deployed RAGdoll. Ask the team for the agent id and access key. Not needed to log in. |
+| Variable                                                           | What to do                                                                                                                                                         |
+| ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `NEXTAUTH_SECRET`                                                  | Replace with the output of `openssl rand -base64 32`. It encrypts the login cookie.                                                                                |
+| `RAGDOLL_CONFIGURATOR_AGENT_ID`, `RAGDOLL_CONFIGURATOR_ACCESS_KEY` | The shared configurator agent behind `/configure`. It lives on the RAGdoll at `RAGDOLL_API_URL` (the deployed one by default). Ask the team. Not needed to log in. |
+| `RAGDOLL_INTERVIEWER_AGENT_ID`, `RAGDOLL_INTERVIEWER_ACCESS_KEY`   | The fixed interviewer behind `/test-chat`, on the same RAGdoll. Ask the team.                                                                                      |
+| `IDUN_API_KEY`                                                     | The project's IDUN key. Our server puts it into every agent it saves. Needed to save agents; ask the team.                                                         |
 
 For reference, the login settings for local testing are:
 
@@ -300,8 +303,9 @@ src/app/              routes (App Router) and API routes (src/app/api/); globals
 src/components/       our own components, built from MUI and the primitives, with their own *.module.css
 src/components/ui/    low-level primitives (button, dropdown menu) built on Radix
 src/data/             mock agents and interviewer templates
-src/lib/              helpers: api.ts (backend client), auth-options.ts (NextAuth), mui-theme.ts, utils.ts (cn)
-src/server/           server-only code: ragdoll.ts (RAGdoll adapter)
+src/lib/              helpers: api.ts (backend client), login (auth-options.ts, session-tokens.ts), mui-theme.ts, utils.ts (cn)
+src/domain/           pure functions: read the KONFIGURASJON block, build the interviewer prompt
+src/server/           server-only code: the RAGdoll adapter, agent mapper, error responses
 ```
 
 Conventions worth knowing before adding code:

@@ -33,6 +33,7 @@ yarn-error.log*
 # Instruction files that AI coding tools create in the repo root
 AGENTS.md
 CLAUDE.md
+.cursor/
 
 # Editors
 .vscode/*
