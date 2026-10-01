@@ -24,6 +24,7 @@ const errorResponses: Record<RagdollErrorKind, { status: number; error: string }
   timeout: { status: 504, error: 'Request to RAGdoll API timed out' },
   unreachable: { status: 502, error: 'Error from RAGdoll API' },
   'bad-response': { status: 502, error: 'Invalid response from RAGdoll API' },
+  unauthorized: { status: 401, error: 'Not signed in' },
 };
 
 // Forwards the chat history to RAGdoll from the server, so the access key never reaches the browser.

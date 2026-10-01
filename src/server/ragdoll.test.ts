@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { askAgent, RagdollError } from './ragdoll';
+import { askAgent, listAgents, RagdollError, saveAgent, type NewRagdollAgent } from './ragdoll';
 
 const RAGDOLL_URL = 'https://ragdoll.test/backend';
 const agent = { id: 'agent-123', accessKey: 'secret-key' };
@@ -108,5 +108,120 @@ describe('askAgent', () => {
     const error = await askAndCatch();
 
     expect((error as RagdollError).kind).toBe('bad-response');
+  });
+});
+
+const BACKEND_URL = 'http://ragdoll.local';
+const SESSION_TOKEN = 'session-token-abc';
+
+const newAgent: NewRagdollAgent = {
+  name: 'Butikksjef',
+  description: '{}',
+  prompt: 'Du er en intervjuer.',
+  roles: [
+    { name: 'Butikksjef', description: 'Intervjuer', document_access: [], function_access: [] },
+  ],
+  llm_provider: 'idun',
+  llm_model: 'openai/gpt-oss-120b',
+  llm_api_key: 'idun-key',
+  embedding_model: 'idun:Qwen/Qwen3-Embedding-8B',
+  embedding_api_key: 'idun-key',
+  context_aware_retrieval: false,
+  last_updated: '2026-10-01T08:00:00.000Z',
+};
+
+describe('saveAgent', () => {
+  const fetchMock = vi.fn<typeof fetch>();
+
+  beforeEach(() => {
+    vi.stubEnv('BACKEND_API_URL', BACKEND_URL);
+    vi.stubGlobal('fetch', fetchMock);
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.unstubAllGlobals();
+    fetchMock.mockReset();
+  });
+
+  it('creates the agent as the logged-in user and returns the new id', async () => {
+    fetchMock.mockResolvedValue(Response.json({ ...newAgent, id: 'new-agent-1' }));
+
+    await expect(saveAgent(SESSION_TOKEN, newAgent)).resolves.toBe('new-agent-1');
+
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toBe(`${BACKEND_URL}/update-agent/`);
+    expect(init?.method).toBe('POST');
+    expect((init?.headers as Record<string, string>).Authorization).toBe(`Bearer ${SESSION_TOKEN}`);
+    expect(JSON.parse(init?.body as string)).toEqual(newAgent);
+  });
+
+  it('throws an unauthorized error when the session has expired (401)', async () => {
+    fetchMock.mockResolvedValue(new Response('Signature has expired', { status: 401 }));
+
+    await expect(saveAgent(SESSION_TOKEN, newAgent)).rejects.toMatchObject({
+      kind: 'unauthorized',
+    });
+  });
+
+  it('throws an unauthorized error when the token is missing or broken (422)', async () => {
+    fetchMock.mockResolvedValue(new Response('Not enough segments', { status: 422 }));
+
+    await expect(saveAgent(SESSION_TOKEN, newAgent)).rejects.toMatchObject({
+      kind: 'unauthorized',
+    });
+  });
+
+  it('throws a bad-response error when RAGdoll returns no id', async () => {
+    fetchMock.mockResolvedValue(Response.json({ name: 'Butikksjef' }));
+
+    await expect(saveAgent(SESSION_TOKEN, newAgent)).rejects.toMatchObject({
+      kind: 'bad-response',
+    });
+  });
+
+  it('throws a config error and never calls RAGdoll when the URL is missing', async () => {
+    vi.stubEnv('BACKEND_API_URL', '');
+
+    await expect(saveAgent(SESSION_TOKEN, newAgent)).rejects.toBeInstanceOf(RagdollError);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+});
+
+describe('listAgents', () => {
+  const fetchMock = vi.fn<typeof fetch>();
+
+  beforeEach(() => {
+    vi.stubEnv('BACKEND_API_URL', BACKEND_URL);
+    vi.stubGlobal('fetch', fetchMock);
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.unstubAllGlobals();
+    fetchMock.mockReset();
+  });
+
+  it('returns only the safe fields, never the API keys', async () => {
+    // RAGdoll sends the owner the decrypted keys along with everything else.
+    fetchMock.mockResolvedValue(Response.json([{ ...newAgent, id: 'agent-1' }]));
+
+    const agents = await listAgents(SESSION_TOKEN);
+
+    expect(agents).toEqual([
+      {
+        id: 'agent-1',
+        name: 'Butikksjef',
+        description: '{}',
+        lastUpdated: '2026-10-01T08:00:00.000Z',
+      },
+    ]);
+    expect(JSON.stringify(agents)).not.toContain('idun-key');
+  });
+
+  it('throws a bad-response error when RAGdoll does not return a list', async () => {
+    fetchMock.mockResolvedValue(Response.json({ detail: 'oops' }));
+
+    await expect(listAgents(SESSION_TOKEN)).rejects.toMatchObject({ kind: 'bad-response' });
   });
 });

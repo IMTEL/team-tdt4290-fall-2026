@@ -45,7 +45,10 @@ describe('parseConfiguration', () => {
   });
 
   it('ignores spaces at the start and end of lines', () => {
-    const indented = completeReply.replace('Stilling: Butikkmedarbeider', '   Stilling:  Butikkmedarbeider  ');
+    const indented = completeReply.replace(
+      'Stilling: Butikkmedarbeider',
+      '   Stilling:  Butikkmedarbeider  ',
+    );
     expect(parseConfiguration(indented)?.stilling).toBe('Butikkmedarbeider');
   });
 });
