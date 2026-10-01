@@ -36,3 +36,12 @@ export function parseConfiguration(reply: string): Configuration | null {
   }
   return configuration as Configuration;
 }
+
+/** True if `value` has every field of a configuration, each a non-empty string. */
+export function isConfiguration(value: unknown): value is Configuration {
+  if (typeof value !== 'object' || value === null) return false;
+  const record = value as Record<string, unknown>;
+  return Object.keys(LABELS).every(
+    (field) => typeof record[field] === 'string' && record[field] !== '',
+  );
+}
