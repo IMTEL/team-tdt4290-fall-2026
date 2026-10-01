@@ -234,15 +234,15 @@ call arrive:
 docker compose -f docker-compose.local.yml logs -f backend
 ```
 
-| #   | Do this                                                                                | You should see                                                                                                 |
-| --- | -------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
-| 1   | Open <http://localhost:3000/configure> while logged out                                | You are sent to `/login`                                                                                       |
-| 2   | Click **Logg inn** and sign in as `test@example.com` / `test`                          | You land back on `/configure`; the navbar shows your name and **Logg ut**; the log shows `POST /api/login` 200 |
-| 3   | In the browser console (F12), run `await (await fetch('/api/backend/agents/')).json()` | A list (probably `[]`), not an error. This shows the proxy sends RAGdoll's token                               |
-| 4   | Click **Logg ut**                                                                      | You pass briefly through Keycloak and end on `/login`; the log shows `GET /api/logout`                         |
-| 5   | Run the console command from step 3 again                                              | `{error: 'Not signed in'}`                                                                                     |
-| 6   | Click **Logg inn** again                                                               | Keycloak asks for your password again. If it signs you straight in, run `npm run keycloak:setup`               |
-| 7   | Click **Logg ut**, then **Opprett konto**                                              | Keycloak's registration form opens                                                                             |
+| #   | Do this                                                                       | You should see                                                                                                 |
+| --- | ----------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| 1   | Open <http://localhost:3000/configure> while logged out                       | You are sent to `/login`                                                                                       |
+| 2   | Click **Logg inn** and sign in as `test@example.com` / `test`                 | You land back on `/configure`; the navbar shows your name and **Logg ut**; the log shows `POST /api/login` 200 |
+| 3   | In the browser console (F12), run `await (await fetch('/api/agents')).json()` | `{agents: [...]}` (probably empty), not an error. This shows our route sends RAGdoll's token                   |
+| 4   | Click **Logg ut**                                                             | You pass briefly through Keycloak and end on `/login`; the log shows `GET /api/logout`                         |
+| 5   | Run the console command from step 3 again                                     | `{error: 'Not signed in'}`                                                                                     |
+| 6   | Click **Logg inn** again                                                      | Keycloak asks for your password again. If it signs you straight in, run `npm run keycloak:setup`               |
+| 7   | Click **Logg ut**, then **Opprett konto**                                     | Keycloak's registration form opens                                                                             |
 
 **Optional, token refresh:** RAGdoll's session token lasts 15 minutes, and our app renews it
 automatically. To see that without waiting, add `SESSION_TOKEN_TTL=1` to `RAGdoll/.env`, restart

@@ -102,9 +102,6 @@ Log in (Keycloak via NextAuth, with RAGdoll's own session tokens):
 - `src/app/api/logout/route.test.ts`: revokes RAGdoll's token, builds the Keycloak logout URL with
   the ID token hint (or client id) and the way back to `/login`, and still logs out of Keycloak
   when RAGdoll cannot be reached.
-- `src/app/api/backend/[...path]/route.test.ts`: forwards method, path, query and body to RAGdoll
-  with the session token; 401 when signed out, 500 without `BACKEND_API_URL`, 502 when RAGdoll
-  cannot be reached, and RAGdoll's own status codes passed through.
 - `src/components/login/LoginButtons.test.tsx` and `src/app/login/page.test.tsx`: the buttons log
   in or sign up and return to `callbackUrl`; the page shows an error for `?error` and sends
   signed-in users to `/`.
