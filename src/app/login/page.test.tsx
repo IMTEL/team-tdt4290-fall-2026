@@ -2,9 +2,12 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { getServerSession } from 'next-auth';
 import { redirect } from 'next/navigation';
+import userEvent from '@testing-library/user-event';
+import { keycloakSignIn } from '@/lib/auth';
 import LogInPage from './page';
 
 vi.mock('next-auth', () => ({ getServerSession: vi.fn() }));
+vi.mock('@/lib/auth', () => ({ keycloakSignIn: vi.fn(), keycloakRegister: vi.fn() }));
 vi.mock('next/navigation', () => ({ redirect: vi.fn() }));
 vi.mock('@/lib/auth-options', () => ({ authOptions: {} }));
 
@@ -31,6 +34,14 @@ describe('LogInPage', () => {
     await renderPage({ error: 'OAuthCallback' });
 
     expect(screen.getByRole('alert')).toHaveTextContent('Innloggingen mislyktes');
+  });
+
+  it('sends the user back to the page they wanted after logging in', async () => {
+    await renderPage({ callbackUrl: '/configure' });
+
+    await userEvent.click(screen.getByRole('button', { name: 'Logg inn' }));
+
+    expect(keycloakSignIn).toHaveBeenCalledWith('/configure');
   });
 
   it('redirects users who are already signed in to the start page', async () => {
