@@ -49,8 +49,11 @@ Unit and component level only:
 - `src/app/configure/ConfigurationChat.test.tsx`: greeting, typing bubble and reply; the whole
   conversation (greeting included) is sent; friendly error, sending blocked, Retry resends the same
   history without repeating the user's message; no technical error text; leaving the page aborts
-  the request.
-- `src/app/configure/page.test.tsx`: smoke test for the heading, the chat and the tab title.
+  the request. A chosen template is sent as fixed turns before the counsellor's first message.
+- `src/components/templates/TemplatePicker.test.tsx`: every template is shown, clicking one
+  selects it, and "Start uten mal" selects none.
+- `src/app/configure/page.test.tsx`: heading, tab title, the template picker shown first, the chat
+  after choosing a template or none, and "Bytt mal" going back to the picker.
 
 Log in (Keycloak via NextAuth, with RAGdoll's own session tokens):
 

@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { sendToAgent } from '@/components/chat/sendToAgent';
+import { interviewerTemplates } from '@/data/interviewer-templates';
 import { ConfigurationChat } from './ConfigurationChat';
 
 // The chat itself is tested in AgentChat.test.tsx. Here we only check what this page chooses:
@@ -37,6 +38,26 @@ describe('ConfigurationChat', () => {
     expect(history.map(({ role, content }) => ({ role, content }))).toEqual([
       { role: 'assistant', content: expect.stringContaining('Hei!') },
       { role: 'user', content: 'Butikkmedarbeider' },
+    ]);
+  });
+
+  it('sends the chosen template to the configurator as the start of the conversation', async () => {
+    const template = interviewerTemplates.find((t) => t.id === 'teamleder')!;
+    sendMock.mockResolvedValue('Neste spørsmål');
+    const user = userEvent.setup();
+    render(<ConfigurationChat template={template} />);
+
+    expect(screen.getByText(/Hvilken stilling skal jobbsøkeren øve til\?/)).toBeInTheDocument();
+
+    await user.type(screen.getByRole('textbox', { name: 'Melding' }), 'Lagermedarbeider{Enter}');
+    await screen.findByText('Neste spørsmål');
+
+    const [, history] = sendMock.mock.calls[0];
+    expect(history.map(({ role, content }) => ({ role, content }))).toEqual([
+      { role: 'assistant', content: expect.stringContaining('Hei!') },
+      { role: 'user', content: expect.stringContaining(template.persona) },
+      { role: 'assistant', content: expect.stringContaining('teamleder') },
+      { role: 'user', content: 'Lagermedarbeider' },
     ]);
   });
 });
