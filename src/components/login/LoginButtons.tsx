@@ -8,10 +8,10 @@ export function LoginButtons({ callbackUrl = '/' }: { callbackUrl?: string }) {
   return (
     <>
       <Button variant="contained" fullWidth onClick={() => keycloakSignIn(callbackUrl)}>
-        Log in
+        Logg inn
       </Button>
       <Button variant="outlined" fullWidth onClick={() => keycloakRegister(callbackUrl)}>
-        Create account
+        Opprett konto
       </Button>
     </>
   );

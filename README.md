@@ -1,4 +1,4 @@
-# Interviewer Agent Configurator — TDT4290 Group 3 (autumn 2026)
+# KFI: Konfigurator for intervjuagenter — TDT4290 Group 3 (autumn 2026)
 
 Web application for career counsellors to configure AI interviewer agents, try them out in a chat, and publish them to the VR app **The Candidate**, where job seekers practise job interviews.
 
@@ -62,7 +62,7 @@ The app needs three things running on your machine:
 | Keycloak (login)        | the RAGdoll repo, same Docker Compose                         | <http://localhost:8080> |
 | MongoDB, LibreTranslate | the RAGdoll repo, same Docker Compose (needed by the backend) | ports 27017 and 5000    |
 
-How logging in works: our **Log in** button sends you to RAGdoll's Keycloak. After you sign in there,
+How logging in works: our **Logg inn** button sends you to RAGdoll's Keycloak. After you sign in there,
 our server hands the Keycloak token to RAGdoll (`POST /api/login`) and gets RAGdoll's own session
 token back. That token stays in an encrypted cookie; the browser calls RAGdoll only through our proxy
 at `/api/backend/*`, which adds the token. The code is in `src/lib/auth-options.ts`.
@@ -214,12 +214,12 @@ docker compose -f docker-compose.local.yml logs -f backend
 | #   | Do this                                                                                | You should see                                                                                                 |
 | --- | -------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
 | 1   | Open <http://localhost:3000/configure> while logged out                                | You are sent to `/login`                                                                                       |
-| 2   | Click **Log in** and sign in as `test@example.com` / `test`                            | You land back on `/configure`; the navbar shows your name and **Log out**; the log shows `POST /api/login` 200 |
+| 2   | Click **Logg inn** and sign in as `test@example.com` / `test`                          | You land back on `/configure`; the navbar shows your name and **Logg ut**; the log shows `POST /api/login` 200 |
 | 3   | In the browser console (F12), run `await (await fetch('/api/backend/agents/')).json()` | A list (probably `[]`), not an error. This shows the proxy sends RAGdoll's token                               |
-| 4   | Click **Log out**                                                                      | You pass briefly through Keycloak and end on `/login`; the log shows `GET /api/logout`                         |
+| 4   | Click **Logg ut**                                                                      | You pass briefly through Keycloak and end on `/login`; the log shows `GET /api/logout`                         |
 | 5   | Run the console command from step 3 again                                              | `{error: 'Not signed in'}`                                                                                     |
-| 6   | Click **Log in** again                                                                 | Keycloak asks for your password again. If it signs you straight in, run `npm run keycloak:setup`               |
-| 7   | Log out and click **Create account**                                                   | Keycloak's registration form opens                                                                             |
+| 6   | Click **Logg inn** again                                                               | Keycloak asks for your password again. If it signs you straight in, run `npm run keycloak:setup`               |
+| 7   | Click **Logg ut**, then **Opprett konto**                                              | Keycloak's registration form opens                                                                             |
 
 **Optional, token refresh:** RAGdoll's session token lasts 15 minutes, and our app renews it
 automatically. To see that without waiting, add `SESSION_TOKEN_TTL=1` to `RAGdoll/.env`, restart
@@ -246,22 +246,22 @@ docker compose -f docker-compose.local.yml down -v   # also deletes all data, in
 | `ragdoll-backend` keeps restarting, log ends in `Fernet key must be 32 url-safe base64-encoded bytes` | `FERNET_KEY` in `RAGdoll/.env` is still the placeholder. See step 1.2, then `docker compose -f docker-compose.local.yml up -d backend`.                                                                                                                                                                                                               |
 | Backend log shows `localhost:27017: Connection refused`                                               | `ENV=dev` in `RAGdoll/.env`. Set it back to `prod` and restart the backend.                                                                                                                                                                                                                                                                           |
 | Backend log shows `Could not create user indexes: An existing index has the same name`                | Harmless warning; the index already exists. Ignore it.                                                                                                                                                                                                                                                                                                |
-| After Keycloak you land on `/login` with "Log in failed"                                              | Look at the `npm run dev` terminal. `RAGdoll login failed: 401` means RAGdoll rejected the Keycloak token: check `KEYCLOAK_ISSUER` is exactly `http://localhost:8080/realms/ragdoll`. `fetch failed` or `ECONNREFUSED` means the backend is not running. `invalid_client` means `KEYCLOAK_CLIENT_ID` or `KEYCLOAK_CLIENT_SECRET` is wrong.            |
+| After Keycloak you land on `/login` with "Innloggingen mislyktes"                                     | Look at the `npm run dev` terminal. `RAGdoll login failed: 401` means RAGdoll rejected the Keycloak token: check `KEYCLOAK_ISSUER` is exactly `http://localhost:8080/realms/ragdoll`. `fetch failed` or `ECONNREFUSED` means the backend is not running. `invalid_client` means `KEYCLOAK_CLIENT_ID` or `KEYCLOAK_CLIENT_SECRET` is wrong.            |
 | "Invalid redirect uri" when logging out                                                               | Run `npm run keycloak:setup` (step 2).                                                                                                                                                                                                                                                                                                                |
-| **Log in** signs you in without asking for a password after you logged out                            | Same as above: run `npm run keycloak:setup`. Without it, the Keycloak session is not ended.                                                                                                                                                                                                                                                           |
+| **Logg inn** signs you in without asking for a password after you logged out                          | Same as above: run `npm run keycloak:setup`. Without it, the Keycloak session is not ended.                                                                                                                                                                                                                                                           |
 | `NO_SECRET` or `JWT_SESSION_ERROR` in the `npm run dev` terminal                                      | `NEXTAUTH_SECRET` is missing from `.env`, or you changed it while logged in. Set it, restart `npm run dev` and log in again.                                                                                                                                                                                                                          |
 
 ### 6. Checks
 
-The same commands CI runs, so you can see failures before opening a pull request:
+Before opening a pull request, run everything CI runs except the build:
 
 ```bash
-npm run lint          # ESLint
-npm run format:check  # Prettier
-npm run test          # tests
+npm run check         # lint + format check + typecheck + tests, stops at the first failure
 ```
 
-`npm run format` fixes formatting.
+Or one at a time: `npm run lint` (ESLint), `npm run format:check` (Prettier), `npm run typecheck`
+(TypeScript), `npm run test` (Vitest). `npm run fix` formats the code and applies ESLint's
+automatic fixes.
 
 Never commit `.env`. The IDUN key must not appear anywhere in this repo.
 
@@ -270,7 +270,7 @@ Never commit `.env`. The IDUN key must not appear anywhere in this repo.
 ## Repository layout
 
 ```
-.github/workflows/    CI (lint, format check, tests on every pull request)
+.github/workflows/    CI (lint, format check, typecheck, tests, build on every pull request)
 .github/              issue templates and pull request template
 docs/design-guide.md  colour palette, component library, CSS rules
 docs/decisions/       one page per design decision (ADR)

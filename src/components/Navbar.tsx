@@ -13,8 +13,8 @@ import LogInPageButton from './login/LogInPageButton';
 // Add a route here and it shows up in the navbar with active highlighting.
 // Only routes that actually exist belong in this list.
 const NAV_LINKS: { href: string; label: string }[] = [
-  { href: '/', label: 'Home' },
-  { href: '/browse-agents', label: 'Browse Agents' },
+  { href: '/', label: 'Hjem' },
+  { href: '/browse-agents', label: 'Agenter' },
   { href: '/configure', label: 'Konfigurer' },
   { href: '/test-chat', label: 'Test intervjuer' },
 ];
@@ -37,8 +37,8 @@ export function Navbar() {
       <Toolbar component="nav" disableGutters className={styles.nav}>
         <Link href="/" className={styles.wordmark}>
           <Bot className={styles.wordmarkIcon} aria-hidden="true" />
-          <span className={styles.wordmarkLong}>Interviewer Agent Configurator</span>
-          <span className={styles.wordmarkShort}>IAC</span>
+          <span className={styles.wordmarkLong}>Konfigurator for intervjuagenter</span>
+          <span className={styles.wordmarkShort}>KFI</span>
         </Link>
         <ul className={styles.links}>
           {NAV_LINKS.map((link) => {

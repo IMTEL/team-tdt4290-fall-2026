@@ -12,7 +12,7 @@ export default function LogInPageButton() {
   const pathname = usePathname();
   const { data: session, status } = useSession();
 
-  // Wait for the session, so a signed-in user does not see "Log in" flash by.
+  // Wait for the session, so a signed-in user does not see "Logg inn" flash by.
   if (status === 'loading') return null;
 
   if (session) {
@@ -24,7 +24,7 @@ export default function LogInPageButton() {
           onClick={handleSignOut}
           className={cn(navStyles.link, styles.logOutButton)}
         >
-          Log out
+          Logg ut
         </button>
       </>
     );
@@ -38,7 +38,7 @@ export default function LogInPageButton() {
       aria-current={active ? 'page' : undefined}
       className={cn(navStyles.link, active && navStyles.linkActive)}
     >
-      Log in
+      Logg inn
     </Link>
   );
 }

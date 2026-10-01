@@ -119,12 +119,13 @@ Every pull request runs, and all of them must pass before merging:
 
 | Check      | Command                           |
 | ---------- | --------------------------------- |
-| Build      | `npm run build`                   |
 | Lint       | `npm run lint` (ESLint)           |
 | Formatting | `npm run format:check` (Prettier) |
-| Tests      | `npm run test`                    |
+| Types      | `npm run typecheck` (TypeScript)  |
+| Tests      | `npm run test` (Vitest)           |
+| Build      | `npm run build`                   |
 
-Run them locally first — a red pipeline blocks your reviewer too. Never merge with CI red, and never disable a check to get a PR through: if a check is wrong, fix the check in its own PR.
+Run them locally first with `npm run check` (everything except the build) — a red pipeline blocks your reviewer too. Never merge with CI red, and never disable a check to get a PR through: if a check is wrong, fix the check in its own PR.
 
 ### Branch protection on `main`
 
@@ -155,7 +156,8 @@ Sprint-level (for the sprint review): the increment is demonstrable to the custo
 ## 7. Code style
 
 - **ESLint + Prettier** for the frontend, **Ruff** for anything we write in RAGdoll. Configs live in the repo, so everyone gets the same result; do not override them in your editor.
-- Formatting is not a review topic. Prettier decides; run `npm run format` before pushing.
+- Formatting is not a review topic. Prettier decides; run `npm run fix` (Prettier + ESLint's automatic fixes) before pushing.
+- Line endings are LF on every OS (`.gitattributes`), so Prettier gives the same result on Windows as in CI.
 - English everywhere: code, comments, commits, issues.
 
 ### UI code

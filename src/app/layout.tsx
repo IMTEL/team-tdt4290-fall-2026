@@ -18,8 +18,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'Interviewer Agent Configurator',
-  description: 'Configure AI interviewer agents for job interview practice in VR.',
+  title: 'Konfigurator for intervjuagenter',
+  description: 'Sett opp AI-intervjuere som jobbsøkere kan øve på jobbintervju med i VR.',
 };
 
 export default function RootLayout({

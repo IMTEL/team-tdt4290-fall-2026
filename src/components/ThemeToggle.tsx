@@ -14,8 +14,8 @@ import {
 import styles from './ThemeToggle.module.css';
 
 const THEMES = [
-  { value: 'light', label: 'Light' },
-  { value: 'dark', label: 'Dark' },
+  { value: 'light', label: 'Lys' },
+  { value: 'dark', label: 'Mørk' },
   { value: 'system', label: 'System' },
 ] as const;
 
@@ -33,7 +33,7 @@ export function ThemeToggle() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" aria-label="Change theme">
+        <Button variant="ghost" size="icon" aria-label="Bytt tema">
           {mounted ? (
             <>
               <Sun className={styles.sun} />

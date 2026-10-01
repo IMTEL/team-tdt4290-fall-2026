@@ -15,9 +15,13 @@
 ## Running
 
 ```bash
-npm run test        # run everything once (this is what CI runs)
+npm run test        # run every test once
 npm run test:watch  # re-run on every save while you work
+npm run check       # lint + format check + typecheck + tests: run this before pushing
 ```
+
+CI runs lint, format check, typecheck, tests and build on every pull request
+(`.github/workflows/ci.yml`); `npm run check` is the same minus the build.
 
 ## Where tests live
 

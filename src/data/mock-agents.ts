@@ -3,25 +3,25 @@ import type { Agent } from '@/lib/types';
 export const mockAgents: Agent[] = [
   {
     id: '1',
-    name: 'Kindergarden Interview Coach',
+    name: 'Intervjutrener for barnehage',
     description:
-      'Helps candidates practice for early childhood education roles with friendly, scenario-based interview questions.',
+      'Hjelper jobbsøkere å øve til stillinger i barnehage med vennlige, scenariobaserte intervjuspørsmål.',
     status: 'published',
     createdAt: '2026-01-15T10:00:00.000Z',
   },
   {
     id: '2',
-    name: 'Cashier Interview Trainer',
+    name: 'Intervjutrener for kassamedarbeider',
     description:
-      'Simulates retail interview scenarios, focusing on customer service, handling cash, and conflict resolution questions.',
+      'Simulerer intervjuer i butikk, med vekt på kundeservice, kontanthåndtering og konflikthåndtering.',
     status: 'draft',
     createdAt: '2026-02-03T09:30:00.000Z',
   },
   {
     id: '3',
-    name: 'Data Analyst Interview Trainer',
+    name: 'Intervjutrener for dataanalytiker',
     description:
-      'Prepares candidates for data analyst interviews with technical, SQL, and case-study style questions.',
+      'Forbereder jobbsøkere til intervjuer som dataanalytiker, med tekniske spørsmål, SQL og case-oppgaver.',
     status: 'published',
     createdAt: '2026-03-10T14:45:00.000Z',
   },
