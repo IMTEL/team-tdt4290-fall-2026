@@ -1,7 +1,9 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 
 import { ConfigurationChat } from './ConfigurationChat';
 import styles from './page.module.css';
+import Button from '@mui/material/Button';
 
 export const metadata: Metadata = {
   title: 'Konfigurer intervjuer',
@@ -19,6 +21,11 @@ export default function ConfigurePage() {
           Svar på spørsmålene fra assistenten, så lager vi en AI-intervjuer som jobbsøkeren kan øve
           med.
         </p>
+        <Link href="/template-picker" className={styles.templateLink}>
+          <Button variant="contained">
+            Velg en mal
+          </Button>
+        </Link>
       </header>
 
       <ConfigurationChat />

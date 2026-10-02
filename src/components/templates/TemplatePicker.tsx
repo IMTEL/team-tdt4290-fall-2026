@@ -42,7 +42,7 @@ export function TemplatePicker({ templates, onSelect }: TemplatePickerProps) {
         ))}
       </ul>
 
-      <Button variant="text" onClick={() => onSelect(null)} className={styles.scratch}>
+      <Button variant="contained" onClick={() => onSelect(null)} className={styles.scratch}>
         Start uten mal
       </Button>
     </section>

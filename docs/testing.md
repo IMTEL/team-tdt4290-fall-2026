@@ -52,7 +52,10 @@ Unit and component level only:
   the request.
 - `src/components/templates/TemplatePicker.test.tsx`: every template is shown, clicking one
   selects it, and "Start uten mal" selects none.
-- `src/app/configure/page.test.tsx`: smoke test for the heading, the chat and the tab title.
+- `src/app/configure/page.test.tsx`: smoke test for the heading, the chat, the link to the
+  template picker and the tab title.
+- `src/app/template-picker/page.test.tsx`: the templates and a link back to the chat; choosing a
+  template (or none) shows the choice, and "Velg en annen mal" goes back to the picker.
 
 Log in (Keycloak via NextAuth, with RAGdoll's own session tokens):
 

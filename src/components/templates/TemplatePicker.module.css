@@ -26,6 +26,7 @@
 .card {
   height: 100%;
   border-radius: var(--radius-lg);
+  padding: 0.5rem;
 }
 
 .action {
@@ -35,7 +36,6 @@
   justify-content: flex-start;
   gap: 0.5rem;
   height: 100%;
-  padding: 1rem;
 }
 
 .title {
