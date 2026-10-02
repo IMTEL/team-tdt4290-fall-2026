@@ -1,8 +1,7 @@
 import type { Metadata } from 'next';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
-import { AgentsTable } from '@/components/agents/AgentsTable';
-import { mockAgents } from '@/data/mock-agents';
+import { AgentList } from './AgentList';
 
 export const metadata: Metadata = {
   title: 'Agenter',
@@ -15,9 +14,7 @@ export default function BrowseAgentsPage() {
       <Typography variant="h4" component="h1" sx={{ mb: 2 }}>
         Agenter
       </Typography>
-      <Box sx={{ height: 'var(--table-height)' }}>
-        <AgentsTable agents={mockAgents} />
-      </Box>
+      <AgentList />
     </Box>
   );
 }
