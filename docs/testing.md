@@ -141,4 +141,3 @@ must start with the exact label (`Stilling:`, `Bransje:` ...). If the model form
 differently, `parseConfiguration` in `src/domain/configuration.ts` needs to accept that format.
 The block only appears when the configurator's **General Agent Prompt** in RAGdoll is the fenced
 prompt in `prompts/configurator.nb.md`.
-
