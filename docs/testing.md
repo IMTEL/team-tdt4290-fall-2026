@@ -37,7 +37,7 @@ Next to the code they test, named `*.test.ts` or `*.test.tsx`, e.g.
 
 Test behaviour through the public interface: render the component, interact with it, assert on
 what the user sees. Avoid asserting on internal state, class names or private helpers. Nothing
-calls the real RAGdoll: tests replace `fetch` (or `sendToAgent`) with a mock.
+calls the real RAGdoll: tests replace `fetch`, the RAGdoll adapter or the login with a mock.
 
 ## What is covered so far
 
@@ -64,6 +64,27 @@ Unit and component level only:
   template picker and the tab title.
 - `src/app/template-picker/page.test.tsx`: the templates and a link back to the chat; choosing a
   template (or none) shows the choice, and "Velg en annen mal" goes back to the picker.
+- `src/app/configure/ConfigurationChat.test.tsx`: greeting; the whole conversation (greeting
+  included) goes to the configuration turn route; the save form only appears once the
+  configuration is finished.
+- `src/app/configure/SaveAgentForm.test.tsx`: saves under the chosen name and links to the agents;
+  no saving without a name; shows the error and lets the user try again.
+- `src/app/configure/api.test.ts`: the browser functions send only `role` and `content`, return
+  the configuration when the server says it is done, and turn failures (including an expired
+  login) into Norwegian messages.
+- `src/app/api/configure/turn/route.test.ts`: 401 when logged out; 400 for bad bodies; 500 when the
+  configurator is not configured; reports `done` only for a complete `KONFIGURASJON` block; never
+  passes RAGdoll's message on.
+- `src/app/api/agents/route.test.ts`: saves with the counsellor's session token and the IDUN key
+  from the environment; 401, 400 and 500 cases save nothing; lists the counsellor's agents.
+- `src/server/ragdoll.test.ts`: `askAgent`, `saveAgent` and `listAgents` against a mocked
+  `fetch`: the session token is sent, 401 and 422 become `unauthorized`, and `listAgents` never
+  returns the agents' API keys.
+- `src/server/agentMapper.test.ts`: the RAGdoll agent gets the chosen name, the built prompt, the
+  configuration as JSON and the IDUN key for both the LLM and the embeddings.
+- `src/domain/configuration.test.ts` and `src/domain/interviewerPrompt.test.ts`: reading the
+  `KONFIGURASJON` block (complete, missing or empty lines, extra spaces) and filling the
+  interviewer prompt from it.
 
 Log in (Keycloak via NextAuth, with RAGdoll's own session tokens):
 
@@ -81,9 +102,6 @@ Log in (Keycloak via NextAuth, with RAGdoll's own session tokens):
 - `src/app/api/logout/route.test.ts`: revokes RAGdoll's token, builds the Keycloak logout URL with
   the ID token hint (or client id) and the way back to `/login`, and still logs out of Keycloak
   when RAGdoll cannot be reached.
-- `src/app/api/backend/[...path]/route.test.ts`: forwards method, path, query and body to RAGdoll
-  with the session token; 401 when signed out, 500 without `BACKEND_API_URL`, 502 when RAGdoll
-  cannot be reached, and RAGdoll's own status codes passed through.
 - `src/components/login/LoginButtons.test.tsx` and `src/app/login/page.test.tsx`: the buttons log
   in or sign up and return to `callbackUrl`; the page shows an error for `?error` and sends
   signed-in users to `/`.
@@ -97,3 +115,29 @@ Not covered yet:
 - Auto-scroll, visual appearance, dark mode and responsive layout are checked by hand.
 - The agent's behaviour (does it ask one question at a time, in Norwegian) depends on its prompt
   in RAGdoll and is checked by hand.
+
+## Manual end-to-end check
+
+Run this before a demo, and after changes to login, the chat or saving. It uses the real RAGdoll,
+Keycloak and IDUN, so it catches what the mocked tests cannot: a wrong environment variable, a
+changed RAGdoll API, or a configurator that writes the `KONFIGURASJON` block differently.
+
+Before you start: RAGdoll runs locally and `.env` is filled in as described in the README
+(including `RAGDOLL_CONFIGURATOR_*` and `IDUN_API_KEY`). Restart `npm run dev` after changing
+`.env`.
+
+| #   | Do this                                                                              | You should see                                                                                   |
+| --- | ------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------ |
+| 1   | Open <http://localhost:3000/configure> while logged out                              | You are sent to `/login`                                                                         |
+| 2   | Log in as `test@example.com` / `test`                                                | You land on `/configure` with the assistant's greeting                                           |
+| 3   | Answer the assistant's questions until it shows a summary, then confirm it           | Its last reply contains the `KONFIGURASJON` block, and a form with **Lagre agent** appears below |
+| 4   | Keep or change the suggested name and click **Lagre agent**                          | "«name» er lagret" with a link to your agents                                                    |
+| 5   | In the browser console (F12), run `await (await fetch('/api/agents')).json()`        | The new agent is in the list, with your configuration as JSON in `description`                   |
+| 6   | Open the Network tab, repeat steps 3 to 5, and look at every request to `/api/*`     | No response contains `llm_api_key`, `embedding_api_key`, an access key or a token                |
+| 7   | Log out, log in as a second user (register one on the login page), and repeat step 5 | The first user's agent is not in this list                                                       |
+
+If the form in step 3 never appears, look at the assistant's last reply: every line of the block
+must start with the exact label (`Stilling:`, `Bransje:` ...). If the model formats it
+differently, `parseConfiguration` in `src/domain/configuration.ts` needs to accept that format.
+The block only appears when the configurator's **General Agent Prompt** in RAGdoll is the fenced
+prompt in `prompts/configurator.nb.md`.

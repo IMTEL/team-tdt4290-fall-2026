@@ -84,10 +84,11 @@ The app needs three things running on your machine:
 
 How logging in works: our **Logg inn** button sends you to RAGdoll's Keycloak. After you sign in there,
 our server hands the Keycloak token to RAGdoll (`POST /api/login`) and gets RAGdoll's own session
-token back. That token stays in an encrypted cookie; the browser calls RAGdoll only through our proxy
-at `/api/backend/*`, which adds the token. The code is in `src/lib/auth-options.ts`.
+token back. That token stays in an encrypted cookie. The browser never talks to RAGdoll: it calls our
+own routes under `/api/*` (for example `/api/agents`), which read the token on the server and call
+RAGdoll with it. The login code is in `src/lib/auth-options.ts`.
 
-The start page and its chat work without RAGdoll running. Logging in, `/configure` and
+The start page works without RAGdoll running. Logging in, `/configure`, `/test-chat` and
 `/browse-agents` need it.
 
 ### Prerequisites
@@ -196,10 +197,12 @@ cp .env.example .env
 
 Open `.env`. The values in `.env.example` already match the local RAGdoll, except:
 
-| Variable                                                    | What to do                                                                                                                                    |
-| ----------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| `NEXTAUTH_SECRET`                                           | Replace with the output of `openssl rand -base64 32`. It encrypts the login cookie.                                                           |
-| `RAGDOLL_API_URL`, `RAGDOLL_AGENT_ID`, `RAGDOLL_ACCESS_KEY` | Only for the chat on the start page, which talks to the deployed RAGdoll. Ask the team for the agent id and access key. Not needed to log in. |
+| Variable                                                           | What to do                                                                                                                                                         |
+| ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `NEXTAUTH_SECRET`                                                  | Replace with the output of `openssl rand -base64 32`. It encrypts the login cookie.                                                                                |
+| `RAGDOLL_CONFIGURATOR_AGENT_ID`, `RAGDOLL_CONFIGURATOR_ACCESS_KEY` | The shared configurator agent behind `/configure`. It lives on the RAGdoll at `RAGDOLL_API_URL` (the deployed one by default). Ask the team. Not needed to log in. |
+| `RAGDOLL_INTERVIEWER_AGENT_ID`, `RAGDOLL_INTERVIEWER_ACCESS_KEY`   | The fixed interviewer behind `/test-chat`, on the same RAGdoll. Ask the team.                                                                                      |
+| `IDUN_API_KEY`                                                     | The project's IDUN key. Our server puts it into every agent it saves. Needed to save agents; ask the team.                                                         |
 
 For reference, the login settings for local testing are:
 
@@ -231,15 +234,15 @@ call arrive:
 docker compose -f docker-compose.local.yml logs -f backend
 ```
 
-| #   | Do this                                                                                | You should see                                                                                                 |
-| --- | -------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
-| 1   | Open <http://localhost:3000/configure> while logged out                                | You are sent to `/login`                                                                                       |
-| 2   | Click **Logg inn** and sign in as `test@example.com` / `test`                          | You land back on `/configure`; the navbar shows your name and **Logg ut**; the log shows `POST /api/login` 200 |
-| 3   | In the browser console (F12), run `await (await fetch('/api/backend/agents/')).json()` | A list (probably `[]`), not an error. This shows the proxy sends RAGdoll's token                               |
-| 4   | Click **Logg ut**                                                                      | You pass briefly through Keycloak and end on `/login`; the log shows `GET /api/logout`                         |
-| 5   | Run the console command from step 3 again                                              | `{error: 'Not signed in'}`                                                                                     |
-| 6   | Click **Logg inn** again                                                               | Keycloak asks for your password again. If it signs you straight in, run `npm run keycloak:setup`               |
-| 7   | Click **Logg ut**, then **Opprett konto**                                              | Keycloak's registration form opens                                                                             |
+| #   | Do this                                                                       | You should see                                                                                                 |
+| --- | ----------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| 1   | Open <http://localhost:3000/configure> while logged out                       | You are sent to `/login`                                                                                       |
+| 2   | Click **Logg inn** and sign in as `test@example.com` / `test`                 | You land back on `/configure`; the navbar shows your name and **Logg ut**; the log shows `POST /api/login` 200 |
+| 3   | In the browser console (F12), run `await (await fetch('/api/agents')).json()` | `{agents: [...]}` (probably empty), not an error. This shows our route sends RAGdoll's token                   |
+| 4   | Click **Logg ut**                                                             | You pass briefly through Keycloak and end on `/login`; the log shows `GET /api/logout`                         |
+| 5   | Run the console command from step 3 again                                     | `{error: 'Not signed in'}`                                                                                     |
+| 6   | Click **Logg inn** again                                                      | Keycloak asks for your password again. If it signs you straight in, run `npm run keycloak:setup`               |
+| 7   | Click **Logg ut**, then **Opprett konto**                                     | Keycloak's registration form opens                                                                             |
 
 **Optional, token refresh:** RAGdoll's session token lasts 15 minutes, and our app renews it
 automatically. To see that without waiting, add `SESSION_TOKEN_TTL=1` to `RAGdoll/.env`, restart
@@ -300,8 +303,9 @@ src/app/              routes (App Router) and API routes (src/app/api/); globals
 src/components/       our own components, built from MUI and the primitives, with their own *.module.css
 src/components/ui/    low-level primitives (button, dropdown menu) built on Radix
 src/data/             mock agents and interviewer templates
-src/lib/              helpers: api.ts (backend client), auth-options.ts (NextAuth), mui-theme.ts, utils.ts (cn)
-src/server/           server-only code: ragdoll.ts (RAGdoll adapter)
+src/lib/              helpers: api.ts (backend client), login (auth-options.ts, session-tokens.ts), mui-theme.ts, utils.ts (cn)
+src/domain/           pure functions: read the KONFIGURASJON block, build the interviewer prompt
+src/server/           server-only code: the RAGdoll adapter, agent mapper, error responses
 ```
 
 Conventions worth knowing before adding code:

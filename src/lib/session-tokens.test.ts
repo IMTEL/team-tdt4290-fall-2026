@@ -16,7 +16,7 @@ const NOW = new Date('2026-09-30T12:00:00Z').getTime();
 const MINUTE = 60_000;
 const getTokenMock = vi.mocked(getToken);
 const refreshSessionMock = vi.mocked(refreshSession);
-const req = new NextRequest('http://localhost/api/backend/agents');
+const req = new NextRequest('http://localhost/api/agents');
 
 describe('getSessionJwt', () => {
   afterEach(() => {

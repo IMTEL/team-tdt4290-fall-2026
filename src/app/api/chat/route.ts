@@ -1,5 +1,8 @@
+import type { NextRequest } from 'next/server';
+
 import { askAgent, RagdollError, type RagdollErrorKind } from '@/server/ragdoll';
 import { AGENT_NAMES, type AgentName } from '@/lib/agents';
+import { getSessionToken } from '@/lib/session-tokens';
 
 type ChatMessage = { role: 'user' | 'assistant'; content: string };
 
@@ -24,10 +27,16 @@ const errorResponses: Record<RagdollErrorKind, { status: number; error: string }
   timeout: { status: 504, error: 'Request to RAGdoll API timed out' },
   unreachable: { status: 502, error: 'Error from RAGdoll API' },
   'bad-response': { status: 502, error: 'Invalid response from RAGdoll API' },
+  unauthorized: { status: 401, error: 'Not signed in' },
 };
 
 // Forwards the chat history to RAGdoll from the server, so the access key never reaches the browser.
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
+  // Every reply spends our IDUN quota, so only logged-in counsellors may chat.
+  if (!(await getSessionToken(request))) {
+    return Response.json({ error: 'Not signed in' }, { status: 401 });
+  }
+
   let agent: AgentName;
   let messages: ChatMessage[];
   try {
