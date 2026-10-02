@@ -139,3 +139,6 @@ Before you start: RAGdoll runs locally and `.env` is filled in as described in t
 If the form in step 3 never appears, look at the assistant's last reply: every line of the block
 must start with the exact label (`Stilling:`, `Bransje:` ...). If the model formats it
 differently, `parseConfiguration` in `src/domain/configuration.ts` needs to accept that format.
+The block only appears when the configurator's **General Agent Prompt** in RAGdoll is the fenced
+prompt in `prompts/configurator.nb.md`.
+

@@ -30,8 +30,9 @@ flowchart LR
     end
 
     subgraph Frontend["Our Next.js server (this repo)"]
-        Proxy["/api/backend/*<br/>proxy with user token"]
-        Chat["/api/chat<br/>agent chat"]
+        Agents["/api/agents<br/>save and list"]
+        Turn["/api/configure/turn<br/>configurator chat"]
+        Chat["/api/chat<br/>test interviewer"]
         Auth["/api/auth/*<br/>NextAuth"]
         Logout["/api/logout"]
     end
@@ -45,11 +46,12 @@ flowchart LR
     IDUN[IDUN LLMs<br/>NTNU HPC]
     TC[The Candidate<br/>VR app]
 
-    UI --> Proxy & Chat & Auth & Logout
+    UI --> Agents & Turn & Chat & Auth & Logout
     UI -. login redirect .-> KC
     Auth --> KC
     Auth --> API
-    Proxy --> API
+    Agents --> API
+    Turn --> API
     Chat --> API
     Logout --> API
     API --> DB
@@ -62,8 +64,8 @@ Three rules hold the design together:
 1. **The browser only talks to our own server** (and to Keycloak's login pages). It never calls
    RAGdoll directly, so no RAGdoll token or access key reaches the browser, and we need no CORS
    setup in RAGdoll.
-2. **Only RAGdoll talks to IDUN.** The IDUN key lives in RAGdoll and must never appear in this
-   repo.
+2. **Only RAGdoll talks to IDUN.** Our server holds `IDUN_API_KEY` only to write it onto a new
+   agent. The key is never sent to the browser and is never committed.
 3. **RAGdoll is the source of truth for agents.** We store no agents of our own; The Candidate
    is meant to read the published agents from RAGdoll too.
 
@@ -87,24 +89,25 @@ Locally, RAGdoll, Keycloak and MongoDB run in RAGdoll's `docker-compose.local.ym
 The frontend is one Next.js 16 app (App Router). Pages are React server components by default;
 anything interactive is a client component. Code that holds secrets runs only on the server.
 
-| Layer            | Where                                                                           | What                                                                                                                   |
-| ---------------- | ------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| Pages            | `src/app/*/page.tsx`                                                            | `/` start, `/login`, `/configure` (configuration chat), `/test-chat` (interviewer chat), `/browse-agents` (agent list) |
-| Route guard      | `src/proxy.ts`                                                                  | Sends signed-out users to `/login` before `/configure` and `/browse-agents`                                            |
-| Components       | `src/components/`                                                               | Chat (`chat/`), login buttons (`login/`), agent table (`agents/`), navbar, theme                                       |
-| Browser helpers  | `src/lib/api.ts`, `src/lib/auth.ts`                                             | `apiFetch` calls RAGdoll through our proxy; sign-in, register and sign-out helpers                                     |
-| Route handlers   | `src/app/api/`                                                                  | `auth/` (NextAuth), `backend/` (proxy), `chat/` (agent chat), `logout/`                                                |
-| Server-only code | `src/server/ragdoll.ts`, `src/lib/auth-options.ts`, `src/lib/session-tokens.ts` | RAGdoll chat adapter; NextAuth config and token exchange; reading and refreshing the session token                     |
+| Layer            | Where                                                                           | What                                                                                                                                          |
+| ---------------- | ------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| Pages            | `src/app/*/page.tsx`                                                            | `/` start, `/login`, `/configure` (configuration chat), `/template-picker`, `/test-chat` (interviewer chat), `/browse-agents` (agent list)   |
+| Route guard      | `src/proxy.ts`                                                                  | Sends signed-out users to `/login` before `/configure`, `/template-picker` and `/browse-agents`                                               |
+| Components       | `src/components/`                                                               | Chat (`chat/`), login buttons (`login/`), template picker (`templates/`), agent table (`agents/`), navbar, theme                              |
+| Domain           | `src/domain/`                                                                   | `configuration.ts` reads the `KONFIGURASJON` block; `interviewerPrompt.ts` turns a configuration into the saved agent's prompt                 |
+| Browser helpers  | `src/app/configure/api.ts`, `src/lib/auth.ts`                                   | Sends the configuration chat and the save request; sign-in, register and sign-out helpers                                                     |
+| Route handlers   | `src/app/api/`                                                                  | `auth/` (NextAuth), `configure/turn/` (configurator), `agents/` (save and list), `chat/` (test interviewer), `logout/`                        |
+| Integration      | `src/server/ragdoll.ts`, `src/server/agentMapper.ts`, `src/server/errorResponse.ts` | The only code that calls RAGdoll: chat, save and list. Maps a configuration onto a RAGdoll agent and turns failures into HTTP statuses     |
+| Server-only code | `src/lib/auth-options.ts`, `src/lib/session-tokens.ts`                          | NextAuth config and token exchange; reading and refreshing the session token                                                                 |
 
 The chat UI is our own (see [ADR 0001](decisions/0001-own-chat-component.md)). One component,
 `AgentChat`, serves both chats; each page passes it a `send` function and a fixed greeting:
 
 ```
-ConfigurationChat ─┐                         ┌─ useChat (state: messages, waiting, error)
-                   ├─ AgentChat(send, greeting) ─┤
-TestChat ──────────┘                         └─ MessageList + ChatInput
+ConfigurationChat ─ sendTurn ─────────────── POST /api/configure/turn
+TestChat ────────── sendToAgent('interviewer') ─ POST /api/chat
 
-send = sendToAgent('configurator' | 'interviewer')  →  POST /api/chat
+Both use AgentChat → useChat (messages, waiting, error) → MessageList + ChatInput
 ```
 
 `useChat` is a small reducer (idle → waiting → idle or error → retry). It aborts a pending request
@@ -147,78 +150,74 @@ sequenceDiagram
 
 ### Calling RAGdoll as the user
 
-Everything that acts as the signed-in user (listing their agents, later creating and publishing
-them) goes through one proxy route, `/api/backend/*`. The browser calls our server as if it were
-RAGdoll, and our server adds the user's token before passing the request on. Example: listing the
-user's agents.
+Saving and listing the counsellor's agents goes through `/api/agents`. The browser never calls
+RAGdoll. The route handler reads the session token from the cookie and sends it as
+`Authorization: Bearer ...`. There is no generic proxy: each route checks its own body and strips
+keys before the answer goes back. See [ADR 0002](decisions/0002-stateless-backend-for-frontend.md).
 
 ```mermaid
 sequenceDiagram
     participant B as Browser
-    participant P as Our server<br/>/api/backend/*
+    participant N as Our server<br/>/api/agents
     participant R as RAGdoll
 
-    B->>P: GET /api/backend/agents/<br/>(session cookie sent automatically)
-    P->>P: Decrypt cookie, take out RAGdoll session token<br/>(refresh it first if it has expired)
-    alt Signed in
-        P->>R: GET /agents/<br/>Authorization: Bearer + session token
-        R-->>P: 200 [list of agents]
-        P-->>B: 200 [list of agents] (passed through unchanged)
+    B->>N: POST /api/agents {name, configuration}<br/>(session cookie sent automatically)
+    N->>N: Decrypt cookie, take out RAGdoll session token
+    alt Signed in and the body is valid
+        N->>R: POST /update-agent/<br/>Authorization: Bearer + session token
+        R-->>N: 200 {id}
+        N-->>B: 201 {id}
     else No valid session
-        P-->>B: 401 Not signed in (RAGdoll is never called)
+        N-->>B: 401 Not signed in (RAGdoll is never called)
     end
 ```
 
-In short, the proxy:
+`GET /api/agents` lists the same user's agents and returns only `id`, `name`, `description` and
+`lastUpdated`. RAGdoll's copy of the IDUN key is dropped before the list leaves our server.
 
-1. **Strips the prefix.** `/api/backend/<path>` becomes `BACKEND_API_URL/<path>`. Method, query
-   string and body are kept.
-2. **Adds the token.** It reads RAGdoll's session token from the encrypted cookie and sends it as
-   `Authorization: Bearer ...`. The browser never sees the token.
-3. **Passes the answer back.** RAGdoll's status and body go back unchanged. If RAGdoll can't be
-   reached, the browser gets `502`.
+Code: [`src/app/api/agents/route.ts`](../src/app/api/agents/route.ts),
+[`src/server/ragdoll.ts`](../src/server/ragdoll.ts).
 
-In the browser, use `apiFetch('/agents/')` from [`src/lib/api.ts`](../src/lib/api.ts). It adds the
-`/api/backend` prefix for you. Code:
-[`src/app/api/backend/[...path]/route.ts`](../src/app/api/backend/[...path]/route.ts).
-
-A route handler can't update the cookie, so a token refreshed in step 2 is used for that one
-request only. NextAuth's regular session polling stores a fresh token in the cookie.
+A route handler can't update the cookie, so a token refreshed for this request is used for that
+one request only. NextAuth's regular session polling stores a fresh token in the cookie.
 
 ### Chatting with an agent
 
-The two chats talk to two fixed agents in the deployed RAGdoll:
+The two chats talk to two fixed agents. The configurator is shared. The test interviewer is the
+one named in the environment, not the agent the counsellor just saved.
 
-| Agent          | Used on      | Prompt source                                                 |
-| -------------- | ------------ | ------------------------------------------------------------- |
-| `configurator` | `/configure` | [`prompts/configurator.nb.md`](../prompts/configurator.nb.md) |
-| `interviewer`  | `/test-chat` | [`prompts/interviewer.nb.md`](../prompts/interviewer.nb.md)   |
+| Agent          | Used on      | Route                  | Prompt source                                                 |
+| -------------- | ------------ | ---------------------- | ------------------------------------------------------------- |
+| `configurator` | `/configure` | `POST /api/configure/turn` | [`prompts/configurator.nb.md`](../prompts/configurator.nb.md) |
+| `interviewer`  | `/test-chat` | `POST /api/chat`       | [`prompts/interviewer.nb.md`](../prompts/interviewer.nb.md)   |
 
 ```mermaid
 sequenceDiagram
     participant B as Browser (useChat)
-    participant N as /api/chat
+    participant N as /api/configure/turn
     participant R as RAGdoll
     participant I as IDUN
 
-    B->>N: POST {agent: "configurator", messages}
-    N->>N: Validate, look up agent id + access key in env
+    B->>N: POST {messages}
+    N->>N: Require a session, look up configurator id + access key in env
     N->>R: POST /api/chat/ask {agent_id, access_key, chat_log}
     R->>I: System prompt + history
     I-->>R: Completion
     R-->>N: {response: {response: "<text>", ...}}
-    N-->>B: {response: "<text>"}
+    N-->>B: {reply, configuration, done}
 ```
 
-- The browser sends only an agent **name**. The agent id and access key are server-side env
-  variables, so they never reach the browser.
+- The browser does not send an agent id or an access key. Both stay in server-side env variables.
 - The whole history is sent on every turn; RAGdoll keeps no conversation state for us.
 - The opening greeting is fixed text in the page (no LLM call) but is sent as the first assistant
   turn, so the agent does not greet again.
-- These chats use the agent's access key, not the user's session token, and go to
-  `RAGDOLL_API_URL` (the deployed RAGdoll), which may differ from `BACKEND_API_URL`. This is a
-  stopgap until agents are created per counsellor; see [Open questions](#open-questions).
-- Code: [`src/app/api/chat/route.ts`](../src/app/api/chat/route.ts),
+- `/api/configure/turn` also parses a `KONFIGURASJON` block. When `done` is true, the page shows
+  the save form.
+- Both chats use the agent's access key, not the user's session token, and go to
+  `RAGDOLL_API_URL`, which may differ from `BACKEND_API_URL` (login, refresh and `/api/agents`).
+  Two URLs is a stopgap ([#31](https://github.com/IMTEL/team-tdt4290-fall-2026/issues/31)).
+- Code: [`src/app/api/configure/turn/route.ts`](../src/app/api/configure/turn/route.ts),
+  [`src/app/api/chat/route.ts`](../src/app/api/chat/route.ts),
   [`src/server/ragdoll.ts`](../src/server/ragdoll.ts).
 
 ### Logging out
@@ -240,9 +239,9 @@ Code: [`src/app/api/logout/route.ts`](../src/app/api/logout/route.ts),
 | What                                      | Stored where today                                                                                             | Target                                                                                        |
 | ----------------------------------------- | -------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
 | Configurator and test interviewer prompts | Source in `prompts/*.nb.md` in this repo; copied by hand into each agent's **General Agent Prompt** in RAGdoll | Same: the repo is the source, RAGdoll holds a copy                                            |
-| Counsellors' interviewer agents           | Not yet. `/browse-agents` shows mock data from `src/data/mock-agents.ts`                                       | RAGdoll (MongoDB), created and listed through `/api/backend/agents/`, owned by the counsellor |
-| Configuration answers                     | Only in the chat. The configurator ends with a `KONFIGURASJON` block whose fields match the interviewer prompt | Parsed into a system prompt by a prompt builder, saved on the agent in RAGdoll                |
-| Templates (role, industry, ...)           | Not yet                                                                                                        | To be decided: in this repo as data, or in RAGdoll                                            |
+| Counsellors' interviewer agents           | RAGdoll (MongoDB), created by `POST /api/agents` and listed by `GET /api/agents`, owned by the logged-in counsellor. `/browse-agents` still shows mock data from `src/data/mock-agents.ts` (#28) | Same, and the browse page reads that list |
+| Configuration answers                     | JSON in the saved agent's `description`, parsed from the `KONFIGURASJON` block by `src/domain/configuration.ts` | Same                                                                                          |
+| Templates (role, industry, ...)           | Four interviewer personas in `src/data/interviewer-templates.ts`. The choice stays on `/template-picker` and is not sent to the chat (#6) | To be decided: stay in this repo, or move to RAGdoll                                          |
 | Published agents for The Candidate        | Not yet                                                                                                        | Agent marked as published in RAGdoll; The Candidate reads it from there                       |
 | Users                                     | Keycloak (login) and RAGdoll (user record, created on first `POST /api/login`)                                 | Same                                                                                          |
 | Session                                   | Encrypted NextAuth cookie in the browser                                                                       | Same                                                                                          |
@@ -258,16 +257,18 @@ browser code.
 
 | Variable                                        | Used by                       | Secret? |
 | ----------------------------------------------- | ----------------------------- | ------- |
-| `BACKEND_API_URL`                               | Login, refresh, proxy, logout | No      |
-| `RAGDOLL_API_URL`                               | `/api/chat`                   | No      |
-| `RAGDOLL_{CONFIGURATOR,INTERVIEWER}_AGENT_ID`   | `/api/chat`                   | No      |
-| `RAGDOLL_{CONFIGURATOR,INTERVIEWER}_ACCESS_KEY` | `/api/chat`                   | Yes     |
+| `BACKEND_API_URL`                               | Login, refresh, logout, `/api/agents` | No      |
+| `RAGDOLL_API_URL`                               | `/api/configure/turn`, `/api/chat` | No      |
+| `RAGDOLL_{CONFIGURATOR,INTERVIEWER}_AGENT_ID`   | `/api/configure/turn`, `/api/chat` | No      |
+| `RAGDOLL_{CONFIGURATOR,INTERVIEWER}_ACCESS_KEY` | `/api/configure/turn`, `/api/chat` | Yes     |
+| `IDUN_API_KEY`                                  | `POST /api/agents` (written onto the saved agent) | Yes |
 | `NEXTAUTH_URL`                                  | NextAuth                      | No      |
 | `NEXTAUTH_SECRET`                               | NextAuth (cookie encryption)  | Yes     |
 | `KEYCLOAK_CLIENT_ID`, `KEYCLOAK_ISSUER`         | NextAuth Keycloak provider    | No      |
 | `KEYCLOAK_CLIENT_SECRET`                        | NextAuth Keycloak provider    | Yes     |
 
-The IDUN key belongs to RAGdoll and is not in this list on purpose. Threats and countermeasures
+`IDUN_API_KEY` is sent to RAGdoll only when an agent is saved, and `GET /api/agents` never returns
+it. Threats and countermeasures
 are in [`security.md`](security.md); how the app is deployed is in
 [`deployment.md`](deployment.md).
 
@@ -279,9 +280,9 @@ short Norwegian messages:
 | Boundary             | What happens                                                                                                                                                              |
 | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | RAGdoll → our server | `src/server/ragdoll.ts` turns failures into a `RagdollError` with a kind: `config`, `timeout` (30 s), `unreachable` or `bad-response`                                     |
-| Our server → browser | `/api/chat` maps each kind to a status (500, 504, 502, 502) and a fixed English message; RAGdoll's own text is never forwarded                                            |
-| Browser → user       | `sendToAgent` turns the status into a `ChatError` with a Norwegian message (for example "Assistenten brukte for lang tid på å svare"), shown with a **Prøv igjen** button |
-| Proxy                | `/api/backend/*` returns `401` without a session and `502` if RAGdoll is unreachable; otherwise it passes RAGdoll's status and body through                               |
+| Our server → browser | `/api/configure/turn`, `/api/chat` and `/api/agents` map each kind to a status (500, 504, 502, 502) and a fixed English message; RAGdoll's own text is never forwarded   |
+| Browser → user       | The chat helpers turn the status into a `ChatError` with a Norwegian message (for example "Assistenten brukte for lang tid på å svare"), shown with a **Prøv igjen** button |
+
 
 ## Open questions
 
