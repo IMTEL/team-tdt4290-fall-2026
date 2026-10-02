@@ -27,3 +27,11 @@
   color: var(--muted-foreground);
   text-wrap: pretty;
 }
+
+.templateLink {
+  align-self: flex-start;
+  color: var(--ring);
+  font-weight: 500;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}

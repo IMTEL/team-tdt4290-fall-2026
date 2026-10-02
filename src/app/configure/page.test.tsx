@@ -12,6 +12,15 @@ describe('/configure', () => {
     expect(screen.getByRole('textbox', { name: 'Melding' })).toBeInTheDocument();
   });
 
+  it('links to the template picker', () => {
+    render(<ConfigurePage />);
+
+    expect(screen.getByRole('link', { name: 'Velg en mal' })).toHaveAttribute(
+      'href',
+      '/template-picker',
+    );
+  });
+
   it('sets a Norwegian tab title', () => {
     expect(metadata.title).toBe('Konfigurer intervjuer');
   });
