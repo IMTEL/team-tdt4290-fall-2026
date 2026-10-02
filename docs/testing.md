@@ -2,6 +2,13 @@
 
 <!-- What we test and how much: test levels, tools, what runs in CI, and what we verify by hand before a sprint demo. Feeds chapter 12 of the report. -->
 
+## Contents
+
+- [Tools](#tools)
+- [Running](#running)
+- [Where tests live](#where-tests-live)
+- [What is covered so far](#what-is-covered-so-far)
+
 ## Tools
 
 - [Vitest](https://vitest.dev/) runs the tests (`vitest.config.mts`).

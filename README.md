@@ -7,6 +7,26 @@ Course: TDT4290 Customer Driven Project, NTNU, autumn 2026. Group 3.
 
 <!-- TODO: replace with the final product name once agreed with the customer -->
 
+## Contents
+
+- [What it does](#what-it-does)
+- [Where things live](#where-things-live)
+- [Tech stack](#tech-stack)
+- [Running locally](#running-locally)
+  - [Prerequisites](#prerequisites)
+  - [1. Start RAGdoll (backend and Keycloak)](#1-start-ragdoll-backend-and-keycloak)
+  - [2. Configure Keycloak (first time only)](#2-configure-keycloak-first-time-only)
+  - [3. Start the frontend (this repo)](#3-start-the-frontend-this-repo)
+  - [4. Test the login](#4-test-the-login)
+  - [5. Stop RAGdoll](#5-stop-ragdoll)
+  - [Troubleshooting](#troubleshooting)
+  - [6. Checks](#6-checks)
+- [Deployment](#deployment)
+- [Repository layout](#repository-layout)
+- [Team](#team)
+- [Contributing](#contributing)
+- [License](#license)
+
 ## What it does
 
 1. A counsellor logs in and starts a configuration chat.
@@ -32,22 +52,22 @@ The product is a _conversational agent configurator_; the job interview is the f
 
 We use the stack the customer proposed in the project brief, and reuse existing IMTEL modules instead of building from scratch.
 
-| Layer     | Choice                                                                                                                                                                                                                                    |
-| --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Frontend  | Next.js 16 (App Router, TypeScript, `src/`)                                                                                                                                                                                               |
-| Styling   | **Modular CSS** — one `*.module.css` per component, next to the component. No global stylesheet except the tokens and reset in `src/app/globals.css`                                                                                      |
-| UI        | Our own **component library** in `src/components/`, with the unstyled primitives in `src/components/ui/` built on headless Radix components                                                                                               |
-| Colours   | **Theme tokens only** — `var(--background)`, `var(--muted-foreground)`, `var(--border)` and friends, defined once as oklch custom properties in `src/app/globals.css`. Never a raw hex in a component: that is what makes dark mode work. |
-| Icons     | `lucide-react`                                                                                                                                                                                                                            |
-| Dark mode | `next-themes`, class strategy, light / dark / system                                                                                                                                                                                      |
-| Backend   | RAGdoll (Python 3, FastAPI, MongoDB, Docker Compose, `uv`, Ruff, pytest)                                                                                                                                                                  |
-| LLMs      | IDUN (NTNU), through RAGdoll                                                                                                                                                                                                              |
-| Auth      | RAGdoll's Keycloak                                                                                                                                                                                                                        | <!-- TODO: Are we using this or another auth? --> |
-| CI        | GitHub Actions: build, lint (ESLint), format check (Prettier) and tests on every pull request                                                                                                                                             |
+| Layer         | Choice                                                                                                                                                                                                        |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Frontend      | Next.js 16 (App Router, TypeScript, `src/`), React 19, Node.js 24                                                                                                                                             |
+| UI components | **MUI** (Material UI v9, styled with Emotion) for the building blocks: buttons, text fields, cards, alerts, app bar. **MUI X Data Grid** for tables. MUI's own texts are in Norwegian bokmål (`nbNO` locales) |
+| Primitives    | A few of our own in `src/components/ui/` (button, dropdown menu), built on headless **Radix** components                                                                                                      |
+| Styling       | **CSS Modules**: a component's layout and custom styles go in its own `*.module.css`, next to the component. MUI components are themed, not restyled, through `src/lib/mui-theme.ts`                          |
+| Colours       | **Theme tokens only**: `var(--background)`, `var(--muted-foreground)`, `var(--border)` and friends, defined in `src/app/globals.css` and mirrored into the MUI palette in `src/lib/mui-theme.ts`              |
+| Icons         | `lucide-react`, and `@mui/icons-material` inside MUI components                                                                                                                                               |
+| Dark mode     | `next-themes`, class strategy, light / dark / system. `src/components/ThemeRegistry.tsx` keeps MUI's colour scheme in sync with it                                                                            |
+| Auth          | NextAuth v4 with the Keycloak provider, against RAGdoll's Keycloak. The Keycloak token is exchanged for a RAGdoll session                                                                                     |
+| Backend       | RAGdoll (Python 3, FastAPI, MongoDB, Docker Compose, `uv`, Ruff, pytest), called only from our server                                                                                                         |
+| LLMs          | IDUN (NTNU), through RAGdoll                                                                                                                                                                                  |
+| Tests         | Vitest, jsdom and Testing Library                                                                                                                                                                             |
+| CI            | GitHub Actions: lint (ESLint), format check (Prettier), typecheck, tests and build on every pull request                                                                                                      |
 
-The palette, the spacing and type scale, and the rules for using the components are in [`docs/design-guide.md`](docs/design-guide.md). Read it before writing UI code.
-
-<!-- TODO: decide and record in docs/decisions/: Next.js or plain React + Vite, which component library (own components vs. a base library) and whether we reuse RAGdollConfig / RAGdollChat (both TypeScript) instead of starting a new frontend. -->
+The palette, the spacing and type scale, and the rules for using the components are in [`docs/design-guide.md`](docs/design-guide.md). Read it before writing UI code. Why the stack looks like this is recorded in [`docs/decisions/`](docs/decisions/), for example [0002: MUI with CSS Modules](docs/decisions/0002-mui-with-css-modules.md).
 
 Accessibility is part of the brief: counsellors are non-technical users, and the report has a diversity chapter. Keep contrast, keyboard navigation and readable font sizes in mind from the first component.
 
@@ -276,14 +296,19 @@ docs/design-guide.md  colour palette, component library, CSS rules
 docs/decisions/       one page per design decision (ADR)
 public/               static assets served at the site root
 scripts/              developer scripts, e.g. keycloak-setup.mjs (npm run keycloak:setup)
-src/app/              routes (App Router); globals.css holds the tokens and reset
-src/components/       our own components, each with its own *.module.css
+src/app/              routes (App Router) and API routes (src/app/api/); globals.css holds the tokens and reset
+src/components/       our own components, built from MUI and the primitives, with their own *.module.css
 src/components/ui/    low-level primitives (button, dropdown menu) built on Radix
-src/lib/              framework-free helpers: api.ts (backend client), utils.ts (cn)
+src/data/             mock agents and interviewer templates
+src/lib/              helpers: api.ts (backend client), auth-options.ts (NextAuth), mui-theme.ts, utils.ts (cn)
+src/server/           server-only code: ragdoll.ts (RAGdoll adapter)
 ```
 
 Conventions worth knowing before adding code:
 
+- **MUI first.** Reach for an MUI component before writing your own. Change
+  how it looks through the theme in `src/lib/mui-theme.ts` so every page
+  stays consistent; keep `sx` for one-off layout tweaks.
 - **One stylesheet per component.** A component lives next to its
   `*.module.css` and imports it as `styles`. Nothing but tokens and the reset
   belongs in `src/app/globals.css`.
@@ -297,9 +322,10 @@ Conventions worth knowing before adding code:
 var(--border)`, so `border-width: 1px` is enough to get the themed colour.
 - **Dark mode** is a `.dark` class on `<html>`. Components never check it —
   they read tokens, and the tokens change. The one exception is
-  `theme-toggle.module.css`, which uses `:global(.dark)` to cross-fade its icons.
+  `ThemeToggle.module.css`, which uses `:global(.dark)` to cross-fade its icons.
+  MUI follows the same class through `ThemeRegistry.tsx`.
 - **Navbar links** come from the `NAV_LINKS` array in
-  [`src/components/navbar.tsx`](src/components/navbar.tsx). Add a route there and
+  [`src/components/Navbar.tsx`](src/components/Navbar.tsx). Add a route there and
   active highlighting comes for free.
 
 ## Team

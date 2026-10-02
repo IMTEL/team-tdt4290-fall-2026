@@ -164,6 +164,7 @@ Sprint-level (for the sprint review): the increment is demonstrable to the custo
 
 Read [`docs/design-guide.md`](docs/design-guide.md) before writing UI. In short:
 
+- **MUI**: use MUI components (and MUI X Data Grid for tables) for standard controls. Change their look through the theme in `src/lib/mui-theme.ts`, not per page. See [decision 0002](docs/decisions/0002-mui-with-css-modules.md).
 - **Modular CSS**: each component has its own `Component.module.css` next to it. No global stylesheet other than the design tokens; no inline styles for anything reusable.
 - **Component library**: build screens out of the shared components in `src/components/`. If a screen needs something new, add it to the library instead of styling one page ad hoc.
 - **Colour palette**: colours are the agreed tokens (`var(--color-...)`). A raw hex value in a component is a review comment.
