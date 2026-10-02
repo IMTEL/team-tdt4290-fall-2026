@@ -22,9 +22,7 @@ export default function ConfigurePage() {
           med.
         </p>
         <Link href="/template-picker" className={styles.templateLink}>
-          <Button variant="contained">
-            Velg en mal
-          </Button>
+          <Button variant="contained">Velg en mal</Button>
         </Link>
       </header>
 
