@@ -36,6 +36,7 @@ calls the real RAGdoll: tests replace `fetch` (or `sendToAgent`) with a mock.
 
 Unit and component level only:
 
+- `src/app/page.test.tsx`: smoke test for the start page's heading and introduction.
 - `src/app/api/chat/route.test.ts`: the route forwards the history to RAGdoll with the agent id
   and access key from the environment and returns only the reply text; rejects invalid bodies
   (400) and missing settings (500) without calling RAGdoll; maps RAGdoll errors, unexpected
