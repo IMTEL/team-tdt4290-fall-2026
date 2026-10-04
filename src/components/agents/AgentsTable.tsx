@@ -2,20 +2,14 @@
 
 import { useRouter } from 'next/navigation';
 import { DataGrid, type GridColDef } from '@mui/x-data-grid';
-import { agentStatusLabels, formatDate } from '@/lib/format';
+import { formatDate } from '@/lib/format';
 import type { Agent } from '@/lib/types';
 
 const columns: GridColDef<Agent>[] = [
   { field: 'name', headerName: 'Navn', flex: 1 },
   {
-    field: 'status',
-    headerName: 'Status',
-    width: 130,
-    valueFormatter: (value: Agent['status']) => agentStatusLabels[value],
-  },
-  {
-    field: 'createdAt',
-    headerName: 'Opprettet',
+    field: 'lastUpdated',
+    headerName: 'Sist oppdatert',
     width: 180,
     valueFormatter: (value: string) => formatDate(value),
   },

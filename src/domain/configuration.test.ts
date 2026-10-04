@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest';
 
-import { parseConfiguration } from './configuration';
+import { parseConfiguration, readStoredConfiguration } from './configuration';
 
 // A reply that ends with a complete block, the way prompts/configurator.nb.md asks for it.
 const completeReply = `Takk! Da har jeg det jeg trenger.
@@ -50,5 +50,17 @@ describe('parseConfiguration', () => {
       '   Stilling:  Butikkmedarbeider  ',
     );
     expect(parseConfiguration(indented)?.stilling).toBe('Butikkmedarbeider');
+  });
+});
+
+describe('readStoredConfiguration', () => {
+  it('reads the JSON saved on an agent', () => {
+    const stored = JSON.stringify(parseConfiguration(completeReply));
+    expect(readStoredConfiguration(stored)?.stilling).toBe('Butikkmedarbeider');
+  });
+
+  it('returns null when the description is not a configuration', () => {
+    expect(readStoredConfiguration('ikke json')).toBeNull();
+    expect(readStoredConfiguration('{"stilling":"Butikkmedarbeider"}')).toBeNull();
   });
 });
