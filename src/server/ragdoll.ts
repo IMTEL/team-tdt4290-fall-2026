@@ -88,6 +88,12 @@ export type NewRagdollAgent = {
   last_updated: string;
 };
 
+/**
+ * A whole agent as RAGdoll gives it to its owner, with the keys. Never send it to the browser.
+ * It also has fields we don't use. We keep them, because an update resets every field we leave out.
+ */
+export type FullRagdollAgent = NewRagdollAgent & { id: string; [field: string]: unknown };
+
 /** An agent as we pass it on. Only safe fields: RAGdoll also returns the agent's keys. */
 export type RagdollAgentSummary = {
   id: string;

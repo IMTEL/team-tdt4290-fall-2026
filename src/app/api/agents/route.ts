@@ -1,6 +1,8 @@
 import type { NextRequest } from 'next/server';
 
-import { isConfiguration } from '@/domain/configuration';
+import { interviewer } from '@/domain/agentTypes/interviewer';
+import { hasAllAnswers } from '@/domain/agentTypes/registry';
+
 import { getSessionToken } from '@/lib/session-tokens';
 import { toRagdollAgent } from '@/server/agentMapper';
 import { configErrorResponse, ragdollErrorResponse } from '@/server/errorResponse';
@@ -27,7 +29,8 @@ export async function POST(req: NextRequest) {
   if (!name || name.length > MAX_NAME_LENGTH) {
     return Response.json({ error: 'Invalid name' }, { status: 400 });
   }
-  if (!isConfiguration(configuration)) {
+  // The configurator only makes interviewers until #56 lets the counsellor choose the agent type.
+  if (!hasAllAnswers(interviewer, configuration)) {
     return Response.json({ error: 'Invalid configuration' }, { status: 400 });
   }
 
@@ -38,7 +41,8 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const id = await saveAgent(sessionToken, toRagdollAgent(name, configuration, idunKey));
+    const agent = toRagdollAgent(name, interviewer, configuration, idunKey);
+    const id = await saveAgent(sessionToken, agent);
     return Response.json({ id }, { status: 201 });
   } catch (error) {
     return ragdollErrorResponse(error);
