@@ -1,4 +1,4 @@
-import { DEFAULT_AGENT_TYPE, getAgentType, hasAllAnswers } from './registry';
+import { DEFAULT_AGENT_TYPE, getAgentType } from './registry';
 import type { AgentTypeDefinition, Answers } from './types';
 
 // Bump this if the answers of a type ever change so much that old saves must be converted.
@@ -15,8 +15,8 @@ export function toStoredDescription(definition: AgentTypeDefinition, answers: An
 }
 
 /**
- * Reads the answers back out of an agent's description.
- * Returns null if the description is not something we saved, or the answers are incomplete.
+ * Reads the answers back out of an agent's description. Returns null if the description is not
+ * something we saved. Answers may be empty if the agent type got new fields after saving.
  */
 export function readStoredAnswers(description: string): StoredAnswers | null {
   let saved: unknown;
@@ -30,9 +30,26 @@ export function readStoredAnswers(description: string): StoredAnswers | null {
   const { type, answers } = unwrap(saved as Record<string, unknown>);
 
   const definition = typeof type === 'string' ? getAgentType(type) : undefined;
-  if (!definition || !hasAllAnswers(definition, answers)) return null;
+  if (!definition || typeof answers !== 'object' || answers === null) return null;
 
-  return { definition, answers };
+  const filled = fillFields(definition, answers as Record<string, unknown>);
+  // Some JSON without a single one of our answers in it was not saved by us.
+  if (Object.values(filled).every((answer) => answer === '')) return null;
+
+  return { definition, answers: filled };
+}
+
+/**
+ * One answer for each field the agent type has now. A field added after the agent was saved
+ * becomes empty, so the counsellor can fill it in. Answers to removed fields are left out.
+ */
+function fillFields(definition: AgentTypeDefinition, saved: Record<string, unknown>): Answers {
+  return Object.fromEntries(
+    definition.fields.map(({ key }) => {
+      const answer = saved[key];
+      return [key, typeof answer === 'string' ? answer : ''];
+    }),
+  );
 }
 
 /**

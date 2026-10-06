@@ -36,13 +36,24 @@ describe('readStoredAnswers', () => {
     expect(readStoredAnswers(description)).toBeNull();
   });
 
-  it('returns null when an answer is missing', () => {
-    const { bedrift: _, ...incomplete } = answers;
-    expect(readStoredAnswers(toStoredDescription(interviewer, incomplete))).toBeNull();
+  it('leaves an answer empty when the agent type got a new field after saving', () => {
+    const { bedrift: _, ...savedBeforeBedriftExisted } = answers;
+    const stored = readStoredAnswers(toStoredDescription(interviewer, savedBeforeBedriftExisted));
+
+    expect(stored?.answers).toEqual({ ...answers, bedrift: '' });
+  });
+
+  it('leaves out answers to fields the agent type no longer has', () => {
+    const stored = readStoredAnswers(
+      toStoredDescription(interviewer, { ...answers, gammeltFelt: 'borte' }),
+    );
+
+    expect(stored?.answers).toEqual(answers);
   });
 
   it('returns null for a description that is not our JSON', () => {
     expect(readStoredAnswers('En vanlig beskrivelse')).toBeNull();
     expect(readStoredAnswers('"bare tekst"')).toBeNull();
+    expect(readStoredAnswers('{"tittel":"Noe helt annet"}')).toBeNull();
   });
 });
