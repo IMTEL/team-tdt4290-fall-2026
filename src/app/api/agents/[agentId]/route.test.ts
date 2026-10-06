@@ -1,0 +1,140 @@
+// @vitest-environment node
+import { NextRequest } from 'next/server';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+import { interviewer } from '@/domain/agentTypes/interviewer';
+import { readStoredAnswers } from '@/domain/agentTypes/storedAnswers';
+import { getSessionToken } from '@/lib/session-tokens';
+import { toRagdollAgent } from '@/server/agentMapper';
+import { fetchFullAgent, RagdollError, updateAgent } from '@/server/ragdoll';
+import { PUT } from './route';
+
+// The adapter and the mapper have their own tests. Here we only check what the route adds:
+// the session check, validating the body, reading before writing, and the status codes.
+vi.mock('@/lib/session-tokens', () => ({ getSessionToken: vi.fn() }));
+vi.mock('@/server/ragdoll', async (importOriginal) => {
+  const original = await importOriginal<typeof import('@/server/ragdoll')>();
+  return { ...original, fetchFullAgent: vi.fn(), updateAgent: vi.fn() };
+});
+
+const getSessionTokenMock = vi.mocked(getSessionToken);
+const fetchFullAgentMock = vi.mocked(fetchFullAgent);
+const updateAgentMock = vi.mocked(updateAgent);
+
+const answers = {
+  stilling: 'Butikkmedarbeider',
+  bransje: 'Varehandel (privat)',
+  bedrift: 'Nærbutikken AS',
+  intervjutype: 'første intervju',
+  intervjuer: 'butikksjef, vennlig',
+  jobbsoker: 'under 25, lite erfaring',
+  vanskelighetsgrad: 'lett',
+  egneSporsmal: 'ingen',
+};
+const newAnswers = { ...answers, vanskelighetsgrad: 'vanskelig' };
+
+// The agent as RAGdoll has it before the edit, with a field we never set ourselves.
+const existing = {
+  ...toRagdollAgent('Gammelt navn', interviewer, answers, 'idun-key'),
+  id: 'agent-1',
+  llm_temperature: 0.2,
+};
+
+function putRequest(body: unknown) {
+  return new NextRequest('http://localhost/api/agents/agent-1', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: typeof body === 'string' ? body : JSON.stringify(body),
+  });
+}
+
+const params = { params: Promise.resolve({ agentId: 'agent-1' }) };
+
+beforeEach(() => {
+  getSessionTokenMock.mockResolvedValue('session-token');
+  fetchFullAgentMock.mockResolvedValue(existing);
+  updateAgentMock.mockResolvedValue({
+    id: 'agent-1',
+    name: 'Nytt navn',
+    description: '{}',
+    lastUpdated: '2026-10-06T12:00:00.000Z',
+  });
+  // The route logs problems on purpose; keep the test output clean.
+  vi.spyOn(console, 'error').mockImplementation(() => {});
+});
+
+afterEach(() => {
+  vi.restoreAllMocks();
+  getSessionTokenMock.mockReset();
+  fetchFullAgentMock.mockReset();
+  updateAgentMock.mockReset();
+});
+
+describe('PUT /api/agents/[agentId]', () => {
+  it('updates the same agent with the new name, answers and prompt', async () => {
+    const res = await PUT(putRequest({ name: 'Nytt navn', answers: newAnswers }), params);
+
+    expect(res.status).toBe(200);
+    expect((await res.json()).agent.name).toBe('Nytt navn');
+
+    expect(fetchFullAgentMock).toHaveBeenCalledWith('session-token', 'agent-1');
+    const [token, saved] = updateAgentMock.mock.calls[0];
+    expect(token).toBe('session-token');
+    expect(saved.id).toBe('agent-1');
+    expect(saved.name).toBe('Nytt navn');
+    expect(saved.prompt).toContain('vanskelig');
+    expect(readStoredAnswers(saved.description)?.answers).toEqual(newAnswers);
+    // Fields the edit does not touch are sent back unchanged.
+    expect(saved.llm_temperature).toBe(0.2);
+  });
+
+  it('answers 401 and touches nothing when the user is not logged in', async () => {
+    getSessionTokenMock.mockResolvedValue(null);
+
+    const res = await PUT(putRequest({ name: 'Nytt navn', answers: newAnswers }), params);
+
+    expect(res.status).toBe(401);
+    expect(fetchFullAgentMock).not.toHaveBeenCalled();
+    expect(updateAgentMock).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['the body is not JSON', '{not json'],
+    ['the name is missing', { answers: newAnswers }],
+    ['the name is only spaces', { name: '   ', answers: newAnswers }],
+    ['the name is too long', { name: 'a'.repeat(101), answers: newAnswers }],
+    ['an answer is missing', { name: 'Nytt navn', answers: { ...newAnswers, bransje: '' } }],
+  ])('answers 400 and saves nothing when %s', async (_, body) => {
+    const res = await PUT(putRequest(body), params);
+
+    expect(res.status).toBe(400);
+    expect(updateAgentMock).not.toHaveBeenCalled();
+  });
+
+  it('answers 400 when the agent was not made with this app', async () => {
+    fetchFullAgentMock.mockResolvedValue({ ...existing, description: 'En vanlig beskrivelse' });
+
+    const res = await PUT(putRequest({ name: 'Nytt navn', answers: newAnswers }), params);
+
+    expect(res.status).toBe(400);
+    expect(updateAgentMock).not.toHaveBeenCalled();
+  });
+
+  it('answers 404 and never writes when the user has no such agent', async () => {
+    // Writing would make RAGdoll create a new agent, so this must stop before updateAgent.
+    fetchFullAgentMock.mockRejectedValue(new RagdollError('not-found', 'no agent'));
+
+    const res = await PUT(putRequest({ name: 'Nytt navn', answers: newAnswers }), params);
+
+    expect(res.status).toBe(404);
+    expect(updateAgentMock).not.toHaveBeenCalled();
+  });
+
+  it('answers 502 when RAGdoll fails to save', async () => {
+    updateAgentMock.mockRejectedValue(new RagdollError('unreachable', 'RAGdoll answered 500'));
+
+    const res = await PUT(putRequest({ name: 'Nytt navn', answers: newAnswers }), params);
+
+    expect(res.status).toBe(502);
+  });
+});
