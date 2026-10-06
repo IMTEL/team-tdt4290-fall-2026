@@ -98,6 +98,19 @@ describe('EditAgentForm', () => {
     expect(push).not.toHaveBeenCalled();
   });
 
+  it('cannot be saved before something is changed, and counts the changes', async () => {
+    const user = userEvent.setup();
+    renderForm();
+
+    expect(saveButton()).toBeDisabled();
+    expect(screen.getByText('Ingen endringer ennå')).toBeVisible();
+
+    await replaceText(user, 'Vanskelighetsgrad', 'vanskelig');
+
+    expect(saveButton()).toBeEnabled();
+    expect(screen.getByText('1 endring som ikke er lagret')).toBeVisible();
+  });
+
   it('cannot be saved while a field is empty', async () => {
     const user = userEvent.setup();
     renderForm();

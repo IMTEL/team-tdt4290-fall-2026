@@ -1,9 +1,14 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import Alert from '@mui/material/Alert';
 import Box from '@mui/material/Box';
+import Button from '@mui/material/Button';
+import Chip from '@mui/material/Chip';
+import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 
 import { readStoredAnswers } from '@/domain/agentTypes/storedAnswers';
@@ -39,17 +44,33 @@ export function EditAgent({ agentId }: { agentId: string }) {
   if (state.kind === 'error') return <Alert severity="error">Noe gikk galt. Prøv igjen.</Alert>;
   if (state.kind !== 'ready') return null;
 
-  const stored = readStoredAnswers(state.agent.description);
+  const { agent } = state;
+  const stored = readStoredAnswers(agent.description);
 
   return (
-    <Box sx={{ p: 3, maxWidth: 720 }}>
-      <Typography variant="h4" component="h1" sx={{ mb: 2 }}>
-        Rediger {state.agent.name}
+    <Box sx={{ p: { xs: 2, md: 4 }, maxWidth: 960, mx: 'auto' }}>
+      <Button
+        component={Link}
+        href={`/browse-agents/${agent.id}`}
+        startIcon={<ArrowBackIcon />}
+        size="small"
+        sx={{ mb: 2 }}
+      >
+        Tilbake til agenten
+      </Button>
+
+      <Typography variant="h4" component="h1">
+        Rediger agent
       </Typography>
+      <Stack direction="row" spacing={1} sx={{ mt: 1, mb: 3, alignItems: 'center' }}>
+        <Typography color="text.secondary">{agent.name}</Typography>
+        {stored && <Chip label={stored.definition.label} size="small" color="secondary" />}
+      </Stack>
+
       {stored ? (
         <EditAgentForm
-          agentId={state.agent.id}
-          initialName={state.agent.name}
+          agentId={agent.id}
+          initialName={agent.name}
           definition={stored.definition}
           initialAnswers={stored.answers}
         />

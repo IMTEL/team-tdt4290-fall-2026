@@ -5,6 +5,7 @@ import type { AgentTypeDefinition } from './types';
 /** An interviewer for a practice job interview in The Candidate. */
 export const interviewer: AgentTypeDefinition = {
   id: 'interviewer',
+  label: 'Intervjuer',
   fields: Object.entries(LABELS).map(([key, label]) => ({ key, label })),
   // Safe cast: answers are checked with hasAllAnswers before a prompt is built.
   buildPrompt: (answers) => buildPrompt(answers as Configuration),

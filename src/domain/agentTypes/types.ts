@@ -12,6 +12,8 @@ export type AgentRole = { name: string; description: string };
  */
 export type AgentTypeDefinition = {
   id: string;
+  /** The name of the agent type, as counsellors see it, e.g. "Intervjuer". */
+  label: string;
   fields: AgentField[];
   buildPrompt: (answers: Answers) => string;
   buildRoles: (name: string, answers: Answers) => AgentRole[];
