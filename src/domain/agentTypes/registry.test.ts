@@ -34,8 +34,7 @@ describe('hasAllAnswers', () => {
 
   it('rejects a missing or blank answer', () => {
     expect(hasAllAnswers(interviewer, { ...answers, bransje: '  ' })).toBe(false);
-    const { stilling: _, ...missing } = answers;
-    expect(hasAllAnswers(interviewer, missing)).toBe(false);
+    expect(hasAllAnswers(interviewer, { ...answers, stilling: undefined })).toBe(false);
   });
 
   it('rejects things that are not objects', () => {

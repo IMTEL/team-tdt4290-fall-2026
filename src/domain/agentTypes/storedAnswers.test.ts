@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 
 import { getAgentType } from './registry';
 import { readStoredAnswers, toStoredDescription } from './storedAnswers';
+import type { Answers } from './types';
 
 const interviewer = getAgentType('interviewer')!;
 
@@ -37,7 +38,8 @@ describe('readStoredAnswers', () => {
   });
 
   it('leaves an answer empty when the agent type got a new field after saving', () => {
-    const { bedrift: _, ...savedBeforeBedriftExisted } = answers;
+    const savedBeforeBedriftExisted: Answers = { ...answers };
+    delete savedBeforeBedriftExisted.bedrift;
     const stored = readStoredAnswers(toStoredDescription(interviewer, savedBeforeBedriftExisted));
 
     expect(stored?.answers).toEqual({ ...answers, bedrift: '' });
