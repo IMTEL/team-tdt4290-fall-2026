@@ -124,6 +124,10 @@ export function EditAgentForm({
         sx={{
           position: 'sticky',
           bottom: 16,
+          // Above the fields: MUI gives their labels z-index 1, which would show through.
+          zIndex: 2,
+          // A shadow shows that the bar lies on top of the form.
+          boxShadow: 4,
           p: 2,
           display: 'flex',
           flexWrap: 'wrap',
