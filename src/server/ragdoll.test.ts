@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   askAgent,
+  getAgentRole,
   getChatAccessKey,
   listAgents,
   RagdollError,
@@ -43,6 +44,15 @@ describe('askAgent', () => {
     vi.unstubAllEnvs();
     vi.unstubAllGlobals();
     fetchMock.mockReset();
+  });
+
+  it('sends the role as active_role_id when the agent has one', async () => {
+    fetchMock.mockResolvedValue(ragdollReply('Hei!'));
+
+    await askAgent({ ...agent, roleName: 'Butikksjef' }, messages);
+
+    const [, init] = fetchMock.mock.calls[0];
+    expect(JSON.parse(init?.body as string)).toMatchObject({ active_role_id: 'Butikksjef' });
   });
 
   it('sends the history to the agent and returns only the reply text', async () => {
@@ -287,6 +297,48 @@ describe('getChatAccessKey', () => {
 
     await expect(getChatAccessKey(SESSION_TOKEN, 'agent-1')).rejects.toMatchObject({
       kind: 'unauthorized',
+    });
+  });
+});
+
+describe('getAgentRole', () => {
+  const fetchMock = vi.fn<typeof fetch>();
+
+  beforeEach(() => {
+    vi.stubEnv('BACKEND_API_URL', BACKEND_URL);
+    vi.stubGlobal('fetch', fetchMock);
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.unstubAllGlobals();
+    fetchMock.mockReset();
+  });
+
+  it('returns only the name of the agent’s role, never its keys', async () => {
+    // RAGdoll sends the owner the whole agent, keys included.
+    fetchMock.mockResolvedValue(Response.json({ ...newAgent, id: 'agent-1' }));
+
+    const role = await getAgentRole(SESSION_TOKEN, 'agent-1');
+
+    expect(role).toBe('Butikksjef');
+    expect(JSON.stringify(role)).not.toContain('idun-key');
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toBe(`${BACKEND_URL}/fetch-agent?agent_id=agent-1`);
+    expect((init?.headers as Record<string, string>).Authorization).toBe(`Bearer ${SESSION_TOKEN}`);
+  });
+
+  it('returns null when the agent has no roles', async () => {
+    fetchMock.mockResolvedValue(Response.json({ ...newAgent, roles: [] }));
+
+    await expect(getAgentRole(SESSION_TOKEN, 'agent-1')).resolves.toBeNull();
+  });
+
+  it('throws a bad-response error when RAGdoll does not return an agent', async () => {
+    fetchMock.mockResolvedValue(Response.json({ detail: 'oops' }));
+
+    await expect(getAgentRole(SESSION_TOKEN, 'agent-1')).rejects.toMatchObject({
+      kind: 'bad-response',
     });
   });
 });

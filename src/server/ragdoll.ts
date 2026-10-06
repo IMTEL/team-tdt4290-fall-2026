@@ -1,6 +1,6 @@
 // Adapter for RAGdoll's API. Server only: it uses the agents' access keys.
 
-export type RagdollAgent = { id: string; accessKey: string };
+export type RagdollAgent = { id: string; accessKey: string; roleName?: string };
 export type RagdollMessage = { role: 'user' | 'assistant'; content: string };
 
 export type RagdollErrorKind =
@@ -36,6 +36,7 @@ export async function askAgent(agent: RagdollAgent, messages: RagdollMessage[]):
         agent_id: agent.id,
         access_key: agent.accessKey,
         chat_log: messages,
+        active_role_id: agent.roleName,
       }),
       signal: AbortSignal.timeout(TIMEOUT_MS),
     });
@@ -191,4 +192,27 @@ export async function getChatAccessKey(sessionToken: string, agentId: string): P
     throw new RagdollError('bad-response', 'RAGdoll did not return a chat access key');
   }
   return key;
+}
+
+/**
+ * Returns the name of the agent's role, or null if it has none. RAGdoll sends the owner the whole
+ * agent with its API keys, so only the role name is picked out. Throws RagdollError.
+ */
+export async function getAgentRole(sessionToken: string, agentId: string): Promise<string | null> {
+  const data = await requestAsUser(
+    sessionToken,
+    `/fetch-agent?agent_id=${encodeURIComponent(agentId)}`,
+  );
+  const roles = (data as { roles?: unknown }).roles;
+  if (!Array.isArray(roles)) {
+    throw new RagdollError('bad-response', 'RAGdoll did not return an agent with roles');
+  }
+  if (roles.length === 0) return null;
+
+  // Our agents have exactly one role: the interviewer (see agentMapper).
+  const name = (roles[0] as { name?: unknown } | null)?.name;
+  if (typeof name !== 'string') {
+    throw new RagdollError('bad-response', 'RAGdoll returned a role without a name');
+  }
+  return name;
 }
