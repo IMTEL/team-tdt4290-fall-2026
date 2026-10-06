@@ -77,14 +77,35 @@ Unit and component level only:
   passes RAGdoll's message on.
 - `src/app/api/agents/route.test.ts`: saves with the counsellor's session token and the IDUN key
   from the environment; 401, 400 and 500 cases save nothing; lists the counsellor's agents.
-- `src/server/ragdoll.test.ts`: `askAgent`, `saveAgent` and `listAgents` against a mocked
-  `fetch`: the session token is sent, 401 and 422 become `unauthorized`, and `listAgents` never
-  returns the agents' API keys.
+- `src/app/api/agents/[agentId]/route.test.ts`: editing updates the same agent (same id) with the
+  new name, answers and prompt, and keeps the fields the edit does not touch; 401 and 400 cases
+  (bad JSON, bad name, a missing answer, an agent not made in this app) save nothing; an agent
+  the user does not have gives 404 and is never written, so RAGdoll cannot create a new one;
+  RAGdoll failures give 502.
+- `src/server/ragdoll.test.ts`: `askAgent`, `saveAgent`, `listAgents`, `fetchFullAgent` and
+  `updateAgent` against a mocked `fetch`: the session token is sent, 401 and 422 become
+  `unauthorized`, an id that is not the user's becomes `not-found`, an update sends the id with
+  empty keys, and nothing returns the agents' API keys.
 - `src/server/agentMapper.test.ts`: the RAGdoll agent gets the chosen name, the built prompt, the
-  configuration as JSON and the IDUN key for both the LLM and the embeddings.
+  stored answers and the IDUN key for both the LLM and the embeddings; `applyEdit` changes the
+  name, roles, prompt and answers but keeps the id and every other field.
 - `src/domain/configuration.test.ts` and `src/domain/interviewerPrompt.test.ts`: reading the
   `KONFIGURASJON` block (complete, missing or empty lines, extra spaces) and filling the
   interviewer prompt from it.
+- `src/domain/agentTypes/registry.test.ts`: looking up an agent type, checking that every field
+  has an answer, and the interviewer's prompt and role.
+- `src/domain/agentTypes/storedAnswers.test.ts`: answers are saved with their type and version
+  and read back; agents saved before agent types existed are read as interviewers; a field added
+  to a type later comes back empty, and answers to removed fields are left out; descriptions we
+  did not write give null.
+- `src/app/browse-agents/api.test.ts`: loading the agent list, and saving an edit with `PUT`;
+  401, 404, 504, other errors and network failures become Norwegian messages.
+- `src/app/browse-agents/[agentId]/AgentDetail.test.tsx`: shows the answers in the old and the
+  new storage format, keeps the system prompt closed until opened, links to the edit page, and
+  calls `notFound` for an unknown id.
+- `src/app/browse-agents/[agentId]/edit/EditAgentForm.test.tsx`: the form is filled in from the
+  agent; saving sends the changes and goes back to the agent; a failed save shows the error and
+  keeps what was typed; saving is blocked until something has changed and while a field is empty.
 
 Log in (Keycloak via NextAuth, with RAGdoll's own session tokens):
 
@@ -126,15 +147,19 @@ Before you start: RAGdoll runs locally and `.env` is filled in as described in t
 (including `RAGDOLL_CONFIGURATOR_*` and `IDUN_API_KEY`). Restart `npm run dev` after changing
 `.env`.
 
-| #   | Do this                                                                              | You should see                                                                                   |
-| --- | ------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------ |
-| 1   | Open <http://localhost:3000/configure> while logged out                              | You are sent to `/login`                                                                         |
-| 2   | Log in as `test@example.com` / `test`                                                | You land on `/configure` with the assistant's greeting                                           |
-| 3   | Answer the assistant's questions until it shows a summary, then confirm it           | Its last reply contains the `KONFIGURASJON` block, and a form with **Lagre agent** appears below |
-| 4   | Keep or change the suggested name and click **Lagre agent**                          | "«name» er lagret" with a link to your agents                                                    |
-| 5   | In the browser console (F12), run `await (await fetch('/api/agents')).json()`        | The new agent is in the list, with your configuration as JSON in `description`                   |
-| 6   | Open the Network tab, repeat steps 3 to 5, and look at every request to `/api/*`     | No response contains `llm_api_key`, `embedding_api_key`, an access key or a token                |
-| 7   | Log out, log in as a second user (register one on the login page), and repeat step 5 | The first user's agent is not in this list                                                       |
+| #   | Do this                                                                                  | You should see                                                                                   |
+| --- | ---------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| 1   | Open <http://localhost:3000/configure> while logged out                                  | You are sent to `/login`                                                                         |
+| 2   | Log in as `test@example.com` / `test`                                                    | You land on `/configure` with the assistant's greeting                                           |
+| 3   | Answer the assistant's questions until it shows a summary, then confirm it               | Its last reply contains the `KONFIGURASJON` block, and a form with **Lagre agent** appears below |
+| 4   | Keep or change the suggested name and click **Lagre agent**                              | "«name» er lagret" with a link to your agents                                                    |
+| 5   | In the browser console (F12), run `await (await fetch('/api/agents')).json()`            | The new agent is in the list, with your configuration as JSON in `description`                   |
+| 6   | Open the Network tab, repeat steps 3 to 5, and look at every request to `/api/*`         | No response contains `llm_api_key`, `embedding_api_key`, an access key or a token                |
+| 7   | Log out, log in as a second user (register one on the login page), and repeat step 5     | The first user's agent is not in this list                                                       |
+| 8   | Log in as the first user again, open the agent on `/browse-agents` and click **Rediger** | The form shows the agent's name and answers                                                      |
+| 9   | Change the name and one answer, and click **Lagre endringer**                            | Back on the details page with the new values; the system prompt shows the new answer             |
+| 10  | Repeat step 5                                                                            | Same number of agents as before, with the same id: the agent was updated, not copied             |
+| 11  | Stop RAGdoll, change an answer and save, then start RAGdoll again                        | A Norwegian error, and the form still shows what you typed                                       |
 
 If the form in step 3 never appears, look at the assistant's last reply: every line of the block
 must start with the exact label (`Stilling:`, `Bransje:` ...). If the model formats it
