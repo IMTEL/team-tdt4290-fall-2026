@@ -1,6 +1,6 @@
 // The fields of the KONFIGURASJON block that the configurator agent writes when it is done.
 // The labels are the exact words in prompts/configurator.nb.md.
-const LABELS = {
+export const LABELS = {
   stilling: 'Stilling',
   bransje: 'Bransje',
   bedrift: 'Bedrift',
