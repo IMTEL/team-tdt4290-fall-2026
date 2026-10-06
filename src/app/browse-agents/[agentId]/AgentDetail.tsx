@@ -10,10 +10,10 @@ import AccordionSummary from '@mui/material/AccordionSummary';
 import Alert from '@mui/material/Alert';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
+import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 
-import { configurationFields, readStoredConfiguration } from '@/domain/configuration';
-import { buildPrompt } from '@/domain/interviewerPrompt';
+import { readStoredAnswers } from '@/domain/agentTypes/storedAnswers';
 import type { Agent } from '@/lib/types';
 import { fetchAgents } from '../api';
 
@@ -52,7 +52,8 @@ export function AgentDetail({ agentId }: { agentId: string }) {
 
   if (state.kind !== 'ready') return null;
 
-  const configuration = readStoredConfiguration(state.agent.description);
+  // Knows the old and the new way of storing answers, and works for every agent type.
+  const stored = readStoredAnswers(state.agent.description);
 
   return (
     <Box sx={{ p: 3, maxWidth: 720 }}>
@@ -60,15 +61,16 @@ export function AgentDetail({ agentId }: { agentId: string }) {
         {state.agent.name}
       </Typography>
 
-      {configuration ? (
+      {stored ? (
         <Box component="dl" sx={{ m: 0 }}>
-          {configurationFields(configuration).map(({ label, value }) => (
-            <Box key={label} sx={{ mb: 1.5 }}>
+          {stored.definition.fields.map(({ key, label }) => (
+            <Box key={key} sx={{ mb: 1.5 }}>
               <Typography component="dt" variant="subtitle2">
                 {label}
               </Typography>
               <Typography component="dd" sx={{ m: 0 }}>
-                {value}
+                {/* Empty when the agent type got this field after the agent was saved. */}
+                {stored.answers[key] || '–'}
               </Typography>
             </Box>
           ))}
@@ -77,22 +79,34 @@ export function AgentDetail({ agentId }: { agentId: string }) {
         <Typography variant="body1">{state.agent.description}</Typography>
       )}
 
-      {configuration && (
+      {stored && (
         <Accordion sx={{ mt: 3 }}>
           <AccordionSummary expandIcon={<ExpandMoreIcon />}>
             <Typography component="span">Systemprompt</Typography>
           </AccordionSummary>
           <AccordionDetails>
             <Typography component="pre" variant="body2" sx={{ whiteSpace: 'pre-wrap', m: 0 }}>
-              {buildPrompt(configuration)}
+              {stored.definition.buildPrompt(stored.answers)}
             </Typography>
           </AccordionDetails>
         </Accordion>
       )}
 
-      <Button component={Link} href="/test-chat" variant="contained" sx={{ mt: 3 }}>
-        Test agenten
-      </Button>
+      <Stack direction="row" spacing={1} sx={{ mt: 3 }}>
+        <Button component={Link} href="/test-chat" variant="contained">
+          Test agenten
+        </Button>
+        {/* Only agents made in this app have answers that can be edited. */}
+        {stored && (
+          <Button
+            component={Link}
+            href={`/browse-agents/${state.agent.id}/edit`}
+            variant="outlined"
+          >
+            Rediger
+          </Button>
+        )}
+      </Stack>
     </Box>
   );
 }
