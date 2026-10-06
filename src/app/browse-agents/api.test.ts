@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { fetchAgents } from './api';
+import { fetchAgents, updateAgent } from './api';
 
 const agent = {
   id: 'agent-1',
@@ -45,5 +45,47 @@ describe('fetchAgents', () => {
     fetchMock.mockResolvedValue(Response.json({ agents: [{ id: 'agent-1' }] }));
 
     await expect(fetchAgents()).rejects.toThrow('Noe gikk galt. Prøv igjen.');
+  });
+});
+
+describe('updateAgent', () => {
+  const answers = { stilling: 'Barnehagelærer', bransje: 'Oppvekst' };
+
+  it('sends the new name and answers to the agent and returns the saved agent', async () => {
+    fetchMock.mockResolvedValue(Response.json({ agent }));
+
+    await expect(updateAgent('agent-1', 'Nytt navn', answers)).resolves.toEqual(agent);
+
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toBe('/api/agents/agent-1');
+    expect(init?.method).toBe('PUT');
+    expect(JSON.parse(init?.body as string)).toEqual({ name: 'Nytt navn', answers });
+  });
+
+  it.each([
+    [401, 'Du er logget ut. Logg inn på nytt og prøv igjen.'],
+    [404, 'Fant ikke agenten. Den kan ha blitt slettet.'],
+    [504, 'Det tok for lang tid å få svar. Prøv igjen.'],
+    [502, 'Noe gikk galt. Prøv igjen.'],
+  ])('gives a Norwegian message when the server answers %i', async (status, message) => {
+    fetchMock.mockResolvedValue(Response.json({ error: 'Agent not found' }, { status }));
+
+    await expect(updateAgent('agent-1', 'Nytt navn', answers)).rejects.toThrow(message);
+  });
+
+  it('gives a network message when the server cannot be reached', async () => {
+    fetchMock.mockRejectedValue(new TypeError('Failed to fetch'));
+
+    await expect(updateAgent('agent-1', 'Nytt navn', answers)).rejects.toThrow(
+      'Fikk ikke kontakt med serveren. Sjekk nettverket og prøv igjen.',
+    );
+  });
+
+  it('fails when the answer is not an agent', async () => {
+    fetchMock.mockResolvedValue(Response.json({ agent: { id: 'agent-1' } }));
+
+    await expect(updateAgent('agent-1', 'Nytt navn', answers)).rejects.toThrow(
+      'Noe gikk galt. Prøv igjen.',
+    );
   });
 });
