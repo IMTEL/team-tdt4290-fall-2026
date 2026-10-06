@@ -1,7 +1,14 @@
 // @vitest-environment node
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { askAgent, listAgents, RagdollError, saveAgent, type NewRagdollAgent } from './ragdoll';
+import {
+  askAgent,
+  getChatAccessKey,
+  listAgents,
+  RagdollError,
+  saveAgent,
+  type NewRagdollAgent,
+} from './ragdoll';
 
 const RAGDOLL_URL = 'https://ragdoll.test/backend';
 const agent = { id: 'agent-123', accessKey: 'secret-key' };
@@ -223,5 +230,63 @@ describe('listAgents', () => {
     fetchMock.mockResolvedValue(Response.json({ detail: 'oops' }));
 
     await expect(listAgents(SESSION_TOKEN)).rejects.toMatchObject({ kind: 'bad-response' });
+  });
+});
+
+describe('getChatAccessKey', () => {
+  const fetchMock = vi.fn<typeof fetch>();
+
+  beforeEach(() => {
+    vi.stubEnv('BACKEND_API_URL', BACKEND_URL);
+    vi.stubGlobal('fetch', fetchMock);
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.unstubAllGlobals();
+    fetchMock.mockReset();
+  });
+
+  it('asks for a chat key for the agent as the logged-in user and returns only the key', async () => {
+    // What RAGdoll's /chat-access-key returns: a whole AccessKey.
+    fetchMock.mockResolvedValue(
+      Response.json({
+        id: 'key-1',
+        key: 'chat-key',
+        name: 'Chat Access Key - user-1',
+        expiry_date: '2026-10-08T10:00:00',
+      }),
+    );
+
+    await expect(getChatAccessKey(SESSION_TOKEN, 'agent-1')).resolves.toBe('chat-key');
+
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toBe(`${BACKEND_URL}/chat-access-key?agent_id=agent-1`);
+    expect((init?.headers as Record<string, string>).Authorization).toBe(`Bearer ${SESSION_TOKEN}`);
+  });
+
+  it('encodes the agent id in the URL', async () => {
+    fetchMock.mockResolvedValue(Response.json({ key: 'chat-key' }));
+
+    await getChatAccessKey(SESSION_TOKEN, 'a&b');
+
+    expect(fetchMock.mock.calls[0][0]).toBe(`${BACKEND_URL}/chat-access-key?agent_id=a%26b`);
+  });
+
+  it('throws a bad-response error when RAGdoll returns no key', async () => {
+    fetchMock.mockResolvedValue(Response.json({ id: 'key-1', key: null }));
+
+    await expect(getChatAccessKey(SESSION_TOKEN, 'agent-1')).rejects.toMatchObject({
+      kind: 'bad-response',
+    });
+  });
+
+  it('throws an unauthorized error when RAGdoll refuses (401)', async () => {
+    // RAGdoll also answers 401 when the agent belongs to someone else.
+    fetchMock.mockResolvedValue(new Response('Unauthorized access to agent', { status: 401 }));
+
+    await expect(getChatAccessKey(SESSION_TOKEN, 'agent-1')).rejects.toMatchObject({
+      kind: 'unauthorized',
+    });
   });
 });

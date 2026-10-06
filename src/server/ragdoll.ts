@@ -176,3 +176,19 @@ export async function listAgents(sessionToken: string): Promise<RagdollAgentSumm
     lastUpdated: String(agent.last_updated),
   }));
 }
+
+/**
+ * Gets a key to chat with one of the user's agents. RAGdoll reuses it while it is valid.
+ * Throws RagdollError.
+ */
+export async function getChatAccessKey(sessionToken: string, agentId: string): Promise<string> {
+  const data = await requestAsUser(
+    sessionToken,
+    `/chat-access-key?agent_id=${encodeURIComponent(agentId)}`,
+  );
+  const key = (data as { key?: unknown }).key;
+  if (typeof key !== 'string') {
+    throw new RagdollError('bad-response', 'RAGdoll did not return a chat access key');
+  }
+  return key;
+}
