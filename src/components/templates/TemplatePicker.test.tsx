@@ -26,14 +26,4 @@ describe('TemplatePicker', () => {
       interviewerTemplates.find((t) => t.id === 'hr-medarbeider'),
     );
   });
-
-  it('calls onSelect with null to start without a template', async () => {
-    const onSelect = vi.fn();
-    const user = userEvent.setup();
-    render(<TemplatePicker templates={interviewerTemplates} onSelect={onSelect} />);
-
-    await user.click(screen.getByRole('button', { name: 'Start uten mal' }));
-
-    expect(onSelect).toHaveBeenCalledWith(null);
-  });
 });

@@ -38,16 +38,18 @@ function errorFor(res: Response): ChatError {
 }
 
 /**
- * Sends the conversation to the configurator through /api/configure/turn. Throws ChatError on
- * failure. If `signal` is aborted, the fetch's AbortError is rethrown as is.
+ * Sends the conversation to the configurator through /api/configure/turn, with the id of the
+ * chosen template. Throws ChatError on failure. If `signal` is aborted, the fetch's AbortError is
+ * rethrown as is.
  */
 export async function sendConfigurationTurn(
+  templateId: string,
   messages: ChatMessage[],
   signal?: AbortSignal,
 ): Promise<TurnResult> {
   // The server only needs role and content, not our UI ids.
   const history = messages.map(({ role, content }) => ({ role, content }));
-  const res = await postJson('/api/configure/turn', { messages: history }, signal);
+  const res = await postJson('/api/configure/turn', { templateId, messages: history }, signal);
   if (!res.ok) throw errorFor(res);
 
   const data = await res.json().catch(() => null);

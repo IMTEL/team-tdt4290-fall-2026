@@ -58,14 +58,12 @@ Unit and component level only:
   conversation (greeting included) is sent; friendly error, sending blocked, Retry resends the same
   history without repeating the user's message; no technical error text; leaving the page aborts
   the request.
-- `src/components/templates/TemplatePicker.test.tsx`: every template is shown, clicking one
-  selects it, and "Start uten mal" selects none.
-- `src/app/configure/page.test.tsx`: smoke test for the heading, the chat, the link to the
-  template picker and the tab title.
-- `src/app/template-picker/page.test.tsx`: the templates and a link back to the chat; choosing a
-  template (or none) shows the choice, and "Velg en annen mal" goes back to the picker.
-- `src/app/configure/ConfigurationChat.test.tsx`: greeting; the whole conversation (greeting
-  included) goes to the configuration turn route; the save form only appears once the
+- `src/components/templates/TemplatePicker.test.tsx`: every template is shown, and clicking one
+  selects it.
+- `src/app/configure/page.test.tsx`: the page starts with the template picker; choosing a template
+  opens the chat, and "Bytt mal" goes back to the picker; the tab title.
+- `src/app/configure/ConfigurationChat.test.tsx`: the greeting names the template; the template id
+  and the whole conversation (greeting included) go to the configuration turn route; the save form only appears once the
   configuration is finished.
 - `src/app/configure/SaveAgentForm.test.tsx`: saves under the chosen name and links to the agents;
   no saving without a name; shows the error and lets the user try again.

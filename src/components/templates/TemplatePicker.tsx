@@ -1,6 +1,5 @@
 'use client';
 
-import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
 import CardActionArea from '@mui/material/CardActionArea';
 import Chip from '@mui/material/Chip';
@@ -10,8 +9,8 @@ import styles from './TemplatePicker.module.css';
 
 type TemplatePickerProps = {
   templates: InterviewerTemplate[];
-  /** Called with the chosen template, or null to start from scratch. */
-  onSelect: (template: InterviewerTemplate | null) => void;
+  /** Called with the chosen template. */
+  onSelect: (template: InterviewerTemplate) => void;
 };
 
 export function TemplatePicker({ templates, onSelect }: TemplatePickerProps) {
@@ -21,7 +20,7 @@ export function TemplatePicker({ templates, onSelect }: TemplatePickerProps) {
         Velg en mal
       </h2>
       <p className={styles.lead}>
-        Ta utgangspunkt i en vanlig type intervjuer. Du kan endre alt underveis.
+        Malen bestemmer hvem som intervjuer jobbsøkeren. Resten setter du opp i samtalen.
       </p>
 
       <ul className={styles.grid}>
@@ -41,10 +40,6 @@ export function TemplatePicker({ templates, onSelect }: TemplatePickerProps) {
           </li>
         ))}
       </ul>
-
-      <Button variant="contained" onClick={() => onSelect(null)} className={styles.scratch}>
-        Start uten mal
-      </Button>
     </section>
   );
 }
