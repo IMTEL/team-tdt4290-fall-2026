@@ -20,7 +20,7 @@ export function TemplatePicker({ templates, onSelect }: TemplatePickerProps) {
         Velg en mal
       </h2>
       <p className={styles.lead}>
-        Malen bestemmer hvem som intervjuer jobbsøkeren. Resten setter du opp i samtalen.
+        For å sette opp en agent, velg en mal. Den bestemmer hvem som intervjuer jobbsøkeren. Resten setter du opp i samtalen.
       </p>
 
       <ul className={styles.grid}>
