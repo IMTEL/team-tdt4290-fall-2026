@@ -35,7 +35,7 @@ describe('/configure', () => {
     await user.click(screen.getByRole('button', { name: 'Fortsett uten mal' }));
 
     expect(screen.getByRole('log', { name: 'Samtale' })).toBeInTheDocument();
-    expect(screen.getByText('Uten mal')).toBeVisible();
+    expect(screen.getByText('Ingen mal valgt')).toBeVisible();
 
     await user.click(screen.getByRole('button', { name: 'Velg en mal' }));
 
