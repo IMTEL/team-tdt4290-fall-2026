@@ -37,7 +37,7 @@ export function ConfigureInterviewer() {
           )}
         </p>
         {/* Changing the template starts the conversation over, since the chat was set up for it. */}
-        <Button variant="outlined" size="small" onClick={() => setChoice(undefined)}>
+        <Button variant="contained" size="small" onClick={() => setChoice(undefined)}>
           {choice ? 'Bytt mal' : 'Velg en mal'}
         </Button>
       </div>

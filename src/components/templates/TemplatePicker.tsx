@@ -17,7 +17,7 @@ type TemplatePickerProps = {
 export function TemplatePicker({ templates, onSelect }: TemplatePickerProps) {
   return (
     <section aria-labelledby="template-picker-heading" className={styles.picker}>
-      <Button variant="outlined" onClick={() => onSelect(null)} className={styles.scratch}>
+      <Button variant="contained" onClick={() => onSelect(null)} className={styles.scratch}>
         Fortsett uten mal
       </Button>
       <h2 id="template-picker-heading" className={styles.heading}>
