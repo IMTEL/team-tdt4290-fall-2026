@@ -102,55 +102,6 @@ export type RagdollAgentSummary = {
   lastUpdated: string;
 };
 
-/**
- * Calls RAGdoll as the logged-in user, with their session token. Throws RagdollError.
- * Goes to BACKEND_API_URL: the RAGdoll the user logged in to.
- */
-async function requestAsUser(
-  sessionToken: string,
-  path: string,
-  init: RequestInit = {},
-): Promise<unknown> {
-  const apiUrl = process.env.BACKEND_API_URL;
-  if (!apiUrl) {
-    throw new RagdollError('config', 'BACKEND_API_URL is not set');
-  }
-
-  let res: Response;
-  try {
-    res = await fetch(`${apiUrl.replace(/\/$/, '')}${path}`, {
-      ...init,
-      headers: {
-        Authorization: `Bearer ${sessionToken}`,
-        Accept: 'application/json',
-        'Content-Type': 'application/json',
-      },
-      cache: 'no-store',
-      signal: AbortSignal.timeout(TIMEOUT_MS),
-    });
-  } catch (cause) {
-    if (cause instanceof Error && cause.name === 'TimeoutError') {
-      throw new RagdollError('timeout', `No answer from RAGdoll after ${TIMEOUT_MS} ms`, {
-        cause,
-      });
-    }
-    throw new RagdollError('unreachable', 'Could not reach RAGdoll', { cause });
-  }
-
-  // RAGdoll answers 401 for an expired token and 422 for a missing or broken one.
-  if (res.status === 401 || res.status === 422) {
-    throw new RagdollError('unauthorized', `RAGdoll answered ${res.status}: ${await res.text()}`);
-  }
-  if (!res.ok) {
-    throw new RagdollError('unreachable', `RAGdoll answered ${res.status}: ${await res.text()}`);
-  }
-
-  const data = await res.json().catch(() => null);
-  if (data === null) {
-    throw new RagdollError('bad-response', 'RAGdoll did not answer with JSON');
-  }
-  return data;
-}
 
 /** Creates an agent owned by the logged-in user and returns its new id. */
 export async function saveAgent(sessionToken: string, agent: NewRagdollAgent): Promise<string> {
@@ -176,16 +127,6 @@ export async function listAgents(sessionToken: string): Promise<RagdollAgentSumm
 
   // Pick out only the fields we need. This also leaves the agents' API keys behind.
   return data.map(toSummary);
-}
-
-/** Only the fields we pass on. This also leaves the agent's API keys behind. */
-function toSummary(agent: Record<string, unknown>): RagdollAgentSummary {
-  return {
-    id: String(agent.id),
-    name: String(agent.name),
-    description: String(agent.description),
-    lastUpdated: String(agent.last_updated),
-  };
 }
 
 /**
@@ -226,4 +167,88 @@ export async function updateAgent(
     throw new RagdollError('bad-response', 'RAGdoll did not return the updated agent');
   }
   return toSummary(data as Record<string, unknown>);
+}
+
+/**
+ * Whether the logged-in user owns the agent, not just collaborates on it.
+ */
+export async function isAgentOwner(sessionToken: string, agentId: string): Promise<boolean> {
+  const path = `/agents/${encodeURIComponent(agentId)}/collaborators`;
+  const data = (await requestAsUser(sessionToken, path)) as { is_owner?: unknown };
+
+  if (typeof data.is_owner !== 'boolean') {
+    throw new RagdollError('bad-response', 'RAGdoll did not say who owns the agent');
+  }
+  return data.is_owner;
+}
+
+
+/** Deletes one of the logged-in user's own agents */
+export async function deleteAgent(sessionToken: string, agentId: string): Promise<void> {
+  const path = `/delete-agent?agent_id=${encodeURIComponent(agentId)}`;
+  await requestAsUser(sessionToken, path, {}, { allowEmpty: true });
+}
+
+// Helpers
+
+/**
+ * Calls RAGdoll as the logged-in user, with their session token. Throws RagdollError.
+ * Goes to BACKEND_API_URL: the RAGdoll the user logged in to.
+ */
+async function requestAsUser(
+  sessionToken: string,
+  path: string,
+  init: RequestInit = {},
+  { allowEmpty = false }: { allowEmpty?: boolean } = {},
+): Promise<unknown> {
+  const apiUrl = process.env.BACKEND_API_URL;
+  if (!apiUrl) {
+    throw new RagdollError('config', 'BACKEND_API_URL is not set');
+  }
+
+  let res: Response;
+  try {
+    res = await fetch(`${apiUrl.replace(/\/$/, '')}${path}`, {
+      ...init,
+      headers: {
+        Authorization: `Bearer ${sessionToken}`,
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+      },
+      cache: 'no-store',
+      signal: AbortSignal.timeout(TIMEOUT_MS),
+    });
+  } catch (cause) {
+    if (cause instanceof Error && cause.name === 'TimeoutError') {
+      throw new RagdollError('timeout', `No answer from RAGdoll after ${TIMEOUT_MS} ms`, {
+        cause,
+      });
+    }
+    throw new RagdollError('unreachable', 'Could not reach RAGdoll', { cause });
+  }
+
+  // RAGdoll answers 401 for an expired token and 422 for a missing or broken one.
+  if (res.status === 401 || res.status === 422) {
+    throw new RagdollError('unauthorized', `RAGdoll answered ${res.status}: ${await res.text()}`);
+  }
+  if (!res.ok) {
+    throw new RagdollError('unreachable', `RAGdoll answered ${res.status}: ${await res.text()}`);
+  }
+
+  const data = await res.json().catch(() => null);
+  if (data === null && !allowEmpty) {
+    throw new RagdollError('bad-response', 'RAGdoll did not answer with JSON');
+  }
+  return data;
+}
+
+
+/** Only the fields we pass on. This also leaves the agent's API keys behind. */
+function toSummary(agent: Record<string, unknown>): RagdollAgentSummary {
+  return {
+    id: String(agent.id),
+    name: String(agent.name),
+    description: String(agent.description),
+    lastUpdated: String(agent.last_updated),
+  };
 }
