@@ -54,6 +54,17 @@ describe('sendConfigurationTurn', () => {
     });
   });
 
+  it('sends no template id when the counsellor started without a template', async () => {
+    fetchMock.mockResolvedValue(
+      Response.json({ reply: 'Neste?', configuration: null, done: false }),
+    );
+
+    await sendConfigurationTurn(null, messages);
+
+    const [, init] = fetchMock.mock.calls[0];
+    expect(JSON.parse(init?.body as string)).not.toHaveProperty('templateId');
+  });
+
   it('returns the configuration when the server says it is done', async () => {
     fetchMock.mockResolvedValue(Response.json({ reply: 'Ferdig', configuration, done: true }));
 

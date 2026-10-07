@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { parseConfiguration } from './configuration';
 
 // A reply that ends with a complete block, the way prompts/configurator.nb.md asks for it.
-// The block has no Intervjuer line: that comes from the chosen template.
+// This one has no Intervjuer line, as when a template decides the interviewer.
 const completeReply = `Takk! Da har jeg det jeg trenger.
 
 KONFIGURASJON
@@ -18,6 +18,12 @@ Egne spørsmål: ingen`;
 
 const interviewer = 'Intervjueren er teamleder.';
 
+// Without a template, the configurator asks about the interviewer and writes the line itself.
+const replyWithInterviewer = completeReply.replace(
+  'Intervjutype: første intervju',
+  'Intervjutype: første intervju\nIntervjuer: butikksjef, vennlig',
+);
+
 describe('parseConfiguration', () => {
   it('reads every field of a complete block, and takes the interviewer from the template', () => {
     expect(parseConfiguration(completeReply, interviewer)).toEqual({
@@ -30,6 +36,18 @@ describe('parseConfiguration', () => {
       vanskelighetsgrad: 'lett | Antall spørsmål: 6 | Oppfølgingsspørsmål: ja',
       egneSporsmal: 'ingen',
     });
+  });
+
+  it('reads the Intervjuer line when there is no template', () => {
+    expect(parseConfiguration(replyWithInterviewer)?.intervjuer).toBe('butikksjef, vennlig');
+  });
+
+  it('uses the template over an Intervjuer line in the block', () => {
+    expect(parseConfiguration(replyWithInterviewer, interviewer)?.intervjuer).toBe(interviewer);
+  });
+
+  it('returns null without a template when the Intervjuer line is missing', () => {
+    expect(parseConfiguration(completeReply)).toBeNull();
   });
 
   it('returns null for an ordinary reply without a block', () => {

@@ -85,6 +85,21 @@ describe('POST /api/configure/turn', () => {
     expect(body.configuration.intervjuer).toBe(findTemplate('teamleder')?.persona);
   });
 
+  it('takes the interviewer from the block when there is no template', async () => {
+    askAgentMock.mockResolvedValue(
+      finalReply.replace(
+        'Intervjutype: første intervju',
+        'Intervjutype: første intervju\nIntervjuer: butikksjef, vennlig',
+      ),
+    );
+
+    const res = await POST(turnRequest({ messages }));
+    const body = await res.json();
+
+    expect(body.done).toBe(true);
+    expect(body.configuration.intervjuer).toBe('butikksjef, vennlig');
+  });
+
   it('answers 401 and asks nothing when the user is not logged in', async () => {
     getSessionTokenMock.mockResolvedValue(null);
 
@@ -102,7 +117,6 @@ describe('POST /api/configure/turn', () => {
       'a message has an unknown role',
       { templateId: 'teamleder', messages: [{ role: 'system', content: 'Hei' }] },
     ],
-    ['templateId is missing', { messages }],
     ['the template is unknown', { templateId: 'finnes-ikke', messages }],
   ])('answers 400 when %s', async (_case, body) => {
     const res = await POST(turnRequest(body));

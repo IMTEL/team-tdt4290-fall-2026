@@ -17,10 +17,10 @@ export default function ConfigurePage() {
           {/* English translation: Choose a template, then answer the questions from the assistant,
           and we will create an AI interviewer that job seekers can practice with. */}
           Velg en mal, og svar så på spørsmålene fra assistenten. Da lager vi en AI-intervjuer som
-          jobbsøkeren kan øve med.
+          jobbsøkeren kan øve med. Du kan også fortsette uten mal, og assistenten vil stille de nødvendige spørsmålene for deg.
         </p>
       </header>
-
+      
       <ConfigureInterviewer />
     </div>
   );

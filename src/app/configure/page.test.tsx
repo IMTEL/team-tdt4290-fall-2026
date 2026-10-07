@@ -28,6 +28,20 @@ describe('/configure', () => {
     expect(screen.getByRole('heading', { level: 2, name: 'Velg en mal' })).toBeVisible();
   });
 
+  it('can continue without a template, and choose one afterwards', async () => {
+    const user = userEvent.setup();
+    render(<ConfigurePage />);
+
+    await user.click(screen.getByRole('button', { name: 'Fortsett uten mal' }));
+
+    expect(screen.getByRole('log', { name: 'Samtale' })).toBeInTheDocument();
+    expect(screen.getByText('Uten mal')).toBeVisible();
+
+    await user.click(screen.getByRole('button', { name: 'Velg en mal' }));
+
+    expect(screen.getByRole('heading', { level: 2, name: 'Velg en mal' })).toBeVisible();
+  });
+
   it('sets a Norwegian tab title', () => {
     expect(metadata.title).toBe('Konfigurer intervjuer');
   });

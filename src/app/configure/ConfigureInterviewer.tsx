@@ -8,26 +8,40 @@ import { interviewerTemplates, type InterviewerTemplate } from '@/data/interview
 import { ConfigurationChat } from './ConfigurationChat';
 import styles from './page.module.css';
 
-/** First the counsellor picks a template, which decides the interviewer. Then the chat starts. */
-export function ConfigureInterviewer() {
-  const [template, setTemplate] = useState<InterviewerTemplate | null>(null);
+// undefined: the counsellor hasn't chosen yet. null: they chose to continue without a template.
+type Choice = InterviewerTemplate | null | undefined;
 
-  if (!template) {
-    return <TemplatePicker templates={interviewerTemplates} onSelect={setTemplate} />;
+/**
+ * First the counsellor picks a template, which decides the interviewer, or continues without one.
+ * Then the chat starts.
+ */
+export function ConfigureInterviewer() {
+  const [choice, setChoice] = useState<Choice>(undefined);
+
+  if (choice === undefined) {
+    return <TemplatePicker templates={interviewerTemplates} onSelect={setChoice} />;
   }
 
   return (
     <>
       <div className={styles.chosen}>
         <p>
-          Intervjuer: <strong>{template.title}</strong>
+          {choice ? (
+            <>
+              Intervjuer: <strong>{choice.title}</strong>
+            </>
+          ) : (
+              <>
+                Intervjuer: <strong>Ingen mal valgt</strong>
+              </>
+          )}
         </p>
         {/* Changing the template starts the conversation over, since the chat was set up for it. */}
-        <Button variant="outlined" size="small" onClick={() => setTemplate(null)}>
-          Bytt mal
+        <Button variant="outlined" size="small" onClick={() => setChoice(undefined)}>
+          {choice ? 'Bytt mal' : 'Velg en mal'}
         </Button>
       </div>
-      <ConfigurationChat key={template.id} template={template} />
+      <ConfigurationChat key={choice?.id ?? 'none'} template={choice} />
     </>
   );
 }

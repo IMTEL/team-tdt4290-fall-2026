@@ -58,10 +58,11 @@ Unit and component level only:
   conversation (greeting included) is sent; friendly error, sending blocked, Retry resends the same
   history without repeating the user's message; no technical error text; leaving the page aborts
   the request.
-- `src/components/templates/TemplatePicker.test.tsx`: every template is shown, and clicking one
-  selects it.
-- `src/app/configure/page.test.tsx`: the page starts with the template picker; choosing a template
-  opens the chat, and "Bytt mal" goes back to the picker; the tab title.
+- `src/components/templates/TemplatePicker.test.tsx`: every template is shown, clicking one
+  selects it, and "Fortsett uten mal" selects none.
+- `src/app/configure/page.test.tsx`: the page starts with the template picker; choosing a template,
+  or continuing without one, opens the chat, and the button above the chat goes back to the
+  picker; the tab title.
 - `src/app/configure/ConfigurationChat.test.tsx`: the greeting names the template; the template id
   and the whole conversation (greeting included) go to the configuration turn route; the save form only appears once the
   configuration is finished.

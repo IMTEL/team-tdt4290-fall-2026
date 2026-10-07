@@ -59,6 +59,18 @@ describe('ConfigurationChat', () => {
     ]);
   });
 
+  it('without a template, names none and sends null as the template', async () => {
+    sendMock.mockResolvedValue({ reply: 'Neste spørsmål', configuration: null });
+    render(<ConfigurationChat template={null} />);
+
+    expect(screen.queryByText(/malen/)).not.toBeInTheDocument();
+
+    await sendMessage('Butikkmedarbeider');
+    await screen.findByText('Neste spørsmål');
+
+    expect(sendMock.mock.calls[0][0]).toBeNull();
+  });
+
   it('does not offer to save before the configuration is finished', async () => {
     sendMock.mockResolvedValue({ reply: 'Neste spørsmål', configuration: null });
     render(<ConfigurationChat template={template} />);
