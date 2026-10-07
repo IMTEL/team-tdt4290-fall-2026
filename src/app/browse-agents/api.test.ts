@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { fetchAgents, updateAgent } from './api';
+import { deleteAgent, fetchAgents, updateAgent } from './api';
 
 const agent = {
   id: 'agent-1',
@@ -86,6 +86,34 @@ describe('updateAgent', () => {
 
     await expect(updateAgent('agent-1', 'Nytt navn', answers)).rejects.toThrow(
       'Noe gikk galt. Prøv igjen.',
+    );
+  });
+});
+
+describe('deleteAgent', () => {
+  it('asks the server to delete the agent', async () => {
+    fetchMock.mockResolvedValue(new Response(null, { status: 204 }));
+
+    await expect(deleteAgent('agent-1')).resolves.toBeUndefined();
+    expect(fetchMock).toHaveBeenCalledWith('/api/agents/agent-1', { method: 'DELETE' });
+  });
+
+  it.each([
+    [401, 'Du er logget ut. Logg inn på nytt og prøv igjen.'],
+    [403, 'Bare eieren kan slette agenten.'],
+    [404, 'Fant ikke agenten. Den kan ha blitt slettet.'],
+    [502, 'Noe gikk galt. Prøv igjen.'],
+  ])('gives a Norwegian message when the server answers %i', async (status, message) => {
+    fetchMock.mockResolvedValue(Response.json({ error: 'Agent not found' }, { status }));
+
+    await expect(deleteAgent('agent-1')).rejects.toThrow(message);
+  });
+
+  it('gives a network message when the server cannot be reached', async () => {
+    fetchMock.mockRejectedValue(new TypeError('Failed to fetch'));
+
+    await expect(deleteAgent('agent-1')).rejects.toThrow(
+      'Fikk ikke kontakt med serveren. Sjekk nettverket og prøv igjen.',
     );
   });
 });

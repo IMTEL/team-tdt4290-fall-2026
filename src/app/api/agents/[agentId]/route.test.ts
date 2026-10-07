@@ -6,20 +6,34 @@ import { interviewer } from '@/domain/agentTypes/interviewer';
 import { readStoredAnswers } from '@/domain/agentTypes/storedAnswers';
 import { getSessionToken } from '@/lib/session-tokens';
 import { toRagdollAgent } from '@/server/agentMapper';
-import { fetchFullAgent, RagdollError, updateAgent } from '@/server/ragdoll';
-import { PUT } from './route';
+import {
+  deleteAgent,
+  fetchFullAgent,
+  isAgentOwner,
+  RagdollError,
+  updateAgent,
+} from '@/server/ragdoll';
+import { DELETE, PUT } from './route';
 
 // The adapter and the mapper have their own tests. Here we only check what the route adds:
 // the session check, validating the body, reading before writing, and the status codes.
 vi.mock('@/lib/session-tokens', () => ({ getSessionToken: vi.fn() }));
 vi.mock('@/server/ragdoll', async (importOriginal) => {
   const original = await importOriginal<typeof import('@/server/ragdoll')>();
-  return { ...original, fetchFullAgent: vi.fn(), updateAgent: vi.fn() };
+  return {
+    ...original,
+    fetchFullAgent: vi.fn(),
+    updateAgent: vi.fn(),
+    isAgentOwner: vi.fn(),
+    deleteAgent: vi.fn(),
+  };
 });
 
 const getSessionTokenMock = vi.mocked(getSessionToken);
 const fetchFullAgentMock = vi.mocked(fetchFullAgent);
 const updateAgentMock = vi.mocked(updateAgent);
+const isAgentOwnerMock = vi.mocked(isAgentOwner);
+const deleteAgentMock = vi.mocked(deleteAgent);
 
 const answers = {
   stilling: 'Butikkmedarbeider',
@@ -59,6 +73,8 @@ beforeEach(() => {
     description: '{}',
     lastUpdated: '2026-10-06T12:00:00.000Z',
   });
+  isAgentOwnerMock.mockResolvedValue(true);
+  deleteAgentMock.mockResolvedValue(undefined);
   // The route logs problems on purpose; keep the test output clean.
   vi.spyOn(console, 'error').mockImplementation(() => {});
 });
@@ -68,6 +84,8 @@ afterEach(() => {
   getSessionTokenMock.mockReset();
   fetchFullAgentMock.mockReset();
   updateAgentMock.mockReset();
+  isAgentOwnerMock.mockReset();
+  deleteAgentMock.mockReset();
 });
 
 describe('PUT /api/agents/[agentId]', () => {
@@ -134,6 +152,55 @@ describe('PUT /api/agents/[agentId]', () => {
     updateAgentMock.mockRejectedValue(new RagdollError('unreachable', 'RAGdoll answered 500'));
 
     const res = await PUT(putRequest({ name: 'Nytt navn', answers: newAnswers }), params);
+
+    expect(res.status).toBe(502);
+  });
+});
+
+function deleteRequest() {
+  return new NextRequest('http://localhost/api/agents/agent-1', { method: 'DELETE' });
+}
+
+describe('DELETE /api/agents/[agentId]', () => {
+  it('deletes the agent when the user owns it, and answers 204', async () => {
+    const res = await DELETE(deleteRequest(), params);
+
+    expect(res.status).toBe(204);
+    expect(deleteAgentMock).toHaveBeenCalledWith('session-token', 'agent-1');
+  });
+
+  it('answers 401 and touches nothing when the user is not logged in', async () => {
+    getSessionTokenMock.mockResolvedValue(null);
+
+    const res = await DELETE(deleteRequest(), params);
+
+    expect(res.status).toBe(401);
+    expect(fetchFullAgentMock).not.toHaveBeenCalled();
+    expect(deleteAgentMock).not.toHaveBeenCalled();
+  });
+
+  it('answers 404 and deletes nothing when the user has no such agent', async () => {
+    fetchFullAgentMock.mockRejectedValue(new RagdollError('not-found', 'no agent'));
+
+    const res = await DELETE(deleteRequest(), params);
+
+    expect(res.status).toBe(404);
+    expect(deleteAgentMock).not.toHaveBeenCalled();
+  });
+
+  it('answers 403 and deletes nothing when the user only collaborates on the agent', async () => {
+    isAgentOwnerMock.mockResolvedValue(false);
+
+    const res = await DELETE(deleteRequest(), params);
+
+    expect(res.status).toBe(403);
+    expect(deleteAgentMock).not.toHaveBeenCalled();
+  });
+
+  it('answers 502 when RAGdoll fails to delete', async () => {
+    deleteAgentMock.mockRejectedValue(new RagdollError('unreachable', 'RAGdoll answered 500'));
+
+    const res = await DELETE(deleteRequest(), params);
 
     expect(res.status).toBe(502);
   });
