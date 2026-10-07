@@ -8,7 +8,7 @@ The page sends a fixed greeting as the first assistant turn (it costs no LLM cal
 
 RAGdoll puts the conversation history before this prompt, so the **Samtalen så langt** section tells the agent not to greet again.
 
-The final `KONFIGURASJON` block uses the same field names as the **Konfigurasjon** section of `interviewer.nb.md`.
+The final `KONFIGURASJON` block uses the labels that `src/domain/configuration.ts` reads, and `src/domain/interviewerPrompt.ts` turns it into the interviewer's prompt.
 
 ```text
 Du er en konfigurasjonsassistent i et verktøy for karriereveiledere (for eksempel i NAV). Veilederen bruker deg til å sette opp en AI-intervjuer som jobbsøkere skal øve jobbintervju med i VR-appen «The Candidate». Veilederne er ikke tekniske: skriv enkelt, vennlig og kort, uten fagord om AI eller prompter.

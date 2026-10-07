@@ -32,7 +32,7 @@ flowchart LR
     subgraph Frontend["Our Next.js server (this repo)"]
         Agents["/api/agents<br/>save and list"]
         Turn["/api/configure/turn<br/>configurator chat"]
-        Chat["/api/chat<br/>test interviewer"]
+        Chat["/api/agents/[id]/chat<br/>test chat"]
         Auth["/api/auth/*<br/>NextAuth"]
         Logout["/api/logout"]
     end
@@ -105,7 +105,7 @@ The chat UI is our own (see [ADR 0001](decisions/0001-own-chat-component.md)). O
 
 ```
 ConfigurationChat ─ sendTurn ─────────────── POST /api/configure/turn
-TestChat ────────── sendToAgent('interviewer') ─ POST /api/chat
+TestChat ────────── sendToAgent(agentId) ─────── POST /api/agents/[id]/chat
 
 Both use AgentChat → useChat (messages, waiting, error) → MessageList + ChatInput
 ```
@@ -183,13 +183,13 @@ one request only. NextAuth's regular session polling stores a fresh token in the
 
 ### Chatting with an agent
 
-The two chats talk to two fixed agents. The configurator is shared. The test interviewer is the
-one named in the environment, not the agent the counsellor just saved.
+The configurator chat talks to one shared agent. The test chat talks to the agent the counsellor
+saved, named in the URL (`/test-chat?agent=<id>`).
 
-| Agent          | Used on      | Route                      | Prompt source                                                 |
-| -------------- | ------------ | -------------------------- | ------------------------------------------------------------- |
-| `configurator` | `/configure` | `POST /api/configure/turn` | [`prompts/configurator.nb.md`](../prompts/configurator.nb.md) |
-| `interviewer`  | `/test-chat` | `POST /api/chat`           | [`prompts/interviewer.nb.md`](../prompts/interviewer.nb.md)   |
+| Agent                   | Used on                 | Route                        | Prompt source                                                                                            |
+| ----------------------- | ----------------------- | ---------------------------- | -------------------------------------------------------------------------------------------------------- |
+| configurator (shared)   | `/configure`            | `POST /api/configure/turn`   | [`prompts/configurator.nb.md`](../prompts/configurator.nb.md)                                            |
+| the counsellor's agents | `/test-chat?agent=<id>` | `POST /api/agents/[id]/chat` | [`src/domain/interviewerPrompt.ts`](../src/domain/interviewerPrompt.ts), written when the agent is saved |
 
 ```mermaid
 sequenceDiagram
@@ -207,17 +207,42 @@ sequenceDiagram
     N-->>B: {reply, configuration, done}
 ```
 
-- The browser does not send an agent id or an access key. Both stay in server-side env variables.
+The test chat first asks RAGdoll, as the logged-in user, for the agent's chat key and role:
+
+```mermaid
+sequenceDiagram
+    participant B as Browser (useChat)
+    participant N as /api/agents/[id]/chat
+    participant R as RAGdoll
+
+    B->>N: POST {messages}
+    N->>N: Require a session, check the id looks like a MongoDB id
+    par as the user (Bearer session token)
+        N->>R: GET /chat-access-key?agent_id=<id>
+        R-->>N: AccessKey (valid 2 days, reused)
+    and
+        N->>R: GET /fetch-agent?agent_id=<id>
+        R-->>N: Agent (only the role name is kept)
+    end
+    N->>R: POST /api/chat/ask {agent_id, access_key, active_role_id, chat_log}
+    R-->>N: {response: {response: "<text>", ...}}
+    N-->>B: {response}
+```
+
+- The browser never sends an access key. The configurator's key stays in server-side env
+  variables; a saved agent's chat key is fetched on each turn and never leaves our server.
 - The whole history is sent on every turn; RAGdoll keeps no conversation state for us.
 - The opening greeting is fixed text in the page (no LLM call) but is sent as the first assistant
   turn, so the agent does not greet again.
 - `/api/configure/turn` also parses a `KONFIGURASJON` block. When `done` is true, the page shows
-  the save form.
-- Both chats use the agent's access key, not the user's session token, and go to
-  `RAGDOLL_API_URL`, which may differ from `BACKEND_API_URL` (login, refresh and `/api/agents`).
-  Two URLs is a stopgap ([#31](https://github.com/IMTEL/team-tdt4290-fall-2026/issues/31)).
+  the save form. After saving, the form links to the test chat for the new agent.
+- RAGdoll answers 401 both for an expired session and for someone else's agent. The session has
+  just been checked, so `/api/agents/[id]/chat` answers 404 `Agent not found` in that case.
+- `/api/chat/ask` goes to `RAGDOLL_API_URL`; the chat key and the agent come from
+  `BACKEND_API_URL`. Both must point to the same RAGdoll for the test chat to work. Two URLs is a
+  stopgap ([#31](https://github.com/IMTEL/team-tdt4290-fall-2026/issues/31)).
 - Code: [`src/app/api/configure/turn/route.ts`](../src/app/api/configure/turn/route.ts),
-  [`src/app/api/chat/route.ts`](../src/app/api/chat/route.ts),
+  [`src/app/api/agents/[id]/chat/route.ts`](../src/app/api/agents/[id]/chat/route.ts),
   [`src/server/ragdoll.ts`](../src/server/ragdoll.ts).
 
 ### Logging out
@@ -236,15 +261,15 @@ Code: [`src/app/api/logout/route.ts`](../src/app/api/logout/route.ts),
 
 ## Where agents, prompts and templates are stored
 
-| What                                      | Stored where today                                                                                                                                    | Target                                                                  |
-| ----------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
-| Configurator and test interviewer prompts | Source in `prompts/*.nb.md` in this repo; copied by hand into each agent's **General Agent Prompt** in RAGdoll                                        | Same: the repo is the source, RAGdoll holds a copy                      |
-| Counsellors' interviewer agents           | RAGdoll (MongoDB), created by `POST /api/agents` and listed by `GET /api/agents`, owned by the logged-in counsellor. `/browse-agents` reads that list | Same                                                                    |
-| Configuration answers                     | JSON in the saved agent's `description`, parsed from the `KONFIGURASJON` block by `src/domain/configuration.ts`                                       | Same                                                                    |
-| Templates (role, industry, ...)           | Four interviewer personas in `src/data/interviewer-templates.ts`. The choice stays on `/template-picker` and is not sent to the chat (#6)             | To be decided: stay in this repo, or move to RAGdoll                    |
-| Published agents for The Candidate        | Not yet                                                                                                                                               | Agent marked as published in RAGdoll; The Candidate reads it from there |
-| Users                                     | Keycloak (login) and RAGdoll (user record, created on first `POST /api/login`)                                                                        | Same                                                                    |
-| Session                                   | Encrypted NextAuth cookie in the browser                                                                                                              | Same                                                                    |
+| What                               | Stored where today                                                                                                                                    | Target                                                                  |
+| ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| Configurator prompt                | Source in `prompts/configurator.nb.md` in this repo; copied by hand into the agent's **General Agent Prompt** in RAGdoll                              | Same: the repo is the source, RAGdoll holds a copy                      |
+| Counsellors' interviewer agents    | RAGdoll (MongoDB), created by `POST /api/agents` and listed by `GET /api/agents`, owned by the logged-in counsellor. `/browse-agents` reads that list | Same                                                                    |
+| Configuration answers              | JSON in the saved agent's `description`, parsed from the `KONFIGURASJON` block by `src/domain/configuration.ts`                                       | Same                                                                    |
+| Templates (role, industry, ...)    | Four interviewer personas in `src/data/interviewer-templates.ts`. The choice stays on `/template-picker` and is not sent to the chat (#6)             | To be decided: stay in this repo, or move to RAGdoll                    |
+| Published agents for The Candidate | Not yet                                                                                                                                               | Agent marked as published in RAGdoll; The Candidate reads it from there |
+| Users                              | Keycloak (login) and RAGdoll (user record, created on first `POST /api/login`)                                                                        | Same                                                                    |
+| Session                            | Encrypted NextAuth cookie in the browser                                                                                                              | Same                                                                    |
 
 We keep no database of our own. Real job seeker data is never stored: the configurator asks only
 for coarse, non-identifying traits (age group, experience, language level).
@@ -255,17 +280,17 @@ All settings are environment variables, listed with dummy values in
 [`.env.example`](../.env.example). None has the `NEXT_PUBLIC_` prefix, so none is bundled into the
 browser code.
 
-| Variable                                        | Used by                                           | Secret? |
-| ----------------------------------------------- | ------------------------------------------------- | ------- |
-| `BACKEND_API_URL`                               | Login, refresh, logout, `/api/agents`             | No      |
-| `RAGDOLL_API_URL`                               | `/api/configure/turn`, `/api/chat`                | No      |
-| `RAGDOLL_{CONFIGURATOR,INTERVIEWER}_AGENT_ID`   | `/api/configure/turn`, `/api/chat`                | No      |
-| `RAGDOLL_{CONFIGURATOR,INTERVIEWER}_ACCESS_KEY` | `/api/configure/turn`, `/api/chat`                | Yes     |
-| `IDUN_API_KEY`                                  | `POST /api/agents` (written onto the saved agent) | Yes     |
-| `NEXTAUTH_URL`                                  | NextAuth                                          | No      |
-| `NEXTAUTH_SECRET`                               | NextAuth (cookie encryption)                      | Yes     |
-| `KEYCLOAK_CLIENT_ID`, `KEYCLOAK_ISSUER`         | NextAuth Keycloak provider                        | No      |
-| `KEYCLOAK_CLIENT_SECRET`                        | NextAuth Keycloak provider                        | Yes     |
+| Variable                                | Used by                                           | Secret? |
+| --------------------------------------- | ------------------------------------------------- | ------- |
+| `BACKEND_API_URL`                       | Login, refresh, logout, `/api/agents/*`           | No      |
+| `RAGDOLL_API_URL`                       | `/api/configure/turn`, `/api/agents/[id]/chat`    | No      |
+| `RAGDOLL_CONFIGURATOR_AGENT_ID`         | `/api/configure/turn`                             | No      |
+| `RAGDOLL_CONFIGURATOR_ACCESS_KEY`       | `/api/configure/turn`                             | Yes     |
+| `IDUN_API_KEY`                          | `POST /api/agents` (written onto the saved agent) | Yes     |
+| `NEXTAUTH_URL`                          | NextAuth                                          | No      |
+| `NEXTAUTH_SECRET`                       | NextAuth (cookie encryption)                      | Yes     |
+| `KEYCLOAK_CLIENT_ID`, `KEYCLOAK_ISSUER` | NextAuth Keycloak provider                        | No      |
+| `KEYCLOAK_CLIENT_SECRET`                | NextAuth Keycloak provider                        | Yes     |
 
 `IDUN_API_KEY` is sent to RAGdoll only when an agent is saved, and `GET /api/agents` never returns
 it. Threats and countermeasures
@@ -280,7 +305,7 @@ short Norwegian messages:
 | Boundary             | What happens                                                                                                                                                                |
 | -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | RAGdoll → our server | `src/server/ragdoll.ts` turns failures into a `RagdollError` with a kind: `config`, `timeout` (30 s), `unreachable` or `bad-response`                                       |
-| Our server → browser | `/api/configure/turn`, `/api/chat` and `/api/agents` map each kind to a status (500, 504, 502, 502) and a fixed English message; RAGdoll's own text is never forwarded      |
+| Our server → browser | `/api/configure/turn` and `/api/agents/*` map each kind to a status (500, 504, 502, 502) and a fixed English message; RAGdoll's own text is never forwarded                 |
 | Browser → user       | The chat helpers turn the status into a `ChatError` with a Norwegian message (for example "Assistenten brukte for lang tid på å svare"), shown with a **Prøv igjen** button |
 
 ## Open questions
