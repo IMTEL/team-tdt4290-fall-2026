@@ -1,6 +1,6 @@
 // The fields of the KONFIGURASJON block that the configurator agent writes when it is done.
 // The labels are the exact words in prompts/configurator.nb.md.
-const LABELS = {
+export const LABELS = {
   stilling: 'Stilling',
   bransje: 'Bransje',
   bedrift: 'Bedrift',
@@ -35,29 +35,6 @@ export function parseConfiguration(reply: string): Configuration | null {
     configuration[field] = value;
   }
   return configuration as Configuration;
-}
-
-/** The configuration as labelled rows, in the same order as the KONFIGURASJON block. */
-export function configurationFields(
-  configuration: Configuration,
-): { label: string; value: string }[] {
-  return (Object.keys(LABELS) as (keyof Configuration)[]).map((field) => ({
-    label: LABELS[field],
-    value: configuration[field],
-  }));
-}
-
-/**
- * Reads the configuration stored in an agent's description. Saving writes it as JSON.
- * Returns null when the description is not that JSON.
- */
-export function readStoredConfiguration(description: string): Configuration | null {
-  try {
-    const parsed: unknown = JSON.parse(description);
-    return isConfiguration(parsed) ? parsed : null;
-  } catch {
-    return null;
-  }
 }
 
 /** True if `value` has every field of a configuration, each a non-empty string. */

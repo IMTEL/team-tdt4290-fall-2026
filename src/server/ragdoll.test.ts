@@ -1,7 +1,15 @@
 // @vitest-environment node
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { askAgent, listAgents, RagdollError, saveAgent, type NewRagdollAgent } from './ragdoll';
+import {
+  askAgent,
+  fetchFullAgent,
+  listAgents,
+  RagdollError,
+  saveAgent,
+  updateAgent,
+  type NewRagdollAgent,
+} from './ragdoll';
 
 const RAGDOLL_URL = 'https://ragdoll.test/backend';
 const agent = { id: 'agent-123', accessKey: 'secret-key' };
@@ -223,5 +231,100 @@ describe('listAgents', () => {
     fetchMock.mockResolvedValue(Response.json({ detail: 'oops' }));
 
     await expect(listAgents(SESSION_TOKEN)).rejects.toMatchObject({ kind: 'bad-response' });
+  });
+});
+
+describe('fetchFullAgent', () => {
+  const fetchMock = vi.fn<typeof fetch>();
+
+  beforeEach(() => {
+    vi.stubEnv('BACKEND_API_URL', BACKEND_URL);
+    vi.stubGlobal('fetch', fetchMock);
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.unstubAllGlobals();
+    fetchMock.mockReset();
+  });
+
+  it('returns the whole agent, with every field RAGdoll sent', async () => {
+    const stored = { ...newAgent, id: 'agent-1', llm_temperature: 0.2 };
+    fetchMock.mockResolvedValue(Response.json([{ ...newAgent, id: 'agent-0' }, stored]));
+
+    await expect(fetchFullAgent(SESSION_TOKEN, 'agent-1')).resolves.toEqual(stored);
+
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toBe(`${BACKEND_URL}/agents/`);
+    expect((init?.headers as Record<string, string>).Authorization).toBe(`Bearer ${SESSION_TOKEN}`);
+  });
+
+  it('throws a not-found error when the user has no agent with that id', async () => {
+    fetchMock.mockResolvedValue(Response.json([{ ...newAgent, id: 'agent-0' }]));
+
+    await expect(fetchFullAgent(SESSION_TOKEN, 'agent-1')).rejects.toMatchObject({
+      kind: 'not-found',
+    });
+  });
+
+  it('throws a bad-response error when RAGdoll does not return a list', async () => {
+    fetchMock.mockResolvedValue(Response.json({ detail: 'oops' }));
+
+    await expect(fetchFullAgent(SESSION_TOKEN, 'agent-1')).rejects.toMatchObject({
+      kind: 'bad-response',
+    });
+  });
+});
+
+describe('updateAgent', () => {
+  const fetchMock = vi.fn<typeof fetch>();
+  const existing = { ...newAgent, id: 'agent-1', llm_temperature: 0.2 };
+
+  beforeEach(() => {
+    vi.stubEnv('BACKEND_API_URL', BACKEND_URL);
+    vi.stubGlobal('fetch', fetchMock);
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.unstubAllGlobals();
+    fetchMock.mockReset();
+  });
+
+  it('sends the whole agent with its id, but without the keys', async () => {
+    fetchMock.mockResolvedValue(Response.json(existing));
+
+    await updateAgent(SESSION_TOKEN, existing);
+
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toBe(`${BACKEND_URL}/update-agent/`);
+    expect(init?.method).toBe('POST');
+    const body = JSON.parse(init?.body as string);
+    expect(body).toMatchObject({ id: 'agent-1', llm_temperature: 0.2, name: 'Butikksjef' });
+    expect(body.llm_api_key).toBe('');
+    expect(body.embedding_api_key).toBe('');
+  });
+
+  it('returns the saved agent without the keys', async () => {
+    // RAGdoll answers the owner with the decrypted keys.
+    fetchMock.mockResolvedValue(Response.json(existing));
+
+    const saved = await updateAgent(SESSION_TOKEN, existing);
+
+    expect(saved).toEqual({
+      id: 'agent-1',
+      name: 'Butikksjef',
+      description: '{}',
+      lastUpdated: '2026-10-01T08:00:00.000Z',
+    });
+    expect(JSON.stringify(saved)).not.toContain('idun-key');
+  });
+
+  it('throws a bad-response error when RAGdoll returns no id', async () => {
+    fetchMock.mockResolvedValue(Response.json({ name: 'Butikksjef' }));
+
+    await expect(updateAgent(SESSION_TOKEN, existing)).rejects.toMatchObject({
+      kind: 'bad-response',
+    });
   });
 });

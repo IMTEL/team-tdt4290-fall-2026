@@ -4,7 +4,7 @@ export type RagdollAgent = { id: string; accessKey: string };
 export type RagdollMessage = { role: 'user' | 'assistant'; content: string };
 
 export type RagdollErrorKind =
-  'config' | 'timeout' | 'unreachable' | 'bad-response' | 'unauthorized';
+  'config' | 'timeout' | 'unreachable' | 'bad-response' | 'unauthorized' | 'not-found';
 
 /** A failure talking to RAGdoll. `message` is technical and only meant for the server log. */
 export class RagdollError extends Error {
@@ -88,6 +88,12 @@ export type NewRagdollAgent = {
   last_updated: string;
 };
 
+/**
+ * A whole agent as RAGdoll gives it to its owner, with the keys. Never send it to the browser.
+ * It also has fields we don't use. We keep them, because an update resets every field we leave out.
+ */
+export type FullRagdollAgent = NewRagdollAgent & { id: string; [field: string]: unknown };
+
 /** An agent as we pass it on. Only safe fields: RAGdoll also returns the agent's keys. */
 export type RagdollAgentSummary = {
   id: string;
@@ -169,10 +175,55 @@ export async function listAgents(sessionToken: string): Promise<RagdollAgentSumm
   }
 
   // Pick out only the fields we need. This also leaves the agents' API keys behind.
-  return data.map((agent) => ({
+  return data.map(toSummary);
+}
+
+/** Only the fields we pass on. This also leaves the agent's API keys behind. */
+function toSummary(agent: Record<string, unknown>): RagdollAgentSummary {
+  return {
     id: String(agent.id),
     name: String(agent.name),
     description: String(agent.description),
     lastUpdated: String(agent.last_updated),
-  }));
+  };
+}
+
+/**
+ * The whole agent with this id, keys included, if it is one of the logged-in user's agents.
+ * Throws RagdollError, with kind 'not-found' if the user has no agent with this id.
+ */
+export async function fetchFullAgent(
+  sessionToken: string,
+  agentId: string,
+): Promise<FullRagdollAgent> {
+  // Not /fetch-agent: it answers 401 both when the session has expired and when the agent is not
+  // the user's, or does not exist. The list only has the user's own agents, so we look there.
+  const data = await requestAsUser(sessionToken, '/agents/');
+  if (!Array.isArray(data)) {
+    throw new RagdollError('bad-response', 'RAGdoll did not return a list of agents');
+  }
+
+  const agent = data.find((item) => item?.id === agentId);
+  if (!agent) {
+    throw new RagdollError('not-found', `The user has no agent with id ${agentId}`);
+  }
+  return agent as FullRagdollAgent;
+}
+
+/** Saves changes to an existing agent, and returns it without the keys. Throws RagdollError. */
+export async function updateAgent(
+  sessionToken: string,
+  agent: FullRagdollAgent,
+): Promise<RagdollAgentSummary> {
+  // The `id` in the body tells RAGdoll to update that agent instead of creating a new one.
+  // Empty keys tell RAGdoll to keep the stored ones, so the keys never travel back.
+  const data = await requestAsUser(sessionToken, '/update-agent/', {
+    method: 'POST',
+    body: JSON.stringify({ ...agent, llm_api_key: '', embedding_api_key: '' }),
+  });
+
+  if (typeof (data as { id?: unknown }).id !== 'string') {
+    throw new RagdollError('bad-response', 'RAGdoll did not return the updated agent');
+  }
+  return toSummary(data as Record<string, unknown>);
 }

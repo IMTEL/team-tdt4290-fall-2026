@@ -14,6 +14,8 @@ rely on a part. Why things look the way they do is recorded in [`decisions/`](de
 - [Flows](#flows)
   - [Logging in](#logging-in)
   - [Calling RAGdoll as the user](#calling-ragdoll-as-the-user)
+  - [Editing an agent](#editing-an-agent)
+  - [Agent types](#agent-types)
   - [Chatting with an agent](#chatting-with-an-agent)
   - [Logging out](#logging-out)
 - [Where agents, prompts and templates are stored](#where-agents-prompts-and-templates-are-stored)
@@ -30,7 +32,7 @@ flowchart LR
     end
 
     subgraph Frontend["Our Next.js server (this repo)"]
-        Agents["/api/agents<br/>save and list"]
+        Agents["/api/agents<br/>save, list and edit"]
         Turn["/api/configure/turn<br/>configurator chat"]
         Chat["/api/chat<br/>test interviewer"]
         Auth["/api/auth/*<br/>NextAuth"]
@@ -89,16 +91,16 @@ Locally, RAGdoll, Keycloak and MongoDB run in RAGdoll's `docker-compose.local.ym
 The frontend is one Next.js 16 app (App Router). Pages are React server components by default;
 anything interactive is a client component. Code that holds secrets runs only on the server.
 
-| Layer            | Where                                                                               | What                                                                                                                                       |
-| ---------------- | ----------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| Pages            | `src/app/*/page.tsx`                                                                | `/` start, `/login`, `/configure` (configuration chat), `/template-picker`, `/test-chat` (interviewer chat), `/browse-agents` (agent list) |
-| Route guard      | `src/proxy.ts`                                                                      | Sends signed-out users to `/login` before `/configure`, `/template-picker` and `/browse-agents`                                            |
-| Components       | `src/components/`                                                                   | Chat (`chat/`), login buttons (`login/`), template picker (`templates/`), agent table (`agents/`), navbar, theme                           |
-| Domain           | `src/domain/`                                                                       | `configuration.ts` reads the `KONFIGURASJON` block; `interviewerPrompt.ts` turns a configuration into the saved agent's prompt             |
-| Browser helpers  | `src/app/configure/api.ts`, `src/lib/auth.ts`                                       | Sends the configuration chat and the save request; sign-in, register and sign-out helpers                                                  |
-| Route handlers   | `src/app/api/`                                                                      | `auth/` (NextAuth), `configure/turn/` (configurator), `agents/` (save and list), `chat/` (test interviewer), `logout/`                     |
-| Integration      | `src/server/ragdoll.ts`, `src/server/agentMapper.ts`, `src/server/errorResponse.ts` | The only code that calls RAGdoll: chat, save and list. Maps a configuration onto a RAGdoll agent and turns failures into HTTP statuses     |
-| Server-only code | `src/lib/auth-options.ts`, `src/lib/session-tokens.ts`                              | NextAuth config and token exchange; reading and refreshing the session token                                                               |
+| Layer            | Where                                                                               | What                                                                                                                                                                                                                          |
+| ---------------- | ----------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Pages            | `src/app/*/page.tsx`                                                                | `/` start, `/login`, `/configure` (configuration chat), `/template-picker`, `/test-chat` (interviewer chat), `/browse-agents` (agent list), `/browse-agents/[agentId]` (details), `/browse-agents/[agentId]/edit` (edit form) |
+| Route guard      | `src/proxy.ts`                                                                      | Sends signed-out users to `/login` before `/configure`, `/template-picker` and `/browse-agents`                                                                                                                               |
+| Components       | `src/components/`                                                                   | Chat (`chat/`), login buttons (`login/`), template picker (`templates/`), agent table (`agents/`), navbar, theme                                                                                                              |
+| Domain           | `src/domain/`                                                                       | `agentTypes/` defines each agent type (fields, prompt, roles) and how its answers are stored; `configuration.ts` reads the `KONFIGURASJON` block; `interviewerPrompt.ts` is the interviewer's prompt                          |
+| Browser helpers  | `src/app/configure/api.ts`, `src/app/browse-agents/api.ts`, `src/lib/auth.ts`       | Sends the configuration chat, the save and the edit request, and loads the agent list; sign-in, register and sign-out helpers                                                                                                 |
+| Route handlers   | `src/app/api/`                                                                      | `auth/` (NextAuth), `configure/turn/` (configurator), `agents/` (save and list), `agents/[agentId]/` (edit), `chat/` (test interviewer), `logout/`                                                                            |
+| Integration      | `src/server/ragdoll.ts`, `src/server/agentMapper.ts`, `src/server/errorResponse.ts` | The only code that calls RAGdoll: chat, save, list and update. Maps answers onto a RAGdoll agent and turns failures into HTTP statuses                                                                                        |
+| Server-only code | `src/lib/auth-options.ts`, `src/lib/session-tokens.ts`                              | NextAuth config and token exchange; reading and refreshing the session token                                                                                                                                                  |
 
 The chat UI is our own (see [ADR 0001](decisions/0001-own-chat-component.md)). One component,
 `AgentChat`, serves both chats; each page passes it a `send` function and a fixed greeting:
@@ -181,6 +183,65 @@ Code: [`src/app/api/agents/route.ts`](../src/app/api/agents/route.ts),
 A route handler can't update the cookie, so a token refreshed for this request is used for that
 one request only. NextAuth's regular session polling stores a fresh token in the cookie.
 
+### Editing an agent
+
+The counsellor edits an agent on `/browse-agents/[agentId]/edit`, reached with **Rediger** on the
+details page. The form shows the name and one field per answer. The fields come from the agent's
+type, not from the page. Saving sends `PUT /api/agents/[agentId]` with `{name, answers}`.
+
+```mermaid
+sequenceDiagram
+    participant B as Browser
+    participant N as Our server<br/>/api/agents/[agentId]
+    participant R as RAGdoll
+
+    B->>N: PUT {name, answers}
+    N->>R: GET /agents/ (read)
+    R-->>N: The user's agents, with every field
+    alt The id is one of the user's agents and the answers are complete
+        N->>N: applyEdit: new name, description, prompt and roles (modify)
+        N->>R: POST /update-agent/ with the id and empty keys (write)
+        R-->>N: The saved agent
+        N-->>B: 200 {agent} without keys
+    else The id is not in the list
+        N-->>B: 404, nothing is written
+    end
+```
+
+The route reads, modifies and writes the whole agent, because of how RAGdoll's
+`POST /update-agent/` behaves:
+
+- **It replaces the whole agent.** Every field left out of the body is reset to its default
+  (`context_aware_retrieval`, temperature, and later the advanced settings), so we send back
+  every field we read.
+- **An unknown id creates a new agent.** So we write only after finding the id among the user's
+  agents. We read from `GET /agents/`, not `/fetch-agent`, because `/fetch-agent` answers 401 both
+  for an expired session and for an agent that is someone else's or does not exist.
+- **Empty keys keep the stored keys.** The decrypted keys we read are never sent back, and an
+  update needs no `IDUN_API_KEY`.
+
+The prompt is rebuilt from the answers on every save, so an edit also brings an older agent up to
+the current prompt. RAGdoll lets both owners and collaborators update an agent. This app has no way
+to add collaborators, so in practice only the owner can edit.
+
+Code: [`src/app/api/agents/[agentId]/route.ts`](../src/app/api/agents/[agentId]/route.ts),
+[`src/server/agentMapper.ts`](../src/server/agentMapper.ts),
+[`src/server/ragdoll.ts`](../src/server/ragdoll.ts).
+
+### Agent types
+
+Everything that is special about one kind of agent lives in its **agent type definition** in
+`src/domain/agentTypes/`: its name, its fields, how its prompt is built from the answers, and its
+roles. The interviewer (`interviewer.ts`) is the only type so far. The edit form, the details page,
+the update route and the mapper only call the definition and never name a field, so a new prompt
+for the interviewer, or a new type such as a learning assistant, needs no change there. Adding a
+type is one new file and one line in `registry.ts`.
+
+The answers are stored in the agent's `description` as `{type, version, answers}`
+(`storedAnswers.ts`). Agents saved before agent types existed have only the answers, and are read
+as interviewers. Reading is lenient: a field the type got after the agent was saved comes back
+empty, so the counsellor can fill it in. Saving is strict: every field needs an answer.
+
 ### Chatting with an agent
 
 The two chats talk to two fixed agents. The configurator is shared. The test interviewer is the
@@ -240,7 +301,7 @@ Code: [`src/app/api/logout/route.ts`](../src/app/api/logout/route.ts),
 | ----------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
 | Configurator and test interviewer prompts | Source in `prompts/*.nb.md` in this repo; copied by hand into each agent's **General Agent Prompt** in RAGdoll                                        | Same: the repo is the source, RAGdoll holds a copy                      |
 | Counsellors' interviewer agents           | RAGdoll (MongoDB), created by `POST /api/agents` and listed by `GET /api/agents`, owned by the logged-in counsellor. `/browse-agents` reads that list | Same                                                                    |
-| Configuration answers                     | JSON in the saved agent's `description`, parsed from the `KONFIGURASJON` block by `src/domain/configuration.ts`                                       | Same                                                                    |
+| Configuration answers                     | JSON `{type, version, answers}` in the saved agent's `description` (`src/domain/agentTypes/storedAnswers.ts`). Older agents have only the answers     | A field of its own, if RAGdoll gets a `metadata` field                  |
 | Templates (role, industry, ...)           | Four interviewer personas in `src/data/interviewer-templates.ts`. The choice stays on `/template-picker` and is not sent to the chat (#6)             | To be decided: stay in this repo, or move to RAGdoll                    |
 | Published agents for The Candidate        | Not yet                                                                                                                                               | Agent marked as published in RAGdoll; The Candidate reads it from there |
 | Users                                     | Keycloak (login) and RAGdoll (user record, created on first `POST /api/login`)                                                                        | Same                                                                    |
@@ -267,8 +328,8 @@ browser code.
 | `KEYCLOAK_CLIENT_ID`, `KEYCLOAK_ISSUER`         | NextAuth Keycloak provider                        | No      |
 | `KEYCLOAK_CLIENT_SECRET`                        | NextAuth Keycloak provider                        | Yes     |
 
-`IDUN_API_KEY` is sent to RAGdoll only when an agent is saved, and `GET /api/agents` never returns
-it. Threats and countermeasures
+`IDUN_API_KEY` is sent to RAGdoll only when an agent is created, and no route returns it. Editing
+an agent keeps the keys RAGdoll already has. Threats and countermeasures
 are in [`security.md`](security.md); how the app is deployed is in
 [`deployment.md`](deployment.md).
 
@@ -277,11 +338,11 @@ are in [`security.md`](security.md); how the app is deployed is in
 Errors are translated at each boundary, so technical details stay in the server log and users see
 short Norwegian messages:
 
-| Boundary             | What happens                                                                                                                                                                |
-| -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| RAGdoll → our server | `src/server/ragdoll.ts` turns failures into a `RagdollError` with a kind: `config`, `timeout` (30 s), `unreachable` or `bad-response`                                       |
-| Our server → browser | `/api/configure/turn`, `/api/chat` and `/api/agents` map each kind to a status (500, 504, 502, 502) and a fixed English message; RAGdoll's own text is never forwarded      |
-| Browser → user       | The chat helpers turn the status into a `ChatError` with a Norwegian message (for example "Assistenten brukte for lang tid på å svare"), shown with a **Prøv igjen** button |
+| Boundary             | What happens                                                                                                                                                                                                                                    |
+| -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| RAGdoll → our server | `src/server/ragdoll.ts` turns failures into a `RagdollError` with a kind: `config`, `timeout` (30 s), `unreachable`, `bad-response`, `unauthorized` or `not-found`                                                                              |
+| Our server → browser | `/api/configure/turn`, `/api/chat` and `/api/agents` map each kind to a status (500, 504, 502, 502, 401, 404) and a fixed English message; RAGdoll's own text is never forwarded                                                                |
+| Browser → user       | The browser helpers turn the status into a Norwegian message (for example "Assistenten brukte for lang tid på å svare" or "Fant ikke agenten"). The chats show it with a **Prøv igjen** button; the edit form shows it and keeps what was typed |
 
 ## Open questions
 
@@ -294,5 +355,7 @@ short Norwegian messages:
 - **The Candidate.** How the VR app finds and loads a published agent (contact: Mathias, IMTEL).
 - **RAGdoll changes.** Whether we need changes in RAGdoll, and on which branch (see the README).
 - **Other scenarios.** The brief asks for an architecture that allows scenarios other than job
-  interviews. Today the scenario lives entirely in the prompts and page texts, so a new scenario
-  should mostly mean new prompts and a new agent pair.
+  interviews. Saved agents already go through [agent types](#agent-types), so a new scenario is
+  one new type definition. Still open: the configurator chat asks interview questions only, and
+  the counsellor cannot choose a type before configuring
+  ([#56](https://github.com/IMTEL/team-tdt4290-fall-2026/issues/56)).
