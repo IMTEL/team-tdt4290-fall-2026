@@ -58,6 +58,32 @@ describe('AgentDetail', () => {
     );
   });
 
+  it('shows an agent saved in the new format, with type and version', async () => {
+    fetchAgentsMock.mockResolvedValue([
+      {
+        ...agent,
+        description: JSON.stringify({ type: 'interviewer', version: 1, answers: configuration }),
+      },
+    ]);
+
+    render(<AgentDetail agentId="agent-1" />);
+
+    expect(await screen.findByText('Stilling')).toBeVisible();
+    expect(screen.getByText('Stilling').nextElementSibling).toHaveTextContent('Barnehagelærer');
+    expect(screen.queryByText(/"type":"interviewer"/)).not.toBeInTheDocument();
+  });
+
+  it('links to the edit page', async () => {
+    fetchAgentsMock.mockResolvedValue([agent]);
+
+    render(<AgentDetail agentId="agent-1" />);
+
+    expect(await screen.findByRole('link', { name: 'Rediger' })).toHaveAttribute(
+      'href',
+      '/browse-agents/agent-1/edit',
+    );
+  });
+
   it('calls notFound when the id is not in the list', async () => {
     fetchAgentsMock.mockResolvedValue([agent]);
 

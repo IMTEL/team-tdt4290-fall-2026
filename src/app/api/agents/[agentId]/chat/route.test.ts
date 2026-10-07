@@ -31,7 +31,7 @@ function chat(body: unknown, id = AGENT_ID) {
     headers: { 'Content-Type': 'application/json' },
     body: typeof body === 'string' ? body : JSON.stringify(body),
   });
-  return POST(req, { params: Promise.resolve({ id }) });
+  return POST(req, { params: Promise.resolve({ agentId: id }) });
 }
 
 beforeEach(() => {
@@ -51,7 +51,7 @@ afterEach(() => {
   getChatAccessKeyMock.mockReset();
 });
 
-describe('POST /api/agents/[id]/chat', () => {
+describe('POST /api/agents/[agentId]/chat', () => {
   it('chats with the agent using its chat key and role', async () => {
     const res = await chat({ messages });
 

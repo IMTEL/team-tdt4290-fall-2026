@@ -11,16 +11,18 @@ import {
   type RagdollMessage,
 } from '@/server/ragdoll';
 
+type Params = { params: Promise<{ agentId: string }> };
+
 /** One turn of the test chat with one of the logged-in counsellor's saved agents. */
-export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function POST(req: NextRequest, { params }: Params) {
   const sessionToken = await getSessionToken(req);
   if (!sessionToken) {
     return Response.json({ error: 'Not signed in' }, { status: 401 });
   }
 
   // A MongoDB id is 24 hex characters. Anything else cannot be an agent, so don't ask RAGdoll.
-  const { id } = await params;
-  if (!/^[a-f0-9]{24}$/.test(id)) {
+  const { agentId } = await params;
+  if (!/^[a-f0-9]{24}$/.test(agentId)) {
     return Response.json({ error: 'Agent not found' }, { status: 404 });
   }
 
@@ -41,10 +43,13 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
   try {
     const [accessKey, roleName] = await Promise.all([
-      getChatAccessKey(sessionToken, id),
-      getAgentRole(sessionToken, id),
+      getChatAccessKey(sessionToken, agentId),
+      getAgentRole(sessionToken, agentId),
     ]);
-    const reply = await askAgent({ id, accessKey, roleName: roleName ?? undefined }, messages);
+    const reply = await askAgent(
+      { id: agentId, accessKey, roleName: roleName ?? undefined },
+      messages,
+    );
     return Response.json({ response: reply });
   } catch (error) {
     // RAGdoll answers 401 both for a bad session and for someone else's agent. The session was

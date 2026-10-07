@@ -1,4 +1,5 @@
 import type { Agent } from '@/lib/types';
+import type { Answers } from '@/domain/agentTypes/types';
 
 const GENERIC_ERROR = 'Noe gikk galt. Prøv igjen.';
 
@@ -31,4 +32,34 @@ export async function fetchAgents(): Promise<Agent[]> {
     throw new Error(GENERIC_ERROR);
   }
   return data.agents;
+}
+
+/** The Norwegian message for a failed save. Never the server's own text. */
+function saveErrorMessage(status: number): string {
+  if (status === 401) return 'Du er logget ut. Logg inn på nytt og prøv igjen.';
+  if (status === 404) return 'Fant ikke agenten. Den kan ha blitt slettet.';
+  if (status === 504) return 'Det tok for lang tid å få svar. Prøv igjen.';
+  return GENERIC_ERROR;
+}
+
+/**
+ * Saves a new name and new answers for an agent, and returns the updated agent.
+ * Throws Error with a Norwegian message that can be shown as it is.
+ */
+export async function updateAgent(id: string, name: string, answers: Answers): Promise<Agent> {
+  let res: Response;
+  try {
+    res = await fetch(`/api/agents/${encodeURIComponent(id)}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, answers }),
+    });
+  } catch (cause) {
+    throw new Error('Fikk ikke kontakt med serveren. Sjekk nettverket og prøv igjen.', { cause });
+  }
+  if (!res.ok) throw new Error(saveErrorMessage(res.status));
+
+  const data = await res.json().catch(() => null);
+  if (!isAgent(data?.agent)) throw new Error(GENERIC_ERROR);
+  return data.agent;
 }
