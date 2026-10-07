@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import Button from '@mui/material/Button';
 
 import { AgentChat } from '@/components/chat/AgentChat';
@@ -10,7 +10,7 @@ import styles from './TestChat.module.css';
 
 // The interviewer opens the interview. Fixed text, so it costs no LLM call. It is also sent to
 // RAGdoll as the first turn, so the agent doesn't greet again.
-// Keep it in sync with the "Samtalen så langt" section of prompts/interviewer.nb.md.
+// Keep it in sync with the "Samtalen så langt" section in src/domain/interviewerPrompt.ts.
 const initialMessages: ChatMessage[] = [
   {
     id: 'greeting',
@@ -19,15 +19,17 @@ const initialMessages: ChatMessage[] = [
   },
 ];
 
-// Outside the component, so it is the same function on every render.
-const askInterviewer: SendMessages = (messages, signal) =>
-  sendToAgent('interviewer', messages, signal);
-
 // A client component because page.tsx (a server component) can't pass a function to AgentChat.
-export function TestChat() {
+export function TestChat({ agentId }: { agentId: string }) {
   // A new key mounts a fresh AgentChat: the conversation goes back to the greeting, and a reply
   // still on its way is cancelled (AgentChat aborts it when it unmounts).
   const [round, setRound] = useState(0);
+
+  // The same function on every render, unless the agent changes.
+  const askInterviewer = useCallback<SendMessages>(
+    (messages, signal) => sendToAgent(agentId, messages, signal),
+    [agentId],
+  );
 
   return (
     <div className={styles.testChat}>
@@ -36,7 +38,12 @@ export function TestChat() {
           Start på nytt
         </Button>
       </div>
-      <AgentChat key={round} send={askInterviewer} initialMessages={initialMessages} />
+      {/* The agent is in the key too, so another agent starts a new conversation. */}
+      <AgentChat
+        key={`${agentId}-${round}`}
+        send={askInterviewer}
+        initialMessages={initialMessages}
+      />
     </div>
   );
 }

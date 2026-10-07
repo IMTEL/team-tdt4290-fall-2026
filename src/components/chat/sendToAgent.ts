@@ -1,4 +1,3 @@
-import type { AgentName } from '@/lib/agents';
 import type { ChatMessage } from './types';
 
 const GENERIC_ERROR = 'Noe gikk galt. Prøv igjen.';
@@ -15,23 +14,22 @@ export class ChatError extends Error {
 }
 
 /**
- * Sends the conversation to one of our agents through the /api/chat route (which talks to RAGdoll)
- * and returns the reply. Throws ChatError on failure. If `signal` is aborted, the fetch's
- * AbortError is rethrown as is.
+ * Sends the conversation to one of the counsellor's saved agents through our server (which talks
+ * to RAGdoll) and returns the reply. Throws ChatError on failure. If `signal` is aborted, the
+ * fetch's AbortError is rethrown as is.
  */
 export async function sendToAgent(
-  agent: AgentName,
+  agentId: string,
   messages: ChatMessage[],
   signal?: AbortSignal,
 ): Promise<string> {
   let res: Response;
   try {
-    res = await fetch('/api/chat', {
+    res = await fetch(`/api/agents/${encodeURIComponent(agentId)}/chat`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       // RAGdoll only needs role and content, not our UI ids.
       body: JSON.stringify({
-        agent,
         messages: messages.map(({ role, content }) => ({ role, content })),
       }),
       signal,
@@ -43,6 +41,9 @@ export async function sendToAgent(
     });
   }
 
+  if (res.status === 404) {
+    throw new ChatError('Fant ikke intervjueren. Den kan være slettet.');
+  }
   if (res.status === 504) {
     throw new ChatError('Assistenten brukte for lang tid på å svare. Prøv igjen.');
   }

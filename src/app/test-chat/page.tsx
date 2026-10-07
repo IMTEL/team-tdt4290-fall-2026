@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 
 import { TestChat } from './TestChat';
 import styles from './page.module.css';
@@ -8,7 +9,14 @@ export const metadata: Metadata = {
   description: 'Test AI-intervjueren før jobbsøkere bruker den.',
 };
 
-export default function TestChatPage() {
+type Props = { searchParams: Promise<{ agent?: string | string[] }> };
+
+/** Chats with the saved agent in `?agent=<id>`, the way a job seeker would. */
+export default async function TestChatPage({ searchParams }: Props) {
+  const { agent } = await searchParams;
+  // `?agent=a&agent=b` gives an array; take the first one.
+  const agentId = Array.isArray(agent) ? agent[0] : agent;
+
   return (
     <div className={styles.page}>
       <header className={styles.header}>
@@ -21,7 +29,14 @@ export default function TestChatPage() {
         </p>
       </header>
 
-      <TestChat />
+      {agentId ? (
+        <TestChat agentId={agentId} />
+      ) : (
+        <p className={styles.empty}>
+          {/* English translation: Choose which interviewer to test from your agents. */}
+          Velg hvilken intervjuer du vil teste fra <Link href="/browse-agents">agentene dine</Link>.
+        </p>
+      )}
     </div>
   );
 }

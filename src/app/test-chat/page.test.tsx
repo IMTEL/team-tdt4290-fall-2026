@@ -3,13 +3,28 @@ import { describe, expect, it } from 'vitest';
 
 import TestChatPage, { metadata } from './page';
 
+// The page is an async server component: await it, then render what it returns.
+async function renderPage(searchParams: { agent?: string | string[] }) {
+  render(await TestChatPage({ searchParams: Promise.resolve(searchParams) }));
+}
+
 describe('/test-chat', () => {
-  it('renders the heading and the chat', () => {
-    render(<TestChatPage />);
+  it('renders the heading and the chat for the agent in the URL', async () => {
+    await renderPage({ agent: 'agent-1' });
 
     expect(screen.getByRole('heading', { level: 1, name: 'Test intervjueren' })).toBeVisible();
     expect(screen.getByRole('log', { name: 'Samtale' })).toBeInTheDocument();
     expect(screen.getByRole('textbox', { name: 'Melding' })).toBeInTheDocument();
+  });
+
+  it('asks the counsellor to pick an agent when the URL has none', async () => {
+    await renderPage({});
+
+    expect(screen.queryByRole('textbox', { name: 'Melding' })).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'agentene dine' })).toHaveAttribute(
+      'href',
+      '/browse-agents',
+    );
   });
 
   it('sets a Norwegian tab title', () => {

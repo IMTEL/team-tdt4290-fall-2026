@@ -90,7 +90,12 @@ export function AgentDetail({ agentId }: { agentId: string }) {
         </Accordion>
       )}
 
-      <Button component={Link} href="/test-chat" variant="contained" sx={{ mt: 3 }}>
+      <Button
+        component={Link}
+        href={`/test-chat?agent=${encodeURIComponent(state.agent.id)}`}
+        variant="contained"
+        sx={{ mt: 3 }}
+      >
         Test agenten
       </Button>
     </Box>

@@ -36,7 +36,7 @@ describe('SaveAgentForm', () => {
     saveMock.mockReset();
   });
 
-  it('saves the configuration under the chosen name and links to the agents', async () => {
+  it('saves the configuration under the chosen name and links to testing it and to the agents', async () => {
     saveMock.mockResolvedValue('agent-1');
     const { user, nameBox, saveButton } = setup();
 
@@ -46,7 +46,11 @@ describe('SaveAgentForm', () => {
 
     expect(saveMock).toHaveBeenCalledWith('Butikksjef Kari', configuration);
     expect(await screen.findByText(/«Butikksjef Kari» er lagret/)).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Se agentene dine' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Test intervjueren' })).toHaveAttribute(
+      'href',
+      '/test-chat?agent=agent-1',
+    );
+    expect(screen.getByRole('link', { name: 'se agentene dine' })).toHaveAttribute(
       'href',
       '/browse-agents',
     );

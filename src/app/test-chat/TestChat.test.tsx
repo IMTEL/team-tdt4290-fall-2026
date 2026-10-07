@@ -15,9 +15,9 @@ const sendMock = vi.mocked(sendToAgent);
 
 function setup() {
   const user = userEvent.setup();
-  render(<TestChat />);
+  const view = render(<TestChat agentId="agent-1" />);
   const box = () => screen.getByRole('textbox', { name: 'Melding' });
-  return { user, box };
+  return { user, box, view };
 }
 
 describe('TestChat', () => {
@@ -31,7 +31,7 @@ describe('TestChat', () => {
     expect(screen.getByText(/fortelle litt om deg selv\?/)).toBeInTheDocument();
   });
 
-  it('sends the conversation, greeting included, to the interviewer agent', async () => {
+  it('sends the conversation, greeting included, to the agent being tested', async () => {
     sendMock.mockResolvedValue('Hva i CV-en din er relevant for stillingen?');
     const { user, box } = setup();
 
@@ -39,7 +39,7 @@ describe('TestChat', () => {
     await screen.findByText('Hva i CV-en din er relevant for stillingen?');
 
     const [agent, history] = sendMock.mock.calls[0];
-    expect(agent).toBe('interviewer');
+    expect(agent).toBe('agent-1');
     expect(history.map(({ role, content }) => ({ role, content }))).toEqual([
       { role: 'assistant', content: expect.stringContaining('velkommen til intervjuet') },
       { role: 'user', content: 'Jeg har jobbet i butikk i fem år.' },
@@ -72,5 +72,18 @@ describe('TestChat', () => {
 
     expect(signal?.aborted).toBe(true);
     expect(screen.queryByText('Assistenten skriver …')).not.toBeInTheDocument();
+  });
+
+  it('starts a new conversation with the new agent when the agent changes', async () => {
+    sendMock.mockResolvedValue('Hva i CV-en din er relevant for stillingen?');
+    const { user, box, view } = setup();
+    await user.type(box(), 'Jeg har jobbet i butikk i fem år.{Enter}');
+    await screen.findByText('Hva i CV-en din er relevant for stillingen?');
+
+    view.rerender(<TestChat agentId="agent-2" />);
+
+    expect(screen.queryByText('Jeg har jobbet i butikk i fem år.')).not.toBeInTheDocument();
+    await user.type(box(), 'Hei{Enter}');
+    expect(sendMock.mock.calls.at(-1)?.[0]).toBe('agent-2');
   });
 });
