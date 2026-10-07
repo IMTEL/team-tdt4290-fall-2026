@@ -45,7 +45,6 @@ export function TemplatePicker({ templates, onSelect }: TemplatePickerProps) {
           </li>
         ))}
       </ul>
-
     </section>
   );
 }

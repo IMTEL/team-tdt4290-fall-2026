@@ -31,9 +31,9 @@ export function ConfigureInterviewer() {
               Intervjuer: <strong>{choice.title}</strong>
             </>
           ) : (
-              <>
-                Intervjuer: <strong>Ingen mal valgt</strong>
-              </>
+            <>
+              Intervjuer: <strong>Ingen mal valgt</strong>
+            </>
           )}
         </p>
         {/* Changing the template starts the conversation over, since the chat was set up for it. */}
