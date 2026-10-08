@@ -36,4 +36,13 @@ describe('TemplatePicker', () => {
 
     expect(onSelect).toHaveBeenCalledWith(null);
   });
+
+  it('links to the page for making a new template', () => {
+    render(<TemplatePicker templates={interviewerTemplates} onSelect={vi.fn()} />);
+
+    expect(screen.getByRole('link', { name: 'Lag en ny mal' })).toHaveAttribute(
+      'href',
+      '/create-template',
+    );
+  });
 });

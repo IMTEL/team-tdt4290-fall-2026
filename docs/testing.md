@@ -59,7 +59,7 @@ Unit and component level only:
   history without repeating the user's message; no technical error text; leaving the page aborts
   the request.
 - `src/components/templates/TemplatePicker.test.tsx`: every template is shown, clicking one
-  selects it, and "Fortsett uten mal" selects none.
+  selects it, "Fortsett uten mal" selects none, and "Lag en ny mal" links to `/create-template`.
 - `src/app/configure/page.test.tsx`: the page starts with the template picker; choosing a template,
   or continuing without one, opens the chat, and the button above the chat goes back to the
   picker; saved templates are shown after the built-in ones, and the built-in ones still show if
@@ -69,6 +69,11 @@ Unit and component level only:
   configuration is finished.
 - `src/app/configure/SaveAgentForm.test.tsx`: saves under the chosen name and links to the agents;
   no saving without a name; shows the error and lets the user try again.
+- `src/app/create-template/page.test.tsx`: saves the template with trimmed fields and links back
+  to `/configure`; cannot be saved without the required fields or with too many focus areas;
+  shows the error and keeps what was typed; the cancel link and the tab title.
+- `src/app/create-template/api.test.ts`: `saveTemplate` posts the template, returns its id, and
+  turns failures into Norwegian messages.
 - `src/app/configure/api.test.ts`: the browser functions send only `role` and `content`, return
   the configuration when the server says it is done, and turn failures (including an expired
   login) into Norwegian messages; `fetchSavedTemplates` rejects failures and badly shaped

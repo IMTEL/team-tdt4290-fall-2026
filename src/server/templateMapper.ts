@@ -1,10 +1,8 @@
-import type { InterviewerTemplate } from '@/data/interviewer-templates';
+import { TEMPLATE_LIMITS as LIMITS, type InterviewerTemplate } from '@/data/interviewer-templates';
 import type { NewRagdollTemplate, RagdollTemplate } from './ragdoll';
 
 /** Our templates' type in RAGdoll. Other apps' templates have other types. */
 export const INTERVIEWER_TEMPLATE_TYPE = 'interviewer';
-
-const LIMITS = { title: 80, description: 300, focusItems: 6, focusItem: 40, persona: 2000 };
 
 /** A template the counsellor wants to save. It gets its id from RAGdoll. */
 export type NewInterviewerTemplate = Omit<InterviewerTemplate, 'id'>;

@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
 import CardActionArea from '@mui/material/CardActionArea';
@@ -20,6 +21,16 @@ export function TemplatePicker({ templates, onSelect }: TemplatePickerProps) {
       <Button variant="contained" onClick={() => onSelect(null)} className={styles.scratch}>
         Fortsett uten mal
       </Button>
+
+      <Button
+        component={Link}
+        href="/create-template"
+        variant="outlined"
+        className={styles.scratch}
+      >
+        Lag en ny mal
+      </Button>
+
       <h2 id="template-picker-heading" className={styles.heading}>
         Velg en mal
       </h2>
