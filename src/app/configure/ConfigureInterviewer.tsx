@@ -1,10 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Button from '@mui/material/Button';
 
 import { TemplatePicker } from '@/components/templates/TemplatePicker';
 import { interviewerTemplates, type InterviewerTemplate } from '@/data/interviewer-templates';
+import { fetchSavedTemplates } from './api';
 import { ConfigurationChat } from './ConfigurationChat';
 import styles from './page.module.css';
 
@@ -13,13 +14,32 @@ type Choice = InterviewerTemplate | null | undefined;
 
 /**
  * First the counsellor picks a template, which decides the interviewer, or continues without one.
- * Then the chat starts.
+ * The built-in templates come first, then the ones the counsellor has saved. Then the chat starts.
  */
 export function ConfigureInterviewer() {
   const [choice, setChoice] = useState<Choice>(undefined);
+  const [saved, setSaved] = useState<InterviewerTemplate[]>([]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    fetchSavedTemplates(controller.signal)
+      .then(setSaved)
+      .catch((error) => {
+        // The built-in templates still work, so the counsellor can go on without the saved ones.
+        if (!controller.signal.aborted) console.error(error);
+      });
+    return () => controller.abort();
+  }, []);
 
   if (choice === undefined) {
-    return <TemplatePicker templates={interviewerTemplates} onSelect={setChoice} />;
+    return (
+      <TemplatePicker
+        templates={interviewerTemplates}
+        savedTemplates={saved}
+        onSelect={setChoice}
+        onDeleted={(id) => setSaved((current) => current.filter((template) => template.id !== id))}
+      />
+    );
   }
 
   return (

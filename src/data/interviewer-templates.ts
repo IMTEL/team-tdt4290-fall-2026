@@ -10,6 +10,15 @@ export interface InterviewerTemplate {
   persona: string;
 }
 
+/** The longest each field of a saved template may be. The server checks them too. */
+export const TEMPLATE_LIMITS = {
+  title: 80,
+  description: 300,
+  focusItems: 6,
+  focusItem: 40,
+  persona: 2000,
+} as const;
+
 export const interviewerTemplates: InterviewerTemplate[] = [
   {
     id: 'daglig-leder',

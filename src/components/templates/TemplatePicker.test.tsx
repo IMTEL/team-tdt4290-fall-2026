@@ -36,4 +36,38 @@ describe('TemplatePicker', () => {
 
     expect(onSelect).toHaveBeenCalledWith(null);
   });
+
+  it('links to the page for making a new template', () => {
+    render(<TemplatePicker templates={interviewerTemplates} onSelect={vi.fn()} />);
+
+    expect(screen.getByRole('link', { name: 'Lag en ny mal' })).toHaveAttribute(
+      'href',
+      '/create-template',
+    );
+  });
+
+  it('shows saved templates after the built-in ones, with edit and delete only on them', () => {
+    const saved = {
+      id: 'saved-1',
+      title: 'Min mal',
+      description: 'Lagret av meg.',
+      focus: [],
+      persona: 'Hen er butikksjef.',
+    };
+    render(
+      <TemplatePicker
+        templates={interviewerTemplates}
+        savedTemplates={[saved]}
+        onSelect={vi.fn()}
+      />,
+    );
+
+    expect(screen.getAllByRole('listitem').at(-1)).toHaveTextContent('Min mal');
+    expect(screen.getByRole('link', { name: 'Rediger Min mal' })).toHaveAttribute(
+      'href',
+      '/templates/saved-1/edit',
+    );
+    expect(screen.getAllByRole('link', { name: /^Rediger/ })).toHaveLength(1);
+    expect(screen.getAllByRole('button', { name: /^Slett/ })).toHaveLength(1);
+  });
 });

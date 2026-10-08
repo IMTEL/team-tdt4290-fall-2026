@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { findTemplate } from '@/data/interviewer-templates';
 import { getSessionToken } from '@/lib/session-tokens';
-import { askAgent, RagdollError } from '@/server/ragdoll';
+import { askAgent, getTemplate, RagdollError } from '@/server/ragdoll';
 import { POST } from './route';
 
 // The adapter and parseConfiguration have their own tests. Here we only check what the route adds:
@@ -13,11 +13,12 @@ import { POST } from './route';
 vi.mock('@/lib/session-tokens', () => ({ getSessionToken: vi.fn() }));
 vi.mock('@/server/ragdoll', async (importOriginal) => {
   const original = await importOriginal<typeof import('@/server/ragdoll')>();
-  return { ...original, askAgent: vi.fn() };
+  return { ...original, askAgent: vi.fn(), getTemplate: vi.fn() };
 });
 
 const getSessionTokenMock = vi.mocked(getSessionToken);
 const askAgentMock = vi.mocked(askAgent);
+const getTemplateMock = vi.mocked(getTemplate);
 
 const messages = [
   { role: 'assistant', content: 'Hei! Hvilken stilling skal jobbsøkeren øve til?' },
@@ -43,6 +44,8 @@ function turnRequest(body: unknown) {
 
 beforeEach(() => {
   getSessionTokenMock.mockResolvedValue('session-token');
+  // Only built-in templates exist unless a test saves one.
+  getTemplateMock.mockRejectedValue(new RagdollError('not-found', 'no template'));
   vi.stubEnv('RAGDOLL_CONFIGURATOR_AGENT_ID', 'configurator-123');
   vi.stubEnv('RAGDOLL_CONFIGURATOR_ACCESS_KEY', 'configurator-key');
   // The route logs problems on purpose; keep the test output clean.
@@ -54,6 +57,7 @@ afterEach(() => {
   vi.restoreAllMocks();
   getSessionTokenMock.mockReset();
   askAgentMock.mockReset();
+  getTemplateMock.mockReset();
 });
 
 describe('POST /api/configure/turn', () => {
@@ -83,6 +87,32 @@ describe('POST /api/configure/turn', () => {
     expect(body.done).toBe(true);
     expect(body.configuration.stilling).toBe('Butikkmedarbeider');
     expect(body.configuration.intervjuer).toBe(findTemplate('teamleder')?.persona);
+  });
+
+  it('takes the interviewer from a template the counsellor saved in RAGdoll', async () => {
+    getTemplateMock.mockResolvedValue({
+      id: 'saved-1',
+      type: 'interviewer',
+      name: 'Butikksjef',
+      description: 'Vennlig.',
+      content: { focus: [], persona: 'Intervjueren er butikksjef.' },
+    });
+    askAgentMock.mockResolvedValue(finalReply);
+
+    const res = await POST(turnRequest({ templateId: 'saved-1', messages }));
+    const body = await res.json();
+
+    expect(getTemplateMock).toHaveBeenCalledWith('session-token', 'saved-1');
+    expect(body.configuration.intervjuer).toBe('Intervjueren er butikksjef.');
+  });
+
+  it('answers 502 and asks nothing when RAGdoll fails to load a saved template', async () => {
+    getTemplateMock.mockRejectedValue(new RagdollError('unreachable', 'down'));
+
+    const res = await POST(turnRequest({ templateId: 'saved-1', messages }));
+
+    expect(res.status).toBe(502);
+    expect(askAgentMock).not.toHaveBeenCalled();
   });
 
   it('takes the interviewer from the block when there is no template', async () => {

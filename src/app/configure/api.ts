@@ -1,5 +1,6 @@
 import { ChatError } from '@/components/chat/sendToAgent';
 import type { ChatMessage } from '@/components/chat/types';
+import type { InterviewerTemplate } from '@/data/interviewer-templates';
 import { isConfiguration, type Configuration } from '@/domain/configuration';
 
 const GENERIC_ERROR = 'Noe gikk galt. Prøv igjen.';
@@ -75,4 +76,32 @@ export async function saveConfiguredAgent(
   const data = await res.json().catch(() => null);
   if (typeof data?.id !== 'string') throw new ChatError(GENERIC_ERROR);
   return data.id;
+}
+
+function isTemplate(value: unknown): value is InterviewerTemplate {
+  if (typeof value !== 'object' || value === null) return false;
+  const template = value as Record<string, unknown>;
+  return (
+    typeof template.id === 'string' &&
+    typeof template.title === 'string' &&
+    typeof template.description === 'string' &&
+    typeof template.persona === 'string' &&
+    Array.isArray(template.focus) &&
+    template.focus.every((item) => typeof item === 'string')
+  );
+}
+
+/**
+ * The templates the counsellor has saved, newest first. Not the built-in ones.
+ * Throws Error if they could not be loaded.
+ */
+export async function fetchSavedTemplates(signal?: AbortSignal): Promise<InterviewerTemplate[]> {
+  const res = await fetch('/api/templates', { cache: 'no-store', signal });
+  if (!res.ok) throw new Error(`Could not load templates: ${res.status}`);
+
+  const data = await res.json().catch(() => null);
+  if (!Array.isArray(data?.templates) || !data.templates.every(isTemplate)) {
+    throw new Error('Invalid templates from the server');
+  }
+  return data.templates;
 }
