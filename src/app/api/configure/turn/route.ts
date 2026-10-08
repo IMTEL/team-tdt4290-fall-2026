@@ -4,7 +4,8 @@ import { findTemplate, type InterviewerTemplate } from '@/data/interviewer-templ
 import { parseConfiguration } from '@/domain/configuration';
 import { getSessionToken } from '@/lib/session-tokens';
 import { configErrorResponse, ragdollErrorResponse } from '@/server/errorResponse';
-import { askAgent, type RagdollMessage } from '@/server/ragdoll';
+import { askAgent, getTemplate, RagdollError, type RagdollMessage } from '@/server/ragdoll';
+import { fromRagdollTemplate } from '@/server/templateMapper';
 
 function isMessage(value: unknown): value is RagdollMessage {
   if (typeof value !== 'object' || value === null) return false;
@@ -19,12 +20,13 @@ function isMessage(value: unknown): value is RagdollMessage {
  */
 export async function POST(req: NextRequest) {
   // The configurator is shared, but only logged-in counsellors may use it (it spends IDUN quota).
-  if (!(await getSessionToken(req))) {
+  const sessionToken = await getSessionToken(req);
+  if (!sessionToken) {
     return Response.json({ error: 'Not signed in' }, { status: 401 });
   }
 
   let messages: RagdollMessage[];
-  let template: InterviewerTemplate | undefined;
+  let templateId: string | undefined;
   try {
     const body = await req.json();
     if (
@@ -37,13 +39,25 @@ export async function POST(req: NextRequest) {
     messages = body.messages;
     // No templateId means the counsellor started without a template.
     if (body.templateId !== undefined) {
-      template = typeof body.templateId === 'string' ? findTemplate(body.templateId) : undefined;
-      if (!template) {
+      if (typeof body.templateId !== 'string' || !body.templateId) {
         return Response.json({ error: 'Unknown template' }, { status: 400 });
       }
+      templateId = body.templateId;
     }
   } catch {
     return Response.json({ error: 'Invalid JSON' }, { status: 400 });
+  }
+
+  let template: InterviewerTemplate | undefined;
+  if (templateId) {
+    try {
+      template = await findAnyTemplate(sessionToken, templateId);
+    } catch (error) {
+      return ragdollErrorResponse(error);
+    }
+    if (!template) {
+      return Response.json({ error: 'Unknown template' }, { status: 400 });
+    }
   }
 
   const id = process.env.RAGDOLL_CONFIGURATOR_AGENT_ID;
@@ -59,5 +73,21 @@ export async function POST(req: NextRequest) {
     return Response.json({ reply, configuration, done: configuration !== null });
   } catch (error) {
     return ragdollErrorResponse(error);
+  }
+}
+
+/** A built-in template, or one the counsellor has saved in RAGdoll. Undefined if neither. */
+async function findAnyTemplate(
+  sessionToken: string,
+  templateId: string,
+): Promise<InterviewerTemplate | undefined> {
+  const builtIn = findTemplate(templateId);
+  if (builtIn) return builtIn;
+
+  try {
+    return fromRagdollTemplate(await getTemplate(sessionToken, templateId)) ?? undefined;
+  } catch (error) {
+    if (error instanceof RagdollError && error.kind === 'not-found') return undefined;
+    throw error;
   }
 }

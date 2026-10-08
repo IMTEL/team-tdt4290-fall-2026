@@ -1,8 +1,22 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import ConfigurePage, { metadata } from './page';
+
+const fetchMock = vi.fn<typeof fetch>();
+
+beforeEach(() => {
+  // The page loads the counsellor's saved templates. By default they have none.
+  fetchMock.mockResolvedValue(Response.json({ templates: [] }));
+  vi.stubGlobal('fetch', fetchMock);
+});
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+  vi.restoreAllMocks();
+  fetchMock.mockReset();
+});
 
 describe('/configure', () => {
   it('starts with the template picker, not the chat', () => {
@@ -40,6 +54,37 @@ describe('/configure', () => {
     await user.click(screen.getByRole('button', { name: 'Velg en mal' }));
 
     expect(screen.getByRole('heading', { level: 2, name: 'Velg en mal' })).toBeVisible();
+  });
+
+  it('shows the counsellor’s saved templates after the built-in ones', async () => {
+    fetchMock.mockResolvedValue(
+      Response.json({
+        templates: [
+          {
+            id: 'saved-1',
+            title: 'Min butikksjef',
+            description: 'Lagret av meg.',
+            focus: ['Service'],
+            persona: 'Intervjueren er butikksjef.',
+          },
+        ],
+      }),
+    );
+    render(<ConfigurePage />);
+
+    const saved = await screen.findByRole('button', { name: /Min butikksjef/ });
+    const cards = screen.getAllByRole('listitem');
+    expect(cards.at(-1)).toContainElement(saved);
+    expect(screen.getByRole('button', { name: /Teamleder/ })).toBeInTheDocument();
+  });
+
+  it('still shows the built-in templates when the saved ones cannot be loaded', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    fetchMock.mockResolvedValue(Response.json({ error: 'Error' }, { status: 502 }));
+    render(<ConfigurePage />);
+
+    await waitFor(() => expect(console.error).toHaveBeenCalled());
+    expect(screen.getByRole('button', { name: /Teamleder/ })).toBeInTheDocument();
   });
 
   it('sets a Norwegian tab title', () => {

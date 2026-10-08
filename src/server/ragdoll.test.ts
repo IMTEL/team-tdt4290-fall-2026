@@ -3,14 +3,21 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   askAgent,
+  createTemplate,
   deleteAgent,
+  deleteTemplate,
   fetchFullAgent,
+  getTemplate,
+  getUserSettings,
   isAgentOwner,
   listAgents,
+  listTemplates,
   RagdollError,
   saveAgent,
+  saveUserSettings,
   updateAgent,
   type NewRagdollAgent,
+  type NewRagdollTemplate,
 } from './ragdoll';
 
 const RAGDOLL_URL = 'https://ragdoll.test/backend';
@@ -394,5 +401,137 @@ describe('deleteAgent', () => {
     await expect(deleteAgent(SESSION_TOKEN, 'agent-1')).rejects.toMatchObject({
       kind: 'unreachable',
     });
+  });
+});
+
+const newTemplate: NewRagdollTemplate = {
+  type: 'interviewer',
+  name: 'Butikksjef',
+  description: 'Vennlig og direkte.',
+  content: { focus: ['Service'], persona: 'Intervjueren er butikksjef.' },
+};
+
+// What RAGdoll returns for a stored template: also the owner and the timestamps.
+const storedTemplate = {
+  ...newTemplate,
+  id: 'template-1',
+  owner_id: 'user-1',
+  created_at: '2026-10-08T10:00:00Z',
+  updated_at: '2026-10-08T10:00:00Z',
+};
+
+describe('templates', () => {
+  const fetchMock = vi.fn<typeof fetch>();
+
+  beforeEach(() => {
+    vi.stubEnv('BACKEND_API_URL', BACKEND_URL);
+    vi.stubGlobal('fetch', fetchMock);
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.unstubAllGlobals();
+    fetchMock.mockReset();
+  });
+
+  it('lists the user’s templates of one type, with only the fields we use', async () => {
+    fetchMock.mockResolvedValue(Response.json([storedTemplate]));
+
+    await expect(listTemplates(SESSION_TOKEN, 'interviewer')).resolves.toEqual([
+      { ...newTemplate, id: 'template-1' },
+    ]);
+
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toBe(`${BACKEND_URL}/templates?type=interviewer`);
+    expect((init?.headers as Record<string, string>).Authorization).toBe(`Bearer ${SESSION_TOKEN}`);
+  });
+
+  it('throws a bad-response error when the list has something that is not a template', async () => {
+    fetchMock.mockResolvedValue(Response.json([{ id: 'template-1' }]));
+
+    await expect(listTemplates(SESSION_TOKEN, 'interviewer')).rejects.toMatchObject({
+      kind: 'bad-response',
+    });
+  });
+
+  it('gets one template by id', async () => {
+    fetchMock.mockResolvedValue(Response.json(storedTemplate));
+
+    await expect(getTemplate(SESSION_TOKEN, 'template-1')).resolves.toMatchObject({
+      id: 'template-1',
+    });
+    expect(fetchMock.mock.calls[0][0]).toBe(`${BACKEND_URL}/templates/template-1`);
+  });
+
+  it('throws a not-found error when the user has no template with that id (404)', async () => {
+    fetchMock.mockResolvedValue(new Response('Template not found', { status: 404 }));
+
+    await expect(getTemplate(SESSION_TOKEN, 'template-1')).rejects.toMatchObject({
+      kind: 'not-found',
+    });
+  });
+
+  it('creates a template and returns it with its id', async () => {
+    fetchMock.mockResolvedValue(Response.json(storedTemplate, { status: 201 }));
+
+    await expect(createTemplate(SESSION_TOKEN, newTemplate)).resolves.toMatchObject({
+      id: 'template-1',
+    });
+
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toBe(`${BACKEND_URL}/templates`);
+    expect(init?.method).toBe('POST');
+    expect(JSON.parse(init?.body as string)).toEqual(newTemplate);
+  });
+
+  it('deletes a template and accepts the empty answer', async () => {
+    fetchMock.mockResolvedValue(new Response(null, { status: 204 }));
+
+    await expect(deleteTemplate(SESSION_TOKEN, 'template-1')).resolves.toBeUndefined();
+
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toBe(`${BACKEND_URL}/templates/template-1`);
+    expect(init?.method).toBe('DELETE');
+  });
+});
+
+describe('user settings', () => {
+  const fetchMock = vi.fn<typeof fetch>();
+
+  beforeEach(() => {
+    vi.stubEnv('BACKEND_API_URL', BACKEND_URL);
+    vi.stubGlobal('fetch', fetchMock);
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.unstubAllGlobals();
+    fetchMock.mockReset();
+  });
+
+  it('reads the settings from this app’s namespace', async () => {
+    fetchMock.mockResolvedValue(Response.json({ language: 'nb' }));
+
+    await expect(getUserSettings(SESSION_TOKEN)).resolves.toEqual({ language: 'nb' });
+    expect(fetchMock.mock.calls[0][0]).toBe(`${BACKEND_URL}/user-settings/interview-configurator`);
+  });
+
+  it('replaces the settings in this app’s namespace', async () => {
+    fetchMock.mockResolvedValue(Response.json({ language: 'en' }));
+
+    await expect(saveUserSettings(SESSION_TOKEN, { language: 'en' })).resolves.toEqual({
+      language: 'en',
+    });
+
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toBe(`${BACKEND_URL}/user-settings/interview-configurator`);
+    expect(init?.method).toBe('PUT');
+    expect(JSON.parse(init?.body as string)).toEqual({ language: 'en' });
+  });
+
+  it('throws a bad-response error when RAGdoll does not return an object', async () => {
+    fetchMock.mockResolvedValue(Response.json(['nb']));
+
+    await expect(getUserSettings(SESSION_TOKEN)).rejects.toMatchObject({ kind: 'bad-response' });
   });
 });

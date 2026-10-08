@@ -62,7 +62,8 @@ Unit and component level only:
   selects it, and "Fortsett uten mal" selects none.
 - `src/app/configure/page.test.tsx`: the page starts with the template picker; choosing a template,
   or continuing without one, opens the chat, and the button above the chat goes back to the
-  picker; the tab title.
+  picker; saved templates are shown after the built-in ones, and the built-in ones still show if
+  the saved ones cannot be loaded; the tab title.
 - `src/app/configure/ConfigurationChat.test.tsx`: the greeting names the template; the template id
   and the whole conversation (greeting included) go to the configuration turn route; the save form only appears once the
   configuration is finished.
@@ -70,10 +71,17 @@ Unit and component level only:
   no saving without a name; shows the error and lets the user try again.
 - `src/app/configure/api.test.ts`: the browser functions send only `role` and `content`, return
   the configuration when the server says it is done, and turn failures (including an expired
-  login) into Norwegian messages.
+  login) into Norwegian messages; `fetchSavedTemplates` rejects failures and badly shaped
+  templates.
 - `src/app/api/configure/turn/route.test.ts`: 401 when logged out; 400 for bad bodies; 500 when the
-  configurator is not configured; reports `done` only for a complete `KONFIGURASJON` block; never
-  passes RAGdoll's message on.
+  configurator is not configured; reports `done` only for a complete `KONFIGURASJON` block; takes
+  the interviewer from a built-in or a saved template, and asks nothing if a saved one cannot be
+  loaded; never passes RAGdoll's message on.
+- `src/app/api/templates/route.test.ts` and `src/app/api/templates/[templateId]/route.test.ts`:
+  lists only readable interviewer templates, saves a valid template as type `interviewer`, 400
+  for bad bodies, 401 when logged out, deletes with 204 and 404 for an unknown template.
+- `src/app/api/user-settings/route.test.ts`: reads and replaces the settings; 400 unless the body
+  has a `settings` object; 401 when logged out.
 - `src/app/api/agents/route.test.ts`: saves with the counsellor's session token and the IDUN key
   from the environment; 401, 400 and 500 cases save nothing; lists the counsellor's agents.
 - `src/app/api/agents/[agentId]/route.test.ts`: editing updates the same agent (same id) with the
@@ -84,7 +92,11 @@ Unit and component level only:
 - `src/server/ragdoll.test.ts`: `askAgent`, `saveAgent`, `listAgents`, `fetchFullAgent` and
   `updateAgent` against a mocked `fetch`: the session token is sent, 401 and 422 become
   `unauthorized`, an id that is not the user's becomes `not-found`, an update sends the id with
-  empty keys, and nothing returns the agents' API keys.
+  empty keys, and nothing returns the agents' API keys. The template and settings functions call
+  the right paths (settings under our namespace), turn 404 into `not-found`, and keep only the
+  fields we use.
+- `src/server/templateMapper.test.ts`: a new template is trimmed and validated, stored as type
+  `interviewer` and read back; other types and badly shaped content are skipped.
 - `src/server/agentMapper.test.ts`: the RAGdoll agent gets the chosen name, the built prompt, the
   stored answers and the IDUN key for both the LLM and the embeddings; `applyEdit` changes the
   name, roles, prompt and answers but keeps the id and every other field.
