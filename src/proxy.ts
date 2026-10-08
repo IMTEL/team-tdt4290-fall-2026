@@ -8,6 +8,7 @@ export const config = {
     '/configure/:path*',
     '/create-template/:path*',
     '/browse-agents/:path*',
+    '/templates/:path*',
     '/test-chat/:path*',
   ],
 };

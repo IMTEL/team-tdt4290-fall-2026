@@ -237,6 +237,23 @@ export async function createTemplate(
   );
 }
 
+/**
+ * Replaces one of the logged-in user's own templates and returns it. Throws RagdollError, with
+ * kind 'not-found' if the user has no template with this id.
+ */
+export async function updateTemplate(
+  sessionToken: string,
+  templateId: string,
+  template: NewRagdollTemplate,
+): Promise<RagdollTemplate> {
+  return toTemplate(
+    await requestAsUser(sessionToken, `/templates/${encodeURIComponent(templateId)}`, {
+      method: 'PUT',
+      body: JSON.stringify(template),
+    }),
+  );
+}
+
 /** Deletes one of the logged-in user's own templates. Throws RagdollError. */
 export async function deleteTemplate(sessionToken: string, templateId: string): Promise<void> {
   const path = `/templates/${encodeURIComponent(templateId)}`;

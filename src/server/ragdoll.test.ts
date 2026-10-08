@@ -16,6 +16,7 @@ import {
   saveAgent,
   saveUserSettings,
   updateAgent,
+  updateTemplate,
   type NewRagdollAgent,
   type NewRagdollTemplate,
 } from './ragdoll';
@@ -481,6 +482,19 @@ describe('templates', () => {
     const [url, init] = fetchMock.mock.calls[0];
     expect(url).toBe(`${BACKEND_URL}/templates`);
     expect(init?.method).toBe('POST');
+    expect(JSON.parse(init?.body as string)).toEqual(newTemplate);
+  });
+
+  it('replaces a template and returns it', async () => {
+    fetchMock.mockResolvedValue(Response.json(storedTemplate));
+
+    await expect(updateTemplate(SESSION_TOKEN, 'template-1', newTemplate)).resolves.toMatchObject({
+      id: 'template-1',
+    });
+
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toBe(`${BACKEND_URL}/templates/template-1`);
+    expect(init?.method).toBe('PUT');
     expect(JSON.parse(init?.body as string)).toEqual(newTemplate);
   });
 

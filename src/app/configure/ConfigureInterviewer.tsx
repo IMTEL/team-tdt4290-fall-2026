@@ -32,7 +32,14 @@ export function ConfigureInterviewer() {
   }, []);
 
   if (choice === undefined) {
-    return <TemplatePicker templates={[...interviewerTemplates, ...saved]} onSelect={setChoice} />;
+    return (
+      <TemplatePicker
+        templates={interviewerTemplates}
+        savedTemplates={saved}
+        onSelect={setChoice}
+        onDeleted={(id) => setSaved((current) => current.filter((template) => template.id !== id))}
+      />
+    );
   }
 
   return (

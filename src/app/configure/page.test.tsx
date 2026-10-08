@@ -72,10 +72,35 @@ describe('/configure', () => {
     );
     render(<ConfigurePage />);
 
-    const saved = await screen.findByRole('button', { name: /Min butikksjef/ });
+    const saved = await screen.findByRole('button', { name: /^Min butikksjef/ });
     const cards = screen.getAllByRole('listitem');
     expect(cards.at(-1)).toContainElement(saved);
     expect(screen.getByRole('button', { name: /Teamleder/ })).toBeInTheDocument();
+  });
+
+  it('removes a saved template from the picker once it is deleted', async () => {
+    const saved = {
+      id: 'saved-1',
+      title: 'Min butikksjef',
+      description: 'Lagret av meg.',
+      focus: [],
+      persona: 'Intervjueren er butikksjef.',
+    };
+    fetchMock.mockImplementation(async (_url, init) =>
+      init?.method === 'DELETE'
+        ? new Response(null, { status: 204 })
+        : Response.json({ templates: [saved] }),
+    );
+    const user = userEvent.setup();
+    render(<ConfigurePage />);
+
+    await user.click(await screen.findByRole('button', { name: 'Slett Min butikksjef' }));
+    await user.click(screen.getByRole('button', { name: 'Slett' }));
+
+    await waitFor(() =>
+      expect(screen.queryByRole('button', { name: /^Min butikksjef/ })).not.toBeInTheDocument(),
+    );
+    expect(fetchMock).toHaveBeenCalledWith('/api/templates/saved-1', { method: 'DELETE' });
   });
 
   it('still shows the built-in templates when the saved ones cannot be loaded', async () => {
