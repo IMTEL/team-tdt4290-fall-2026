@@ -7,8 +7,8 @@ import { AgentDetail } from './AgentDetail';
 
 const notFound = vi.hoisted(() => vi.fn());
 
-vi.mock('next/navigation', () => ({ notFound }));
-vi.mock('../api', () => ({ fetchAgents: vi.fn() }));
+vi.mock('next/navigation', () => ({ notFound, useRouter: () => ({ push: vi.fn() }) }));
+vi.mock('../api', () => ({ fetchAgents: vi.fn(), deleteAgent: vi.fn() }));
 
 const fetchAgentsMock = vi.mocked(fetchAgents);
 

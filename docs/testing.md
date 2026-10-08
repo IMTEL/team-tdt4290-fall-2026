@@ -64,13 +64,12 @@ Unit and component level only:
   history without repeating the user's message; no technical error text; leaving the page aborts
   the request.
 - `src/components/templates/TemplatePicker.test.tsx`: every template is shown, clicking one
-  selects it, and "Start uten mal" selects none.
-- `src/app/configure/page.test.tsx`: smoke test for the heading, the chat, the link to the
-  template picker and the tab title.
-- `src/app/template-picker/page.test.tsx`: the templates and a link back to the chat; choosing a
-  template (or none) shows the choice, and "Velg en annen mal" goes back to the picker.
-- `src/app/configure/ConfigurationChat.test.tsx`: greeting; the whole conversation (greeting
-  included) goes to the configuration turn route; the save form only appears once the
+  selects it, and "Fortsett uten mal" selects none.
+- `src/app/configure/page.test.tsx`: the page starts with the template picker; choosing a template,
+  or continuing without one, opens the chat, and the button above the chat goes back to the
+  picker; the tab title.
+- `src/app/configure/ConfigurationChat.test.tsx`: the greeting names the template; the template id
+  and the whole conversation (greeting included) go to the configuration turn route; the save form only appears once the
   configuration is finished.
 - `src/app/configure/SaveAgentForm.test.tsx`: saves under the chosen name and links to testing the
   new agent and to the agents;

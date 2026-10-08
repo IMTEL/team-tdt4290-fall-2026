@@ -3,9 +3,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   askAgent,
+  deleteAgent,
   fetchFullAgent,
   getAgentRole,
   getChatAccessKey,
+  isAgentOwner,
   listAgents,
   RagdollError,
   saveAgent,
@@ -336,6 +338,72 @@ describe('updateAgent', () => {
 
     await expect(updateAgent(SESSION_TOKEN, existing)).rejects.toMatchObject({
       kind: 'bad-response',
+    });
+  });
+});
+
+describe('isAgentOwner', () => {
+  const fetchMock = vi.fn<typeof fetch>();
+
+  beforeEach(() => {
+    vi.stubEnv('BACKEND_API_URL', BACKEND_URL);
+    vi.stubGlobal('fetch', fetchMock);
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.unstubAllGlobals();
+    fetchMock.mockReset();
+  });
+
+  it.each([true, false])('returns %s when RAGdoll says is_owner is %s', async (isOwner) => {
+    fetchMock.mockResolvedValue(Response.json({ is_owner: isOwner, collaborators: [] }));
+
+    await expect(isAgentOwner(SESSION_TOKEN, 'agent-1')).resolves.toBe(isOwner);
+
+    const [url] = fetchMock.mock.calls[0];
+    expect(url).toBe(`${BACKEND_URL}/agents/agent-1/collaborators`);
+  });
+
+  it('throws a bad-response error when RAGdoll does not say who owns the agent', async () => {
+    fetchMock.mockResolvedValue(Response.json({ collaborators: [] }));
+
+    await expect(isAgentOwner(SESSION_TOKEN, 'agent-1')).rejects.toMatchObject({
+      kind: 'bad-response',
+    });
+  });
+});
+
+describe('deleteAgent', () => {
+  const fetchMock = vi.fn<typeof fetch>();
+
+  beforeEach(() => {
+    vi.stubEnv('BACKEND_API_URL', BACKEND_URL);
+    vi.stubGlobal('fetch', fetchMock);
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.unstubAllGlobals();
+    fetchMock.mockReset();
+  });
+
+  it('deletes the agent as the logged-in user, and accepts the null RAGdoll answers with', async () => {
+    fetchMock.mockResolvedValue(Response.json(null));
+
+    await expect(deleteAgent(SESSION_TOKEN, 'agent-1')).resolves.toBeUndefined();
+
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toBe(`${BACKEND_URL}/delete-agent?agent_id=agent-1`);
+    expect(init?.method).toBeUndefined(); // RAGdoll deletes with a GET.
+    expect((init?.headers as Record<string, string>).Authorization).toBe(`Bearer ${SESSION_TOKEN}`);
+  });
+
+  it('throws an unreachable error when RAGdoll fails to delete', async () => {
+    fetchMock.mockResolvedValue(new Response('Internal Server Error', { status: 500 }));
+
+    await expect(deleteAgent(SESSION_TOKEN, 'agent-1')).rejects.toMatchObject({
+      kind: 'unreachable',
     });
   });
 });

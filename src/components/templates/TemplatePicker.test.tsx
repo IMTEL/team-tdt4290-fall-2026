@@ -27,12 +27,12 @@ describe('TemplatePicker', () => {
     );
   });
 
-  it('calls onSelect with null to start without a template', async () => {
+  it('calls onSelect with null to continue without a template', async () => {
     const onSelect = vi.fn();
     const user = userEvent.setup();
     render(<TemplatePicker templates={interviewerTemplates} onSelect={onSelect} />);
 
-    await user.click(screen.getByRole('button', { name: 'Start uten mal' }));
+    await user.click(screen.getByRole('button', { name: 'Fortsett uten mal' }));
 
     expect(onSelect).toHaveBeenCalledWith(null);
   });

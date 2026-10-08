@@ -1,5 +1,6 @@
 'use client';
 
+import { DeleteAgentButton } from './DeleteAgentButton';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
@@ -110,6 +111,7 @@ export function AgentDetail({ agentId }: { agentId: string }) {
             Rediger
           </Button>
         )}
+        <DeleteAgentButton agent={state.agent} />
       </Stack>
     </Box>
   );
