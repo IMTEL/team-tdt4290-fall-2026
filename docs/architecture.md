@@ -344,8 +344,9 @@ sequenceDiagram
   the save form. After saving, the form links to the test chat for the new agent.
 - RAGdoll answers 401 both for an expired session and for someone else's agent. The session has
   just been checked, so `/api/agents/[agentId]/chat` answers 404 `Agent not found` in that case.
-- `/api/chat/ask` goes to `RAGDOLL_API_URL`; the chat key and the agent come from
-  `BACKEND_API_URL`. Both must point to the same RAGdoll for the test chat to work. Two URLs is a
+- The test chat does everything on `BACKEND_API_URL`, the RAGdoll the agent was saved in: the
+  chat key, the agent and `/api/chat/ask` (`askSavedAgent`). Only the configurator chat goes to
+  `RAGDOLL_API_URL` (`askAgent`), because the shared configurator agent lives there. Two URLs is a
   stopgap ([#31](https://github.com/IMTEL/team-tdt4290-fall-2026/issues/31)).
 - Code: [`src/app/api/configure/turn/route.ts`](../src/app/api/configure/turn/route.ts),
   [`src/app/api/agents/[agentId]/chat/route.ts`](../src/app/api/agents/[agentId]/chat/route.ts),
@@ -386,17 +387,17 @@ All settings are environment variables, listed with dummy values in
 [`.env.example`](../.env.example). None has the `NEXT_PUBLIC_` prefix, so none is bundled into the
 browser code.
 
-| Variable                                | Used by                                             | Secret? |
-| --------------------------------------- | --------------------------------------------------- | ------- |
-| `BACKEND_API_URL`                       | Login, refresh, logout, `/api/agents/*`             | No      |
-| `RAGDOLL_API_URL`                       | `/api/configure/turn`, `/api/agents/[agentId]/chat` | No      |
-| `RAGDOLL_CONFIGURATOR_AGENT_ID`         | `/api/configure/turn`                               | No      |
-| `RAGDOLL_CONFIGURATOR_ACCESS_KEY`       | `/api/configure/turn`                               | Yes     |
-| `IDUN_API_KEY`                          | `POST /api/agents` (written onto the saved agent)   | Yes     |
-| `NEXTAUTH_URL`                          | NextAuth                                            | No      |
-| `NEXTAUTH_SECRET`                       | NextAuth (cookie encryption)                        | Yes     |
-| `KEYCLOAK_CLIENT_ID`, `KEYCLOAK_ISSUER` | NextAuth Keycloak provider                          | No      |
-| `KEYCLOAK_CLIENT_SECRET`                | NextAuth Keycloak provider                          | Yes     |
+| Variable                                | Used by                                                      | Secret? |
+| --------------------------------------- | ------------------------------------------------------------ | ------- |
+| `BACKEND_API_URL`                       | Login, refresh, logout, `/api/agents/*` (test chat included) | No      |
+| `RAGDOLL_API_URL`                       | `/api/configure/turn`                                        | No      |
+| `RAGDOLL_CONFIGURATOR_AGENT_ID`         | `/api/configure/turn`                                        | No      |
+| `RAGDOLL_CONFIGURATOR_ACCESS_KEY`       | `/api/configure/turn`                                        | Yes     |
+| `IDUN_API_KEY`                          | `POST /api/agents` (written onto the saved agent)            | Yes     |
+| `NEXTAUTH_URL`                          | NextAuth                                                     | No      |
+| `NEXTAUTH_SECRET`                       | NextAuth (cookie encryption)                                 | Yes     |
+| `KEYCLOAK_CLIENT_ID`, `KEYCLOAK_ISSUER` | NextAuth Keycloak provider                                   | No      |
+| `KEYCLOAK_CLIENT_SECRET`                | NextAuth Keycloak provider                                   | Yes     |
 
 `IDUN_API_KEY` is sent to RAGdoll only when an agent is created, and no route returns it. Editing
 an agent keeps the keys RAGdoll already has. Threats and countermeasures

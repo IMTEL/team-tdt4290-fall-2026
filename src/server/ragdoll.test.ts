@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   askAgent,
+  askSavedAgent,
   deleteAgent,
   fetchFullAgent,
   getAgentRole,
@@ -129,6 +130,48 @@ describe('askAgent', () => {
     const error = await askAndCatch();
 
     expect((error as RagdollError).kind).toBe('bad-response');
+  });
+});
+
+describe('askSavedAgent', () => {
+  const fetchMock = vi.fn<typeof fetch>();
+
+  beforeEach(() => {
+    // Different RAGdolls on purpose, like in .env.example: the configurator is on the deployed
+    // one, while the user's agents are saved in the one they logged in to.
+    vi.stubEnv('RAGDOLL_API_URL', RAGDOLL_URL);
+    vi.stubEnv('BACKEND_API_URL', `${BACKEND_URL}/`);
+    vi.stubGlobal('fetch', fetchMock);
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.unstubAllGlobals();
+    fetchMock.mockReset();
+  });
+
+  it('asks the RAGdoll the agent was saved in, not the configurator’s', async () => {
+    fetchMock.mockResolvedValue(ragdollReply('Hvorfor søker du?'));
+
+    await expect(askSavedAgent({ ...agent, roleName: 'Butikksjef' }, messages)).resolves.toBe(
+      'Hvorfor søker du?',
+    );
+
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toBe(`${BACKEND_URL}/api/chat/ask`);
+    expect(JSON.parse(init?.body as string)).toEqual({
+      agent_id: 'agent-123',
+      access_key: 'secret-key',
+      chat_log: messages,
+      active_role_id: 'Butikksjef',
+    });
+  });
+
+  it('throws a config error and never calls RAGdoll when BACKEND_API_URL is missing', async () => {
+    vi.stubEnv('BACKEND_API_URL', '');
+
+    await expect(askSavedAgent(agent, messages)).rejects.toMatchObject({ kind: 'config' });
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 });
 

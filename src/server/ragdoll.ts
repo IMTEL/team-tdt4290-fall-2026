@@ -20,16 +20,39 @@ export class RagdollError extends Error {
 
 const TIMEOUT_MS = 30000;
 
-/** Sends the chat history to a RAGdoll agent and returns the reply text. Throws RagdollError. */
+/**
+ * Sends the chat history to the shared configurator agent and returns the reply text.
+ * Goes to RAGDOLL_API_URL, where the configurator lives. Throws RagdollError.
+ */
 export async function askAgent(agent: RagdollAgent, messages: RagdollMessage[]): Promise<string> {
-  const apiUrl = process.env.RAGDOLL_API_URL;
+  return askAt('RAGDOLL_API_URL', agent, messages);
+}
+
+/**
+ * Sends the chat history to one of the logged-in user's saved agents and returns the reply text.
+ * Goes to BACKEND_API_URL: the RAGdoll the agent was saved in, which may not be the configurator's.
+ * Throws RagdollError.
+ */
+export async function askSavedAgent(
+  agent: RagdollAgent,
+  messages: RagdollMessage[],
+): Promise<string> {
+  return askAt('BACKEND_API_URL', agent, messages);
+}
+
+async function askAt(
+  urlVariable: 'RAGDOLL_API_URL' | 'BACKEND_API_URL',
+  agent: RagdollAgent,
+  messages: RagdollMessage[],
+): Promise<string> {
+  const apiUrl = process.env[urlVariable];
   if (!apiUrl) {
-    throw new RagdollError('config', 'RAGDOLL_API_URL is not set');
+    throw new RagdollError('config', `${urlVariable} is not set`);
   }
 
   let res: Response;
   try {
-    res = await fetch(`${apiUrl}/api/chat/ask`, {
+    res = await fetch(`${apiUrl.replace(/\/$/, '')}/api/chat/ask`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({

@@ -4,7 +4,7 @@ import { getSessionToken } from '@/lib/session-tokens';
 import { isRagdollMessage } from '@/server/chatMessages';
 import { ragdollErrorResponse } from '@/server/errorResponse';
 import {
-  askAgent,
+  askSavedAgent,
   getAgentRole,
   getChatAccessKey,
   RagdollError,
@@ -46,7 +46,7 @@ export async function POST(req: NextRequest, { params }: Params) {
       getChatAccessKey(sessionToken, agentId),
       getAgentRole(sessionToken, agentId),
     ]);
-    const reply = await askAgent(
+    const reply = await askSavedAgent(
       { id: agentId, accessKey, roleName: roleName ?? undefined },
       messages,
     );
