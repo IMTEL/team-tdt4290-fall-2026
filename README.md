@@ -38,15 +38,15 @@ The product is a _conversational agent configurator_; the job interview is the f
 
 ## Where things live
 
-| What                   | Where                                                                                     |
-| ---------------------- | ----------------------------------------------------------------------------------------- |
-| Frontend (this repo)   | `IMTEL/team-tdt4290-fall-2026`                                                            |
-| Backend                | [`IMTEL/RAGdoll`](https://github.com/IMTEL/RAGdoll) — our changes go on the branch `TODO` |
-| LLMs                   | IDUN (NTNU HPC), accessed **only through RAGdoll**                                        |
-| VR app                 | The Candidate (contact: Mathias, IMTEL)                                                   |
-| Backlog & sprint board | [GitHub Project #6](https://github.com/orgs/IMTEL/projects/6)                             |
-| Report                 | Overleaf <!-- TODO: link -->                                                              |
-| Customer contact       | Slack (product owners: <!-- TODO: idk, Tobias and Ekaterina? -->)                         |
+| What                   | Where                                                                                             |
+| ---------------------- | ------------------------------------------------------------------------------------------------- |
+| Frontend (this repo)   | `IMTEL/team-tdt4290-fall-2026`                                                                    |
+| Backend                | [`IMTEL/RAGdoll`](https://github.com/IMTEL/RAGdoll) — our changes go on the branch `tdt4290/main` |
+| LLMs                   | IDUN (NTNU HPC), accessed **only through RAGdoll**                                                |
+| VR app                 | The Candidate (contact: Mathias, IMTEL)                                                           |
+| Backlog & sprint board | [GitHub Project #6](https://github.com/orgs/IMTEL/projects/6)                                     |
+| Report                 | Overleaf <!-- TODO: link -->                                                                      |
+| Customer contact       | Slack (product owners: <!-- TODO: idk, Tobias and Ekaterina? -->)                                 |
 
 ## Tech stack
 
@@ -96,12 +96,17 @@ The start page works without RAGdoll running. Logging in, `/configure`, `/test-c
 - Node.js 24 (the version in [`.nvmrc`](.nvmrc); `nvm use` picks it up) and npm 10 or newer
 - [Docker Desktop](https://www.docker.com/products/docker-desktop/), started
 - Python 3 (only to generate one key below; macOS has it)
-- RAGdoll cloned **next to** this repo:
+- RAGdoll cloned **next to** this repo, on our branch `tdt4290/main`:
 
   ```bash
   cd ..   # the folder that contains team-tdt4290-fall-2026
   git clone git@github.com:IMTEL/RAGdoll.git
+  cd RAGdoll
+  git checkout tdt4290/main
   ```
+
+  IMTEL's `main` lacks routes we add, such as saved templates. On it, the app starts, but those
+  features fail.
 
   ```
   some-folder/
@@ -151,6 +156,9 @@ All commands in this step run in the **RAGdoll** folder.
 
    The first start takes several minutes: Docker builds the backend image and LibreTranslate
    downloads its language models. Later starts take seconds.
+
+   The backend runs the code in the RAGdoll folder, but does not reload it. After pulling or
+   switching branches there, restart it: `docker compose -f docker-compose.local.yml up -d backend`.
 
 4. Check that it is up:
 
@@ -255,7 +263,7 @@ afterwards.
 In the RAGdoll folder:
 
 ```bash
-docker compose -f docker-compose.local.yml down      # stops everything, keeps users and agents
+docker compose -f docker-compose.local.yml down      # stops everything, keeps users, agents and templates
 docker compose -f docker-compose.local.yml down -v   # also deletes all data, including the Keycloak setting from step 2
 ```
 
