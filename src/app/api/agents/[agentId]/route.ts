@@ -6,7 +6,7 @@ import { readStoredAnswers } from '@/domain/agentTypes/storedAnswers';
 import { getSessionToken } from '@/lib/session-tokens';
 import { applyEdit } from '@/server/agentMapper';
 import { ragdollErrorResponse } from '@/server/errorResponse';
-import { fetchFullAgent, updateAgent } from '@/server/ragdoll';
+import { deleteAgent, fetchFullAgent, isAgentOwner, updateAgent } from '@/server/ragdoll';
 
 type Params = { params: Promise<{ agentId: string }> };
 
@@ -49,6 +49,29 @@ export async function PUT(req: NextRequest, { params }: Params) {
 
     const edited = applyEdit(existing, name, stored.definition, answers);
     return Response.json({ agent: await updateAgent(sessionToken, edited) });
+  } catch (error) {
+    return ragdollErrorResponse(error);
+  }
+}
+
+/** Deletes one of the logged-in user's agents.*/
+export async function DELETE(req: NextRequest, { params }: Params) {
+  const sessionToken = await getSessionToken(req);
+  if (!sessionToken) {
+    return Response.json({ error: 'Not signed in' }, { status: 401 });
+  }
+
+  const { agentId } = await params;
+
+  try {
+    await fetchFullAgent(sessionToken, agentId);
+
+    if (!(await isAgentOwner(sessionToken, agentId))) {
+      return Response.json({ error: 'Only the owner can delete the agent' }, { status: 403 });
+    }
+
+    await deleteAgent(sessionToken, agentId);
+    return new Response(null, { status: 204 });
   } catch (error) {
     return ragdollErrorResponse(error);
   }

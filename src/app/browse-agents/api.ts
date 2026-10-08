@@ -39,6 +39,7 @@ function saveErrorMessage(status: number): string {
   if (status === 401) return 'Du er logget ut. Logg inn på nytt og prøv igjen.';
   if (status === 404) return 'Fant ikke agenten. Den kan ha blitt slettet.';
   if (status === 504) return 'Det tok for lang tid å få svar. Prøv igjen.';
+  if (status === 403) return 'Bare eieren kan slette agenten.';
   return GENERIC_ERROR;
 }
 
@@ -63,3 +64,15 @@ export async function updateAgent(id: string, name: string, answers: Answers): P
   if (!isAgent(data?.agent)) throw new Error(GENERIC_ERROR);
   return data.agent;
 }
+
+/** Deletes an agent */
+export async function deleteAgent(id: string): Promise<void> {
+  let res: Response;
+  try {
+    res = await fetch(`/api/agents/${encodeURIComponent(id)}`, { method: 'DELETE' });
+  } catch (cause) {
+    throw new Error('Fikk ikke kontakt med serveren. Sjekk nettverket og prøv igjen.', { cause });
+  }
+  if (!res.ok) throw new Error(saveErrorMessage(res.status));
+}
+
