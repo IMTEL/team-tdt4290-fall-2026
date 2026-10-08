@@ -102,7 +102,6 @@ export type RagdollAgentSummary = {
   lastUpdated: string;
 };
 
-
 /** Creates an agent owned by the logged-in user and returns its new id. */
 export async function saveAgent(sessionToken: string, agent: NewRagdollAgent): Promise<string> {
   // No `id` in the body: that is how RAGdoll knows to create, not update.
@@ -182,7 +181,6 @@ export async function isAgentOwner(sessionToken: string, agentId: string): Promi
   return data.is_owner;
 }
 
-
 /** Deletes one of the logged-in user's own agents */
 export async function deleteAgent(sessionToken: string, agentId: string): Promise<void> {
   const path = `/delete-agent?agent_id=${encodeURIComponent(agentId)}`;
@@ -241,7 +239,6 @@ async function requestAsUser(
   }
   return data;
 }
-
 
 /** Only the fields we pass on. This also leaves the agent's API keys behind. */
 function toSummary(agent: Record<string, unknown>): RagdollAgentSummary {

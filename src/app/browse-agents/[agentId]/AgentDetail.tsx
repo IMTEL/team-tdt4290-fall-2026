@@ -107,7 +107,7 @@ export function AgentDetail({ agentId }: { agentId: string }) {
             Rediger
           </Button>
         )}
-                <DeleteAgentButton agent={state.agent} />
+        <DeleteAgentButton agent={state.agent} />
       </Stack>
     </Box>
   );

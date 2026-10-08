@@ -75,4 +75,3 @@ export async function deleteAgent(id: string): Promise<void> {
   }
   if (!res.ok) throw new Error(saveErrorMessage(res.status));
 }
-

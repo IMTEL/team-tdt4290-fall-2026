@@ -13,7 +13,6 @@ import {
   type NewRagdollAgent,
 } from './ragdoll';
 
-
 const RAGDOLL_URL = 'https://ragdoll.test/backend';
 const agent = { id: 'agent-123', accessKey: 'secret-key' };
 const messages = [
