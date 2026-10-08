@@ -2,6 +2,7 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { findTemplate } from '@/data/interviewer-templates';
 import { sendConfigurationTurn } from './api';
 import { ConfigurationChat } from './ConfigurationChat';
 
@@ -13,6 +14,7 @@ vi.mock('./api', async (importOriginal) => ({
   sendConfigurationTurn: vi.fn(),
 }));
 const sendMock = vi.mocked(sendConfigurationTurn);
+const template = findTemplate('teamleder')!;
 
 const configuration = {
   stilling: 'Butikkmedarbeider',
@@ -35,29 +37,43 @@ describe('ConfigurationChat', () => {
     sendMock.mockReset();
   });
 
-  it('opens with the assistant asking about the job', () => {
-    render(<ConfigurationChat />);
+  it('opens with the assistant naming the template and asking about the job', () => {
+    render(<ConfigurationChat template={template} />);
 
+    expect(screen.getByText(/malen «Teamleder»/)).toBeInTheDocument();
     expect(screen.getByText(/Hvilken stilling skal jobbsøkeren øve til\?/)).toBeInTheDocument();
   });
 
-  it('sends the conversation, greeting included, to the configurator', async () => {
+  it('sends the template and the conversation, greeting included, to the configurator', async () => {
     sendMock.mockResolvedValue({ reply: 'Neste spørsmål', configuration: null });
-    render(<ConfigurationChat />);
+    render(<ConfigurationChat template={template} />);
 
     await sendMessage('Butikkmedarbeider');
     await screen.findByText('Neste spørsmål');
 
-    const [history] = sendMock.mock.calls[0];
+    const [templateId, history] = sendMock.mock.calls[0];
+    expect(templateId).toBe('teamleder');
     expect(history.map(({ role, content }) => ({ role, content }))).toEqual([
       { role: 'assistant', content: expect.stringContaining('Hei!') },
       { role: 'user', content: 'Butikkmedarbeider' },
     ]);
   });
 
+  it('without a template, names none and sends null as the template', async () => {
+    sendMock.mockResolvedValue({ reply: 'Neste spørsmål', configuration: null });
+    render(<ConfigurationChat template={null} />);
+
+    expect(screen.queryByText(/malen/)).not.toBeInTheDocument();
+
+    await sendMessage('Butikkmedarbeider');
+    await screen.findByText('Neste spørsmål');
+
+    expect(sendMock.mock.calls[0][0]).toBeNull();
+  });
+
   it('does not offer to save before the configuration is finished', async () => {
     sendMock.mockResolvedValue({ reply: 'Neste spørsmål', configuration: null });
-    render(<ConfigurationChat />);
+    render(<ConfigurationChat template={template} />);
 
     await sendMessage('Butikkmedarbeider');
     await screen.findByText('Neste spørsmål');
@@ -67,7 +83,7 @@ describe('ConfigurationChat', () => {
 
   it('offers to save once the configurator has finished', async () => {
     sendMock.mockResolvedValue({ reply: 'Ferdig!', configuration });
-    render(<ConfigurationChat />);
+    render(<ConfigurationChat template={template} />);
 
     await sendMessage('Ja, det stemmer');
 

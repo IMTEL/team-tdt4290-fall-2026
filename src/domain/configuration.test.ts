@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { parseConfiguration } from './configuration';
 
 // A reply that ends with a complete block, the way prompts/configurator.nb.md asks for it.
+// This one has no Intervjuer line, as when a template decides the interviewer.
 const completeReply = `Takk! Da har jeg det jeg trenger.
 
 KONFIGURASJON
@@ -11,37 +12,56 @@ Stilling: Butikkmedarbeider
 Bransje: Varehandel (privat)
 Bedrift: Nærbutikken AS
 Intervjutype: første intervju
-Intervjuer: butikksjef, vennlig
 Jobbsøker: under 25, lite erfaring, godt norsknivå, øve på å fortelle om egne styrker
 Vanskelighetsgrad: lett | Antall spørsmål: 6 | Oppfølgingsspørsmål: ja
 Egne spørsmål: ingen`;
 
+const interviewer = 'Intervjueren er teamleder.';
+
+// Without a template, the configurator asks about the interviewer and writes the line itself.
+const replyWithInterviewer = completeReply.replace(
+  'Intervjutype: første intervju',
+  'Intervjutype: første intervju\nIntervjuer: butikksjef, vennlig',
+);
+
 describe('parseConfiguration', () => {
-  it('reads every field of a complete block', () => {
-    expect(parseConfiguration(completeReply)).toEqual({
+  it('reads every field of a complete block, and takes the interviewer from the template', () => {
+    expect(parseConfiguration(completeReply, interviewer)).toEqual({
       stilling: 'Butikkmedarbeider',
       bransje: 'Varehandel (privat)',
       bedrift: 'Nærbutikken AS',
       intervjutype: 'første intervju',
-      intervjuer: 'butikksjef, vennlig',
+      intervjuer: 'Intervjueren er teamleder.',
       jobbsoker: 'under 25, lite erfaring, godt norsknivå, øve på å fortelle om egne styrker',
       vanskelighetsgrad: 'lett | Antall spørsmål: 6 | Oppfølgingsspørsmål: ja',
       egneSporsmal: 'ingen',
     });
   });
 
+  it('reads the Intervjuer line when there is no template', () => {
+    expect(parseConfiguration(replyWithInterviewer)?.intervjuer).toBe('butikksjef, vennlig');
+  });
+
+  it('uses the template over an Intervjuer line in the block', () => {
+    expect(parseConfiguration(replyWithInterviewer, interviewer)?.intervjuer).toBe(interviewer);
+  });
+
+  it('returns null without a template when the Intervjuer line is missing', () => {
+    expect(parseConfiguration(completeReply)).toBeNull();
+  });
+
   it('returns null for an ordinary reply without a block', () => {
-    expect(parseConfiguration('Hvilken bransje er stillingen i?')).toBeNull();
+    expect(parseConfiguration('Hvilken bransje er stillingen i?', interviewer)).toBeNull();
   });
 
   it('returns null when a line is missing', () => {
     const withoutCompany = completeReply.replace('Bedrift: Nærbutikken AS\n', '');
-    expect(parseConfiguration(withoutCompany)).toBeNull();
+    expect(parseConfiguration(withoutCompany, interviewer)).toBeNull();
   });
 
   it('returns null when a line has no value', () => {
     const emptyCompany = completeReply.replace('Bedrift: Nærbutikken AS', 'Bedrift:');
-    expect(parseConfiguration(emptyCompany)).toBeNull();
+    expect(parseConfiguration(emptyCompany, interviewer)).toBeNull();
   });
 
   it('ignores spaces at the start and end of lines', () => {
@@ -49,6 +69,6 @@ describe('parseConfiguration', () => {
       'Stilling: Butikkmedarbeider',
       '   Stilling:  Butikkmedarbeider  ',
     );
-    expect(parseConfiguration(indented)?.stilling).toBe('Butikkmedarbeider');
+    expect(parseConfiguration(indented, interviewer)?.stilling).toBe('Butikkmedarbeider');
   });
 });

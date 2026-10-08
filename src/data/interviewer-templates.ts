@@ -6,7 +6,7 @@ export interface InterviewerTemplate {
   description: string;
   /** What the interviewer focuses on, shown as tags on the card. */
   focus: string[];
-  /** Sent to the configurator as the starting point. Written as the counsellor would say it. */
+  /** Becomes the Intervjuer field of the configuration. Written as the counsellor would say it. */
   persona: string;
 }
 
@@ -51,3 +51,7 @@ export const interviewerTemplates: InterviewerTemplate[] = [
       'tester fagkunnskap med praktiske spørsmål og små case-oppgaver fra hverdagen i jobben.',
   },
 ];
+
+export function findTemplate(id: string): InterviewerTemplate | undefined {
+  return interviewerTemplates.find((template) => template.id === id);
+}

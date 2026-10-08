@@ -1,5 +1,6 @@
 import type { NextRequest } from 'next/server';
 
+import { findTemplate, type InterviewerTemplate } from '@/data/interviewer-templates';
 import { parseConfiguration } from '@/domain/configuration';
 import { getSessionToken } from '@/lib/session-tokens';
 import { configErrorResponse, ragdollErrorResponse } from '@/server/errorResponse';
@@ -13,7 +14,8 @@ function isMessage(value: unknown): value is RagdollMessage {
 
 /**
  * One turn of the configuration chat. Sends the conversation to the shared configurator agent
- * and checks whether its reply finishes the configuration.
+ * and checks whether its reply finishes the configuration. If the counsellor chose a template, it
+ * decides the interviewer, so the configurator doesn't ask about it.
  */
 export async function POST(req: NextRequest) {
   // The configurator is shared, but only logged-in counsellors may use it (it spends IDUN quota).
@@ -22,6 +24,7 @@ export async function POST(req: NextRequest) {
   }
 
   let messages: RagdollMessage[];
+  let template: InterviewerTemplate | undefined;
   try {
     const body = await req.json();
     if (
@@ -32,6 +35,13 @@ export async function POST(req: NextRequest) {
       return Response.json({ error: 'Invalid messages in request body' }, { status: 400 });
     }
     messages = body.messages;
+    // No templateId means the counsellor started without a template.
+    if (body.templateId !== undefined) {
+      template = typeof body.templateId === 'string' ? findTemplate(body.templateId) : undefined;
+      if (!template) {
+        return Response.json({ error: 'Unknown template' }, { status: 400 });
+      }
+    }
   } catch {
     return Response.json({ error: 'Invalid JSON' }, { status: 400 });
   }
@@ -45,7 +55,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const reply = await askAgent({ id, accessKey }, messages);
-    const configuration = parseConfiguration(reply);
+    const configuration = parseConfiguration(reply, template?.persona);
     return Response.json({ reply, configuration, done: configuration !== null });
   } catch (error) {
     return ragdollErrorResponse(error);

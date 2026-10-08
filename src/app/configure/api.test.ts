@@ -33,12 +33,12 @@ afterEach(() => {
 });
 
 describe('sendConfigurationTurn', () => {
-  it('sends only role and content, and returns the reply', async () => {
+  it('sends the template id with only role and content, and returns the reply', async () => {
     fetchMock.mockResolvedValue(
       Response.json({ reply: 'Neste?', configuration: null, done: false }),
     );
 
-    await expect(sendConfigurationTurn(messages)).resolves.toEqual({
+    await expect(sendConfigurationTurn('teamleder', messages)).resolves.toEqual({
       reply: 'Neste?',
       configuration: null,
     });
@@ -46,6 +46,7 @@ describe('sendConfigurationTurn', () => {
     const [url, init] = fetchMock.mock.calls[0];
     expect(url).toBe('/api/configure/turn');
     expect(JSON.parse(init?.body as string)).toEqual({
+      templateId: 'teamleder',
       messages: [
         { role: 'assistant', content: 'Hei!' },
         { role: 'user', content: 'Butikkmedarbeider' },
@@ -53,10 +54,21 @@ describe('sendConfigurationTurn', () => {
     });
   });
 
+  it('sends no template id when the counsellor started without a template', async () => {
+    fetchMock.mockResolvedValue(
+      Response.json({ reply: 'Neste?', configuration: null, done: false }),
+    );
+
+    await sendConfigurationTurn(null, messages);
+
+    const [, init] = fetchMock.mock.calls[0];
+    expect(JSON.parse(init?.body as string)).not.toHaveProperty('templateId');
+  });
+
   it('returns the configuration when the server says it is done', async () => {
     fetchMock.mockResolvedValue(Response.json({ reply: 'Ferdig', configuration, done: true }));
 
-    const result = await sendConfigurationTurn(messages);
+    const result = await sendConfigurationTurn('teamleder', messages);
 
     expect(result.configuration).toEqual(configuration);
   });
@@ -64,7 +76,7 @@ describe('sendConfigurationTurn', () => {
   it('tells the user to log in again when the session has expired', async () => {
     fetchMock.mockResolvedValue(Response.json({ error: 'Not signed in' }, { status: 401 }));
 
-    await expect(sendConfigurationTurn(messages)).rejects.toMatchObject({
+    await expect(sendConfigurationTurn('teamleder', messages)).rejects.toMatchObject({
       userMessage: expect.stringContaining('Logg inn'),
     });
   });
@@ -72,7 +84,7 @@ describe('sendConfigurationTurn', () => {
   it('throws a ChatError when the server cannot be reached', async () => {
     fetchMock.mockRejectedValue(new TypeError('Failed to fetch'));
 
-    await expect(sendConfigurationTurn(messages)).rejects.toBeInstanceOf(ChatError);
+    await expect(sendConfigurationTurn('teamleder', messages)).rejects.toBeInstanceOf(ChatError);
   });
 });
 
