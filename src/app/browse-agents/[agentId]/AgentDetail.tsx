@@ -94,7 +94,11 @@ export function AgentDetail({ agentId }: { agentId: string }) {
       )}
 
       <Stack direction="row" spacing={1} sx={{ mt: 3 }}>
-        <Button component={Link} href="/test-chat" variant="contained">
+        <Button
+          component={Link}
+          href={`/test-chat?agent=${encodeURIComponent(state.agent.id)}`}
+          variant="contained"
+        >
           Test agenten
         </Button>
         {/* Only agents made in this app have answers that can be edited. */}

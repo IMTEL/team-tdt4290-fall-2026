@@ -44,12 +44,17 @@ calls the real RAGdoll: tests replace `fetch`, the RAGdoll adapter or the login 
 Unit and component level only:
 
 - `src/app/page.test.tsx`: smoke test for the start page's heading and introduction.
-- `src/app/api/chat/route.test.ts`: the route forwards the history to RAGdoll with the agent id
-  and access key from the environment and returns only the reply text; rejects invalid bodies
-  (400) and missing settings (500) without calling RAGdoll; maps RAGdoll errors, unexpected
-  replies and network failures to 502 without leaking RAGdoll's message, and timeouts to 504.
-- `src/components/chat/sendToAgent.test.ts`: posts only `role` and `content`, passes the abort
-  signal on, turns failures into Norwegian `ChatError` messages, and rethrows aborts untouched.
+- `src/app/api/agents/[agentId]/chat/route.test.ts`: chats with the agent using the chat key and role
+  fetched as the user; the key never reaches the browser; 401 without a session and 404 for an id
+  that is not a MongoDB id, both without calling RAGdoll; 400 for bad bodies (including a
+  `system` message); 404 when the agent is someone else's; 504 on timeout and 502 without
+  RAGdoll's message.
+- `src/components/chat/sendToAgent.test.ts`: posts only `role` and `content` to the agent's chat
+  route, passes the abort signal on, turns failures (including 404) into Norwegian `ChatError`
+  messages, and rethrows aborts untouched.
+- `src/app/test-chat/TestChat.test.tsx` and `page.test.tsx`: the greeting, the conversation goes
+  to the agent in `?agent=`, starting over, a new conversation when the agent changes, and a link
+  to the agents when the URL names none.
 - `src/components/chat/ChatInput.test.tsx`: Enter and the button send the trimmed text and clear
   the box, Shift+Enter adds a new line, blank text and a disabled input never send.
 - `src/components/chat/MessageList.test.tsx`: messages in order with a hidden speaker label, and
@@ -68,7 +73,8 @@ Unit and component level only:
 - `src/app/configure/ConfigurationChat.test.tsx`: the greeting names the template; the template id
   and the whole conversation (greeting included) go to the configuration turn route; the save form only appears once the
   configuration is finished.
-- `src/app/configure/SaveAgentForm.test.tsx`: saves under the chosen name and links to the agents;
+- `src/app/configure/SaveAgentForm.test.tsx`: saves under the chosen name and links to testing the
+  new agent and to the agents;
   no saving without a name; shows the error and lets the user try again.
 - `src/components/templates/TemplateForm.test.tsx`: a new template is saved with trimmed fields
   and links back to `/configure`; cannot be saved without the required fields or with too many

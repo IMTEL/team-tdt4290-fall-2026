@@ -1,6 +1,6 @@
 // Adapter for RAGdoll's API. Server only: it uses the agents' access keys.
 
-export type RagdollAgent = { id: string; accessKey: string };
+export type RagdollAgent = { id: string; accessKey: string; roleName?: string };
 export type RagdollMessage = { role: 'user' | 'assistant'; content: string };
 
 export type RagdollErrorKind =
@@ -20,22 +20,46 @@ export class RagdollError extends Error {
 
 const TIMEOUT_MS = 30000;
 
-/** Sends the chat history to a RAGdoll agent and returns the reply text. Throws RagdollError. */
+/**
+ * Sends the chat history to the shared configurator agent and returns the reply text.
+ * Goes to RAGDOLL_API_URL, where the configurator lives. Throws RagdollError.
+ */
 export async function askAgent(agent: RagdollAgent, messages: RagdollMessage[]): Promise<string> {
-  const apiUrl = process.env.RAGDOLL_API_URL;
+  return askAt('RAGDOLL_API_URL', agent, messages);
+}
+
+/**
+ * Sends the chat history to one of the logged-in user's saved agents and returns the reply text.
+ * Goes to BACKEND_API_URL: the RAGdoll the agent was saved in, which may not be the configurator's.
+ * Throws RagdollError.
+ */
+export async function askSavedAgent(
+  agent: RagdollAgent,
+  messages: RagdollMessage[],
+): Promise<string> {
+  return askAt('BACKEND_API_URL', agent, messages);
+}
+
+async function askAt(
+  urlVariable: 'RAGDOLL_API_URL' | 'BACKEND_API_URL',
+  agent: RagdollAgent,
+  messages: RagdollMessage[],
+): Promise<string> {
+  const apiUrl = process.env[urlVariable];
   if (!apiUrl) {
-    throw new RagdollError('config', 'RAGDOLL_API_URL is not set');
+    throw new RagdollError('config', `${urlVariable} is not set`);
   }
 
   let res: Response;
   try {
-    res = await fetch(`${apiUrl}/api/chat/ask`, {
+    res = await fetch(`${apiUrl.replace(/\/$/, '')}/api/chat/ask`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         agent_id: agent.id,
         access_key: agent.accessKey,
         chat_log: messages,
+        active_role_id: agent.roleName,
       }),
       signal: AbortSignal.timeout(TIMEOUT_MS),
     });
@@ -166,6 +190,45 @@ export async function updateAgent(
     throw new RagdollError('bad-response', 'RAGdoll did not return the updated agent');
   }
   return toSummary(data as Record<string, unknown>);
+}
+
+/**
+ * Gets a key to chat with one of the user's agents. RAGdoll reuses it while it is valid.
+ * Throws RagdollError.
+ */
+export async function getChatAccessKey(sessionToken: string, agentId: string): Promise<string> {
+  const data = await requestAsUser(
+    sessionToken,
+    `/chat-access-key?agent_id=${encodeURIComponent(agentId)}`,
+  );
+  const key = (data as { key?: unknown }).key;
+  if (typeof key !== 'string') {
+    throw new RagdollError('bad-response', 'RAGdoll did not return a chat access key');
+  }
+  return key;
+}
+
+/**
+ * Returns the name of the agent's role, or null if it has none. RAGdoll sends the owner the whole
+ * agent with its API keys, so only the role name is picked out. Throws RagdollError.
+ */
+export async function getAgentRole(sessionToken: string, agentId: string): Promise<string | null> {
+  const data = await requestAsUser(
+    sessionToken,
+    `/fetch-agent?agent_id=${encodeURIComponent(agentId)}`,
+  );
+  const roles = (data as { roles?: unknown }).roles;
+  if (!Array.isArray(roles)) {
+    throw new RagdollError('bad-response', 'RAGdoll did not return an agent with roles');
+  }
+  if (roles.length === 0) return null;
+
+  // Our agents have one role, built by their agent type (see src/domain/agentTypes).
+  const name = (roles[0] as { name?: unknown } | null)?.name;
+  if (typeof name !== 'string') {
+    throw new RagdollError('bad-response', 'RAGdoll returned a role without a name');
+  }
+  return name;
 }
 
 /**

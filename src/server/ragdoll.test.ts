@@ -3,10 +3,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   askAgent,
+  askSavedAgent,
   createTemplate,
   deleteAgent,
   deleteTemplate,
   fetchFullAgent,
+  getAgentRole,
+  getChatAccessKey,
   getTemplate,
   getUserSettings,
   isAgentOwner,
@@ -54,6 +57,15 @@ describe('askAgent', () => {
     vi.unstubAllEnvs();
     vi.unstubAllGlobals();
     fetchMock.mockReset();
+  });
+
+  it('sends the role as active_role_id when the agent has one', async () => {
+    fetchMock.mockResolvedValue(ragdollReply('Hei!'));
+
+    await askAgent({ ...agent, roleName: 'Butikksjef' }, messages);
+
+    const [, init] = fetchMock.mock.calls[0];
+    expect(JSON.parse(init?.body as string)).toMatchObject({ active_role_id: 'Butikksjef' });
   });
 
   it('sends the history to the agent and returns only the reply text', async () => {
@@ -126,6 +138,48 @@ describe('askAgent', () => {
     const error = await askAndCatch();
 
     expect((error as RagdollError).kind).toBe('bad-response');
+  });
+});
+
+describe('askSavedAgent', () => {
+  const fetchMock = vi.fn<typeof fetch>();
+
+  beforeEach(() => {
+    // Different RAGdolls on purpose, like in .env.example: the configurator is on the deployed
+    // one, while the user's agents are saved in the one they logged in to.
+    vi.stubEnv('RAGDOLL_API_URL', RAGDOLL_URL);
+    vi.stubEnv('BACKEND_API_URL', `${BACKEND_URL}/`);
+    vi.stubGlobal('fetch', fetchMock);
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.unstubAllGlobals();
+    fetchMock.mockReset();
+  });
+
+  it('asks the RAGdoll the agent was saved in, not the configurator’s', async () => {
+    fetchMock.mockResolvedValue(ragdollReply('Hvorfor søker du?'));
+
+    await expect(askSavedAgent({ ...agent, roleName: 'Butikksjef' }, messages)).resolves.toBe(
+      'Hvorfor søker du?',
+    );
+
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toBe(`${BACKEND_URL}/api/chat/ask`);
+    expect(JSON.parse(init?.body as string)).toEqual({
+      agent_id: 'agent-123',
+      access_key: 'secret-key',
+      chat_log: messages,
+      active_role_id: 'Butikksjef',
+    });
+  });
+
+  it('throws a config error and never calls RAGdoll when BACKEND_API_URL is missing', async () => {
+    vi.stubEnv('BACKEND_API_URL', '');
+
+    await expect(askSavedAgent(agent, messages)).rejects.toMatchObject({ kind: 'config' });
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 });
 
@@ -401,6 +455,106 @@ describe('deleteAgent', () => {
 
     await expect(deleteAgent(SESSION_TOKEN, 'agent-1')).rejects.toMatchObject({
       kind: 'unreachable',
+    });
+  });
+});
+
+describe('getChatAccessKey', () => {
+  const fetchMock = vi.fn<typeof fetch>();
+
+  beforeEach(() => {
+    vi.stubEnv('BACKEND_API_URL', BACKEND_URL);
+    vi.stubGlobal('fetch', fetchMock);
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.unstubAllGlobals();
+    fetchMock.mockReset();
+  });
+
+  it('asks for a chat key for the agent as the logged-in user and returns only the key', async () => {
+    // What RAGdoll's /chat-access-key returns: a whole AccessKey.
+    fetchMock.mockResolvedValue(
+      Response.json({
+        id: 'key-1',
+        key: 'chat-key',
+        name: 'Chat Access Key - user-1',
+        expiry_date: '2026-10-08T10:00:00',
+      }),
+    );
+
+    await expect(getChatAccessKey(SESSION_TOKEN, 'agent-1')).resolves.toBe('chat-key');
+
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toBe(`${BACKEND_URL}/chat-access-key?agent_id=agent-1`);
+    expect((init?.headers as Record<string, string>).Authorization).toBe(`Bearer ${SESSION_TOKEN}`);
+  });
+
+  it('encodes the agent id in the URL', async () => {
+    fetchMock.mockResolvedValue(Response.json({ key: 'chat-key' }));
+
+    await getChatAccessKey(SESSION_TOKEN, 'a&b');
+
+    expect(fetchMock.mock.calls[0][0]).toBe(`${BACKEND_URL}/chat-access-key?agent_id=a%26b`);
+  });
+
+  it('throws a bad-response error when RAGdoll returns no key', async () => {
+    fetchMock.mockResolvedValue(Response.json({ id: 'key-1', key: null }));
+
+    await expect(getChatAccessKey(SESSION_TOKEN, 'agent-1')).rejects.toMatchObject({
+      kind: 'bad-response',
+    });
+  });
+
+  it('throws an unauthorized error when RAGdoll refuses (401)', async () => {
+    // RAGdoll also answers 401 when the agent belongs to someone else.
+    fetchMock.mockResolvedValue(new Response('Unauthorized access to agent', { status: 401 }));
+
+    await expect(getChatAccessKey(SESSION_TOKEN, 'agent-1')).rejects.toMatchObject({
+      kind: 'unauthorized',
+    });
+  });
+});
+
+describe('getAgentRole', () => {
+  const fetchMock = vi.fn<typeof fetch>();
+
+  beforeEach(() => {
+    vi.stubEnv('BACKEND_API_URL', BACKEND_URL);
+    vi.stubGlobal('fetch', fetchMock);
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.unstubAllGlobals();
+    fetchMock.mockReset();
+  });
+
+  it('returns only the name of the agent’s role, never its keys', async () => {
+    // RAGdoll sends the owner the whole agent, keys included.
+    fetchMock.mockResolvedValue(Response.json({ ...newAgent, id: 'agent-1' }));
+
+    const role = await getAgentRole(SESSION_TOKEN, 'agent-1');
+
+    expect(role).toBe('Butikksjef');
+    expect(JSON.stringify(role)).not.toContain('idun-key');
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toBe(`${BACKEND_URL}/fetch-agent?agent_id=agent-1`);
+    expect((init?.headers as Record<string, string>).Authorization).toBe(`Bearer ${SESSION_TOKEN}`);
+  });
+
+  it('returns null when the agent has no roles', async () => {
+    fetchMock.mockResolvedValue(Response.json({ ...newAgent, roles: [] }));
+
+    await expect(getAgentRole(SESSION_TOKEN, 'agent-1')).resolves.toBeNull();
+  });
+
+  it('throws a bad-response error when RAGdoll does not return an agent', async () => {
+    fetchMock.mockResolvedValue(Response.json({ detail: 'oops' }));
+
+    await expect(getAgentRole(SESSION_TOKEN, 'agent-1')).rejects.toMatchObject({
+      kind: 'bad-response',
     });
   });
 });

@@ -54,7 +54,7 @@ describe('AgentDetail', () => {
     expect(screen.getByText(/Du er en intervjuer/)).toBeVisible();
     expect(screen.getByRole('link', { name: 'Test agenten' })).toHaveAttribute(
       'href',
-      '/test-chat',
+      '/test-chat?agent=agent-1',
     );
   });
 

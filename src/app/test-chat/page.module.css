@@ -28,3 +28,7 @@
   color: var(--muted-foreground);
   text-wrap: pretty;
 }
+
+.empty {
+  color: var(--muted-foreground);
+}

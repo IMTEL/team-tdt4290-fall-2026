@@ -3,15 +3,10 @@ import type { NextRequest } from 'next/server';
 import { findTemplate, type InterviewerTemplate } from '@/data/interviewer-templates';
 import { parseConfiguration } from '@/domain/configuration';
 import { getSessionToken } from '@/lib/session-tokens';
+import { isRagdollMessage } from '@/server/chatMessages';
 import { configErrorResponse, ragdollErrorResponse } from '@/server/errorResponse';
 import { askAgent, getTemplate, RagdollError, type RagdollMessage } from '@/server/ragdoll';
 import { fromRagdollTemplate } from '@/server/templateMapper';
-
-function isMessage(value: unknown): value is RagdollMessage {
-  if (typeof value !== 'object' || value === null) return false;
-  const { role, content } = value as Record<string, unknown>;
-  return (role === 'user' || role === 'assistant') && typeof content === 'string';
-}
 
 /**
  * One turn of the configuration chat. Sends the conversation to the shared configurator agent
@@ -32,7 +27,7 @@ export async function POST(req: NextRequest) {
     if (
       !Array.isArray(body?.messages) ||
       body.messages.length === 0 ||
-      !body.messages.every(isMessage)
+      !body.messages.every(isRagdollMessage)
     ) {
       return Response.json({ error: 'Invalid messages in request body' }, { status: 400 });
     }

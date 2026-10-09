@@ -15,7 +15,10 @@ import styles from './SaveAgentForm.module.css';
 const MAX_NAME_LENGTH = 100;
 
 type SaveStatus =
-  { kind: 'idle' } | { kind: 'saving' } | { kind: 'saved' } | { kind: 'error'; message: string };
+  | { kind: 'idle' }
+  | { kind: 'saving' }
+  | { kind: 'saved'; id: string }
+  | { kind: 'error'; message: string };
 
 /** Shown under the chat once the configurator has finished: name the interviewer and save it. */
 export function SaveAgentForm({ configuration }: { configuration: Configuration }) {
@@ -26,8 +29,8 @@ export function SaveAgentForm({ configuration }: { configuration: Configuration 
     event.preventDefault();
     setStatus({ kind: 'saving' });
     try {
-      await saveConfiguredAgent(name.trim(), configuration);
-      setStatus({ kind: 'saved' });
+      const id = await saveConfiguredAgent(name.trim(), configuration);
+      setStatus({ kind: 'saved', id });
     } catch (error) {
       // Only ChatError messages are written for users; anything else could be technical.
       setStatus({
@@ -40,7 +43,9 @@ export function SaveAgentForm({ configuration }: { configuration: Configuration 
   if (status.kind === 'saved') {
     return (
       <Alert severity="success">
-        «{name.trim()}» er lagret. <Link href="/browse-agents">Se agentene dine</Link>
+        «{name.trim()}» er lagret.{' '}
+        <Link href={`/test-chat?agent=${encodeURIComponent(status.id)}`}>Test intervjueren</Link>{' '}
+        eller <Link href="/browse-agents">se agentene dine</Link>
       </Alert>
     );
   }
