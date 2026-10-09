@@ -7,7 +7,7 @@ const errorResponses: Record<RagdollErrorKind, { status: number; error: string }
   unreachable: { status: 502, error: 'Error from RAGdoll API' },
   'bad-response': { status: 502, error: 'Invalid response from RAGdoll API' },
   unauthorized: { status: 401, error: 'Not signed in' },
-  'not-found': { status: 404, error: 'Agent not found' },
+  'not-found': { status: 404, error: 'Not found' },
 };
 
 /** Turns an error from talking to RAGdoll into a safe response for the browser, and logs it. */

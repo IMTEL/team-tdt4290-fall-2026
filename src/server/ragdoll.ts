@@ -250,6 +250,102 @@ export async function deleteAgent(sessionToken: string, agentId: string): Promis
   await requestAsUser(sessionToken, path, {}, { allowEmpty: true });
 }
 
+/** A template as RAGdoll stores it. RAGdoll does not read `content`; we decide its shape. */
+export type RagdollTemplate = {
+  id: string;
+  type: string;
+  name: string;
+  description: string;
+  content: Record<string, unknown>;
+};
+
+/** What we send to RAGdoll to create a template. */
+export type NewRagdollTemplate = Omit<RagdollTemplate, 'id'>;
+
+/** Lists the logged-in user's own templates of one type, newest first. Throws RagdollError. */
+export async function listTemplates(
+  sessionToken: string,
+  type: string,
+): Promise<RagdollTemplate[]> {
+  const data = await requestAsUser(sessionToken, `/templates?type=${encodeURIComponent(type)}`);
+  if (!Array.isArray(data)) {
+    throw new RagdollError('bad-response', 'RAGdoll did not return a list of templates');
+  }
+  return data.map(toTemplate);
+}
+
+/**
+ * One of the logged-in user's own templates. Throws RagdollError, with kind 'not-found' if the
+ * user has no template with this id.
+ */
+export async function getTemplate(
+  sessionToken: string,
+  templateId: string,
+): Promise<RagdollTemplate> {
+  return toTemplate(
+    await requestAsUser(sessionToken, `/templates/${encodeURIComponent(templateId)}`),
+  );
+}
+
+/** Creates a template owned by the logged-in user and returns it. Throws RagdollError. */
+export async function createTemplate(
+  sessionToken: string,
+  template: NewRagdollTemplate,
+): Promise<RagdollTemplate> {
+  return toTemplate(
+    await requestAsUser(sessionToken, '/templates', {
+      method: 'POST',
+      body: JSON.stringify(template),
+    }),
+  );
+}
+
+/**
+ * Replaces one of the logged-in user's own templates and returns it. Throws RagdollError, with
+ * kind 'not-found' if the user has no template with this id.
+ */
+export async function updateTemplate(
+  sessionToken: string,
+  templateId: string,
+  template: NewRagdollTemplate,
+): Promise<RagdollTemplate> {
+  return toTemplate(
+    await requestAsUser(sessionToken, `/templates/${encodeURIComponent(templateId)}`, {
+      method: 'PUT',
+      body: JSON.stringify(template),
+    }),
+  );
+}
+
+/** Deletes one of the logged-in user's own templates. Throws RagdollError. */
+export async function deleteTemplate(sessionToken: string, templateId: string): Promise<void> {
+  const path = `/templates/${encodeURIComponent(templateId)}`;
+  await requestAsUser(sessionToken, path, { method: 'DELETE' }, { allowEmpty: true });
+}
+
+/** RAGdoll keeps each app's settings apart. This is ours. */
+const SETTINGS_NAMESPACE = 'interview-configurator';
+
+export type UserSettings = Record<string, unknown>;
+
+/** The logged-in user's settings for this app. Empty if none are saved. Throws RagdollError. */
+export async function getUserSettings(sessionToken: string): Promise<UserSettings> {
+  return toSettings(await requestAsUser(sessionToken, `/user-settings/${SETTINGS_NAMESPACE}`));
+}
+
+/** Replaces the logged-in user's settings for this app. Throws RagdollError. */
+export async function saveUserSettings(
+  sessionToken: string,
+  settings: UserSettings,
+): Promise<UserSettings> {
+  return toSettings(
+    await requestAsUser(sessionToken, `/user-settings/${SETTINGS_NAMESPACE}`, {
+      method: 'PUT',
+      body: JSON.stringify(settings),
+    }),
+  );
+}
+
 // Helpers
 
 /**
@@ -292,6 +388,9 @@ async function requestAsUser(
   if (res.status === 401 || res.status === 422) {
     throw new RagdollError('unauthorized', `RAGdoll answered ${res.status}: ${await res.text()}`);
   }
+  if (res.status === 404) {
+    throw new RagdollError('not-found', `RAGdoll answered 404: ${await res.text()}`);
+  }
   if (!res.ok) {
     throw new RagdollError('unreachable', `RAGdoll answered ${res.status}: ${await res.text()}`);
   }
@@ -311,4 +410,31 @@ function toSummary(agent: Record<string, unknown>): RagdollAgentSummary {
     description: String(agent.description),
     lastUpdated: String(agent.last_updated),
   };
+}
+
+function isObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+/** Only the fields we use. Leaves out the owner and the timestamps. */
+function toTemplate(data: unknown): RagdollTemplate {
+  if (
+    !isObject(data) ||
+    typeof data.id !== 'string' ||
+    typeof data.type !== 'string' ||
+    typeof data.name !== 'string' ||
+    typeof data.description !== 'string' ||
+    !isObject(data.content)
+  ) {
+    throw new RagdollError('bad-response', 'RAGdoll did not return a template');
+  }
+  const { id, type, name, description, content } = data;
+  return { id, type, name, description, content };
+}
+
+function toSettings(data: unknown): UserSettings {
+  if (!isObject(data)) {
+    throw new RagdollError('bad-response', 'RAGdoll did not return settings');
+  }
+  return data;
 }

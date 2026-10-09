@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ChatError } from '@/components/chat/sendToAgent';
 import type { ChatMessage } from '@/components/chat/types';
-import { saveConfiguredAgent, sendConfigurationTurn } from './api';
+import { fetchSavedTemplates, saveConfiguredAgent, sendConfigurationTurn } from './api';
 
 const configuration = {
   stilling: 'Butikkmedarbeider',
@@ -107,5 +107,34 @@ describe('saveConfiguredAgent', () => {
     await expect(saveConfiguredAgent('Kari', configuration)).rejects.toMatchObject({
       userMessage: 'Noe gikk galt. Prøv igjen.',
     });
+  });
+});
+
+describe('fetchSavedTemplates', () => {
+  const saved = {
+    id: 'saved-1',
+    title: 'Butikksjef',
+    description: 'Vennlig.',
+    focus: ['Service'],
+    persona: 'Intervjueren er butikksjef.',
+  };
+
+  it('returns the saved templates', async () => {
+    fetchMock.mockResolvedValue(Response.json({ templates: [saved] }));
+
+    await expect(fetchSavedTemplates()).resolves.toEqual([saved]);
+    expect(fetchMock.mock.calls[0][0]).toBe('/api/templates');
+  });
+
+  it('throws when the server fails', async () => {
+    fetchMock.mockResolvedValue(Response.json({ error: 'Not signed in' }, { status: 401 }));
+
+    await expect(fetchSavedTemplates()).rejects.toThrow();
+  });
+
+  it('throws when a template has the wrong shape', async () => {
+    fetchMock.mockResolvedValue(Response.json({ templates: [{ ...saved, focus: 'Service' }] }));
+
+    await expect(fetchSavedTemplates()).rejects.toThrow();
   });
 });
