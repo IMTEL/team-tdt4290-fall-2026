@@ -290,7 +290,9 @@ empty, so the counsellor can fill it in. Saving is strict: every field needs an 
 ### Chatting with an agent
 
 The configurator chat talks to one shared agent. The test chat talks to the agent the counsellor
-saved, named in the URL (`/test-chat?agent=<id>`).
+saved, named in the URL (`/test-chat?agent=<id>`). Before showing the chat, the page loads the
+counsellor's agents (`GET /api/agents`) and checks that the id is one of them; if not (deleted,
+never existed, or someone else's) it says the interviewer was not found.
 
 | Agent                   | Used on                 | Route                             | Prompt source                                                                                            |
 | ----------------------- | ----------------------- | --------------------------------- | -------------------------------------------------------------------------------------------------------- |
