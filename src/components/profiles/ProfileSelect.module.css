@@ -1,0 +1,15 @@
+.select {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.5rem 1rem;
+}
+
+.field {
+  flex: 1 1 20rem;
+  max-width: 32rem;
+}
+
+.link {
+  text-decoration: underline;
+}

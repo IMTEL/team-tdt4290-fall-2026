@@ -6,9 +6,34 @@ import ConfigurePage, { metadata } from './page';
 
 const fetchMock = vi.fn<typeof fetch>();
 
+const profile = {
+  id: 'profile-1',
+  label: 'Profil A',
+  ageRange: '18-24',
+  experienceLevel: 'little',
+  workExperience: '',
+  education: '',
+  languages: [],
+  practiceAreas: ['Mestre nervøsitet'],
+  notes: '',
+};
+
+/** Answers the page's two loads: saved templates and job seeker profiles. */
+function respondWith({
+  templates = [],
+  profiles = [],
+}: {
+  templates?: unknown[];
+  profiles?: unknown[];
+}) {
+  fetchMock.mockImplementation(async (url) =>
+    String(url) === '/api/profiles' ? Response.json({ profiles }) : Response.json({ templates }),
+  );
+}
+
 beforeEach(() => {
-  // The page loads the counsellor's saved templates. By default they have none.
-  fetchMock.mockResolvedValue(Response.json({ templates: [] }));
+  // By default the counsellor has no saved templates and no profiles.
+  respondWith({});
   vi.stubGlobal('fetch', fetchMock);
 });
 
@@ -37,7 +62,7 @@ describe('/configure', () => {
     expect(screen.getByRole('textbox', { name: 'Melding' })).toBeInTheDocument();
     expect(screen.getByText(/malen «Teamleder»/)).toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: 'Bytt mal' }));
+    await user.click(screen.getByRole('button', { name: 'Bytt mal eller profil' }));
 
     expect(screen.getByRole('heading', { level: 2, name: 'Velg en mal' })).toBeVisible();
   });
@@ -51,7 +76,7 @@ describe('/configure', () => {
     expect(screen.getByRole('log', { name: 'Samtale' })).toBeInTheDocument();
     expect(screen.getByText('Ingen mal valgt')).toBeVisible();
 
-    await user.click(screen.getByRole('button', { name: 'Velg en mal' }));
+    await user.click(screen.getByRole('button', { name: 'Bytt mal eller profil' }));
 
     expect(screen.getByRole('heading', { level: 2, name: 'Velg en mal' })).toBeVisible();
   });
@@ -110,6 +135,32 @@ describe('/configure', () => {
 
     await waitFor(() => expect(console.error).toHaveBeenCalled());
     expect(screen.getByRole('button', { name: /Teamleder/ })).toBeInTheDocument();
+  });
+
+  it('uses the chosen job seeker profile together with the chosen template', async () => {
+    respondWith({ profiles: [profile] });
+    const user = userEvent.setup();
+    render(<ConfigurePage />);
+
+    await user.click(screen.getByRole('combobox', { name: 'Jobbsøkerprofil' }));
+    await user.click(await screen.findByRole('option', { name: /Profil A/ }));
+    await user.click(screen.getByRole('button', { name: /Teamleder/ }));
+
+    expect(screen.getByText(/jobbsøkerprofilen «Profil A»/)).toBeInTheDocument();
+    expect(screen.getByText('Profil A')).toBeVisible();
+
+    // Going back keeps the profile, so only the template needs choosing again.
+    await user.click(screen.getByRole('button', { name: 'Bytt mal eller profil' }));
+    expect(screen.getByRole('combobox', { name: 'Jobbsøkerprofil' })).toHaveTextContent('Profil A');
+  });
+
+  it('links to the profiles page from the profile choice', () => {
+    render(<ConfigurePage />);
+
+    expect(screen.getByRole('link', { name: 'Administrer profiler' })).toHaveAttribute(
+      'href',
+      '/profiles',
+    );
   });
 
   it('sets a Norwegian tab title', () => {

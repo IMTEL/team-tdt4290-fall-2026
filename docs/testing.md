@@ -89,6 +89,21 @@ Unit and component level only:
 - `src/app/templates/[templateId]/edit/EditTemplate.test.tsx`: loads the template into the form
   and saves the changes to the same id; a missing template shows the not-found page; a failed load
   shows the error.
+- `src/components/profiles/ProfileForm.test.tsx`: saves every field with preset and own practice
+  areas; only the name is required; warns against real names and says notes stay private; a
+  saved profile starts with its values; shows the error and keeps what was typed.
+- `src/components/profiles/ProfileList.test.tsx`: shows each profile with summary, practice areas
+  and edit link; the empty and error states; asks before deleting and removes the profile.
+- `src/components/profiles/api.test.ts`: the browser functions call the right profile routes,
+  reject badly shaped profiles, load a missing profile as null, and give Norwegian messages.
+- `src/app/profiles/page.test.tsx` and `src/app/profiles/[profileId]/edit/EditProfile.test.tsx`:
+  the profiles page and its link to a new profile; editing loads the profile and saves to the
+  same id; a missing profile shows the not-found page.
+- `src/domain/jobSeekerProfile.test.ts`: the Jobbsøker line has every filled-in field, never the
+  notes or the label, and leaves out empty fields.
+- `src/server/profileMapper.test.ts` and `src/app/api/profiles/**/route.test.ts`: profiles are
+  trimmed and validated, stored with RAGdoll's field names and read back; the routes give 400,
+  401 and 404 where they should.
 - `src/app/configure/api.test.ts`: the browser functions send only `role` and `content`, return
   the configuration when the server says it is done, and turn failures (including an expired
   login) into Norwegian messages; `fetchSavedTemplates` rejects failures and badly shaped

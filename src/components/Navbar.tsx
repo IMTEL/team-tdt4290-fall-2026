@@ -16,6 +16,7 @@ const NAV_LINKS: { href: string; label: string }[] = [
   { href: '/', label: 'Hjem' },
   { href: '/browse-agents', label: 'Agenter' },
   { href: '/configure', label: 'Konfigurer' },
+  { href: '/profiles', label: 'Jobbsøkere' },
   { href: '/test-chat', label: 'Test intervjuer' },
 ];
 

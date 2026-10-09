@@ -15,6 +15,17 @@ vi.mock('./api', async (importOriginal) => ({
 }));
 const sendMock = vi.mocked(sendConfigurationTurn);
 const template = findTemplate('teamleder')!;
+const profile = {
+  id: 'profile-1',
+  label: 'Profil A',
+  ageRange: '18-24' as const,
+  experienceLevel: 'little' as const,
+  workExperience: '',
+  education: '',
+  languages: [],
+  practiceAreas: ['Mestre nervøsitet'],
+  notes: '',
+};
 
 const configuration = {
   stilling: 'Butikkmedarbeider',
@@ -38,7 +49,7 @@ describe('ConfigurationChat', () => {
   });
 
   it('opens with the assistant naming the template and asking about the job', () => {
-    render(<ConfigurationChat template={template} />);
+    render(<ConfigurationChat template={template} profile={null} />);
 
     expect(screen.getByText(/malen «Teamleder»/)).toBeInTheDocument();
     expect(screen.getByText(/Hvilken stilling skal jobbsøkeren øve til\?/)).toBeInTheDocument();
@@ -46,13 +57,13 @@ describe('ConfigurationChat', () => {
 
   it('sends the template and the conversation, greeting included, to the configurator', async () => {
     sendMock.mockResolvedValue({ reply: 'Neste spørsmål', configuration: null });
-    render(<ConfigurationChat template={template} />);
+    render(<ConfigurationChat template={template} profile={null} />);
 
     await sendMessage('Butikkmedarbeider');
     await screen.findByText('Neste spørsmål');
 
-    const [templateId, history] = sendMock.mock.calls[0];
-    expect(templateId).toBe('teamleder');
+    const [choices, history] = sendMock.mock.calls[0];
+    expect(choices).toEqual({ templateId: 'teamleder', profileId: null });
     expect(history.map(({ role, content }) => ({ role, content }))).toEqual([
       { role: 'assistant', content: expect.stringContaining('Hei!') },
       { role: 'user', content: 'Butikkmedarbeider' },
@@ -61,19 +72,39 @@ describe('ConfigurationChat', () => {
 
   it('without a template, names none and sends null as the template', async () => {
     sendMock.mockResolvedValue({ reply: 'Neste spørsmål', configuration: null });
-    render(<ConfigurationChat template={null} />);
+    render(<ConfigurationChat template={null} profile={null} />);
 
     expect(screen.queryByText(/malen/)).not.toBeInTheDocument();
 
     await sendMessage('Butikkmedarbeider');
     await screen.findByText('Neste spørsmål');
 
-    expect(sendMock.mock.calls[0][0]).toBeNull();
+    expect(sendMock.mock.calls[0][0]).toEqual({ templateId: null, profileId: null });
+  });
+
+  it('names the profile in the greeting and sends its id along with the template', async () => {
+    sendMock.mockResolvedValue({ reply: 'Neste spørsmål', configuration: null });
+    render(<ConfigurationChat template={template} profile={profile} />);
+
+    expect(screen.getByText(/malen «Teamleder»/)).toBeInTheDocument();
+    expect(screen.getByText(/jobbsøkerprofilen «Profil A»/)).toBeInTheDocument();
+
+    await sendMessage('Butikkmedarbeider');
+    await screen.findByText('Neste spørsmål');
+
+    expect(sendMock.mock.calls[0][0]).toEqual({ templateId: 'teamleder', profileId: 'profile-1' });
+  });
+
+  it('can use a profile without a template', () => {
+    render(<ConfigurationChat template={null} profile={profile} />);
+
+    expect(screen.queryByText(/malen/)).not.toBeInTheDocument();
+    expect(screen.getByText(/jobbsøkerprofilen «Profil A»/)).toBeInTheDocument();
   });
 
   it('does not offer to save before the configuration is finished', async () => {
     sendMock.mockResolvedValue({ reply: 'Neste spørsmål', configuration: null });
-    render(<ConfigurationChat template={template} />);
+    render(<ConfigurationChat template={template} profile={null} />);
 
     await sendMessage('Butikkmedarbeider');
     await screen.findByText('Neste spørsmål');
@@ -83,7 +114,7 @@ describe('ConfigurationChat', () => {
 
   it('offers to save once the configurator has finished', async () => {
     sendMock.mockResolvedValue({ reply: 'Ferdig!', configuration });
-    render(<ConfigurationChat template={template} />);
+    render(<ConfigurationChat template={template} profile={null} />);
 
     await sendMessage('Ja, det stemmer');
 

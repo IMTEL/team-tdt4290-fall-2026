@@ -5,13 +5,22 @@ import { parseConfiguration } from '@/domain/configuration';
 import { getSessionToken } from '@/lib/session-tokens';
 import { isRagdollMessage } from '@/server/chatMessages';
 import { configErrorResponse, ragdollErrorResponse } from '@/server/errorResponse';
-import { askAgent, getTemplate, RagdollError, type RagdollMessage } from '@/server/ragdoll';
+import { describeJobSeeker } from '@/domain/jobSeekerProfile';
+import { fromRagdollProfile } from '@/server/profileMapper';
+import {
+  askAgent,
+  getProfile,
+  getTemplate,
+  RagdollError,
+  type RagdollMessage,
+} from '@/server/ragdoll';
 import { fromRagdollTemplate } from '@/server/templateMapper';
 
 /**
  * One turn of the configuration chat. Sends the conversation to the shared configurator agent
  * and checks whether its reply finishes the configuration. If the counsellor chose a template, it
- * decides the interviewer, so the configurator doesn't ask about it.
+ * decides the interviewer, and a job seeker profile decides the job seeker, so the configurator
+ * doesn't ask about them.
  */
 export async function POST(req: NextRequest) {
   // The configurator is shared, but only logged-in counsellors may use it (it spends IDUN quota).
@@ -22,6 +31,7 @@ export async function POST(req: NextRequest) {
 
   let messages: RagdollMessage[];
   let templateId: string | undefined;
+  let profileId: string | undefined;
   try {
     const body = await req.json();
     if (
@@ -39,6 +49,13 @@ export async function POST(req: NextRequest) {
       }
       templateId = body.templateId;
     }
+    // No profileId means the counsellor didn't choose a job seeker profile.
+    if (body.profileId !== undefined) {
+      if (typeof body.profileId !== 'string' || !body.profileId) {
+        return Response.json({ error: 'Unknown profile' }, { status: 400 });
+      }
+      profileId = body.profileId;
+    }
   } catch {
     return Response.json({ error: 'Invalid JSON' }, { status: 400 });
   }
@@ -55,6 +72,18 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  let jobSeeker: string | undefined;
+  if (profileId) {
+    try {
+      jobSeeker = describeJobSeeker(fromRagdollProfile(await getProfile(sessionToken, profileId)));
+    } catch (error) {
+      if (error instanceof RagdollError && error.kind === 'not-found') {
+        return Response.json({ error: 'Unknown profile' }, { status: 400 });
+      }
+      return ragdollErrorResponse(error);
+    }
+  }
+
   const id = process.env.RAGDOLL_CONFIGURATOR_AGENT_ID;
   const accessKey = process.env.RAGDOLL_CONFIGURATOR_ACCESS_KEY;
   if (!id || !accessKey) {
@@ -64,7 +93,10 @@ export async function POST(req: NextRequest) {
 
   try {
     const reply = await askAgent({ id, accessKey }, messages);
-    const configuration = parseConfiguration(reply, template?.persona);
+    const configuration = parseConfiguration(reply, {
+      intervjuer: template?.persona,
+      jobbsoker: jobSeeker,
+    });
     return Response.json({ reply, configuration, done: configuration !== null });
   } catch (error) {
     return ragdollErrorResponse(error);

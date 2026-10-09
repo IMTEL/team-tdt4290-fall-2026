@@ -323,6 +323,78 @@ export async function deleteTemplate(sessionToken: string, templateId: string): 
   await requestAsUser(sessionToken, path, { method: 'DELETE' }, { allowEmpty: true });
 }
 
+/**
+ * A job seeker profile as RAGdoll stores it, without the owner and the timestamps.
+ * The fields follow RAGdoll's JobSeekerProfile model.
+ */
+export type RagdollProfile = {
+  id: string;
+  label: string;
+  age_range: string | null;
+  experience_level: string | null;
+  education: string;
+  work_experience: string;
+  languages: string[];
+  practice_areas: string[];
+  notes: string;
+};
+
+/** What we send to RAGdoll to create or replace a profile. */
+export type NewRagdollProfile = Omit<RagdollProfile, 'id'>;
+
+/** Lists the logged-in user's own profiles, most recently changed first. Throws RagdollError. */
+export async function listProfiles(sessionToken: string): Promise<RagdollProfile[]> {
+  const data = await requestAsUser(sessionToken, '/profiles');
+  if (!Array.isArray(data)) {
+    throw new RagdollError('bad-response', 'RAGdoll did not return a list of profiles');
+  }
+  return data.map(toProfile);
+}
+
+/**
+ * One of the logged-in user's own profiles. Throws RagdollError, with kind 'not-found' if the
+ * user has no profile with this id.
+ */
+export async function getProfile(sessionToken: string, profileId: string): Promise<RagdollProfile> {
+  return toProfile(await requestAsUser(sessionToken, `/profiles/${encodeURIComponent(profileId)}`));
+}
+
+/** Creates a profile owned by the logged-in user and returns it. Throws RagdollError. */
+export async function createProfile(
+  sessionToken: string,
+  profile: NewRagdollProfile,
+): Promise<RagdollProfile> {
+  return toProfile(
+    await requestAsUser(sessionToken, '/profiles', {
+      method: 'POST',
+      body: JSON.stringify(profile),
+    }),
+  );
+}
+
+/**
+ * Replaces one of the logged-in user's own profiles and returns it. Throws RagdollError, with
+ * kind 'not-found' if the user has no profile with this id.
+ */
+export async function updateProfile(
+  sessionToken: string,
+  profileId: string,
+  profile: NewRagdollProfile,
+): Promise<RagdollProfile> {
+  return toProfile(
+    await requestAsUser(sessionToken, `/profiles/${encodeURIComponent(profileId)}`, {
+      method: 'PUT',
+      body: JSON.stringify(profile),
+    }),
+  );
+}
+
+/** Deletes one of the logged-in user's own profiles. Throws RagdollError. */
+export async function deleteProfile(sessionToken: string, profileId: string): Promise<void> {
+  const path = `/profiles/${encodeURIComponent(profileId)}`;
+  await requestAsUser(sessionToken, path, { method: 'DELETE' }, { allowEmpty: true });
+}
+
 /** RAGdoll keeps each app's settings apart. This is ours. */
 const SETTINGS_NAMESPACE = 'interview-configurator';
 
@@ -437,4 +509,39 @@ function toSettings(data: unknown): UserSettings {
     throw new RagdollError('bad-response', 'RAGdoll did not return settings');
   }
   return data;
+}
+
+function isStringList(value: unknown): value is string[] {
+  return Array.isArray(value) && value.every((item) => typeof item === 'string');
+}
+
+/** Only the fields we use. Leaves out the owner and the timestamps. */
+function toProfile(data: unknown): RagdollProfile {
+  const isNullableString = (value: unknown) => value === null || typeof value === 'string';
+  if (
+    !isObject(data) ||
+    typeof data.id !== 'string' ||
+    typeof data.label !== 'string' ||
+    !isNullableString(data.age_range) ||
+    // Profiles saved before RAGdoll had these fields come without them.
+    !isNullableString(data.experience_level ?? null) ||
+    typeof data.education !== 'string' ||
+    typeof data.work_experience !== 'string' ||
+    !isStringList(data.languages) ||
+    !isStringList(data.practice_areas ?? []) ||
+    typeof data.notes !== 'string'
+  ) {
+    throw new RagdollError('bad-response', 'RAGdoll did not return a profile');
+  }
+  return {
+    id: data.id,
+    label: data.label,
+    age_range: data.age_range as string | null,
+    experience_level: (data.experience_level ?? null) as string | null,
+    education: data.education,
+    work_experience: data.work_experience,
+    languages: data.languages,
+    practice_areas: (data.practice_areas ?? []) as string[],
+    notes: data.notes,
+  };
 }
