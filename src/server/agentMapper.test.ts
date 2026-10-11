@@ -108,6 +108,12 @@ describe('toAgentListItem', () => {
     expect(item.stilling).toBe('Butikkmedarbeider');
   });
 
+  it('gives null for an empty answer, not an empty text', () => {
+    const description = toStoredDescription(interviewer, { ...answers, bransje: '' });
+
+    expect(toAgentListItem({ ...summary, description }).bransje).toBeNull();
+  });
+
   it('gives null for every added field when the description is not ours', () => {
     const item = toAgentListItem({ ...summary, description: 'Laget i RAGdoll' });
 

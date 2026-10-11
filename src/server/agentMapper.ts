@@ -68,7 +68,8 @@ function toRagdollRole(role: AgentRole): RagdollRole {
 
 /**
  * An agent as the agent list gets it: the summary, plus what the cards and the filter need from
- * the stored answers. Every added field is null if the description is not something we saved.
+ * the stored answers. A field is null if the description is not something we saved, or if the
+ * answer is missing.
  */
 export type AgentListItem = RagdollAgentSummary & {
   type: string | null;
@@ -86,9 +87,10 @@ export function toAgentListItem(summary: RagdollAgentSummary): AgentListItem {
     ...summary,
     type: stored?.definition.id ?? null,
     typeLabel: stored?.definition.label ?? null,
-    // Only interviewers have these answers. Other agent types get null.
-    stilling: stored?.answers.stilling ?? null,
-    bransje: stored?.answers.bransje ?? null,
-    vanskelighetsgrad: stored?.answers.vanskelighetsgrad ?? null,
+    // Only interviewers have these answers. Other agent types, and answers left empty because the
+    // field was added after the agent was saved, get null.
+    stilling: stored?.answers.stilling || null,
+    bransje: stored?.answers.bransje || null,
+    vanskelighetsgrad: stored?.answers.vanskelighetsgrad || null,
   };
 }

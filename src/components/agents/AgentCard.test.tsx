@@ -43,4 +43,17 @@ describe('AgentCard', () => {
     expect(testButton).toHaveAttribute('href', '/test-chat?agent=agent-1');
     expect(card).not.toContainElement(testButton);
   });
+
+  it('encodes the id in both links', () => {
+    render(<AgentCard agent={{ ...agent, id: 'agent/1' }} />);
+
+    expect(screen.getByRole('link', { name: /Butikksjef Kari/ })).toHaveAttribute(
+      'href',
+      '/browse-agents/agent%2F1',
+    );
+    expect(screen.getByRole('link', { name: 'Test agenten' })).toHaveAttribute(
+      'href',
+      '/test-chat?agent=agent%2F1',
+    );
+  });
 });

@@ -77,6 +77,19 @@ describe('groupAgentsByType', () => {
     expect(groupAgentsByType([makeAgent({ type: null })]).map((s) => s.key)).toEqual(['other']);
   });
 
+  it('sorts by time even when the times are written differently, unreadable ones last', () => {
+    const agents = [
+      makeAgent({ id: 'broken', lastUpdated: 'undefined' }),
+      makeAgent({ id: 'early', lastUpdated: '2026-10-05T08:00:00Z' }),
+      makeAgent({ id: 'late', lastUpdated: '2026-10-05T08:00:00.500Z' }),
+      makeAgent({ id: 'offset', lastUpdated: '2026-10-05T10:30:00+02:00' }),
+    ];
+
+    const [section] = groupAgentsByType(agents);
+
+    expect(section.agents.map((agent) => agent.id)).toEqual(['offset', 'late', 'early', 'broken']);
+  });
+
   it('does not change the list it is given', () => {
     const agents = [
       makeAgent({ id: 'old', lastUpdated: '2026-09-01T08:00:00.000Z' }),

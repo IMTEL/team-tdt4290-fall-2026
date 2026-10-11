@@ -5,6 +5,7 @@ import { getAgentType, listAgentTypes } from './agentTypes/registry';
 export type AgentSection = { key: string; title: string; agents: Agent[] };
 
 /** The section for agents whose type we do not know. Always the last one. */
+// English translation: Other agents
 const OTHER_SECTION = { key: 'other', title: 'Andre agenter' };
 
 /**
@@ -53,7 +54,15 @@ function difficultyLevel(answer: string | null | undefined): string {
   return level.charAt(0).toUpperCase() + level.slice(1);
 }
 
-/** Newest first. `lastUpdated` is an ISO timestamp, so comparing the text sorts by time. */
+/**
+ * Newest first. Compares the times, not the text: agents made in RAGdoll may write the time in
+ * another format than ours. Agents without a readable time go last.
+ */
 function newestFirst(agents: Agent[]): Agent[] {
-  return [...agents].sort((a, b) => b.lastUpdated.localeCompare(a.lastUpdated));
+  return [...agents].sort((a, b) => time(b) - time(a));
+}
+
+function time(agent: Agent): number {
+  const ms = Date.parse(agent.lastUpdated);
+  return Number.isNaN(ms) ? -Infinity : ms;
 }
