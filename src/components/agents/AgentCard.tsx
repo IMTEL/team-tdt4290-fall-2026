@@ -10,25 +10,23 @@ import SmartToyOutlined from '@mui/icons-material/SmartToyOutlined';
 
 import { agentRole, agentSummary } from '@/domain/agentList';
 import type { Agent } from '@/lib/types';
+import styles from './AgentCard.module.css';
 
 /**
  * One agent in the agent list. The card links to the agent's page. The test button sits outside
  * that link, because a link inside a link is invalid HTML and confuses screen readers.
  */
 export function AgentCard({ agent }: { agent: Agent }) {
+  const id = encodeURIComponent(agent.id);
   const role = agentRole(agent);
   const summary = agentSummary(agent);
 
   return (
-    <Card variant="outlined" sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-      <CardActionArea
-        component={Link}
-        href={`/browse-agents/${agent.id}`}
-        sx={{ flexGrow: 1, display: 'flex', alignItems: 'flex-start' }}
-      >
-        <CardContent sx={{ width: '100%' }}>
+    <Card variant="outlined" className={styles.card}>
+      <CardActionArea component={Link} href={`/browse-agents/${id}`} className={styles.action}>
+        <CardContent className={styles.content}>
           {/* Placeholder until #63 gives agents an avatar. */}
-          <Avatar sx={{ mb: 1.5 }}>
+          <Avatar className={styles.avatar}>
             <SmartToyOutlined />
           </Avatar>
           <Typography variant="h6" component="h3">
@@ -36,18 +34,15 @@ export function AgentCard({ agent }: { agent: Agent }) {
           </Typography>
           {role && <Typography color="text.secondary">{role}</Typography>}
           {summary && (
-            <Typography variant="body2" sx={{ mt: 1 }}>
+            <Typography variant="body2" className={styles.summary}>
               {summary}
             </Typography>
           )}
         </CardContent>
       </CardActionArea>
       <CardActions>
-        <Button
-          component={Link}
-          href={`/test-chat?agent=${encodeURIComponent(agent.id)}`}
-          size="small"
-        >
+        <Button component={Link} href={`/test-chat?agent=${id}`} size="small">
+          {/* English translation: Test the agent */}
           Test agenten
         </Button>
       </CardActions>

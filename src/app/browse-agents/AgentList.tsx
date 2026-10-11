@@ -3,13 +3,13 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Alert from '@mui/material/Alert';
-import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 
 import { AgentCardGrid } from '@/components/agents/AgentCardGrid';
 import { groupAgentsByType } from '@/domain/agentList';
 import type { Agent } from '@/lib/types';
 import { fetchAgents } from './api';
+import styles from './AgentList.module.css';
 
 type ListState = { kind: 'loading' } | { kind: 'ready'; agents: Agent[] } | { kind: 'error' };
 
@@ -51,11 +51,11 @@ export function AgentList() {
   }
 
   return groupAgentsByType(state.agents).map((section) => (
-    <Box component="section" key={section.key} sx={{ mb: 4 }}>
+    <section key={section.key} className={styles.section}>
       <Typography variant="h5" component="h2" gutterBottom>
         {section.title}
       </Typography>
       <AgentCardGrid agents={section.agents} />
-    </Box>
+    </section>
   ));
 }
