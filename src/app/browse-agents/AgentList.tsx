@@ -6,13 +6,17 @@ import Alert from '@mui/material/Alert';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 
-import { AgentsTable } from '@/components/agents/AgentsTable';
+import { AgentCardGrid } from '@/components/agents/AgentCardGrid';
+import { groupAgentsByType } from '@/domain/agentList';
 import type { Agent } from '@/lib/types';
 import { fetchAgents } from './api';
 
 type ListState = { kind: 'loading' } | { kind: 'ready'; agents: Agent[] } | { kind: 'error' };
 
-/** The counsellor's agents. An empty list and a failed request are different states. */
+/**
+ * The counsellor's agents as cards, in one section per agent type. An empty list and a failed
+ * request are different states.
+ */
 export function AgentList() {
   const [state, setState] = useState<ListState>({ kind: 'loading' });
 
@@ -46,9 +50,12 @@ export function AgentList() {
     );
   }
 
-  return (
-    <Box sx={{ height: 'var(--table-height)' }}>
-      <AgentsTable agents={state.agents} />
+  return groupAgentsByType(state.agents).map((section) => (
+    <Box component="section" key={section.key} sx={{ mb: 4 }}>
+      <Typography variant="h5" component="h2" gutterBottom>
+        {section.title}
+      </Typography>
+      <AgentCardGrid agents={section.agents} />
     </Box>
-  );
+  ));
 }
