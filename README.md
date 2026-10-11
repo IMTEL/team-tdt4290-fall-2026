@@ -52,20 +52,20 @@ The product is a _conversational agent configurator_; the job interview is the f
 
 We use the stack the customer proposed in the project brief, and reuse existing IMTEL modules instead of building from scratch.
 
-| Layer         | Choice                                                                                                                                                                                                        |
-| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Frontend      | Next.js 16 (App Router, TypeScript, `src/`), React 19, Node.js 24                                                                                                                                             |
-| UI components | **MUI** (Material UI v9, styled with Emotion) for the building blocks: buttons, text fields, cards, alerts, app bar. **MUI X Data Grid** for tables. MUI's own texts are in Norwegian bokmål (`nbNO` locales) |
-| Primitives    | A few of our own in `src/components/ui/` (button, dropdown menu), built on headless **Radix** components                                                                                                      |
-| Styling       | **CSS Modules**: a component's layout and custom styles go in its own `*.module.css`, next to the component. MUI components are themed, not restyled, through `src/lib/mui-theme.ts`                          |
-| Colours       | **Theme tokens only**: `var(--background)`, `var(--muted-foreground)`, `var(--border)` and friends, defined in `src/app/globals.css` and mirrored into the MUI palette in `src/lib/mui-theme.ts`              |
-| Icons         | `lucide-react`, and `@mui/icons-material` inside MUI components                                                                                                                                               |
-| Dark mode     | `next-themes`, class strategy, light / dark / system. `src/components/ThemeRegistry.tsx` keeps MUI's colour scheme in sync with it                                                                            |
-| Auth          | NextAuth v4 with the Keycloak provider, against RAGdoll's Keycloak. The Keycloak token is exchanged for a RAGdoll session                                                                                     |
-| Backend       | RAGdoll (Python 3, FastAPI, MongoDB, Docker Compose, `uv`, Ruff, pytest), called only from our server                                                                                                         |
-| LLMs          | IDUN (NTNU), through RAGdoll                                                                                                                                                                                  |
-| Tests         | Vitest, jsdom and Testing Library                                                                                                                                                                             |
-| CI            | GitHub Actions: lint (ESLint), format check (Prettier), typecheck, tests and build on every pull request                                                                                                      |
+| Layer         | Choice                                                                                                                                                                                           |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Frontend      | Next.js 16 (App Router, TypeScript, `src/`), React 19, Node.js 24                                                                                                                                |
+| UI components | **MUI** (Material UI v9, styled with Emotion) for the building blocks: buttons, text fields, cards, alerts, app bar. MUI's own texts are in Norwegian bokmål (`nbNO` locale)                     |
+| Primitives    | A few of our own in `src/components/ui/` (button, dropdown menu), built on headless **Radix** components                                                                                         |
+| Styling       | **CSS Modules**: a component's layout and custom styles go in its own `*.module.css`, next to the component. MUI components are themed, not restyled, through `src/lib/mui-theme.ts`             |
+| Colours       | **Theme tokens only**: `var(--background)`, `var(--muted-foreground)`, `var(--border)` and friends, defined in `src/app/globals.css` and mirrored into the MUI palette in `src/lib/mui-theme.ts` |
+| Icons         | `lucide-react`, and `@mui/icons-material` inside MUI components                                                                                                                                  |
+| Dark mode     | `next-themes`, class strategy, light / dark / system. `src/components/ThemeRegistry.tsx` keeps MUI's colour scheme in sync with it                                                               |
+| Auth          | NextAuth v4 with the Keycloak provider, against RAGdoll's Keycloak. The Keycloak token is exchanged for a RAGdoll session                                                                        |
+| Backend       | RAGdoll (Python 3, FastAPI, MongoDB, Docker Compose, `uv`, Ruff, pytest), called only from our server                                                                                            |
+| LLMs          | IDUN (NTNU), through RAGdoll                                                                                                                                                                     |
+| Tests         | Vitest, jsdom and Testing Library                                                                                                                                                                |
+| CI            | GitHub Actions: lint (ESLint), format check (Prettier), typecheck, tests and build on every pull request                                                                                         |
 
 The palette, the spacing and type scale, and the rules for using the components are in [`docs/design-guide.md`](docs/design-guide.md). Read it before writing UI code. Why the stack looks like this is recorded in [`docs/decisions/`](docs/decisions/), for example [0002: MUI with CSS Modules](docs/decisions/0002-mui-with-css-modules.md).
 
