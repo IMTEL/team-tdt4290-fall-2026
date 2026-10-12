@@ -74,7 +74,8 @@ Unit and component level only:
 - `src/components/templates/IndustryPicker.test.tsx`: every industry template is shown with its
   industry and sector, clicking one selects it, "Fortsett uten bransjemal" selects none, and the
   sector filter shows only public or only private jobs.
-- `src/app/configure/page.test.tsx`: the page starts with the template picker; choosing a template,
+- `src/app/configure/page.test.tsx`: the page starts with the template picker, the steps and a
+  preview of the industry templates grouped by public and private; choosing a template,
   or continuing without one, goes on to the industry picker, and choosing an industry template, or
   continuing without one, opens the chat; the buttons above the chat go back to either picker, and
   changing one keeps the other; saved templates are shown after the built-in ones, and the built-in ones still show if

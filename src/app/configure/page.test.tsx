@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -52,6 +52,20 @@ describe('/configure', () => {
     expect(screen.queryByRole('log', { name: 'Samtale' })).not.toBeInTheDocument();
   });
 
+  it('shows the steps, and previews the industries grouped by sector before one can be chosen', () => {
+    render(<ConfigurePage />);
+
+    expect(screen.getByText('Velg intervjuer').closest('[aria-current="step"]')).not.toBeNull();
+    expect(screen.getByText('Velg bransje')).toBeVisible();
+
+    const preview = screen.getByRole('region', { name: 'Bransjer du kan velge i neste steg' });
+    const publicList = within(preview).getByRole('list', { name: 'Offentlig sektor' });
+    const privateList = within(preview).getByRole('list', { name: 'Privat sektor' });
+    expect(publicList).toHaveTextContent('Helsefagarbeider · Helse og omsorg');
+    expect(privateList).toHaveTextContent('Butikkmedarbeider · Varehandel');
+    expect(publicList).not.toHaveTextContent('Butikkmedarbeider');
+  });
+
   it('asks for an industry template after the interviewer template, then opens the chat', async () => {
     const user = userEvent.setup();
     render(<ConfigurePage />);
@@ -59,6 +73,7 @@ describe('/configure', () => {
     await user.click(screen.getByRole('button', { name: /Teamleder/ }));
 
     expect(screen.getByRole('heading', { level: 2, name: 'Velg en bransjemal' })).toBeVisible();
+    expect(screen.getByText('Velg bransje').closest('[aria-current="step"]')).not.toBeNull();
     expect(screen.queryByRole('log', { name: 'Samtale' })).not.toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: /Helsefagarbeider/ }));
@@ -78,6 +93,7 @@ describe('/configure', () => {
     await user.click(screen.getByRole('button', { name: 'Bytt mal eller profil' }));
 
     expect(screen.getByRole('heading', { level: 2, name: 'Velg en mal' })).toBeVisible();
+    expect(screen.getByText('Helsefagarbeider', { selector: 'strong' })).toBeVisible();
 
     await user.click(screen.getByRole('button', { name: /HR-medarbeider/ }));
 
@@ -133,7 +149,8 @@ describe('/configure', () => {
     render(<ConfigurePage />);
 
     const saved = await screen.findByRole('button', { name: /^Min butikksjef/ });
-    const cards = screen.getAllByRole('listitem');
+    const picker = screen.getByRole('region', { name: 'Velg en mal' });
+    const cards = within(picker).getAllByRole('listitem');
     expect(cards.at(-1)).toContainElement(saved);
     expect(screen.getByRole('button', { name: /Teamleder/ })).toBeInTheDocument();
   });

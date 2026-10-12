@@ -2,10 +2,14 @@
 
 import { useEffect, useState } from 'react';
 import Button from '@mui/material/Button';
+import Step from '@mui/material/Step';
+import StepLabel from '@mui/material/StepLabel';
+import Stepper from '@mui/material/Stepper';
 
 import { fetchProfiles } from '@/components/profiles/api';
 import { ProfileSelect } from '@/components/profiles/ProfileSelect';
 import { IndustryPicker } from '@/components/templates/IndustryPicker';
+import { IndustryPreview } from '@/components/templates/IndustryPreview';
 import { TemplatePicker } from '@/components/templates/TemplatePicker';
 import { industryTemplates, type IndustryTemplate } from '@/data/industry-templates';
 import { interviewerTemplates, type InterviewerTemplate } from '@/data/interviewer-templates';
@@ -16,6 +20,21 @@ import styles from './page.module.css';
 
 // undefined: the counsellor hasn't chosen yet. null: they chose to continue without a template.
 type Choice<T> = T | null | undefined;
+
+const STEPS = ['Velg intervjuer', 'Velg bransje', 'Svar på spørsmålene'];
+
+/** Shows where the counsellor is, so they know the industry comes after the interviewer. */
+function Steps({ active }: { active: number }) {
+  return (
+    <Stepper activeStep={active} alternativeLabel className={styles.steps}>
+      {STEPS.map((label, index) => (
+        <Step key={label} aria-current={index === active ? 'step' : undefined}>
+          <StepLabel>{label}</StepLabel>
+        </Step>
+      ))}
+    </Stepper>
+  );
+}
 
 /**
  * First the counsellor picks a job seeker profile, which decides the job seeker, and an interviewer
@@ -43,9 +62,23 @@ export function ConfigureInterviewer() {
 
   const profile = profiles.find((item) => item.id === profileId) ?? null;
 
+  const chosenIndustry = (
+    <div className={styles.chosen}>
+      <p>
+        Stilling: <strong>{industry ? industry.title : 'Ingen bransjemal valgt'}</strong>
+      </p>
+      <Button variant="contained" size="small" onClick={() => setIndustry(undefined)}>
+        {industry ? 'Bytt bransjemal' : 'Velg en bransjemal'}
+      </Button>
+    </div>
+  );
+
   if (choice === undefined) {
     return (
       <>
+        <Steps active={0} />
+        {/* Kept when the counsellor goes back to change the interviewer. */}
+        {industry !== undefined && chosenIndustry}
         <ProfileSelect profiles={profiles} value={profileId} onChange={setProfileId} />
         <TemplatePicker
           templates={interviewerTemplates}
@@ -55,6 +88,7 @@ export function ConfigureInterviewer() {
             setSaved((current) => current.filter((template) => template.id !== id))
           }
         />
+        {industry === undefined && <IndustryPreview templates={industryTemplates} />}
       </>
     );
   }
@@ -77,6 +111,7 @@ export function ConfigureInterviewer() {
   if (industry === undefined) {
     return (
       <>
+        <Steps active={1} />
         {chosenInterviewer}
         <IndustryPicker templates={industryTemplates} onSelect={setIndustry} />
       </>
@@ -85,15 +120,9 @@ export function ConfigureInterviewer() {
 
   return (
     <>
+      <Steps active={2} />
       {chosenInterviewer}
-      <div className={styles.chosen}>
-        <p>
-          Stilling: <strong>{industry ? industry.title : 'Ingen bransjemal valgt'}</strong>
-        </p>
-        <Button variant="contained" size="small" onClick={() => setIndustry(undefined)}>
-          {industry ? 'Bytt bransjemal' : 'Velg en bransjemal'}
-        </Button>
-      </div>
+      {chosenIndustry}
       <ConfigurationChat
         key={`${choice?.id ?? 'none'}:${profile?.id ?? 'none'}:${industry?.id ?? 'none'}`}
         template={choice}
