@@ -2,6 +2,7 @@
 import { NextRequest } from 'next/server';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { findIndustryTemplate, industryConfiguration } from '@/data/industry-templates';
 import { findTemplate } from '@/data/interviewer-templates';
 import { getSessionToken } from '@/lib/session-tokens';
 import { askAgent, getProfile, getTemplate, RagdollError } from '@/server/ragdoll';
@@ -176,6 +177,28 @@ describe('POST /api/configure/turn', () => {
     expect(askAgentMock).not.toHaveBeenCalled();
   });
 
+  it('takes the job and industry from an industry template, without lines for them', async () => {
+    askAgentMock.mockResolvedValue(
+      finalReply
+        .replace('Stilling: Butikkmedarbeider\n', '')
+        .replace('Bransje: Varehandel (privat)\n', ''),
+    );
+
+    const res = await POST(
+      turnRequest({ templateId: 'teamleder', industryTemplateId: 'lagermedarbeider', messages }),
+    );
+    const body = await res.json();
+
+    expect(body.done).toBe(true);
+    expect(body.configuration).toMatchObject({
+      ...industryConfiguration(findIndustryTemplate('lagermedarbeider')!),
+      intervjuer: findTemplate('teamleder')?.persona,
+    });
+    expect(body.configuration.bransje).toBe('Transport og logistikk (privat)');
+    // Only the interviewer and job seeker remember a source; the edit form has no industry choice.
+    expect(body.sources).toEqual({ intervjuer: { kind: 'template', id: 'teamleder' } });
+  });
+
   it('answers 401 and asks nothing when the user is not logged in', async () => {
     getSessionTokenMock.mockResolvedValue(null);
 
@@ -194,6 +217,8 @@ describe('POST /api/configure/turn', () => {
       { templateId: 'teamleder', messages: [{ role: 'system', content: 'Hei' }] },
     ],
     ['the template is unknown', { templateId: 'finnes-ikke', messages }],
+    ['the industry template is unknown', { industryTemplateId: 'finnes-ikke', messages }],
+    ['the industry template id is empty', { industryTemplateId: '', messages }],
   ])('answers 400 when %s', async (_case, body) => {
     const res = await POST(turnRequest(body));
 

@@ -1,5 +1,10 @@
 import type { NextRequest } from 'next/server';
 
+import {
+  findIndustryTemplate,
+  industryConfiguration,
+  type IndustryTemplate,
+} from '@/data/industry-templates';
 import { findTemplate, type InterviewerTemplate } from '@/data/interviewer-templates';
 import type { AnswerSources } from '@/domain/agentTypes/types';
 import { parseConfiguration } from '@/domain/configuration';
@@ -19,9 +24,11 @@ import { fromRagdollTemplate } from '@/server/templateMapper';
 
 /**
  * One turn of the configuration chat. Sends the conversation to the shared configurator agent
- * and checks whether its reply finishes the configuration. If the counsellor chose a template, it
- * decides the interviewer, and a job seeker profile decides the job seeker, so the configurator
- * doesn't ask about them. A finished configuration comes with the sources of those answers.
+ * and checks whether its reply finishes the configuration. If the counsellor chose an interviewer
+ * template, it decides the interviewer, a job seeker profile decides the job seeker, and an
+ * industry template decides the job and industry. The configurator doesn't ask about what is
+ * already decided. A finished configuration comes with the sources of the interviewer and job
+ * seeker answers.
  */
 export async function POST(req: NextRequest) {
   // The configurator is shared, but only logged-in counsellors may use it (it spends IDUN quota).
@@ -33,6 +40,7 @@ export async function POST(req: NextRequest) {
   let messages: RagdollMessage[];
   let templateId: string | undefined;
   let profileId: string | undefined;
+  let industryTemplateId: string | undefined;
   try {
     const body = await req.json();
     if (
@@ -56,6 +64,13 @@ export async function POST(req: NextRequest) {
         return Response.json({ error: 'Unknown profile' }, { status: 400 });
       }
       profileId = body.profileId;
+    }
+    // No industryTemplateId means the counsellor started without an industry template.
+    if (body.industryTemplateId !== undefined) {
+      if (typeof body.industryTemplateId !== 'string' || !body.industryTemplateId) {
+        return Response.json({ error: 'Unknown industry template' }, { status: 400 });
+      }
+      industryTemplateId = body.industryTemplateId;
     }
   } catch {
     return Response.json({ error: 'Invalid JSON' }, { status: 400 });
@@ -85,6 +100,15 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  // Industry templates are only built in, so there is nothing to load from RAGdoll.
+  let industry: IndustryTemplate | undefined;
+  if (industryTemplateId) {
+    industry = findIndustryTemplate(industryTemplateId);
+    if (!industry) {
+      return Response.json({ error: 'Unknown industry template' }, { status: 400 });
+    }
+  }
+
   const id = process.env.RAGDOLL_CONFIGURATOR_AGENT_ID;
   const accessKey = process.env.RAGDOLL_CONFIGURATOR_ACCESS_KEY;
   if (!id || !accessKey) {
@@ -104,6 +128,7 @@ export async function POST(req: NextRequest) {
     const configuration = parseConfiguration(reply, {
       intervjuer: template?.persona,
       jobbsoker: jobSeeker,
+      ...(industry && industryConfiguration(industry)),
     });
     return Response.json({
       reply,

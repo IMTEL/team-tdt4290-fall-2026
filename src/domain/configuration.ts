@@ -17,8 +17,9 @@ export type Configuration = Record<keyof typeof LABELS, string>;
 /**
  * Reads the KONFIGURASJON block out of a reply from the configurator agent.
  * `decided` holds fields the counsellor has already settled outside the chat: the interviewer from
- * a template, the job seeker from a profile. Their lines are not needed in the block, and these
- * values win over what the configurator writes. Every other line is required.
+ * a template, the job seeker from a profile, and the job and industry from an industry template.
+ * Their lines are not needed in the block, and these values win over what the configurator writes.
+ * Every other line is required.
  * Returns null if the reply has no block, or if a line is missing. AI generated.
  */
 export function parseConfiguration(

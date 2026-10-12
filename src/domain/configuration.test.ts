@@ -17,6 +17,7 @@ Vanskelighetsgrad: lett | Antall spørsmål: 6 | Oppfølgingsspørsmål: ja
 Egne spørsmål: ingen`;
 
 const interviewer = 'Intervjueren er teamleder.';
+const fixed = { intervjuer: interviewer };
 
 // Without a template, the configurator asks about the interviewer and writes the line itself.
 const replyWithInterviewer = completeReply.replace(
@@ -26,7 +27,7 @@ const replyWithInterviewer = completeReply.replace(
 
 describe('parseConfiguration', () => {
   it('reads every field of a complete block, and takes the interviewer from the template', () => {
-    expect(parseConfiguration(completeReply, { intervjuer: interviewer })).toEqual({
+    expect(parseConfiguration(completeReply, fixed)).toEqual({
       stilling: 'Butikkmedarbeider',
       bransje: 'Varehandel (privat)',
       bedrift: 'Nærbutikken AS',
@@ -43,29 +44,43 @@ describe('parseConfiguration', () => {
   });
 
   it('uses the template over an Intervjuer line in the block', () => {
-    expect(parseConfiguration(replyWithInterviewer, { intervjuer: interviewer })?.intervjuer).toBe(
-      interviewer,
-    );
+    expect(parseConfiguration(replyWithInterviewer, fixed)?.intervjuer).toBe(interviewer);
   });
 
   it('returns null without a template when the Intervjuer line is missing', () => {
     expect(parseConfiguration(completeReply)).toBeNull();
   });
 
+  it('takes Stilling and Bransje from an industry template, without lines for them', () => {
+    const withoutJob = completeReply
+      .replace('Stilling: Butikkmedarbeider\n', '')
+      .replace('Bransje: Varehandel (privat)\n', '');
+    const industry = {
+      stilling: 'Lagermedarbeider. Plukker og pakker.',
+      bransje: 'Logistikk (privat)',
+    };
+
+    expect(parseConfiguration(withoutJob, { ...fixed, ...industry })).toMatchObject(industry);
+    expect(parseConfiguration(withoutJob, fixed)).toBeNull();
+  });
+
+  it('uses the industry template over Stilling and Bransje lines in the block', () => {
+    const industry = { stilling: 'Servitør.', bransje: 'Hotell og restaurant (privat)' };
+    expect(parseConfiguration(completeReply, { ...fixed, ...industry })).toMatchObject(industry);
+  });
+
   it('returns null for an ordinary reply without a block', () => {
-    expect(
-      parseConfiguration('Hvilken bransje er stillingen i?', { intervjuer: interviewer }),
-    ).toBeNull();
+    expect(parseConfiguration('Hvilken bransje er stillingen i?', fixed)).toBeNull();
   });
 
   it('returns null when a line is missing', () => {
     const withoutCompany = completeReply.replace('Bedrift: Nærbutikken AS\n', '');
-    expect(parseConfiguration(withoutCompany, { intervjuer: interviewer })).toBeNull();
+    expect(parseConfiguration(withoutCompany, fixed)).toBeNull();
   });
 
   it('returns null when a line has no value', () => {
     const emptyCompany = completeReply.replace('Bedrift: Nærbutikken AS', 'Bedrift:');
-    expect(parseConfiguration(emptyCompany, { intervjuer: interviewer })).toBeNull();
+    expect(parseConfiguration(emptyCompany, fixed)).toBeNull();
   });
 
   it('ignores spaces at the start and end of lines', () => {
@@ -73,9 +88,7 @@ describe('parseConfiguration', () => {
       'Stilling: Butikkmedarbeider',
       '   Stilling:  Butikkmedarbeider  ',
     );
-    expect(parseConfiguration(indented, { intervjuer: interviewer })?.stilling).toBe(
-      'Butikkmedarbeider',
-    );
+    expect(parseConfiguration(indented, fixed)?.stilling).toBe('Butikkmedarbeider');
   });
 
   it('takes the job seeker from a profile, and then needs no Jobbsøker line', () => {
@@ -83,7 +96,7 @@ describe('parseConfiguration', () => {
     const withoutJobSeeker = completeReply.replace(/^Jobbsøker:.*\n/m, '');
 
     const configuration = parseConfiguration(withoutJobSeeker, {
-      intervjuer: interviewer,
+      ...fixed,
       jobbsoker: jobSeeker,
     });
 

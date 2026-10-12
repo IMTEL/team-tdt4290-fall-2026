@@ -2,6 +2,7 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { findIndustryTemplate } from '@/data/industry-templates';
 import { findTemplate } from '@/data/interviewer-templates';
 import { saveConfiguredAgent, sendConfigurationTurn } from './api';
 import { ConfigurationChat } from './ConfigurationChat';
@@ -66,11 +67,37 @@ describe('ConfigurationChat', () => {
     await screen.findByText('Neste spørsmål');
 
     const [choices, history] = sendMock.mock.calls[0];
-    expect(choices).toEqual({ templateId: 'teamleder', profileId: null });
+    expect(choices).toEqual({ templateId: 'teamleder', profileId: null, industryTemplateId: null });
     expect(history.map(({ role, content }) => ({ role, content }))).toEqual([
       { role: 'assistant', content: expect.stringContaining('Hei!') },
       { role: 'user', content: 'Butikkmedarbeider' },
     ]);
+  });
+
+  it('with an industry template, names it and asks about the company instead of the job', async () => {
+    sendMock.mockResolvedValue({ reply: 'Neste spørsmål', configuration: null, sources: {} });
+    render(
+      <ConfigurationChat
+        template={template}
+        profile={null}
+        industry={findIndustryTemplate('helsefagarbeider')!}
+      />,
+    );
+
+    expect(
+      screen.getByText(/bransjemalen «Helsefagarbeider» \(Helse og omsorg, offentlig sektor\)/),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/Hvilken bedrift eller virksomhet/)).toBeInTheDocument();
+    expect(screen.queryByText(/Hvilken stilling/)).not.toBeInTheDocument();
+
+    await sendMessage('Byåsen sykehjem');
+    await screen.findByText('Neste spørsmål');
+
+    expect(sendMock.mock.calls[0][0]).toEqual({
+      templateId: 'teamleder',
+      profileId: null,
+      industryTemplateId: 'helsefagarbeider',
+    });
   });
 
   it('without a template, names none and sends null as the template', async () => {
@@ -82,7 +109,11 @@ describe('ConfigurationChat', () => {
     await sendMessage('Butikkmedarbeider');
     await screen.findByText('Neste spørsmål');
 
-    expect(sendMock.mock.calls[0][0]).toEqual({ templateId: null, profileId: null });
+    expect(sendMock.mock.calls[0][0]).toEqual({
+      templateId: null,
+      profileId: null,
+      industryTemplateId: null,
+    });
   });
 
   it('names the profile in the greeting and sends its id along with the template', async () => {
@@ -95,7 +126,11 @@ describe('ConfigurationChat', () => {
     await sendMessage('Butikkmedarbeider');
     await screen.findByText('Neste spørsmål');
 
-    expect(sendMock.mock.calls[0][0]).toEqual({ templateId: 'teamleder', profileId: 'profile-1' });
+    expect(sendMock.mock.calls[0][0]).toEqual({
+      templateId: 'teamleder',
+      profileId: 'profile-1',
+      industryTemplateId: null,
+    });
   });
 
   it('can use a profile without a template', () => {

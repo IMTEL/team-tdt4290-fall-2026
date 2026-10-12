@@ -14,11 +14,13 @@ export default function ConfigurePage() {
       <header className={styles.header}>
         <h1 className={styles.title}>Sett opp en intervjuer</h1>
         <p className={styles.lead}>
-          {/* English translation: Choose a template, then answer the questions from the assistant,
-          and we will create an AI interviewer that job seekers can practice with. */}
-          Velg en mal, og svar så på spørsmålene fra assistenten. Da lager vi en AI-intervjuer som
-          jobbsøkeren kan øve med. Du kan også fortsette uten mal, og assistenten vil stille de
-          nødvendige spørsmålene for deg.
+          {/* English translation: Choose a template for the interviewer and one for the industry,
+          then answer the questions from the assistant, and we will create an AI interviewer that
+          job seekers can practice with. You can also continue without templates, and the
+          assistant will ask the questions needed. */}
+          Velg en mal for intervjueren og en for bransjen, og svar så på spørsmålene fra
+          assistenten. Da lager vi en AI-intervjuer som jobbsøkeren kan øve med. Du kan også
+          fortsette uten maler, og assistenten vil stille de nødvendige spørsmålene for deg.
         </p>
       </header>
 

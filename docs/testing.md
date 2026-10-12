@@ -71,11 +71,16 @@ Unit and component level only:
 - `src/components/templates/TemplatePicker.test.tsx`: every template is shown, clicking one
   selects it, "Fortsett uten mal" selects none, "Lag en ny mal" links to `/create-template`, and
   only saved templates have edit and delete.
+- `src/components/templates/IndustryPicker.test.tsx`: every industry template is shown with its
+  industry and sector, clicking one selects it, "Fortsett uten bransjemal" selects none, and the
+  sector filter shows only public or only private jobs.
 - `src/app/configure/page.test.tsx`: the page starts with the template picker; choosing a template,
-  or continuing without one, opens the chat, and the button above the chat goes back to the
-  picker; saved templates are shown after the built-in ones, and the built-in ones still show if
+  or continuing without one, goes on to the industry picker, and choosing an industry template, or
+  continuing without one, opens the chat; the buttons above the chat go back to either picker, and
+  changing one keeps the other; saved templates are shown after the built-in ones, and the built-in ones still show if
   the saved ones cannot be loaded; a deleted template disappears from the picker; the tab title.
-- `src/app/configure/ConfigurationChat.test.tsx`: the greeting names the template; the template id
+- `src/app/configure/ConfigurationChat.test.tsx`: the greeting names the template; with an industry
+  template it names that too and asks about the company instead of the job; the template ids
   and the whole conversation (greeting included) go to the configuration turn route; the save form only appears once the
   configuration is finished.
 - `src/app/configure/SaveAgentForm.test.tsx`: saves under the chosen name and links to testing the
@@ -116,7 +121,7 @@ Unit and component level only:
 - `src/app/api/configure/turn/route.test.ts`: 401 when logged out; 400 for bad bodies; 500 when the
   configurator is not configured; reports `done` only for a complete `KONFIGURASJON` block; takes
   the interviewer from a built-in or a saved template, and asks nothing if a saved one cannot be
-  loaded; never passes RAGdoll's message on.
+  loaded; takes the job and industry from an industry template, and 400 for an unknown one; never passes RAGdoll's message on.
 - `src/app/api/templates/route.test.ts` and `src/app/api/templates/[templateId]/route.test.ts`:
   lists only readable interviewer templates, saves a valid template as type `interviewer`, reads
   and edits one template (404 for one that is missing or not ours), 400 for bad bodies, 401 when
@@ -158,7 +163,8 @@ Unit and component level only:
   and the agent's current model are accepted without asking RAGdoll, 502 when another model
   cannot be checked, and 400 for an unknown model, a temperature above 2 or an empty prompt.
 - `src/domain/configuration.test.ts` and `src/domain/interviewerPrompt.test.ts`: reading the
-  `KONFIGURASJON` block (complete, missing or empty lines, extra spaces) and filling the
+  `KONFIGURASJON` block (complete, missing or empty lines, extra spaces, fields fixed by an
+  interviewer or industry template) and filling the
   interviewer prompt from it.
 - `src/domain/agentTypes/registry.test.ts`: looking up an agent type, checking that every field
   has an answer, and the interviewer's prompt and role.
