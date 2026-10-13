@@ -3,15 +3,14 @@ import userEvent, { type UserEvent } from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { interviewer } from '@/domain/agentTypes/interviewer';
-import { updateAgent } from '../../api';
+import type { Answers } from '@/domain/agentTypes/types';
 import { EditAgentForm } from './EditAgentForm';
 
 const push = vi.hoisted(() => vi.fn());
 
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push }) }));
-vi.mock('../../api', () => ({ updateAgent: vi.fn() }));
 
-const updateAgentMock = vi.mocked(updateAgent);
+const onSave = vi.fn<(name: string, answers: Answers) => Promise<string>>();
 
 const answers = {
   stilling: 'Barnehagelærer',
@@ -24,13 +23,17 @@ const answers = {
   egneSporsmal: 'ingen',
 };
 
-function renderForm(initialAnswers = answers) {
+function renderForm(initialAnswers = answers, allowUnchanged = false) {
   render(
     <EditAgentForm
       agentId="agent-1"
       initialName="Intervjuer for Barnehagelærer"
       definition={interviewer}
       initialAnswers={initialAnswers}
+      label="Rediger agent"
+      submitLabel="Lagre endringer"
+      onSave={onSave}
+      allowUnchanged={allowUnchanged}
     />,
   );
 }
@@ -50,7 +53,7 @@ async function replaceText(user: UserEvent, label: string, text: string) {
 
 describe('EditAgentForm', () => {
   afterEach(() => {
-    updateAgentMock.mockReset();
+    onSave.mockReset();
     push.mockReset();
   });
 
@@ -62,13 +65,8 @@ describe('EditAgentForm', () => {
     expect(field('Vanskelighetsgrad')).toHaveValue('lett');
   });
 
-  it('saves the changes and goes back to the agent', async () => {
-    updateAgentMock.mockResolvedValue({
-      id: 'agent-1',
-      name: 'Ny intervjuer',
-      description: '{}',
-      lastUpdated: '2026-10-06T12:00:00.000Z',
-    });
+  it('saves the changes and goes to the agent the save returns', async () => {
+    onSave.mockResolvedValue('agent-2');
     const user = userEvent.setup();
     renderForm();
 
@@ -76,17 +74,15 @@ describe('EditAgentForm', () => {
     await replaceText(user, 'Vanskelighetsgrad', 'vanskelig');
     await user.click(saveButton());
 
-    expect(updateAgentMock).toHaveBeenCalledWith('agent-1', 'Ny intervjuer', {
+    expect(onSave).toHaveBeenCalledWith('Ny intervjuer', {
       ...answers,
       vanskelighetsgrad: 'vanskelig',
     });
-    expect(push).toHaveBeenCalledWith('/browse-agents/agent-1');
+    expect(push).toHaveBeenCalledWith('/browse-agents/agent-2');
   });
 
   it('shows the error and keeps what was typed when saving fails', async () => {
-    updateAgentMock.mockRejectedValue(
-      new Error('Du er logget ut. Logg inn på nytt og prøv igjen.'),
-    );
+    onSave.mockRejectedValue(new Error('Du er logget ut. Logg inn på nytt og prøv igjen.'));
     const user = userEvent.setup();
     renderForm();
 
@@ -109,6 +105,16 @@ describe('EditAgentForm', () => {
 
     expect(saveButton()).toBeEnabled();
     expect(screen.getByText('1 endring som ikke er lagret')).toBeVisible();
+  });
+
+  it('can be saved without changes when that is allowed, as for a clone', async () => {
+    onSave.mockResolvedValue('agent-2');
+    const user = userEvent.setup();
+    renderForm(answers, true);
+
+    await user.click(saveButton());
+
+    expect(onSave).toHaveBeenCalledWith('Intervjuer for Barnehagelærer', answers);
   });
 
   it('cannot be saved while a field is empty', async () => {

@@ -74,6 +74,29 @@ export async function updateAgent(id: string, name: string, answers: Answers): P
   return data.agent;
 }
 
+/**
+ * Saves a new agent made from another agent, with the name and answers from the clone form, and
+ * returns the new agent's id. The original is not changed.
+ * Throws Error with a Norwegian message that can be shown as it is.
+ */
+export async function cloneAgent(id: string, name: string, answers: Answers): Promise<string> {
+  let res: Response;
+  try {
+    res = await fetch(`/api/agents/${encodeURIComponent(id)}/clone`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, answers }),
+    });
+  } catch (cause) {
+    throw new Error('Fikk ikke kontakt med serveren. Sjekk nettverket og prøv igjen.', { cause });
+  }
+  if (!res.ok) throw new Error(saveErrorMessage(res.status));
+
+  const data = await res.json().catch(() => null);
+  if (typeof data?.id !== 'string') throw new Error(GENERIC_ERROR);
+  return data.id;
+}
+
 /** Deletes an agent */
 export async function deleteAgent(id: string): Promise<void> {
   let res: Response;
