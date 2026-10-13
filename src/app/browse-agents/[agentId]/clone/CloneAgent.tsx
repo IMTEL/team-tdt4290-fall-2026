@@ -1,6 +1,5 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
@@ -13,35 +12,16 @@ import Typography from '@mui/material/Typography';
 
 import { cloneName } from '@/domain/agentName';
 import { readStoredAnswers } from '@/domain/agentTypes/storedAnswers';
-import type { Agent } from '@/lib/types';
-import { cloneAgent, fetchAgents } from '../../api';
+import { cloneAgent } from '../../api';
+import { useAgent } from '../../useAgent';
 import { EditAgentForm } from '../edit/EditAgentForm';
-
-type LoadState =
-  { kind: 'loading' } | { kind: 'ready'; agent: Agent } | { kind: 'missing' } | { kind: 'error' };
 
 /**
  * Loads one of the counsellor's agents and shows the edit form filled in from it. Nothing is
  * saved until the counsellor saves, and then as a new agent; the original is not changed.
  */
 export function CloneAgent({ agentId }: { agentId: string }) {
-  const [state, setState] = useState<LoadState>({ kind: 'loading' });
-
-  useEffect(() => {
-    let cancelled = false;
-    fetchAgents()
-      .then((agents) => {
-        if (cancelled) return;
-        const agent = agents.find((item) => item.id === agentId);
-        setState(agent ? { kind: 'ready', agent } : { kind: 'missing' });
-      })
-      .catch(() => {
-        if (!cancelled) setState({ kind: 'error' });
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [agentId]);
+  const state = useAgent(agentId);
 
   if (state.kind === 'missing') notFound();
   if (state.kind === 'loading') return <Typography>Laster agent …</Typography>;
