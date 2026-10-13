@@ -46,6 +46,26 @@ describe('fetchAgents', () => {
 
     await expect(fetchAgents()).rejects.toThrow('Noe gikk galt. Prøv igjen.');
   });
+
+  it('keeps the fields the cards use, also when they are null', async () => {
+    const listed = {
+      ...agent,
+      type: 'interviewer',
+      typeLabel: 'Intervjuer',
+      stilling: 'Barnehagelærer',
+      bransje: null,
+      vanskelighetsgrad: null,
+    };
+    fetchMock.mockResolvedValue(Response.json({ agents: [listed] }));
+
+    await expect(fetchAgents()).resolves.toEqual([listed]);
+  });
+
+  it('fails when a card field is not text', async () => {
+    fetchMock.mockResolvedValue(Response.json({ agents: [{ ...agent, stilling: 42 }] }));
+
+    await expect(fetchAgents()).rejects.toThrow('Noe gikk galt. Prøv igjen.');
+  });
 });
 
 describe('updateAgent', () => {
