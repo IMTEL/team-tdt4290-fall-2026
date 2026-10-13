@@ -3,6 +3,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   askAgent,
+  createProfile,
+  deleteProfile,
+  getProfile,
+  listProfiles,
+  updateProfile,
   askSavedAgent,
   createTemplate,
   deleteAgent,
@@ -770,5 +775,98 @@ describe('user settings', () => {
     fetchMock.mockResolvedValue(Response.json(['nb']));
 
     await expect(getUserSettings(SESSION_TOKEN)).rejects.toMatchObject({ kind: 'bad-response' });
+  });
+});
+
+const newProfile = {
+  label: 'Profil A',
+  age_range: '18-24',
+  experience_level: 'little',
+  education: 'videregående',
+  work_experience: '',
+  languages: ['Norsk B1'],
+  practice_areas: ['Mestre nervøsitet'],
+  notes: '',
+};
+
+// What RAGdoll returns for a stored profile: also the owner and the timestamps.
+const storedProfile = {
+  ...newProfile,
+  id: 'profile-1',
+  owner_id: 'user-1',
+  created_at: '2026-10-09T10:00:00',
+  updated_at: '2026-10-09T10:00:00',
+};
+
+describe('profiles', () => {
+  const fetchMock = vi.fn<typeof fetch>();
+
+  beforeEach(() => {
+    vi.stubEnv('BACKEND_API_URL', BACKEND_URL);
+    vi.stubGlobal('fetch', fetchMock);
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.unstubAllGlobals();
+    fetchMock.mockReset();
+  });
+
+  it('lists the user’s profiles without the owner and the timestamps', async () => {
+    fetchMock.mockResolvedValue(Response.json([storedProfile]));
+
+    await expect(listProfiles(SESSION_TOKEN)).resolves.toEqual([
+      { ...newProfile, id: 'profile-1' },
+    ]);
+
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toBe(`${BACKEND_URL}/profiles`);
+    expect((init?.headers as Record<string, string>).Authorization).toBe(`Bearer ${SESSION_TOKEN}`);
+  });
+
+  it('reads profiles saved before RAGdoll had experience levels and practice areas', async () => {
+    const older: Record<string, unknown> = { ...storedProfile };
+    delete older.experience_level;
+    delete older.practice_areas;
+    fetchMock.mockResolvedValue(Response.json([older]));
+
+    await expect(listProfiles(SESSION_TOKEN)).resolves.toMatchObject([
+      { experience_level: null, practice_areas: [] },
+    ]);
+  });
+
+  it('throws a bad-response error when the list has something that is not a profile', async () => {
+    fetchMock.mockResolvedValue(Response.json([{ id: 'profile-1' }]));
+
+    await expect(listProfiles(SESSION_TOKEN)).rejects.toMatchObject({ kind: 'bad-response' });
+  });
+
+  it('gets one profile, and throws not-found for one the user does not have', async () => {
+    fetchMock.mockResolvedValueOnce(Response.json(storedProfile));
+    await expect(getProfile(SESSION_TOKEN, 'profile-1')).resolves.toMatchObject({
+      id: 'profile-1',
+    });
+    expect(fetchMock.mock.calls[0][0]).toBe(`${BACKEND_URL}/profiles/profile-1`);
+
+    fetchMock.mockResolvedValueOnce(new Response('Profile not found', { status: 404 }));
+    await expect(getProfile(SESSION_TOKEN, 'profile-2')).rejects.toMatchObject({
+      kind: 'not-found',
+    });
+  });
+
+  it('creates, replaces and deletes a profile', async () => {
+    fetchMock.mockResolvedValueOnce(Response.json(storedProfile, { status: 201 }));
+    await createProfile(SESSION_TOKEN, newProfile);
+    expect(fetchMock.mock.calls[0][1]?.method).toBe('POST');
+    expect(JSON.parse(fetchMock.mock.calls[0][1]?.body as string)).toEqual(newProfile);
+
+    fetchMock.mockResolvedValueOnce(Response.json(storedProfile));
+    await updateProfile(SESSION_TOKEN, 'profile-1', newProfile);
+    expect(fetchMock.mock.calls[1][0]).toBe(`${BACKEND_URL}/profiles/profile-1`);
+    expect(fetchMock.mock.calls[1][1]?.method).toBe('PUT');
+
+    fetchMock.mockResolvedValueOnce(new Response(null, { status: 204 }));
+    await expect(deleteProfile(SESSION_TOKEN, 'profile-1')).resolves.toBeUndefined();
+    expect(fetchMock.mock.calls[2][1]?.method).toBe('DELETE');
   });
 });

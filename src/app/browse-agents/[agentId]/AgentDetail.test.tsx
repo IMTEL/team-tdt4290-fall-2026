@@ -119,6 +119,26 @@ describe('AgentDetail', () => {
     );
   });
 
+  it('links to the clone page', async () => {
+    fetchAgentsMock.mockResolvedValue([agent]);
+
+    render(<AgentDetail agentId="agent-1" />);
+
+    expect(await screen.findByRole('link', { name: 'Klon' })).toHaveAttribute(
+      'href',
+      '/browse-agents/agent-1/clone',
+    );
+  });
+
+  it('does not offer to clone an agent that was not made in this app', async () => {
+    fetchAgentsMock.mockResolvedValue([{ ...agent, description: 'En vanlig beskrivelse' }]);
+
+    render(<AgentDetail agentId="agent-1" />);
+
+    expect(await screen.findByRole('link', { name: 'Test agenten' })).toBeVisible();
+    expect(screen.queryByRole('link', { name: 'Klon' })).not.toBeInTheDocument();
+  });
+
   it('calls notFound when the id is not in the list', async () => {
     fetchAgentsMock.mockResolvedValue([agent]);
 

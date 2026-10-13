@@ -42,13 +42,16 @@ function errorFor(res: Response): ChatError {
   return new ChatError(GENERIC_ERROR);
 }
 
+/** What the counsellor chose before the chat: a template and a job seeker profile, or neither. */
+export type ConfigurationChoices = { templateId: string | null; profileId: string | null };
+
 /**
- * Sends the conversation to the configurator through /api/configure/turn, with the id of the
- * chosen template, or null when the counsellor started without one. Throws ChatError on failure. If `signal` is aborted, the fetch's AbortError is
- * rethrown as is.
+ * Sends the conversation to the configurator through /api/configure/turn, with the ids of the
+ * chosen template and profile (left out when not chosen). Throws ChatError on failure. If `signal`
+ * is aborted, the fetch's AbortError is rethrown as is.
  */
 export async function sendConfigurationTurn(
-  templateId: string | null,
+  { templateId, profileId }: ConfigurationChoices,
   messages: ChatMessage[],
   signal?: AbortSignal,
 ): Promise<TurnResult> {
@@ -56,7 +59,11 @@ export async function sendConfigurationTurn(
   const history = messages.map(({ role, content }) => ({ role, content }));
   const res = await postJson(
     '/api/configure/turn',
-    { templateId: templateId ?? undefined, messages: history },
+    {
+      templateId: templateId ?? undefined,
+      profileId: profileId ?? undefined,
+      messages: history,
+    },
     signal,
   );
   if (!res.ok) throw errorFor(res);

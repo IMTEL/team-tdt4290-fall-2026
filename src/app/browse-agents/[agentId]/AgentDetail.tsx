@@ -1,7 +1,6 @@
 'use client';
 
 import { DeleteAgentButton } from './DeleteAgentButton';
-import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
@@ -17,34 +16,15 @@ import Typography from '@mui/material/Typography';
 
 import { DEFAULT_TEMPERATURE, formatTemperature } from '@/domain/advancedSettings';
 import { readStoredAnswers } from '@/domain/agentTypes/storedAnswers';
-import type { Agent } from '@/lib/types';
-import { fetchAgents } from '../api';
 
-type DetailState =
-  { kind: 'loading' } | { kind: 'ready'; agent: Agent } | { kind: 'missing' } | { kind: 'error' };
+import { useAgent } from '../useAgent';
 
 /**
  * One saved agent: the configuration as a list, and the advanced settings (model, temperature and
  * the system prompt RAGdoll has stored) closed until opened. They are changed on the edit page.
  */
 export function AgentDetail({ agentId }: { agentId: string }) {
-  const [state, setState] = useState<DetailState>({ kind: 'loading' });
-
-  useEffect(() => {
-    let cancelled = false;
-    fetchAgents()
-      .then((agents) => {
-        if (cancelled) return;
-        const agent = agents.find((item) => item.id === agentId);
-        setState(agent ? { kind: 'ready', agent } : { kind: 'missing' });
-      })
-      .catch(() => {
-        if (!cancelled) setState({ kind: 'error' });
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [agentId]);
+  const state = useAgent(agentId);
 
   if (state.kind === 'missing') notFound();
 
@@ -139,7 +119,7 @@ export function AgentDetail({ agentId }: { agentId: string }) {
         >
           Test agenten
         </Button>
-        {/* Only agents made in this app have answers that can be edited. */}
+        {/* Only agents made in this app have answers that can be edited or cloned. */}
         {stored && (
           <Button
             component={Link}
@@ -147,6 +127,15 @@ export function AgentDetail({ agentId }: { agentId: string }) {
             variant="outlined"
           >
             Rediger
+          </Button>
+        )}
+        {stored && (
+          <Button
+            component={Link}
+            href={`/browse-agents/${state.agent.id}/clone`}
+            variant="outlined"
+          >
+            Klon
           </Button>
         )}
         <DeleteAgentButton agent={state.agent} />

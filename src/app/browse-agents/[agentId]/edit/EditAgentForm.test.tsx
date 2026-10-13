@@ -2,15 +2,14 @@ import { render, screen } from '@testing-library/react';
 import userEvent, { type UserEvent } from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { DEFAULT_ADVANCED_SETTINGS, DEFAULT_MODEL } from '@/domain/advancedSettings';
+import { type AdvancedSettings, DEFAULT_ADVANCED_SETTINGS } from '@/domain/advancedSettings';
 import { interviewer } from '@/domain/agentTypes/interviewer';
-import { updateAgent } from '../../api';
+import type { Answers } from '@/domain/agentTypes/types';
 import { EditAgentForm } from './EditAgentForm';
 
 const push = vi.hoisted(() => vi.fn());
 
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push }) }));
-vi.mock('../../api', () => ({ updateAgent: vi.fn() }));
 vi.mock('@/components/agents/useLanguageModels', () => ({
   useLanguageModels: () => ({
     models: ['openai/gpt-oss-120b', 'meta/llama-3.3-70b'],
@@ -19,7 +18,7 @@ vi.mock('@/components/agents/useLanguageModels', () => ({
   }),
 }));
 
-const updateAgentMock = vi.mocked(updateAgent);
+const onSave = vi.fn<(name: string, answers: Answers, settings?: AdvancedSettings) => Promise<string>>();
 
 const answers = {
   stilling: 'Barnehagelærer',
@@ -32,7 +31,11 @@ const answers = {
   egneSporsmal: 'ingen',
 };
 
-function renderForm(initialAnswers = answers, initialSettings = DEFAULT_ADVANCED_SETTINGS) {
+function renderForm(
+  initialAnswers = answers,
+  initialSettings = DEFAULT_ADVANCED_SETTINGS,
+  allowUnchanged = false,
+) {
   render(
     <EditAgentForm
       agentId="agent-1"
@@ -40,19 +43,13 @@ function renderForm(initialAnswers = answers, initialSettings = DEFAULT_ADVANCED
       definition={interviewer}
       initialAnswers={initialAnswers}
       initialSettings={initialSettings}
+      label="Rediger agent"
+      submitLabel="Lagre endringer"
+      onSave={onSave}
+      allowUnchanged={allowUnchanged}
     />,
   );
 }
-
-const savedAgent = {
-  id: 'agent-1',
-  name: 'Ny intervjuer',
-  description: '{}',
-  lastUpdated: '2026-10-06T12:00:00.000Z',
-  llmModel: DEFAULT_MODEL,
-  temperature: 0.7,
-  prompt: 'Du er en intervjuer.',
-};
 
 // MUI adds " *" to the label of a required field, so we match the start of the label.
 const field = (label: string) => screen.getByRole('textbox', { name: new RegExp(`^${label}`) });
@@ -69,7 +66,7 @@ async function replaceText(user: UserEvent, label: string, text: string) {
 
 describe('EditAgentForm', () => {
   afterEach(() => {
-    updateAgentMock.mockReset();
+    onSave.mockReset();
     push.mockReset();
   });
 
@@ -81,8 +78,8 @@ describe('EditAgentForm', () => {
     expect(field('Vanskelighetsgrad')).toHaveValue('lett');
   });
 
-  it('saves the changes and goes back to the agent', async () => {
-    updateAgentMock.mockResolvedValue(savedAgent);
+  it('saves the changes and goes to the agent the save returns', async () => {
+    onSave.mockResolvedValue('agent-2');
     const user = userEvent.setup();
     renderForm();
 
@@ -91,17 +88,16 @@ describe('EditAgentForm', () => {
     await user.click(saveButton());
 
     // Unchanged advanced settings are not sent, so the agent keeps the ones it has.
-    expect(updateAgentMock).toHaveBeenCalledWith(
-      'agent-1',
+    expect(onSave).toHaveBeenCalledWith(
       'Ny intervjuer',
       { ...answers, vanskelighetsgrad: 'vanskelig' },
       undefined,
     );
-    expect(push).toHaveBeenCalledWith('/browse-agents/agent-1');
+    expect(push).toHaveBeenCalledWith('/browse-agents/agent-2');
   });
 
   it('saves a hand-written system prompt with the advanced settings', async () => {
-    updateAgentMock.mockResolvedValue(savedAgent);
+    onSave.mockResolvedValue('agent-1');
     const user = userEvent.setup();
     renderForm();
 
@@ -114,15 +110,10 @@ describe('EditAgentForm', () => {
     expect(screen.getByText('1 endring som ikke er lagret')).toBeVisible();
     await user.click(saveButton());
 
-    expect(updateAgentMock).toHaveBeenCalledWith(
-      'agent-1',
-      'Intervjuer for Barnehagelærer',
-      answers,
-      {
-        ...DEFAULT_ADVANCED_SETTINGS,
-        customPrompt: 'Du er en streng barnehagestyrer.',
-      },
-    );
+    expect(onSave).toHaveBeenCalledWith('Intervjuer for Barnehagelærer', answers, {
+      ...DEFAULT_ADVANCED_SETTINGS,
+      customPrompt: 'Du er en streng barnehagestyrer.',
+    });
   });
 
   it('says the answers no longer change a hand-written prompt', () => {
@@ -134,7 +125,7 @@ describe('EditAgentForm', () => {
   });
 
   it('can still be saved when settings it did not change would not pass its own checks', async () => {
-    updateAgentMock.mockResolvedValue(savedAgent);
+    onSave.mockResolvedValue('agent-1');
     const user = userEvent.setup();
     // Saved by another client with three decimals, which the form would not accept.
     renderForm(answers, { ...DEFAULT_ADVANCED_SETTINGS, temperature: 0.333 });
@@ -144,7 +135,7 @@ describe('EditAgentForm', () => {
     expect(saveButton()).toBeEnabled();
     await user.click(saveButton());
 
-    expect(updateAgentMock).toHaveBeenCalledWith('agent-1', 'Ny intervjuer', answers, undefined);
+    expect(onSave).toHaveBeenCalledWith('Ny intervjuer', answers, undefined);
   });
 
   it('cannot be saved with an invalid temperature, and says why in Norwegian', async () => {
@@ -159,9 +150,7 @@ describe('EditAgentForm', () => {
   });
 
   it('shows the error and keeps what was typed when saving fails', async () => {
-    updateAgentMock.mockRejectedValue(
-      new Error('Du er logget ut. Logg inn på nytt og prøv igjen.'),
-    );
+    onSave.mockRejectedValue(new Error('Du er logget ut. Logg inn på nytt og prøv igjen.'));
     const user = userEvent.setup();
     renderForm();
 
@@ -184,6 +173,16 @@ describe('EditAgentForm', () => {
 
     expect(saveButton()).toBeEnabled();
     expect(screen.getByText('1 endring som ikke er lagret')).toBeVisible();
+  });
+
+  it('can be saved without changes when that is allowed, as for a clone', async () => {
+    onSave.mockResolvedValue('agent-2');
+    const user = userEvent.setup();
+    renderForm(answers, DEFAULT_ADVANCED_SETTINGS, true);
+
+    await user.click(saveButton());
+
+    expect(onSave).toHaveBeenCalledWith('Intervjuer for Barnehagelærer', answers, undefined);
   });
 
   it('cannot be saved while a field is empty', async () => {

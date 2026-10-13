@@ -1,6 +1,5 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
@@ -13,32 +12,13 @@ import Typography from '@mui/material/Typography';
 
 import { settingsOf } from '@/domain/advancedSettings';
 import { readStoredAnswers } from '@/domain/agentTypes/storedAnswers';
-import type { Agent } from '@/lib/types';
-import { fetchAgents } from '../../api';
+import { updateAgent } from '../../api';
+import { useAgent } from '../../useAgent';
 import { EditAgentForm } from './EditAgentForm';
-
-type LoadState =
-  { kind: 'loading' } | { kind: 'ready'; agent: Agent } | { kind: 'missing' } | { kind: 'error' };
 
 /** Loads one of the counsellor's agents and shows the form for editing it. */
 export function EditAgent({ agentId }: { agentId: string }) {
-  const [state, setState] = useState<LoadState>({ kind: 'loading' });
-
-  useEffect(() => {
-    let cancelled = false;
-    fetchAgents()
-      .then((agents) => {
-        if (cancelled) return;
-        const agent = agents.find((item) => item.id === agentId);
-        setState(agent ? { kind: 'ready', agent } : { kind: 'missing' });
-      })
-      .catch(() => {
-        if (!cancelled) setState({ kind: 'error' });
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [agentId]);
+  const state = useAgent(agentId);
 
   if (state.kind === 'missing') notFound();
   if (state.kind === 'loading') return <Typography>Laster agent …</Typography>;
@@ -78,6 +58,12 @@ export function EditAgent({ agentId }: { agentId: string }) {
             { model: agent.llmModel, temperature: agent.temperature, prompt: agent.prompt },
             stored.customPrompt,
           )}
+          label="Rediger agent"
+          submitLabel="Lagre endringer"
+          onSave={async (newName, newAnswers, newSettings) => {
+            await updateAgent(agent.id, newName, newAnswers, newSettings);
+            return agent.id;
+          }}
         />
       ) : (
         <Alert severity="info">Denne agenten ble ikke laget her, og kan ikke redigeres.</Alert>

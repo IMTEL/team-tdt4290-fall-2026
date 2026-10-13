@@ -17,7 +17,6 @@ import { useLanguageModels } from '@/components/agents/useLanguageModels';
 import { type AdvancedSettings, advancedSettingsErrors } from '@/domain/advancedSettings';
 import { MAX_NAME_LENGTH } from '@/domain/agentName';
 import type { AgentTypeDefinition, Answers } from '@/domain/agentTypes/types';
-import { updateAgent } from '../../api';
 
 // Answers longer than this get a whole row and a taller field.
 const LONG_ANSWER = 60;
@@ -30,11 +29,22 @@ type EditAgentFormProps = {
   definition: AgentTypeDefinition;
   initialAnswers: Answers;
   initialSettings: AdvancedSettings;
+  /** The form's name for screen readers. */
+  label: string;
+  submitLabel: string;
+  /**
+   * Saves the name, answers and (only the changed) advanced settings, and returns the id of the
+   * agent to go to afterwards. `settings` is undefined when the advanced settings were not changed.
+   */
+  onSave: (name: string, answers: Answers, settings?: AdvancedSettings) => Promise<string>;
+  /** True when saving is allowed without changes, as for a clone. */
+  allowUnchanged?: boolean;
 };
 
 /**
- * Change an agent's name, answers and advanced settings. The fields come from the agent type, so
- * the form works for every type, and a field added to a type shows up here by itself.
+ * Change an agent's name, answers and advanced settings, for editing an agent or for saving a clone
+ * of it. The fields come from the agent type, so the form works for every type, and a field added
+ * to a type shows up here by itself.
  */
 export function EditAgentForm({
   agentId,
@@ -42,6 +52,10 @@ export function EditAgentForm({
   definition,
   initialAnswers,
   initialSettings,
+  label,
+  submitLabel,
+  onSave,
+  allowUnchanged = false,
 }: EditAgentFormProps) {
   const router = useRouter();
   const [name, setName] = useState(initialName);
@@ -59,11 +73,11 @@ export function EditAgentForm({
     setStatus({ kind: 'saving' });
     try {
       // Only changed settings are sent; otherwise the agent keeps the ones it has.
-      await updateAgent(agentId, name.trim(), answers, settingsChanges > 0 ? settings : undefined);
-      router.push(`/browse-agents/${agentId}`);
+      const savedId = await onSave(name.trim(), answers, settingsChanges > 0 ? settings : undefined);
+      router.push(`/browse-agents/${savedId}`);
     } catch (error) {
       // The form keeps what was typed, so nothing is lost and the counsellor can try again.
-      // updateAgent only throws messages written for users.
+      // onSave only throws messages written for users.
       const message = error instanceof Error ? error.message : 'Noe gikk galt. Prøv igjen.';
       setStatus({ kind: 'error', message });
     }
@@ -90,7 +104,7 @@ export function EditAgentForm({
     <Box
       component="form"
       onSubmit={handleSubmit}
-      aria-label="Rediger agent"
+      aria-label={label}
       sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}
     >
       <Section title="Navn" description="Navnet agenten vises med i agentlisten.">
@@ -180,9 +194,9 @@ export function EditAgentForm({
             type="submit"
             variant="contained"
             startIcon={<SaveOutlinedIcon />}
-            disabled={isSaving || !isComplete || changes === 0}
+            disabled={isSaving || !isComplete || (changes === 0 && !allowUnchanged)}
           >
-            {isSaving ? 'Lagrer …' : 'Lagre endringer'}
+            {isSaving ? 'Lagrer …' : submitLabel}
           </Button>
         </Stack>
       </Paper>

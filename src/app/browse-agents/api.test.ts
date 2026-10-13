@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { deleteAgent, fetchAgents, updateAgent } from './api';
+import { cloneAgent, deleteAgent, fetchAgents, updateAgent } from './api';
 
 const agent = {
   id: 'agent-1',
@@ -127,6 +127,47 @@ describe('updateAgent', () => {
     fetchMock.mockResolvedValue(Response.json({ agent: { id: 'agent-1' } }));
 
     await expect(updateAgent('agent-1', 'Nytt navn', answers)).rejects.toThrow(
+      'Noe gikk galt. Prøv igjen.',
+    );
+  });
+});
+
+describe('cloneAgent', () => {
+  const answers = { stilling: 'Barnehagelærer', bransje: 'Oppvekst' };
+
+  it('sends the name and answers to the original agent and returns the new id', async () => {
+    fetchMock.mockResolvedValue(Response.json({ id: 'agent-2' }, { status: 201 }));
+
+    await expect(cloneAgent('agent-1', 'Kopi', answers)).resolves.toBe('agent-2');
+
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toBe('/api/agents/agent-1/clone');
+    expect(init?.method).toBe('POST');
+    expect(JSON.parse(init?.body as string)).toEqual({ name: 'Kopi', answers });
+  });
+
+  it.each([
+    [401, 'Du er logget ut. Logg inn på nytt og prøv igjen.'],
+    [404, 'Fant ikke agenten. Den kan ha blitt slettet.'],
+    [502, 'Noe gikk galt. Prøv igjen.'],
+  ])('gives a Norwegian message when the server answers %i', async (status, message) => {
+    fetchMock.mockResolvedValue(Response.json({ error: 'Agent not found' }, { status }));
+
+    await expect(cloneAgent('agent-1', 'Kopi', answers)).rejects.toThrow(message);
+  });
+
+  it('gives a network message when the server cannot be reached', async () => {
+    fetchMock.mockRejectedValue(new TypeError('Failed to fetch'));
+
+    await expect(cloneAgent('agent-1', 'Kopi', answers)).rejects.toThrow(
+      'Fikk ikke kontakt med serveren. Sjekk nettverket og prøv igjen.',
+    );
+  });
+
+  it('fails when the answer has no id', async () => {
+    fetchMock.mockResolvedValue(Response.json({}, { status: 201 }));
+
+    await expect(cloneAgent('agent-1', 'Kopi', answers)).rejects.toThrow(
       'Noe gikk galt. Prøv igjen.',
     );
   });

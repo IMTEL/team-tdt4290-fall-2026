@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { findTemplate } from '@/data/interviewer-templates';
 import { getSessionToken } from '@/lib/session-tokens';
-import { askAgent, getTemplate, RagdollError } from '@/server/ragdoll';
+import { askAgent, getProfile, getTemplate, RagdollError } from '@/server/ragdoll';
 import { POST } from './route';
 
 // The adapter and parseConfiguration have their own tests. Here we only check what the route adds:
@@ -13,12 +13,13 @@ import { POST } from './route';
 vi.mock('@/lib/session-tokens', () => ({ getSessionToken: vi.fn() }));
 vi.mock('@/server/ragdoll', async (importOriginal) => {
   const original = await importOriginal<typeof import('@/server/ragdoll')>();
-  return { ...original, askAgent: vi.fn(), getTemplate: vi.fn() };
+  return { ...original, askAgent: vi.fn(), getTemplate: vi.fn(), getProfile: vi.fn() };
 });
 
 const getSessionTokenMock = vi.mocked(getSessionToken);
 const askAgentMock = vi.mocked(askAgent);
 const getTemplateMock = vi.mocked(getTemplate);
+const getProfileMock = vi.mocked(getProfile);
 
 const messages = [
   { role: 'assistant', content: 'Hei! Hvilken stilling skal jobbsøkeren øve til?' },
@@ -58,6 +59,7 @@ afterEach(() => {
   getSessionTokenMock.mockReset();
   askAgentMock.mockReset();
   getTemplateMock.mockReset();
+  getProfileMock.mockReset();
 });
 
 describe('POST /api/configure/turn', () => {
@@ -128,6 +130,42 @@ describe('POST /api/configure/turn', () => {
 
     expect(body.done).toBe(true);
     expect(body.configuration.intervjuer).toBe('butikksjef, vennlig');
+  });
+
+  it('takes the job seeker from the chosen profile, together with the template', async () => {
+    getProfileMock.mockResolvedValue({
+      id: 'profile-1',
+      label: 'Profil A',
+      age_range: '18-24',
+      experience_level: null,
+      education: '',
+      work_experience: '',
+      languages: [],
+      practice_areas: ['Mestre nervøsitet'],
+      notes: 'Skal ikke med',
+    });
+    askAgentMock.mockResolvedValue(finalReply.replace(/^Jobbsøker:.*\n/m, ''));
+
+    const res = await POST(
+      turnRequest({ templateId: 'teamleder', profileId: 'profile-1', messages }),
+    );
+    const body = await res.json();
+
+    expect(getProfileMock).toHaveBeenCalledWith('session-token', 'profile-1');
+    expect(body.done).toBe(true);
+    expect(body.configuration.jobbsoker).toBe(
+      'aldersgruppe 18–24 år; vil øve på: mestre nervøsitet',
+    );
+    expect(body.configuration.intervjuer).toBe(findTemplate('teamleder')?.persona);
+  });
+
+  it('answers 400 and asks nothing when the profile is not one of the counsellor’s', async () => {
+    getProfileMock.mockRejectedValue(new RagdollError('not-found', 'no profile'));
+
+    const res = await POST(turnRequest({ profileId: 'profile-2', messages }));
+
+    expect(res.status).toBe(400);
+    expect(askAgentMock).not.toHaveBeenCalled();
   });
 
   it('answers 401 and asks nothing when the user is not logged in', async () => {

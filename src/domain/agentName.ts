@@ -7,3 +7,14 @@ export function cleanName(value: unknown): string | null {
   const name = value.trim();
   return name && name.length <= MAX_NAME_LENGTH ? name : null;
 }
+
+const CLONE_SUFFIX = ' (kopi)';
+
+/** The suggested name for a copy of an agent. */
+export function cloneName(name: string): string {
+  const base = name
+    .trim()
+    .slice(0, MAX_NAME_LENGTH - CLONE_SUFFIX.length)
+    .trimEnd();
+  return base + CLONE_SUFFIX;
+}
