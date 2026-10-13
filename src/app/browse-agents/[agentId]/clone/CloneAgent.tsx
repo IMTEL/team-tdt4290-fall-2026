@@ -1,0 +1,90 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import Link from 'next/link';
+import { notFound } from 'next/navigation';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import Alert from '@mui/material/Alert';
+import Box from '@mui/material/Box';
+import Button from '@mui/material/Button';
+import Chip from '@mui/material/Chip';
+import Stack from '@mui/material/Stack';
+import Typography from '@mui/material/Typography';
+
+import { cloneName } from '@/domain/agentName';
+import { readStoredAnswers } from '@/domain/agentTypes/storedAnswers';
+import type { Agent } from '@/lib/types';
+import { cloneAgent, fetchAgents } from '../../api';
+import { EditAgentForm } from '../edit/EditAgentForm';
+
+type LoadState =
+  { kind: 'loading' } | { kind: 'ready'; agent: Agent } | { kind: 'missing' } | { kind: 'error' };
+
+/**
+ * Loads one of the counsellor's agents and shows the edit form filled in from it. Nothing is
+ * saved until the counsellor saves, and then as a new agent; the original is not changed.
+ */
+export function CloneAgent({ agentId }: { agentId: string }) {
+  const [state, setState] = useState<LoadState>({ kind: 'loading' });
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchAgents()
+      .then((agents) => {
+        if (cancelled) return;
+        const agent = agents.find((item) => item.id === agentId);
+        setState(agent ? { kind: 'ready', agent } : { kind: 'missing' });
+      })
+      .catch(() => {
+        if (!cancelled) setState({ kind: 'error' });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [agentId]);
+
+  if (state.kind === 'missing') notFound();
+  if (state.kind === 'loading') return <Typography>Laster agent …</Typography>;
+  if (state.kind === 'error') return <Alert severity="error">Noe gikk galt. Prøv igjen.</Alert>;
+  if (state.kind !== 'ready') return null;
+
+  const { agent } = state;
+  const stored = readStoredAnswers(agent.description);
+
+  return (
+    <Box sx={{ p: { xs: 2, md: 4 }, maxWidth: 960, mx: 'auto' }}>
+      <Button
+        component={Link}
+        href={`/browse-agents/${agent.id}`}
+        startIcon={<ArrowBackIcon />}
+        size="small"
+        sx={{ mb: 2 }}
+      >
+        Tilbake til agenten
+      </Button>
+
+      <Typography variant="h4" component="h1">
+        Klon agent
+      </Typography>
+      <Stack direction="row" spacing={1} sx={{ mt: 1, mb: 3, alignItems: 'center' }}>
+        <Typography color="text.secondary">Kopi av {agent.name}</Typography>
+        {stored && <Chip label={stored.definition.label} size="small" color="secondary" />}
+      </Stack>
+
+      {stored ? (
+        <EditAgentForm
+          agentId={agent.id}
+          initialName={cloneName(agent.name)}
+          definition={stored.definition}
+          initialAnswers={stored.answers}
+          label="Klon agent"
+          submitLabel="Lagre som ny agent"
+          onSave={(name, answers) => cloneAgent(agent.id, name, answers)}
+          allowUnchanged
+        />
+      ) : (
+        <Alert severity="info">Denne agenten ble ikke laget her, og kan ikke klones.</Alert>
+      )}
+    </Box>
+  );
+}

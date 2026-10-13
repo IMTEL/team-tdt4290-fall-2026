@@ -13,7 +13,7 @@ import Typography from '@mui/material/Typography';
 
 import { readStoredAnswers } from '@/domain/agentTypes/storedAnswers';
 import type { Agent } from '@/lib/types';
-import { fetchAgents } from '../../api';
+import { fetchAgents, updateAgent } from '../../api';
 import { EditAgentForm } from './EditAgentForm';
 
 type LoadState =
@@ -73,6 +73,12 @@ export function EditAgent({ agentId }: { agentId: string }) {
           initialName={agent.name}
           definition={stored.definition}
           initialAnswers={stored.answers}
+          label="Rediger agent"
+          submitLabel="Lagre endringer"
+          onSave={async (newName, newAnswers) => {
+            await updateAgent(agent.id, newName, newAnswers);
+            return agent.id;
+          }}
         />
       ) : (
         <Alert severity="info">Denne agenten ble ikke laget her, og kan ikke redigeres.</Alert>

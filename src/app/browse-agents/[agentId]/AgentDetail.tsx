@@ -101,7 +101,7 @@ export function AgentDetail({ agentId }: { agentId: string }) {
         >
           Test agenten
         </Button>
-        {/* Only agents made in this app have answers that can be edited. */}
+        {/* Only agents made in this app have answers that can be edited or cloned. */}
         {stored && (
           <Button
             component={Link}
@@ -109,6 +109,15 @@ export function AgentDetail({ agentId }: { agentId: string }) {
             variant="outlined"
           >
             Rediger
+          </Button>
+        )}
+        {stored && (
+          <Button
+            component={Link}
+            href={`/browse-agents/${state.agent.id}/clone`}
+            variant="outlined"
+          >
+            Klon
           </Button>
         )}
         <DeleteAgentButton agent={state.agent} />

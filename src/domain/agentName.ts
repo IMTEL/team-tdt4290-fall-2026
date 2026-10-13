@@ -12,6 +12,9 @@ const CLONE_SUFFIX = ' (kopi)';
 
 /** The suggested name for a copy of an agent. */
 export function cloneName(name: string): string {
-  const base = name.trim().slice(0, MAX_NAME_LENGTH - CLONE_SUFFIX.length).trimEnd();
+  const base = name
+    .trim()
+    .slice(0, MAX_NAME_LENGTH - CLONE_SUFFIX.length)
+    .trimEnd();
   return base + CLONE_SUFFIX;
 }

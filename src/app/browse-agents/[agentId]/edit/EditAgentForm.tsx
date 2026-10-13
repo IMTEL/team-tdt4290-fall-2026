@@ -14,7 +14,6 @@ import Typography from '@mui/material/Typography';
 
 import { MAX_NAME_LENGTH } from '@/domain/agentName';
 import type { AgentTypeDefinition, Answers } from '@/domain/agentTypes/types';
-import { updateAgent } from '../../api';
 
 // Answers longer than this get a whole row and a taller field.
 const LONG_ANSWER = 60;
@@ -26,17 +25,29 @@ type EditAgentFormProps = {
   initialName: string;
   definition: AgentTypeDefinition;
   initialAnswers: Answers;
+  /** The form's name for screen readers. */
+  label: string;
+  submitLabel: string;
+  /** Saves the name and answers, and returns the id of the agent to go to afterwards. */
+  onSave: (name: string, answers: Answers) => Promise<string>;
+  /** True when saving is allowed without changes, as for a clone. */
+  allowUnchanged?: boolean;
 };
 
 /**
- * Change an agent's name and answers. The fields come from the agent type, so the form works
- * for every type, and a field added to a type shows up here by itself.
+ * Change an agent's name and answers, for editing an agent or for saving a clone of it. The fields
+ * come from the agent type, so the form works for every type, and a field added to a type shows up
+ * here by itself.
  */
 export function EditAgentForm({
   agentId,
   initialName,
   definition,
   initialAnswers,
+  label,
+  submitLabel,
+  onSave,
+  allowUnchanged = false,
 }: EditAgentFormProps) {
   const router = useRouter();
   const [name, setName] = useState(initialName);
@@ -51,11 +62,11 @@ export function EditAgentForm({
     event.preventDefault();
     setStatus({ kind: 'saving' });
     try {
-      await updateAgent(agentId, name.trim(), answers);
-      router.push(`/browse-agents/${agentId}`);
+      const savedId = await onSave(name.trim(), answers);
+      router.push(`/browse-agents/${savedId}`);
     } catch (error) {
       // The form keeps what was typed, so nothing is lost and the counsellor can try again.
-      // updateAgent only throws messages written for users.
+      // onSave only throws messages written for users.
       const message = error instanceof Error ? error.message : 'Noe gikk galt. Prøv igjen.';
       setStatus({ kind: 'error', message });
     }
@@ -72,7 +83,7 @@ export function EditAgentForm({
     <Box
       component="form"
       onSubmit={handleSubmit}
-      aria-label="Rediger agent"
+      aria-label={label}
       sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}
     >
       <Section title="Navn" description="Navnet agenten vises med i agentlisten.">
@@ -147,9 +158,9 @@ export function EditAgentForm({
             type="submit"
             variant="contained"
             startIcon={<SaveOutlinedIcon />}
-            disabled={isSaving || !isComplete || changes === 0}
+            disabled={isSaving || !isComplete || (changes === 0 && !allowUnchanged)}
           >
-            {isSaving ? 'Lagrer …' : 'Lagre endringer'}
+            {isSaving ? 'Lagrer …' : submitLabel}
           </Button>
         </Stack>
       </Paper>
