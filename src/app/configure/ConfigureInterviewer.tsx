@@ -3,8 +3,11 @@
 import { useEffect, useState } from 'react';
 import Button from '@mui/material/Button';
 
+import { fetchProfiles } from '@/components/profiles/api';
+import { ProfileSelect } from '@/components/profiles/ProfileSelect';
 import { TemplatePicker } from '@/components/templates/TemplatePicker';
 import { interviewerTemplates, type InterviewerTemplate } from '@/data/interviewer-templates';
+import type { JobSeekerProfile } from '@/domain/jobSeekerProfile';
 import { fetchSavedTemplates } from './api';
 import { ConfigurationChat } from './ConfigurationChat';
 import styles from './page.module.css';
@@ -13,32 +16,42 @@ import styles from './page.module.css';
 type Choice = InterviewerTemplate | null | undefined;
 
 /**
- * First the counsellor picks a template, which decides the interviewer, or continues without one.
- * The built-in templates come first, then the ones the counsellor has saved. Then the chat starts.
+ * First the counsellor picks a job seeker profile, which decides the job seeker, and a template,
+ * which decides the interviewer. Both are optional. The built-in templates come first, then the
+ * ones the counsellor has saved. Then the chat starts.
  */
 export function ConfigureInterviewer() {
   const [choice, setChoice] = useState<Choice>(undefined);
   const [saved, setSaved] = useState<InterviewerTemplate[]>([]);
+  const [profiles, setProfiles] = useState<JobSeekerProfile[]>([]);
+  const [profileId, setProfileId] = useState('');
 
   useEffect(() => {
     const controller = new AbortController();
-    fetchSavedTemplates(controller.signal)
-      .then(setSaved)
-      .catch((error) => {
-        // The built-in templates still work, so the counsellor can go on without the saved ones.
-        if (!controller.signal.aborted) console.error(error);
-      });
+    // Without the saved templates or profiles, the counsellor can still go on without them.
+    const logError = (error: unknown) => {
+      if (!controller.signal.aborted) console.error(error);
+    };
+    fetchSavedTemplates(controller.signal).then(setSaved).catch(logError);
+    fetchProfiles(controller.signal).then(setProfiles).catch(logError);
     return () => controller.abort();
   }, []);
 
+  const profile = profiles.find((item) => item.id === profileId) ?? null;
+
   if (choice === undefined) {
     return (
-      <TemplatePicker
-        templates={interviewerTemplates}
-        savedTemplates={saved}
-        onSelect={setChoice}
-        onDeleted={(id) => setSaved((current) => current.filter((template) => template.id !== id))}
-      />
+      <>
+        <ProfileSelect profiles={profiles} value={profileId} onChange={setProfileId} />
+        <TemplatePicker
+          templates={interviewerTemplates}
+          savedTemplates={saved}
+          onSelect={setChoice}
+          onDeleted={(id) =>
+            setSaved((current) => current.filter((template) => template.id !== id))
+          }
+        />
+      </>
     );
   }
 
@@ -46,22 +59,20 @@ export function ConfigureInterviewer() {
     <>
       <div className={styles.chosen}>
         <p>
-          {choice ? (
-            <>
-              Intervjuer: <strong>{choice.title}</strong>
-            </>
-          ) : (
-            <>
-              Intervjuer: <strong>Ingen mal valgt</strong>
-            </>
-          )}
+          Intervjuer: <strong>{choice ? choice.title : 'Ingen mal valgt'}</strong>
+          <br />
+          Jobbsøker: <strong>{profile ? profile.label : 'Ingen profil valgt'}</strong>
         </p>
-        {/* Changing the template starts the conversation over, since the chat was set up for it. */}
+        {/* Changing the choices starts the conversation over, since the chat was set up for them. */}
         <Button variant="contained" size="small" onClick={() => setChoice(undefined)}>
-          {choice ? 'Bytt mal' : 'Velg en mal'}
+          Bytt mal eller profil
         </Button>
       </div>
-      <ConfigurationChat key={choice?.id ?? 'none'} template={choice} />
+      <ConfigurationChat
+        key={`${choice?.id ?? 'none'}:${profile?.id ?? 'none'}`}
+        template={choice}
+        profile={profile}
+      />
     </>
   );
 }

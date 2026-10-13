@@ -8,6 +8,8 @@
 - [Running](#running)
 - [Where tests live](#where-tests-live)
 - [What is covered so far](#what-is-covered-so-far)
+- [Manual end-to-end check](#manual-end-to-end-check)
+- [Manual check: job seeker profiles](#manual-check-job-seeker-profiles)
 
 ## Tools
 
@@ -89,6 +91,21 @@ Unit and component level only:
 - `src/app/templates/[templateId]/edit/EditTemplate.test.tsx`: loads the template into the form
   and saves the changes to the same id; a missing template shows the not-found page; a failed load
   shows the error.
+- `src/components/profiles/ProfileForm.test.tsx`: saves every field with preset and own practice
+  areas; only the name is required; warns against real names and says notes stay private; a
+  saved profile starts with its values; shows the error and keeps what was typed.
+- `src/components/profiles/ProfileList.test.tsx`: shows each profile with summary, practice areas
+  and edit link; the empty and error states; asks before deleting and removes the profile.
+- `src/components/profiles/api.test.ts`: the browser functions call the right profile routes,
+  reject badly shaped profiles, load a missing profile as null, and give Norwegian messages.
+- `src/app/profiles/page.test.tsx` and `src/app/profiles/[profileId]/edit/EditProfile.test.tsx`:
+  the profiles page and its link to a new profile; editing loads the profile and saves to the
+  same id; a missing profile shows the not-found page.
+- `src/domain/jobSeekerProfile.test.ts`: the Jobbsøker line has every filled-in field, never the
+  notes or the label, and leaves out empty fields.
+- `src/server/profileMapper.test.ts` and `src/app/api/profiles/**/route.test.ts`: profiles are
+  trimmed and validated, stored with RAGdoll's field names and read back; the routes give 400,
+  401 and 404 where they should.
 - `src/app/configure/api.test.ts`: the browser functions send only `role` and `content`, return
   the configuration when the server says it is done, and turn failures (including an expired
   login) into Norwegian messages; `fetchSavedTemplates` rejects failures and badly shaped
@@ -198,3 +215,62 @@ must start with the exact label (`Stilling:`, `Bransje:` ...). If the model form
 differently, `parseConfiguration` in `src/domain/configuration.ts` needs to accept that format.
 The block only appears when the configurator's **General Agent Prompt** in RAGdoll is the fenced
 prompt in `prompts/configurator.nb.md`.
+
+## Manual check: job seeker profiles
+
+Run this after changes to the profiles, the profile choice on `/configure` or the configurator
+prompt. The unit tests mock RAGdoll, so only this shows that the profile is stored, that the
+configurator stops asking about the job seeker, and that the notes never reach an agent.
+
+Before you start:
+
+- RAGdoll has the profile endpoints with every field. Until
+  `feat/profile-experience-and-practice-areas` is merged into `tdt4290/main`, check out that
+  branch in RAGdoll and rebuild (`docker compose -f docker-compose.local.yml up --build`).
+  On an older RAGdoll, saving fails or the experience and practice areas come back empty.
+- The configurator's **General Agent Prompt** in RAGdoll is the current fenced prompt in
+  `prompts/configurator.nb.md`. This feature changed it: an old prompt still asks about the job
+  seeker.
+- You can log in as two users (`test@example.com` / `test`, and one you register yourself).
+
+Create, edit and keep private:
+
+| #   | Do this                                                                                                                                                                                                                                                  | You should see                                                                                            |
+| --- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| 1   | Open <http://localhost:3000/profiles> while logged out                                                                                                                                                                                                   | You are sent to `/login`                                                                                  |
+| 2   | Log in as the first user and click **Jobbsøkere** in the menu                                                                                                                                                                                            | "Du har ingen profiler ennå …" (or your earlier profiles)                                                 |
+| 3   | Click **Lag en ny profil**                                                                                                                                                                                                                               | An empty form; **Lagre profil** is disabled until **Navn på profilen** has text                           |
+| 4   | In **Språk**, type 21 languages separated by commas                                                                                                                                                                                                      | "Skriv høyst 20 språk." and **Lagre profil** is disabled. Clear the field again                           |
+| 5   | Fill in: name `Profil A`, age `18–24 år`, experience `Litt (under 1 år)`, `sommerjobb i butikk`, `videregående`, `Norsk B1, Arabisk`; tick **Mestre nervøsitet** and **Forklare hull i CV-en**; **Annet** `Snakke om lønn`; **Notater** `HEMMELIG-NOTAT` | "Profilen «Profil A» er lagret." with a link to the profiles                                              |
+| 6   | Follow the link                                                                                                                                                                                                                                          | A card for Profil A with "18–24 år · Litt (under 1 år)" and the three practice areas as chips             |
+| 7   | Click **Rediger**                                                                                                                                                                                                                                        | Every field as you saved it: the two boxes ticked, `Snakke om lønn` in **Annet**, the note in **Notater** |
+| 8   | Change the age to `25–29 år` and click **Lagre endringene**, then go back to `/profiles`                                                                                                                                                                 | Still one Profil A card, now with "25–29 år"                                                              |
+| 9   | Copy the profile id from the edit page's URL. Log out, log in as the second user and open `/profiles`                                                                                                                                                    | Profil A is not in the list                                                                               |
+| 10  | As the second user, open `/profiles/<the id>/edit`                                                                                                                                                                                                       | The not-found page, not the profile                                                                       |
+
+Use a profile on `/configure` (log in as the first user again):
+
+| #   | Do this                                                                                                      | You should see                                                                                                                                                                                        |
+| --- | ------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 11  | Open `/configure` and open **Jobbsøkerprofil**                                                               | **Ingen profil** and "Profil A (25–29 år · Litt (under 1 år))". **Administrer profiler** links to `/profiles`                                                                                         |
+| 12  | Choose Profil A, then a template                                                                             | Above the chat: "Jobbsøker: Profil A". The greeting says "Du har valgt jobbsøkerprofilen «Profil A»."                                                                                                 |
+| 13  | Answer the assistant's questions until it shows the summary, then confirm it                                 | It never asks about the job seeker's age, experience, Norwegian level or what they want to practise. **Lagre agent** appears                                                                          |
+| 14  | Save the agent and open it on `/browse-agents`                                                               | **Jobbsøker** is the profile as one line: "aldersgruppe 25–29 år; arbeidserfaring: litt (under 1 år), sommerjobb i butikk; …; vil øve på: mestre nervøsitet, …". The same line is in **Systemprompt** |
+| 15  | In the browser console, run `JSON.stringify(await (await fetch('/api/agents')).json()).includes('HEMMELIG')` | `false`: the notes are not in any agent                                                                                                                                                               |
+| 16  | Open the agent in the test chat and say you are nervous                                                      | The interviewer keeps a calm tempo and is encouraging (judged by hand, depends on the model)                                                                                                          |
+| 17  | Back on `/configure`, click **Bytt mal eller profil**, choose **Ingen profil** and a template                | "Jobbsøker: Ingen profil valgt", no profile sentence in the greeting, and the assistant asks about the job seeker again                                                                               |
+
+Delete and failures:
+
+| #   | Do this                                                                                                       | You should see                                                                                     |
+| --- | ------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| 18  | On `/profiles`, click **Slett** on Profil A, then **Avbryt**                                                  | The dialog closes and the profile is still there                                                   |
+| 19  | Click **Slett** again, then **Slett** in the dialog                                                           | The card disappears, and stays gone after a reload                                                 |
+| 20  | Open the agent from step 14                                                                                   | Unchanged: the **Jobbsøker** line is still there                                                   |
+| 21  | Make a new profile, choose it on `/configure`, delete it in another tab, then send a message in the first tab | A Norwegian error in the chat, not a crash or a technical message                                  |
+| 22  | Stop RAGdoll. Fill in a new profile and save; then reload `/profiles`                                         | A Norwegian error, and the form keeps what you typed; the list shows an error instead of the cards |
+
+If step 13 still asks about the job seeker, the configurator in RAGdoll has the old prompt. If
+step 14 shows the configurator's own Jobbsøker text instead of the profile line, the server did
+not use the profile: check that `/api/configure/turn` was called with `profileId` in the Network
+tab.

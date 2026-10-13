@@ -16,11 +16,15 @@ export type Configuration = Record<keyof typeof LABELS, string>;
 
 /**
  * Reads the KONFIGURASJON block out of a reply from the configurator agent.
- * With a template, the template decides the interviewer: the caller passes it in as `interviewer`,
- * and the block needs no Intervjuer line. Without one, the Intervjuer line is required.
+ * `decided` holds fields the counsellor has already settled outside the chat: the interviewer from
+ * a template, the job seeker from a profile. Their lines are not needed in the block, and these
+ * values win over what the configurator writes. Every other line is required.
  * Returns null if the reply has no block, or if a line is missing. AI generated.
  */
-export function parseConfiguration(reply: string, interviewer?: string): Configuration | null {
+export function parseConfiguration(
+  reply: string,
+  decided: Partial<Configuration> = {},
+): Configuration | null {
   const start = reply.indexOf('KONFIGURASJON');
   if (start === -1) return null;
 
@@ -29,9 +33,12 @@ export function parseConfiguration(reply: string, interviewer?: string): Configu
     .split('\n')
     .map((line) => line.trim());
 
-  const configuration: Partial<Configuration> = { intervjuer: interviewer };
+  const configuration: Partial<Configuration> = {};
   for (const [field, label] of Object.entries(LABELS) as [keyof Configuration, string][]) {
-    if (field === 'intervjuer' && interviewer) continue;
+    if (decided[field]) {
+      configuration[field] = decided[field];
+      continue;
+    }
     const line = lines.find((l) => l.startsWith(`${label}:`));
     const value = line?.slice(label.length + 1).trim();
     if (!value) return null;

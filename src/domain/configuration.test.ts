@@ -26,7 +26,7 @@ const replyWithInterviewer = completeReply.replace(
 
 describe('parseConfiguration', () => {
   it('reads every field of a complete block, and takes the interviewer from the template', () => {
-    expect(parseConfiguration(completeReply, interviewer)).toEqual({
+    expect(parseConfiguration(completeReply, { intervjuer: interviewer })).toEqual({
       stilling: 'Butikkmedarbeider',
       bransje: 'Varehandel (privat)',
       bedrift: 'Nærbutikken AS',
@@ -43,7 +43,9 @@ describe('parseConfiguration', () => {
   });
 
   it('uses the template over an Intervjuer line in the block', () => {
-    expect(parseConfiguration(replyWithInterviewer, interviewer)?.intervjuer).toBe(interviewer);
+    expect(parseConfiguration(replyWithInterviewer, { intervjuer: interviewer })?.intervjuer).toBe(
+      interviewer,
+    );
   });
 
   it('returns null without a template when the Intervjuer line is missing', () => {
@@ -51,17 +53,19 @@ describe('parseConfiguration', () => {
   });
 
   it('returns null for an ordinary reply without a block', () => {
-    expect(parseConfiguration('Hvilken bransje er stillingen i?', interviewer)).toBeNull();
+    expect(
+      parseConfiguration('Hvilken bransje er stillingen i?', { intervjuer: interviewer }),
+    ).toBeNull();
   });
 
   it('returns null when a line is missing', () => {
     const withoutCompany = completeReply.replace('Bedrift: Nærbutikken AS\n', '');
-    expect(parseConfiguration(withoutCompany, interviewer)).toBeNull();
+    expect(parseConfiguration(withoutCompany, { intervjuer: interviewer })).toBeNull();
   });
 
   it('returns null when a line has no value', () => {
     const emptyCompany = completeReply.replace('Bedrift: Nærbutikken AS', 'Bedrift:');
-    expect(parseConfiguration(emptyCompany, interviewer)).toBeNull();
+    expect(parseConfiguration(emptyCompany, { intervjuer: interviewer })).toBeNull();
   });
 
   it('ignores spaces at the start and end of lines', () => {
@@ -69,6 +73,24 @@ describe('parseConfiguration', () => {
       'Stilling: Butikkmedarbeider',
       '   Stilling:  Butikkmedarbeider  ',
     );
-    expect(parseConfiguration(indented, interviewer)?.stilling).toBe('Butikkmedarbeider');
+    expect(parseConfiguration(indented, { intervjuer: interviewer })?.stilling).toBe(
+      'Butikkmedarbeider',
+    );
+  });
+
+  it('takes the job seeker from a profile, and then needs no Jobbsøker line', () => {
+    const jobSeeker = 'aldersgruppe 18–24 år; vil øve på: mestre nervøsitet';
+    const withoutJobSeeker = completeReply.replace(/^Jobbsøker:.*\n/m, '');
+
+    const configuration = parseConfiguration(withoutJobSeeker, {
+      intervjuer: interviewer,
+      jobbsoker: jobSeeker,
+    });
+
+    expect(configuration?.jobbsoker).toBe(jobSeeker);
+    expect(configuration?.intervjuer).toBe(interviewer);
+    expect(parseConfiguration(replyWithInterviewer, { jobbsoker: jobSeeker })?.jobbsoker).toBe(
+      jobSeeker,
+    );
   });
 });
