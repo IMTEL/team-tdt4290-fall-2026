@@ -1,0 +1,27 @@
+.card {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+/* Fills the card, so the test button sits at the bottom of every card in a row. */
+.action {
+  display: flex;
+  flex: 1;
+  align-items: flex-start;
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  width: 100%;
+}
+
+.avatar {
+  margin-bottom: 0.5rem;
+}
+
+.summary {
+  margin-top: 0.25rem;
+}

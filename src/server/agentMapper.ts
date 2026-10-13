@@ -5,7 +5,12 @@ import {
 } from '@/domain/advancedSettings';
 import { readStoredAnswers, toStoredDescription } from '@/domain/agentTypes/storedAnswers';
 import type { AgentRole, AgentTypeDefinition, Answers } from '@/domain/agentTypes/types';
-import type { FullRagdollAgent, NewRagdollAgent, RagdollRole } from './ragdoll';
+import type {
+  FullRagdollAgent,
+  NewRagdollAgent,
+  RagdollAgentSummary,
+  RagdollRole,
+} from './ragdoll';
 
 // The embedding model every agent uses, named the way RAGdoll knows it.
 const EMBEDDING_MODEL = 'idun:Qwen/Qwen3-Embedding-8B';
@@ -87,4 +92,33 @@ function fromChoices(
 /** Our role, with the fields RAGdoll also needs. */
 function toRagdollRole(role: AgentRole): RagdollRole {
   return { ...role, document_access: [], function_access: [] };
+}
+
+/**
+ * An agent as the agent list gets it: the summary, plus what the cards and the filter need from
+ * the stored answers. A field is null if the description is not something we saved, or if the
+ * answer is missing.
+ */
+export type AgentListItem = RagdollAgentSummary & {
+  type: string | null;
+  typeLabel: string | null;
+  stilling: string | null;
+  bransje: string | null;
+  vanskelighetsgrad: string | null;
+};
+
+/** Reads the agent's stored answers so the browser does not have to parse the description. */
+export function toAgentListItem(summary: RagdollAgentSummary): AgentListItem {
+  const stored = readStoredAnswers(summary.description);
+  return {
+    // The description stays: the detail and edit pages read the answers from it.
+    ...summary,
+    type: stored?.definition.id ?? null,
+    typeLabel: stored?.definition.label ?? null,
+    // Only interviewers have these answers. Other agent types, and answers left empty because the
+    // field was added after the agent was saved, get null.
+    stilling: stored?.answers.stilling || null,
+    bransje: stored?.answers.bransje || null,
+    vanskelighetsgrad: stored?.answers.vanskelighetsgrad || null,
+  };
 }

@@ -3,8 +3,8 @@ import { describe, expect, it } from 'vitest';
 
 import { DEFAULT_ADVANCED_SETTINGS, DEFAULT_MODEL } from '@/domain/advancedSettings';
 import { interviewer } from '@/domain/agentTypes/interviewer';
-import { readStoredAnswers } from '@/domain/agentTypes/storedAnswers';
-import { applyEdit, currentSettings, toRagdollAgent } from './agentMapper';
+import { readStoredAnswers, toStoredDescription } from '@/domain/agentTypes/storedAnswers';
+import { applyEdit, currentSettings, toAgentListItem, toRagdollAgent } from './agentMapper';
 import type { FullRagdollAgent } from './ragdoll';
 
 const answers = {
@@ -186,5 +186,59 @@ describe('currentSettings', () => {
     delete (agent as Record<string, unknown>).llm_temperature;
 
     expect(currentSettings(agent).temperature).toBe(0.7);
+  });
+});
+
+describe('toAgentListItem', () => {
+  const summary = {
+    id: 'a1',
+    name: 'Kari',
+    description: '',
+    lastUpdated: '2026-10-01',
+    llmModel: DEFAULT_MODEL,
+    temperature: 0.7,
+    prompt: 'Du er Kari.',
+  };
+
+  it('adds the type and the answers the cards use, and keeps the description', () => {
+    const description = toStoredDescription(interviewer, answers);
+    const item = toAgentListItem({ ...summary, description });
+
+    expect(item).toEqual({
+      ...summary,
+      description,
+      type: 'interviewer',
+      typeLabel: 'Intervjuer',
+      stilling: 'Butikkmedarbeider',
+      bransje: 'Varehandel (privat)',
+      vanskelighetsgrad: 'lett | Antall spørsmål: 6 | Oppfølgingsspørsmål: ja',
+    });
+  });
+
+  it('reads agents saved before agent types existed as interviewers', () => {
+    const item = toAgentListItem({ ...summary, description: JSON.stringify(answers) });
+
+    expect(item.type).toBe('interviewer');
+    expect(item.stilling).toBe('Butikkmedarbeider');
+  });
+
+  it('gives null for an empty answer, not an empty text', () => {
+    const description = toStoredDescription(interviewer, { ...answers, bransje: '' });
+
+    expect(toAgentListItem({ ...summary, description }).bransje).toBeNull();
+  });
+
+  it('gives null for every added field when the description is not ours', () => {
+    const item = toAgentListItem({ ...summary, description: 'Laget i RAGdoll' });
+
+    expect(item).toEqual({
+      ...summary,
+      description: 'Laget i RAGdoll',
+      type: null,
+      typeLabel: null,
+      stilling: null,
+      bransje: null,
+      vanskelighetsgrad: null,
+    });
   });
 });

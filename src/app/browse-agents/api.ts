@@ -4,6 +4,9 @@ import type { Agent } from '@/lib/types';
 
 const GENERIC_ERROR = 'Noe gikk galt. Prøv igjen.';
 
+// Only the list sends these, so an agent may come without them. The update answer does not.
+const LIST_FIELDS = ['type', 'typeLabel', 'stilling', 'bransje', 'vanskelighetsgrad'] as const;
+
 function isAgent(value: unknown): value is Agent {
   if (typeof value !== 'object' || value === null) return false;
   const agent = value as Record<string, unknown>;
@@ -14,8 +17,14 @@ function isAgent(value: unknown): value is Agent {
     typeof agent.lastUpdated === 'string' &&
     typeof agent.llmModel === 'string' &&
     (typeof agent.temperature === 'number' || agent.temperature === null) &&
-    typeof agent.prompt === 'string'
+    typeof agent.prompt === 'string' &&
+    LIST_FIELDS.every((field) => isOptionalText(agent[field]))
   );
+}
+
+/** True for text, null, or a missing field. */
+function isOptionalText(value: unknown): boolean {
+  return value === undefined || value === null || typeof value === 'string';
 }
 
 /**

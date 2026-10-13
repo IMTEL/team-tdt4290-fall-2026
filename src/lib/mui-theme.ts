@@ -1,6 +1,5 @@
 import { nbNO as coreNbNO } from '@mui/material/locale';
 import { createTheme, type ThemeOptions } from '@mui/material/styles';
-import { nbNO as dataGridNbNO } from '@mui/x-data-grid/locales';
 
 const tokens = {
   background: '#F1FAEE',
@@ -83,8 +82,7 @@ const themeOptions: ThemeOptions = {
   },
 };
 
-// The two nbNO arguments translate MUI's own texts (pagination, "Ingen rader", menus, aria
-// labels) into Norwegian bokmål, for the DataGrid and for the core components.
-const theme = createTheme(themeOptions, dataGridNbNO, coreNbNO);
+// nbNO translates MUI's own texts (pagination, menus, aria labels) into Norwegian bokmål.
+const theme = createTheme(themeOptions, coreNbNO);
 
 export default theme;
