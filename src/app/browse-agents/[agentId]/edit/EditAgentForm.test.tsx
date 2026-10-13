@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { interviewer } from '@/domain/agentTypes/interviewer';
 import type { Answers } from '@/domain/agentTypes/types';
-import { EditAgentForm } from './EditAgentForm';
+import { EditAgentForm, type AnswerPreset } from './EditAgentForm';
 
 const push = vi.hoisted(() => vi.fn());
 
@@ -23,7 +23,15 @@ const answers = {
   egneSporsmal: 'ingen',
 };
 
-function renderForm(initialAnswers = answers, allowUnchanged = false) {
+const profilePreset: AnswerPreset = {
+  field: 'jobbsoker',
+  label: 'Jobbsøkerprofil',
+  options: [{ id: 'profile-1', label: 'Profil A', value: 'aldersgruppe 30–39 år' }],
+  manageHref: '/profiles',
+  manageLabel: 'Administrer profiler',
+};
+
+function renderForm(initialAnswers = answers, allowUnchanged = false, presets?: AnswerPreset[]) {
   render(
     <EditAgentForm
       agentId="agent-1"
@@ -34,6 +42,7 @@ function renderForm(initialAnswers = answers, allowUnchanged = false) {
       submitLabel="Lagre endringer"
       onSave={onSave}
       allowUnchanged={allowUnchanged}
+      presets={presets}
     />,
   );
 }
@@ -131,5 +140,66 @@ describe('EditAgentForm', () => {
 
     expect(field('Bedrift')).toHaveValue('');
     expect(saveButton()).toBeDisabled();
+  });
+
+  it('fills in an answer from a preset, counts it as a change and saves it', async () => {
+    onSave.mockResolvedValue('agent-1');
+    const user = userEvent.setup();
+    renderForm(answers, false, [profilePreset]);
+
+    await user.click(screen.getByRole('combobox', { name: 'Jobbsøkerprofil' }));
+    await user.click(screen.getByRole('option', { name: 'Profil A' }));
+
+    expect(field('Jobbsøker')).toHaveValue('aldersgruppe 30–39 år');
+    expect(screen.getByText('1 endring som ikke er lagret')).toBeVisible();
+
+    await user.click(saveButton());
+
+    expect(onSave).toHaveBeenCalledWith('Intervjuer for Barnehagelærer', {
+      ...answers,
+      jobbsoker: 'aldersgruppe 30–39 år',
+    });
+  });
+
+  it('shows the option the saved answer comes from, and "Egen tekst" once it is changed', async () => {
+    const user = userEvent.setup();
+    renderForm({ ...answers, jobbsoker: 'aldersgruppe 30–39 år' }, false, [profilePreset]);
+
+    const select = screen.getByRole('combobox', { name: 'Jobbsøkerprofil' });
+    expect(select).toHaveTextContent('Profil A');
+
+    await user.type(field('Jobbsøker'), ', snakker engelsk');
+
+    expect(select).toHaveTextContent('Egen tekst');
+  });
+
+  it('shows "Egen tekst" when the saved answer is not from an option', () => {
+    renderForm(answers, false, [profilePreset]);
+
+    expect(screen.getByRole('combobox', { name: 'Jobbsøkerprofil' })).toHaveTextContent(
+      'Egen tekst',
+    );
+  });
+
+  it('puts the saved answer back when "Egen tekst" is chosen', async () => {
+    const user = userEvent.setup();
+    renderForm(answers, false, [profilePreset]);
+
+    await user.click(screen.getByRole('combobox', { name: 'Jobbsøkerprofil' }));
+    await user.click(screen.getByRole('option', { name: 'Profil A' }));
+    await user.click(screen.getByRole('combobox', { name: 'Jobbsøkerprofil' }));
+    await user.click(screen.getByRole('option', { name: 'Egen tekst' }));
+
+    expect(field('Jobbsøker')).toHaveValue('under 25, lite erfaring');
+    expect(screen.getByText('Ingen endringer ennå')).toBeVisible();
+  });
+
+  it('links to where the options are managed', () => {
+    renderForm(answers, false, [profilePreset]);
+
+    expect(screen.getByRole('link', { name: 'Administrer profiler' })).toHaveAttribute(
+      'href',
+      '/profiles',
+    );
   });
 });

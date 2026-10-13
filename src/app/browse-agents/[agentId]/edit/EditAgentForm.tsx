@@ -7,6 +7,7 @@ import SaveOutlinedIcon from '@mui/icons-material/SaveOutlined';
 import Alert from '@mui/material/Alert';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
+import MenuItem from '@mui/material/MenuItem';
 import Paper from '@mui/material/Paper';
 import Stack from '@mui/material/Stack';
 import TextField from '@mui/material/TextField';
@@ -20,6 +21,20 @@ const LONG_ANSWER = 60;
 
 type SaveStatus = { kind: 'idle' } | { kind: 'saving' } | { kind: 'error'; message: string };
 
+/**
+ * Ready-made text for one answer, such as the job seeker from a profile. Choosing an option puts
+ * its text in the field, where the counsellor can still change it.
+ */
+export type AnswerPreset = {
+  /** The answer the options fill in. */
+  field: string;
+  label: string;
+  options: { id: string; label: string; value: string }[];
+  /** Where the counsellor makes and changes the options. */
+  manageHref: string;
+  manageLabel: string;
+};
+
 type EditAgentFormProps = {
   agentId: string;
   initialName: string;
@@ -32,6 +47,7 @@ type EditAgentFormProps = {
   onSave: (name: string, answers: Answers) => Promise<string>;
   /** True when saving is allowed without changes, as for a clone. */
   allowUnchanged?: boolean;
+  presets?: AnswerPreset[];
 };
 
 /**
@@ -48,6 +64,7 @@ export function EditAgentForm({
   submitLabel,
   onSave,
   allowUnchanged = false,
+  presets = [],
 }: EditAgentFormProps) {
   const router = useRouter();
   const [name, setName] = useState(initialName);
@@ -56,6 +73,17 @@ export function EditAgentForm({
 
   function setAnswer(key: string, value: string) {
     setAnswers((current) => ({ ...current, [key]: value }));
+  }
+
+  // The option whose text is in the field, or '' for text that is not from an option. Read from
+  // the answer, so an agent made from a template or profile shows it, and typing updates it.
+  function chosenOption(preset: AnswerPreset): string {
+    return preset.options.find(({ value }) => value === answers[preset.field])?.id ?? '';
+  }
+
+  function choosePreset(preset: AnswerPreset, optionId: string) {
+    const option = preset.options.find(({ id }) => id === optionId);
+    setAnswer(preset.field, option ? option.value : (initialAnswers[preset.field] ?? ''));
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -103,6 +131,42 @@ export function EditAgentForm({
         title="Konfigurasjon"
         description="Når du lagrer, lages systemprompten på nytt fra disse svarene."
       >
+        {presets.length > 0 && (
+          <Box
+            sx={{
+              display: 'grid',
+              gap: 2,
+              mb: 3,
+              gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)' },
+            }}
+          >
+            {presets.map((preset) => (
+              <Box key={preset.field}>
+                <TextField
+                  select
+                  label={preset.label}
+                  value={chosenOption(preset)}
+                  onChange={(event) => choosePreset(preset, event.target.value)}
+                  fullWidth
+                  disabled={isSaving}
+                  helperText="Fyller inn feltet under. Du kan endre teksten etterpå."
+                  // Shows "Egen tekst" instead of an empty field when no option matches.
+                  slotProps={{ select: { displayEmpty: true }, inputLabel: { shrink: true } }}
+                >
+                  <MenuItem value="">Egen tekst</MenuItem>
+                  {preset.options.map((option) => (
+                    <MenuItem key={option.id} value={option.id}>
+                      {option.label}
+                    </MenuItem>
+                  ))}
+                </TextField>
+                <Button component={Link} href={preset.manageHref} size="small" sx={{ mt: 0.5 }}>
+                  {preset.manageLabel}
+                </Button>
+              </Box>
+            ))}
+          </Box>
+        )}
         <Box
           sx={{ display: 'grid', gap: 2, gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)' } }}
         >

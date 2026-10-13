@@ -10,6 +10,8 @@ const push = vi.hoisted(() => vi.fn());
 
 vi.mock('next/navigation', () => ({ notFound, useRouter: () => ({ push }) }));
 vi.mock('../../api', () => ({ fetchAgents: vi.fn(), cloneAgent: vi.fn(), updateAgent: vi.fn() }));
+// The presets have their own tests; here the form only needs to work without them.
+vi.mock('../../useAnswerPresets', () => ({ useAnswerPresets: () => [] }));
 
 const fetchAgentsMock = vi.mocked(fetchAgents);
 const cloneAgentMock = vi.mocked(cloneAgent);
