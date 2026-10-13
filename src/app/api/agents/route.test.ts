@@ -121,14 +121,30 @@ describe('POST /api/agents', () => {
 });
 
 describe('GET /api/agents', () => {
-  it('returns the logged-in user’s agents', async () => {
-    const agents = [{ id: 'a1', name: 'Testintervjuer', description: '{}', lastUpdated: 'x' }];
-    listAgentsMock.mockResolvedValue(agents);
+  it('returns the logged-in user’s agents, with the fields the cards use', async () => {
+    const agent = {
+      id: 'a1',
+      name: 'Testintervjuer',
+      description: JSON.stringify({ type: 'interviewer', version: 1, answers: configuration }),
+      lastUpdated: 'x',
+    };
+    listAgentsMock.mockResolvedValue([agent]);
 
     const res = await GET(getRequest());
 
     expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ agents });
+    expect(await res.json()).toEqual({
+      agents: [
+        {
+          ...agent,
+          type: 'interviewer',
+          typeLabel: 'Intervjuer',
+          stilling: 'Butikkmedarbeider',
+          bransje: 'Varehandel (privat)',
+          vanskelighetsgrad: 'lett | Antall spørsmål: 6 | Oppfølgingsspørsmål: ja',
+        },
+      ],
+    });
     expect(listAgentsMock).toHaveBeenCalledWith('session-token');
   });
 

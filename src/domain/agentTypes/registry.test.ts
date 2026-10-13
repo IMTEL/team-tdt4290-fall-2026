@@ -1,4 +1,4 @@
-import { getAgentType, hasAllAnswers } from './registry';
+import { getAgentType, hasAllAnswers, listAgentTypes } from './registry';
 
 // @vitest-environment node
 import { describe, expect, it } from 'vitest';
@@ -24,6 +24,12 @@ describe('getAgentType', () => {
 
   it('returns undefined for an unknown type', () => {
     expect(getAgentType('nope')).toBeUndefined();
+  });
+});
+
+describe('listAgentTypes', () => {
+  it('lists every agent type', () => {
+    expect(listAgentTypes()).toEqual([interviewer]);
   });
 });
 

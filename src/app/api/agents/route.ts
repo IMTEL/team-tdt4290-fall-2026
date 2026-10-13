@@ -4,7 +4,7 @@ import { interviewer } from '@/domain/agentTypes/interviewer';
 import { hasAllAnswers } from '@/domain/agentTypes/registry';
 
 import { getSessionToken } from '@/lib/session-tokens';
-import { toRagdollAgent } from '@/server/agentMapper';
+import { toAgentListItem, toRagdollAgent } from '@/server/agentMapper';
 import { configErrorResponse, ragdollErrorResponse } from '@/server/errorResponse';
 import { listAgents, saveAgent } from '@/server/ragdoll';
 import { MAX_NAME_LENGTH } from '@/domain/agentName';
@@ -49,7 +49,7 @@ export async function POST(req: NextRequest) {
   }
 }
 
-/** Lists the logged-in counsellor's agents, without any keys. */
+/** Lists the logged-in counsellor's agents, without any keys, with what the agent cards show. */
 export async function GET(req: NextRequest) {
   const sessionToken = await getSessionToken(req);
   if (!sessionToken) {
@@ -57,7 +57,8 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    return Response.json({ agents: await listAgents(sessionToken) });
+    const agents = await listAgents(sessionToken);
+    return Response.json({ agents: agents.map(toAgentListItem) });
   } catch (error) {
     return ragdollErrorResponse(error);
   }

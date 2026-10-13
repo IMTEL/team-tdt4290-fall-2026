@@ -12,6 +12,11 @@ export function getAgentType(id: string): AgentTypeDefinition | undefined {
   return AGENT_TYPES[id];
 }
 
+/** Every agent type, in the order they are added above. */
+export function listAgentTypes(): AgentTypeDefinition[] {
+  return Object.values(AGENT_TYPES);
+}
+
 /** True if `value` has an answer for every field of the agent type. */
 export function hasAllAnswers(definition: AgentTypeDefinition, value: unknown): value is Answers {
   if (typeof value !== 'object' || value === null) return false;
