@@ -73,7 +73,11 @@ export function EditAgentForm({
     setStatus({ kind: 'saving' });
     try {
       // Only changed settings are sent; otherwise the agent keeps the ones it has.
-      const savedId = await onSave(name.trim(), answers, settingsChanges > 0 ? settings : undefined);
+      const savedId = await onSave(
+        name.trim(),
+        answers,
+        settingsChanges > 0 ? settings : undefined,
+      );
       router.push(`/browse-agents/${savedId}`);
     } catch (error) {
       // The form keeps what was typed, so nothing is lost and the counsellor can try again.

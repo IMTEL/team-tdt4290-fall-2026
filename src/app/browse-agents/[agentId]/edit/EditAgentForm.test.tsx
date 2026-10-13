@@ -18,7 +18,8 @@ vi.mock('@/components/agents/useLanguageModels', () => ({
   }),
 }));
 
-const onSave = vi.fn<(name: string, answers: Answers, settings?: AdvancedSettings) => Promise<string>>();
+const onSave =
+  vi.fn<(name: string, answers: Answers, settings?: AdvancedSettings) => Promise<string>>();
 
 const answers = {
   stilling: 'Barnehagelærer',
