@@ -55,11 +55,12 @@ export function EditAgent({ agentId }: { agentId: string }) {
           initialName={agent.name}
           definition={stored.definition}
           initialAnswers={stored.answers}
+          initialSources={stored.sources}
           label="Rediger agent"
           presets={presets}
           submitLabel="Lagre endringer"
-          onSave={async (newName, newAnswers) => {
-            await updateAgent(agent.id, newName, newAnswers);
+          onSave={async (newName, newAnswers, newSources) => {
+            await updateAgent(agent.id, newName, newAnswers, newSources);
             return agent.id;
           }}
         />

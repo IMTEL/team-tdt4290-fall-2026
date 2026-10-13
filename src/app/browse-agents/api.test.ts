@@ -74,12 +74,13 @@ describe('updateAgent', () => {
   it('sends the new name and answers to the agent and returns the saved agent', async () => {
     fetchMock.mockResolvedValue(Response.json({ agent }));
 
-    await expect(updateAgent('agent-1', 'Nytt navn', answers)).resolves.toEqual(agent);
+    const sources = { jobbsoker: { kind: 'profile' as const, id: 'profile-1' } };
+    await expect(updateAgent('agent-1', 'Nytt navn', answers, sources)).resolves.toEqual(agent);
 
     const [url, init] = fetchMock.mock.calls[0];
     expect(url).toBe('/api/agents/agent-1');
     expect(init?.method).toBe('PUT');
-    expect(JSON.parse(init?.body as string)).toEqual({ name: 'Nytt navn', answers });
+    expect(JSON.parse(init?.body as string)).toEqual({ name: 'Nytt navn', answers, sources });
   });
 
   it.each([
@@ -121,7 +122,7 @@ describe('cloneAgent', () => {
     const [url, init] = fetchMock.mock.calls[0];
     expect(url).toBe('/api/agents/agent-1/clone');
     expect(init?.method).toBe('POST');
-    expect(JSON.parse(init?.body as string)).toEqual({ name: 'Kopi', answers });
+    expect(JSON.parse(init?.body as string)).toEqual({ name: 'Kopi', answers, sources: {} });
   });
 
   it.each([

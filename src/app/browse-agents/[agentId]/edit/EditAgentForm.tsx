@@ -14,7 +14,12 @@ import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 
 import { MAX_NAME_LENGTH } from '@/domain/agentName';
-import type { AgentTypeDefinition, Answers } from '@/domain/agentTypes/types';
+import type {
+  AgentTypeDefinition,
+  AnswerSource,
+  AnswerSources,
+  Answers,
+} from '@/domain/agentTypes/types';
 
 // Answers longer than this get a whole row and a taller field.
 const LONG_ANSWER = 60;
@@ -28,23 +33,56 @@ type SaveStatus = { kind: 'idle' } | { kind: 'saving' } | { kind: 'error'; messa
 export type AnswerPreset = {
   /** The answer the options fill in. */
   field: string;
+  /** What the options are, stored as the answer's source when one is chosen. */
+  kind: AnswerSource['kind'];
   label: string;
   options: { id: string; label: string; value: string }[];
+  /** False while the options are loading, so a source is not reported missing too early. */
+  loaded: boolean;
   /** Where the counsellor makes and changes the options. */
   manageHref: string;
   manageLabel: string;
 };
+
+/** What a preset's dropdown shows: the chosen option ('' for none), and a note about the source. */
+type PresetChoice = { optionId: string; note: string | null };
+
+/**
+ * The option the answer came from, if the agent remembers one and its text is still in the field.
+ * If the option has been changed or deleted since, the text is the counsellor's own, and the note
+ * says where it came from.
+ */
+export function presetChoice(
+  preset: AnswerPreset,
+  answer: string,
+  source: AnswerSource | undefined,
+): PresetChoice {
+  if (!source || source.kind !== preset.kind) return { optionId: '', note: null };
+
+  const option = preset.options.find(({ id }) => id === source.id);
+  if (option && option.value === answer) return { optionId: option.id, note: null };
+  if (!preset.loaded) return { optionId: '', note: null };
+  if (!option) {
+    return {
+      optionId: '',
+      note: `Teksten kom fra en ${preset.label.toLowerCase()} som ikke finnes lenger.`,
+    };
+  }
+  return { optionId: '', note: `Teksten kom fra «${option.label}», som er endret siden.` };
+}
 
 type EditAgentFormProps = {
   agentId: string;
   initialName: string;
   definition: AgentTypeDefinition;
   initialAnswers: Answers;
+  /** Where the saved answers came from. */
+  initialSources?: AnswerSources;
   /** The form's name for screen readers. */
   label: string;
   submitLabel: string;
-  /** Saves the name and answers, and returns the id of the agent to go to afterwards. */
-  onSave: (name: string, answers: Answers) => Promise<string>;
+  /** Saves the name, answers and sources, and returns the id of the agent to go to afterwards. */
+  onSave: (name: string, answers: Answers, sources: AnswerSources) => Promise<string>;
   /** True when saving is allowed without changes, as for a clone. */
   allowUnchanged?: boolean;
   presets?: AnswerPreset[];
@@ -60,6 +98,7 @@ export function EditAgentForm({
   initialName,
   definition,
   initialAnswers,
+  initialSources = {},
   label,
   submitLabel,
   onSave,
@@ -69,28 +108,39 @@ export function EditAgentForm({
   const router = useRouter();
   const [name, setName] = useState(initialName);
   const [answers, setAnswers] = useState(initialAnswers);
+  const [sources, setSources] = useState(initialSources);
   const [status, setStatus] = useState<SaveStatus>({ kind: 'idle' });
 
-  function setAnswer(key: string, value: string) {
+  function setSource(key: string, source: AnswerSource | null) {
+    setSources((current) => {
+      const next = { ...current };
+      if (source) next[key] = source;
+      else delete next[key];
+      return next;
+    });
+  }
+
+  // Text the counsellor types is their own, so it no longer comes from a template or profile.
+  function typeAnswer(key: string, value: string) {
     setAnswers((current) => ({ ...current, [key]: value }));
+    setSource(key, null);
   }
 
-  // The option whose text is in the field, or '' for text that is not from an option. Read from
-  // the answer, so an agent made from a template or profile shows it, and typing updates it.
-  function chosenOption(preset: AnswerPreset): string {
-    return preset.options.find(({ value }) => value === answers[preset.field])?.id ?? '';
-  }
-
+  // "Egen tekst" puts the saved text back, as the counsellor's own.
   function choosePreset(preset: AnswerPreset, optionId: string) {
     const option = preset.options.find(({ id }) => id === optionId);
-    setAnswer(preset.field, option ? option.value : (initialAnswers[preset.field] ?? ''));
+    setAnswers((current) => ({
+      ...current,
+      [preset.field]: option ? option.value : (initialAnswers[preset.field] ?? ''),
+    }));
+    setSource(preset.field, option ? { kind: preset.kind, id: option.id } : null);
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setStatus({ kind: 'saving' });
     try {
-      const savedId = await onSave(name.trim(), answers);
+      const savedId = await onSave(name.trim(), answers, sources);
       router.push(`/browse-agents/${savedId}`);
     } catch (error) {
       // The form keeps what was typed, so nothing is lost and the counsellor can try again.
@@ -105,7 +155,10 @@ export function EditAgentForm({
     name.trim() !== '' && definition.fields.every(({ key }) => answers[key]?.trim());
   const changes =
     (name.trim() !== initialName ? 1 : 0) +
-    definition.fields.filter(({ key }) => answers[key] !== initialAnswers[key]).length;
+    definition.fields.filter(
+      ({ key }) =>
+        answers[key] !== initialAnswers[key] || sources[key]?.id !== initialSources[key]?.id,
+    ).length;
 
   return (
     <Box
@@ -140,31 +193,40 @@ export function EditAgentForm({
               gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)' },
             }}
           >
-            {presets.map((preset) => (
-              <Box key={preset.field}>
-                <TextField
-                  select
-                  label={preset.label}
-                  value={chosenOption(preset)}
-                  onChange={(event) => choosePreset(preset, event.target.value)}
-                  fullWidth
-                  disabled={isSaving}
-                  helperText="Fyller inn feltet under. Du kan endre teksten etterpå."
-                  // Shows "Egen tekst" instead of an empty field when no option matches.
-                  slotProps={{ select: { displayEmpty: true }, inputLabel: { shrink: true } }}
-                >
-                  <MenuItem value="">Egen tekst</MenuItem>
-                  {preset.options.map((option) => (
-                    <MenuItem key={option.id} value={option.id}>
-                      {option.label}
-                    </MenuItem>
-                  ))}
-                </TextField>
-                <Button component={Link} href={preset.manageHref} size="small" sx={{ mt: 0.5 }}>
-                  {preset.manageLabel}
-                </Button>
-              </Box>
-            ))}
+            {presets.map((preset) => {
+              const choice = presetChoice(
+                preset,
+                answers[preset.field] ?? '',
+                sources[preset.field],
+              );
+              return (
+                <Box key={preset.field}>
+                  <TextField
+                    select
+                    label={preset.label}
+                    value={choice.optionId}
+                    onChange={(event) => choosePreset(preset, event.target.value)}
+                    fullWidth
+                    disabled={isSaving}
+                    helperText={
+                      choice.note ?? 'Fyller inn feltet under. Du kan endre teksten etterpå.'
+                    }
+                    // Shows "Egen tekst" instead of an empty field when no option matches.
+                    slotProps={{ select: { displayEmpty: true }, inputLabel: { shrink: true } }}
+                  >
+                    <MenuItem value="">Egen tekst</MenuItem>
+                    {preset.options.map((option) => (
+                      <MenuItem key={option.id} value={option.id}>
+                        {option.label}
+                      </MenuItem>
+                    ))}
+                  </TextField>
+                  <Button component={Link} href={preset.manageHref} size="small" sx={{ mt: 0.5 }}>
+                    {preset.manageLabel}
+                  </Button>
+                </Box>
+              );
+            })}
           </Box>
         )}
         <Box
@@ -178,7 +240,7 @@ export function EditAgentForm({
                 key={key}
                 label={label}
                 value={answers[key] ?? ''}
-                onChange={(event) => setAnswer(key, event.target.value)}
+                onChange={(event) => typeAnswer(key, event.target.value)}
                 required
                 multiline
                 minRows={isLong ? 3 : 1}

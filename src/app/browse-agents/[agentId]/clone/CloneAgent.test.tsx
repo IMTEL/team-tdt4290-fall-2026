@@ -68,6 +68,7 @@ describe('CloneAgent', () => {
       'agent-1',
       'Intervjuer for Barnehagelærer (kopi)',
       answers,
+      {},
     );
     expect(updateAgentMock).not.toHaveBeenCalled();
     expect(push).toHaveBeenCalledWith('/browse-agents/agent-2');
