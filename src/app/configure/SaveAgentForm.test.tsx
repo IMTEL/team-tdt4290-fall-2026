@@ -44,7 +44,7 @@ describe('SaveAgentForm', () => {
     await user.type(nameBox(), 'Butikksjef Kari');
     await user.click(saveButton());
 
-    expect(saveMock).toHaveBeenCalledWith('Butikksjef Kari', configuration);
+    expect(saveMock).toHaveBeenCalledWith('Butikksjef Kari', configuration, {});
     expect(await screen.findByText(/«Butikksjef Kari» er lagret/)).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Test intervjueren' })).toHaveAttribute(
       'href',

@@ -1,6 +1,7 @@
 import { ChatError } from '@/components/chat/sendToAgent';
 import type { ChatMessage } from '@/components/chat/types';
 import type { InterviewerTemplate } from '@/data/interviewer-templates';
+import type { AnswerSources } from '@/domain/agentTypes/types';
 import { isConfiguration, type Configuration } from '@/domain/configuration';
 
 const GENERIC_ERROR = 'Noe gikk galt. Prøv igjen.';
@@ -72,12 +73,16 @@ export async function sendConfigurationTurn(
   };
 }
 
-/** Saves the finished configuration as a new agent owned by the logged-in counsellor. */
+/**
+ * Saves the finished configuration as a new agent owned by the logged-in counsellor, with the
+ * template and profile the interviewer and job seeker came from.
+ */
 export async function saveConfiguredAgent(
   name: string,
   configuration: Configuration,
+  sources: AnswerSources = {},
 ): Promise<string> {
-  const res = await postJson('/api/agents', { name, configuration });
+  const res = await postJson('/api/agents', { name, configuration, sources });
   if (!res.ok) throw errorFor(res);
 
   const data = await res.json().catch(() => null);

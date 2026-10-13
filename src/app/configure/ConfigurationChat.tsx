@@ -5,6 +5,7 @@ import { useCallback, useMemo, useState } from 'react';
 import { AgentChat } from '@/components/chat/AgentChat';
 import type { ChatMessage, SendMessages } from '@/components/chat/types';
 import type { InterviewerTemplate } from '@/data/interviewer-templates';
+import type { AnswerSources } from '@/domain/agentTypes/types';
 import type { Configuration } from '@/domain/configuration';
 import type { JobSeekerProfile } from '@/domain/jobSeekerProfile';
 import { sendConfigurationTurn } from './api';
@@ -46,6 +47,15 @@ export function ConfigurationChat({ template, profile }: ConfigurationChatProps)
   const templateId = template?.id ?? null;
   const profileId = profile?.id ?? null;
   const initialMessages = useMemo(() => [greeting(template, profile)], [template, profile]);
+  // The chat puts the template's and profile's text in these answers unchanged, so they are
+  // where the answers came from.
+  const sources = useMemo<AnswerSources>(
+    () => ({
+      ...(templateId && { intervjuer: { kind: 'template', id: templateId } }),
+      ...(profileId && { jobbsoker: { kind: 'profile', id: profileId } }),
+    }),
+    [templateId, profileId],
+  );
 
   // useCallback keeps it the same function on every render.
   const askConfigurator = useCallback<SendMessages>(
@@ -64,7 +74,11 @@ export function ConfigurationChat({ template, profile }: ConfigurationChatProps)
       {/* A new key when the configuration changes resets the form, so a changed
           configuration can be saved again. */}
       {configuration && (
-        <SaveAgentForm key={JSON.stringify(configuration)} configuration={configuration} />
+        <SaveAgentForm
+          key={JSON.stringify(configuration)}
+          configuration={configuration}
+          sources={sources}
+        />
       )}
     </>
   );

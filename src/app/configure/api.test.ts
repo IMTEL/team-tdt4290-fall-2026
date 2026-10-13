@@ -110,14 +110,15 @@ describe('sendConfigurationTurn', () => {
 });
 
 describe('saveConfiguredAgent', () => {
-  it('posts the name and configuration and returns the new id', async () => {
+  it('posts the name, configuration and sources and returns the new id', async () => {
     fetchMock.mockResolvedValue(Response.json({ id: 'agent-1' }, { status: 201 }));
+    const sources = { intervjuer: { kind: 'template' as const, id: 'daglig-leder' } };
 
-    await expect(saveConfiguredAgent('Kari', configuration)).resolves.toBe('agent-1');
+    await expect(saveConfiguredAgent('Kari', configuration, sources)).resolves.toBe('agent-1');
 
     const [url, init] = fetchMock.mock.calls[0];
     expect(url).toBe('/api/agents');
-    expect(JSON.parse(init?.body as string)).toEqual({ name: 'Kari', configuration });
+    expect(JSON.parse(init?.body as string)).toEqual({ name: 'Kari', configuration, sources });
   });
 
   it('throws a ChatError with a safe message when saving fails', async () => {
