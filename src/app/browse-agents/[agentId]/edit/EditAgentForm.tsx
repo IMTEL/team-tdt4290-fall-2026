@@ -12,6 +12,9 @@ import Stack from '@mui/material/Stack';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 
+import { AdvancedSettingsFields } from '@/components/agents/AdvancedSettingsFields';
+import { useLanguageModels } from '@/components/agents/useLanguageModels';
+import { type AdvancedSettings, advancedSettingsErrors } from '@/domain/advancedSettings';
 import { MAX_NAME_LENGTH } from '@/domain/agentName';
 import type { AgentTypeDefinition, Answers } from '@/domain/agentTypes/types';
 import { updateAgent } from '../../api';
@@ -26,22 +29,26 @@ type EditAgentFormProps = {
   initialName: string;
   definition: AgentTypeDefinition;
   initialAnswers: Answers;
+  initialSettings: AdvancedSettings;
 };
 
 /**
- * Change an agent's name and answers. The fields come from the agent type, so the form works
- * for every type, and a field added to a type shows up here by itself.
+ * Change an agent's name, answers and advanced settings. The fields come from the agent type, so
+ * the form works for every type, and a field added to a type shows up here by itself.
  */
 export function EditAgentForm({
   agentId,
   initialName,
   definition,
   initialAnswers,
+  initialSettings,
 }: EditAgentFormProps) {
   const router = useRouter();
   const [name, setName] = useState(initialName);
   const [answers, setAnswers] = useState(initialAnswers);
+  const [settings, setSettings] = useState(initialSettings);
   const [status, setStatus] = useState<SaveStatus>({ kind: 'idle' });
+  const languageModels = useLanguageModels(initialSettings.model);
 
   function setAnswer(key: string, value: string) {
     setAnswers((current) => ({ ...current, [key]: value }));
@@ -51,7 +58,8 @@ export function EditAgentForm({
     event.preventDefault();
     setStatus({ kind: 'saving' });
     try {
-      await updateAgent(agentId, name.trim(), answers);
+      // Only changed settings are sent; otherwise the agent keeps the ones it has.
+      await updateAgent(agentId, name.trim(), answers, settingsChanges > 0 ? settings : undefined);
       router.push(`/browse-agents/${agentId}`);
     } catch (error) {
       // The form keeps what was typed, so nothing is lost and the counsellor can try again.
@@ -62,11 +70,21 @@ export function EditAgentForm({
   }
 
   const isSaving = status.kind === 'saving';
+  const settingsChanges = (['model', 'temperature', 'customPrompt'] as const).filter(
+    (key) => settings[key] !== initialSettings[key],
+  ).length;
+  // Unchanged settings are not sent, so settings saved by another client that our form would not
+  // accept (three decimals, say) must not stop the counsellor from changing the name or answers.
+  const settingsErrors =
+    settingsChanges > 0 ? advancedSettingsErrors(settings, languageModels.models) : {};
   const isComplete =
-    name.trim() !== '' && definition.fields.every(({ key }) => answers[key]?.trim());
+    name.trim() !== '' &&
+    definition.fields.every(({ key }) => answers[key]?.trim()) &&
+    Object.keys(settingsErrors).length === 0;
   const changes =
     (name.trim() !== initialName ? 1 : 0) +
-    definition.fields.filter(({ key }) => answers[key] !== initialAnswers[key]).length;
+    definition.fields.filter(({ key }) => answers[key] !== initialAnswers[key]).length +
+    settingsChanges;
 
   return (
     <Box
@@ -90,7 +108,13 @@ export function EditAgentForm({
 
       <Section
         title="Konfigurasjon"
-        description="Når du lagrer, lages systemprompten på nytt fra disse svarene."
+        description={
+          settings.customPrompt === null
+            ? // English translation: When you save, the system prompt is made again from these answers.
+              'Når du lagrer, lages systemprompten på nytt fra disse svarene.'
+            : // English translation: The system prompt is written by hand, so these answers do not change it.
+              'Systemprompten er skrevet for hånd, så disse svarene endrer den ikke.'
+        }
       >
         <Box
           sx={{ display: 'grid', gap: 2, gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)' } }}
@@ -115,6 +139,15 @@ export function EditAgentForm({
           })}
         </Box>
       </Section>
+
+      <AdvancedSettingsFields
+        value={settings}
+        onChange={setSettings}
+        builtPrompt={definition.buildPrompt(answers)}
+        languageModels={languageModels}
+        errors={settingsErrors}
+        disabled={isSaving}
+      />
 
       {status.kind === 'error' && <Alert severity="error">{status.message}</Alert>}
 

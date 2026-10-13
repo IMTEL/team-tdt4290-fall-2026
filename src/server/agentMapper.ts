@@ -1,13 +1,17 @@
-import { toStoredDescription } from '@/domain/agentTypes/storedAnswers';
+import {
+  type AdvancedSettings,
+  DEFAULT_ADVANCED_SETTINGS,
+  settingsOf,
+} from '@/domain/advancedSettings';
+import { readStoredAnswers, toStoredDescription } from '@/domain/agentTypes/storedAnswers';
 import type { AgentRole, AgentTypeDefinition, Answers } from '@/domain/agentTypes/types';
 import type { FullRagdollAgent, NewRagdollAgent, RagdollRole } from './ragdoll';
 
-// The models every agent uses, named the way RAGdoll knows them.
-const LLM_MODEL = 'openai/gpt-oss-120b';
+// The embedding model every agent uses, named the way RAGdoll knows it.
 const EMBEDDING_MODEL = 'idun:Qwen/Qwen3-Embedding-8B';
 
 /**
- * Builds the RAGdoll agent for a new agent from the counsellor's answers.
+ * Builds the RAGdoll agent for a new agent from the counsellor's answers and advanced settings.
  * `idunKey` is the project's IDUN key: counsellors have none, so every agent gets ours.
  */
 export function toRagdollAgent(
@@ -15,12 +19,12 @@ export function toRagdollAgent(
   definition: AgentTypeDefinition,
   answers: Answers,
   idunKey: string,
+  settings: AdvancedSettings = DEFAULT_ADVANCED_SETTINGS,
   now: Date = new Date(),
 ): NewRagdollAgent {
   return {
-    ...fromAnswers(name, definition, answers, now),
+    ...fromChoices(name, definition, answers, settings, now),
     llm_provider: 'idun',
-    llm_model: LLM_MODEL,
     llm_api_key: idunKey,
     embedding_model: EMBEDDING_MODEL,
     // Must be a real key: RAGdoll fails every chat with an empty embedding key.
@@ -31,27 +35,51 @@ export function toRagdollAgent(
 }
 
 /**
- * The existing agent with the counsellor's new name and answers. Every other field is kept as it
- * is, because RAGdoll resets any field we leave out of an update to its default.
+ * The existing agent with the counsellor's new name, answers and advanced settings. Every other
+ * field is kept as it is, because RAGdoll resets any field we leave out of an update to its
+ * default. Without new settings, the agent keeps its model, temperature and hand-written prompt.
  */
 export function applyEdit(
   existing: FullRagdollAgent,
   name: string,
   definition: AgentTypeDefinition,
   answers: Answers,
+  settings: AdvancedSettings = currentSettings(existing),
   now: Date = new Date(),
 ): FullRagdollAgent {
-  return { ...existing, ...fromAnswers(name, definition, answers, now) };
+  return { ...existing, ...fromChoices(name, definition, answers, settings, now) };
+}
+
+/** The advanced settings a saved agent has now. */
+export function currentSettings(agent: FullRagdollAgent): AdvancedSettings {
+  return settingsOf(
+    {
+      model: agent.llm_model,
+      temperature: typeof agent.llm_temperature === 'number' ? agent.llm_temperature : null,
+      prompt: agent.prompt,
+    },
+    readStoredAnswers(agent.description)?.customPrompt ?? false,
+  );
 }
 
 /** The fields of a RAGdoll agent that come from the counsellor's choices. */
-function fromAnswers(name: string, definition: AgentTypeDefinition, answers: Answers, now: Date) {
+function fromChoices(
+  name: string,
+  definition: AgentTypeDefinition,
+  answers: Answers,
+  settings: AdvancedSettings,
+  now: Date,
+) {
+  const customPrompt = settings.customPrompt !== null;
   return {
     name,
-    description: toStoredDescription(definition, answers),
-    // The prompt is always rebuilt from the answers, so an edit also gets the newest prompt.
-    prompt: definition.buildPrompt(answers),
+    description: toStoredDescription(definition, answers, { customPrompt }),
+    // Unless the counsellor wrote it by hand, the prompt is rebuilt from the answers, so an edit
+    // also gets the newest prompt.
+    prompt: settings.customPrompt ?? definition.buildPrompt(answers),
     roles: definition.buildRoles(name, answers).map(toRagdollRole),
+    llm_model: settings.model,
+    llm_temperature: settings.temperature,
     last_updated: now.toISOString(),
   };
 }

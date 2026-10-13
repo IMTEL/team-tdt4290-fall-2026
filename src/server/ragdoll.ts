@@ -105,6 +105,7 @@ export type NewRagdollAgent = {
   roles: RagdollRole[];
   llm_provider: string;
   llm_model: string;
+  llm_temperature: number;
   llm_api_key: string;
   embedding_model: string;
   embedding_api_key: string;
@@ -124,6 +125,11 @@ export type RagdollAgentSummary = {
   name: string;
   description: string;
   lastUpdated: string;
+  /** The advanced settings. Safe: the owner may see the model, temperature and prompt. */
+  llmModel: string;
+  /** Null for agents that RAGdoll returns without one. */
+  temperature: number | null;
+  prompt: string;
 };
 
 /** Creates an agent owned by the logged-in user and returns its new id. */
@@ -190,6 +196,25 @@ export async function updateAgent(
     throw new RagdollError('bad-response', 'RAGdoll did not return the updated agent');
   }
   return toSummary(data as Record<string, unknown>);
+}
+
+/**
+ * The names of the language models RAGdoll offers through IDUN. Asked with the project's IDUN key,
+ * which stays on the server. Throws RagdollError.
+ */
+export async function listLanguageModels(sessionToken: string, idunKey: string): Promise<string[]> {
+  const data = await requestAsUser(sessionToken, '/get_models', {
+    method: 'POST',
+    body: JSON.stringify({ provider: 'idun', api_key: idunKey }),
+  });
+  if (!Array.isArray(data)) {
+    throw new RagdollError('bad-response', 'RAGdoll did not return a list of models');
+  }
+
+  // Only the names: the descriptions and GDPR flags are not shown.
+  return data
+    .map((model) => (isObject(model) ? model.name : undefined))
+    .filter((name): name is string => typeof name === 'string' && name !== '');
 }
 
 /**
@@ -409,6 +434,9 @@ function toSummary(agent: Record<string, unknown>): RagdollAgentSummary {
     name: String(agent.name),
     description: String(agent.description),
     lastUpdated: String(agent.last_updated),
+    llmModel: typeof agent.llm_model === 'string' ? agent.llm_model : '',
+    temperature: typeof agent.llm_temperature === 'number' ? agent.llm_temperature : null,
+    prompt: typeof agent.prompt === 'string' ? agent.prompt : '',
   };
 }
 

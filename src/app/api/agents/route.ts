@@ -1,16 +1,25 @@
 import type { NextRequest } from 'next/server';
 
+import {
+  type AdvancedSettings,
+  DEFAULT_ADVANCED_SETTINGS,
+  parseAdvancedSettings,
+} from '@/domain/advancedSettings';
 import { interviewer } from '@/domain/agentTypes/interviewer';
 import { hasAllAnswers } from '@/domain/agentTypes/registry';
 
 import { getSessionToken } from '@/lib/session-tokens';
 import { toRagdollAgent } from '@/server/agentMapper';
 import { configErrorResponse, ragdollErrorResponse } from '@/server/errorResponse';
+import { modelsToValidate } from '@/server/models';
 import { listAgents, saveAgent } from '@/server/ragdoll';
 import { MAX_NAME_LENGTH } from '@/domain/agentName';
 import { cleanName } from '@/domain/agentName';
 
-/** Saves a new interviewer agent, owned by the logged-in counsellor. Returns its id. */
+/**
+ * Saves a new interviewer agent, owned by the logged-in counsellor. Returns its id.
+ * `advanced` (model, temperature, hand-written prompt) is optional: without it the defaults apply.
+ */
 export async function POST(req: NextRequest) {
   const sessionToken = await getSessionToken(req);
   if (!sessionToken) {
@@ -19,10 +28,12 @@ export async function POST(req: NextRequest) {
 
   let name: string | null;
   let configuration;
+  let advanced: unknown;
   try {
     const body = await req.json();
     name = cleanName(body?.name);
     configuration = body?.configuration;
+    advanced = body?.advanced;
   } catch {
     return Response.json({ error: 'Invalid JSON' }, { status: 400 });
   }
@@ -41,7 +52,20 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const agent = toRagdollAgent(name, interviewer, configuration, idunKey);
+    let settings: AdvancedSettings = DEFAULT_ADVANCED_SETTINGS;
+    if (advanced !== undefined) {
+      const models = await modelsToValidate(sessionToken, advanced);
+      if (!models) {
+        return Response.json({ error: 'Could not check the language model' }, { status: 502 });
+      }
+      const parsed = parseAdvancedSettings(advanced, models);
+      if (!parsed) {
+        return Response.json({ error: 'Invalid advanced settings' }, { status: 400 });
+      }
+      settings = parsed;
+    }
+
+    const agent = toRagdollAgent(name, interviewer, configuration, idunKey, settings);
     const id = await saveAgent(sessionToken, agent);
     return Response.json({ id }, { status: 201 });
   } catch (error) {

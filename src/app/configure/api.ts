@@ -1,6 +1,7 @@
 import { ChatError } from '@/components/chat/sendToAgent';
 import type { ChatMessage } from '@/components/chat/types';
 import type { InterviewerTemplate } from '@/data/interviewer-templates';
+import type { AdvancedSettings } from '@/domain/advancedSettings';
 import { isConfiguration, type Configuration } from '@/domain/configuration';
 
 const GENERIC_ERROR = 'Noe gikk galt. Prøv igjen.';
@@ -35,6 +36,9 @@ function errorFor(res: Response): ChatError {
   if (res.status === 504) {
     return new ChatError('Det tok for lang tid å få svar. Prøv igjen.');
   }
+  if (res.status === 400) {
+    return new ChatError('Agenten ble ikke godtatt. Sjekk navnet og de avanserte innstillingene.');
+  }
   return new ChatError(GENERIC_ERROR);
 }
 
@@ -65,12 +69,16 @@ export async function sendConfigurationTurn(
   };
 }
 
-/** Saves the finished configuration as a new agent owned by the logged-in counsellor. */
+/**
+ * Saves the finished configuration as a new agent owned by the logged-in counsellor. Without
+ * `advanced` the server uses the default model, temperature and built prompt.
+ */
 export async function saveConfiguredAgent(
   name: string,
   configuration: Configuration,
+  advanced?: AdvancedSettings,
 ): Promise<string> {
-  const res = await postJson('/api/agents', { name, configuration });
+  const res = await postJson('/api/agents', { name, configuration, advanced });
   if (!res.ok) throw errorFor(res);
 
   const data = await res.json().catch(() => null);

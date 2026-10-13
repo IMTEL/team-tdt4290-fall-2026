@@ -2,6 +2,7 @@
 import { NextRequest } from 'next/server';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { DEFAULT_MODEL } from '@/domain/advancedSettings';
 import { interviewer } from '@/domain/agentTypes/interviewer';
 import { readStoredAnswers } from '@/domain/agentTypes/storedAnswers';
 import { getSessionToken } from '@/lib/session-tokens';
@@ -10,6 +11,7 @@ import {
   deleteAgent,
   fetchFullAgent,
   isAgentOwner,
+  listLanguageModels,
   RagdollError,
   updateAgent,
 } from '@/server/ragdoll';
@@ -26,6 +28,7 @@ vi.mock('@/server/ragdoll', async (importOriginal) => {
     updateAgent: vi.fn(),
     isAgentOwner: vi.fn(),
     deleteAgent: vi.fn(),
+    listLanguageModels: vi.fn(),
   };
 });
 
@@ -34,6 +37,7 @@ const fetchFullAgentMock = vi.mocked(fetchFullAgent);
 const updateAgentMock = vi.mocked(updateAgent);
 const isAgentOwnerMock = vi.mocked(isAgentOwner);
 const deleteAgentMock = vi.mocked(deleteAgent);
+const listLanguageModelsMock = vi.mocked(listLanguageModels);
 
 const answers = {
   stilling: 'Butikkmedarbeider',
@@ -72,7 +76,12 @@ beforeEach(() => {
     name: 'Nytt navn',
     description: '{}',
     lastUpdated: '2026-10-06T12:00:00.000Z',
+    llmModel: DEFAULT_MODEL,
+    temperature: 0.2,
+    prompt: 'Du er en intervjuer.',
   });
+  listLanguageModelsMock.mockResolvedValue([DEFAULT_MODEL, 'meta/llama-3.3-70b']);
+  vi.stubEnv('IDUN_API_KEY', 'idun-key');
   isAgentOwnerMock.mockResolvedValue(true);
   deleteAgentMock.mockResolvedValue(undefined);
   // The route logs problems on purpose; keep the test output clean.
@@ -80,7 +89,9 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  vi.unstubAllEnvs();
   vi.restoreAllMocks();
+  listLanguageModelsMock.mockReset();
   getSessionTokenMock.mockReset();
   fetchFullAgentMock.mockReset();
   updateAgentMock.mockReset();
@@ -154,6 +165,60 @@ describe('PUT /api/agents/[agentId]', () => {
     const res = await PUT(putRequest({ name: 'Nytt navn', answers: newAnswers }), params);
 
     expect(res.status).toBe(502);
+  });
+
+  it('saves new advanced settings', async () => {
+    const advanced = { model: 'meta/llama-3.3-70b', temperature: 1.1, customPrompt: 'Du er Kari.' };
+
+    const res = await PUT(putRequest({ name: 'Nytt navn', answers, advanced }), params);
+
+    expect(res.status).toBe(200);
+    const [, saved] = updateAgentMock.mock.calls[0];
+    expect(saved.llm_model).toBe('meta/llama-3.3-70b');
+    expect(saved.llm_temperature).toBe(1.1);
+    expect(saved.prompt).toBe('Du er Kari.');
+    expect(readStoredAnswers(saved.description)?.customPrompt).toBe(true);
+  });
+
+  it('keeps the model and temperature when no advanced settings are sent', async () => {
+    await PUT(putRequest({ name: 'Nytt navn', answers: newAnswers }), params);
+
+    const [, saved] = updateAgentMock.mock.calls[0];
+    expect(saved.llm_model).toBe(DEFAULT_MODEL);
+    expect(saved.llm_temperature).toBe(0.2);
+    expect(listLanguageModelsMock).not.toHaveBeenCalled();
+  });
+
+  it('accepts the current model of the agent without asking RAGdoll', async () => {
+    fetchFullAgentMock.mockResolvedValue({ ...existing, llm_model: 'old/model' });
+    const advanced = { model: 'old/model', temperature: 0.5, customPrompt: null };
+
+    const res = await PUT(putRequest({ name: 'Nytt navn', answers, advanced }), params);
+
+    expect(res.status).toBe(200);
+    expect(listLanguageModelsMock).not.toHaveBeenCalled();
+  });
+
+  it('answers 502 and saves nothing when a new model cannot be checked', async () => {
+    listLanguageModelsMock.mockRejectedValue(new RagdollError('unreachable', 'IDUN is down'));
+    const advanced = { model: 'meta/llama-3.3-70b', temperature: 0.7, customPrompt: null };
+
+    const res = await PUT(putRequest({ name: 'Nytt navn', answers, advanced }), params);
+
+    expect(res.status).toBe(502);
+    expect(updateAgentMock).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['a model that is not offered', { model: 'gpt-5', temperature: 0.7, customPrompt: null }],
+    ['a temperature above 2', { model: DEFAULT_MODEL, temperature: 3, customPrompt: null }],
+    ['an empty hand-written prompt', { model: DEFAULT_MODEL, temperature: 0.7, customPrompt: ' ' }],
+    ['settings that are not an object', 'fast'],
+  ])('answers 400 and saves nothing for %s', async (_, advanced) => {
+    const res = await PUT(putRequest({ name: 'Nytt navn', answers, advanced }), params);
+
+    expect(res.status).toBe(400);
+    expect(updateAgentMock).not.toHaveBeenCalled();
   });
 });
 

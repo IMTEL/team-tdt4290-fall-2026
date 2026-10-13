@@ -11,6 +11,7 @@ import Chip from '@mui/material/Chip';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 
+import { settingsOf } from '@/domain/advancedSettings';
 import { readStoredAnswers } from '@/domain/agentTypes/storedAnswers';
 import type { Agent } from '@/lib/types';
 import { fetchAgents } from '../../api';
@@ -73,6 +74,10 @@ export function EditAgent({ agentId }: { agentId: string }) {
           initialName={agent.name}
           definition={stored.definition}
           initialAnswers={stored.answers}
+          initialSettings={settingsOf(
+            { model: agent.llmModel, temperature: agent.temperature, prompt: agent.prompt },
+            stored.customPrompt,
+          )}
         />
       ) : (
         <Alert severity="info">Denne agenten ble ikke laget her, og kan ikke redigeres.</Alert>

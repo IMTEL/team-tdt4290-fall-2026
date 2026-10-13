@@ -99,6 +99,24 @@ describe('saveConfiguredAgent', () => {
     expect(JSON.parse(init?.body as string)).toEqual({ name: 'Kari', configuration });
   });
 
+  it('posts the advanced settings when there are any', async () => {
+    fetchMock.mockResolvedValue(Response.json({ id: 'agent-1' }, { status: 201 }));
+    const advanced = { model: 'meta/llama-3.3-70b', temperature: 0.2, customPrompt: 'Du er Kari.' };
+
+    await saveConfiguredAgent('Kari', configuration, advanced);
+
+    const [, init] = fetchMock.mock.calls[0];
+    expect(JSON.parse(init?.body as string)).toEqual({ name: 'Kari', configuration, advanced });
+  });
+
+  it('says what to check when the server does not accept the agent', async () => {
+    fetchMock.mockResolvedValue(Response.json({ error: 'Invalid name' }, { status: 400 }));
+
+    await expect(saveConfiguredAgent('Kari', configuration)).rejects.toMatchObject({
+      userMessage: 'Agenten ble ikke godtatt. Sjekk navnet og de avanserte innstillingene.',
+    });
+  });
+
   it('throws a ChatError with a safe message when saving fails', async () => {
     fetchMock.mockResolvedValue(
       Response.json({ error: 'Error from RAGdoll API' }, { status: 502 }),

@@ -8,6 +8,9 @@ const agent = {
   name: 'Intervjuer for Barnehagelærer',
   description: '{"stilling":"Barnehagelærer"}',
   lastUpdated: '2026-10-02T12:00:00.000Z',
+  llmModel: 'openai/gpt-oss-120b',
+  temperature: 0.7,
+  prompt: 'Du er en intervjuer.',
 };
 
 const fetchMock = vi.fn<typeof fetch>();
@@ -46,6 +49,14 @@ describe('fetchAgents', () => {
 
     await expect(fetchAgents()).rejects.toThrow('Noe gikk galt. Prøv igjen.');
   });
+
+  it('fails when an agent has no advanced settings', async () => {
+    const withoutModel: Record<string, unknown> = { ...agent };
+    delete withoutModel.llmModel;
+    fetchMock.mockResolvedValue(Response.json({ agents: [withoutModel] }));
+
+    await expect(fetchAgents()).rejects.toThrow('Noe gikk galt. Prøv igjen.');
+  });
 });
 
 describe('updateAgent', () => {
@@ -62,8 +73,19 @@ describe('updateAgent', () => {
     expect(JSON.parse(init?.body as string)).toEqual({ name: 'Nytt navn', answers });
   });
 
+  it('sends the advanced settings when there are any', async () => {
+    fetchMock.mockResolvedValue(Response.json({ agent }));
+    const advanced = { model: 'meta/llama-3.3-70b', temperature: 0.2, customPrompt: null };
+
+    await updateAgent('agent-1', 'Nytt navn', answers, advanced);
+
+    const [, init] = fetchMock.mock.calls[0];
+    expect(JSON.parse(init?.body as string)).toEqual({ name: 'Nytt navn', answers, advanced });
+  });
+
   it.each([
     [401, 'Du er logget ut. Logg inn på nytt og prøv igjen.'],
+    [400, 'Endringene ble ikke godtatt. Sjekk feltene og prøv igjen.'],
     [404, 'Fant ikke agenten. Den kan ha blitt slettet.'],
     [504, 'Det tok for lang tid å få svar. Prøv igjen.'],
     [502, 'Noe gikk galt. Prøv igjen.'],

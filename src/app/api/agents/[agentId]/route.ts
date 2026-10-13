@@ -1,18 +1,21 @@
 import type { NextRequest } from 'next/server';
 
+import { type AdvancedSettings, parseAdvancedSettings } from '@/domain/advancedSettings';
 import { cleanName } from '@/domain/agentName';
 import { hasAllAnswers } from '@/domain/agentTypes/registry';
 import { readStoredAnswers } from '@/domain/agentTypes/storedAnswers';
 import { getSessionToken } from '@/lib/session-tokens';
 import { applyEdit } from '@/server/agentMapper';
 import { ragdollErrorResponse } from '@/server/errorResponse';
+import { modelsToValidate } from '@/server/models';
 import { deleteAgent, fetchFullAgent, isAgentOwner, updateAgent } from '@/server/ragdoll';
 
 type Params = { params: Promise<{ agentId: string }> };
 
 /**
- * Saves a new name and new answers for one of the logged-in counsellor's agents.
- * The prompt is rebuilt from the answers, and every other field of the agent is kept.
+ * Saves a new name, new answers and, optionally, new advanced settings for one of the logged-in
+ * counsellor's agents. The prompt is rebuilt from the answers unless the counsellor wrote it by
+ * hand, and every other field of the agent is kept.
  */
 export async function PUT(req: NextRequest, { params }: Params) {
   const sessionToken = await getSessionToken(req);
@@ -22,10 +25,12 @@ export async function PUT(req: NextRequest, { params }: Params) {
 
   let name: string | null;
   let answers: unknown;
+  let advanced: unknown;
   try {
     const body = await req.json();
     name = cleanName(body?.name);
     answers = body?.answers;
+    advanced = body?.advanced;
   } catch {
     return Response.json({ error: 'Invalid JSON' }, { status: 400 });
   }
@@ -47,7 +52,22 @@ export async function PUT(req: NextRequest, { params }: Params) {
       return Response.json({ error: 'Invalid answers' }, { status: 400 });
     }
 
-    const edited = applyEdit(existing, name, stored.definition, answers);
+    // Without `advanced`, the agent keeps the settings it has.
+    let settings: AdvancedSettings | undefined;
+    if (advanced !== undefined) {
+      // The agent's current model stays valid even if IDUN no longer lists it.
+      const models = await modelsToValidate(sessionToken, advanced, [existing.llm_model]);
+      if (!models) {
+        return Response.json({ error: 'Could not check the language model' }, { status: 502 });
+      }
+      const parsed = parseAdvancedSettings(advanced, models);
+      if (!parsed) {
+        return Response.json({ error: 'Invalid advanced settings' }, { status: 400 });
+      }
+      settings = parsed;
+    }
+
+    const edited = applyEdit(existing, name, stored.definition, answers, settings);
     return Response.json({ agent: await updateAgent(sessionToken, edited) });
   } catch (error) {
     return ragdollErrorResponse(error);

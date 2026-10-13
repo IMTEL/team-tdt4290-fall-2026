@@ -28,6 +28,9 @@ const agent = {
   name: 'Intervjuer for Barnehagelærer',
   description: JSON.stringify(configuration),
   lastUpdated: '2026-10-02T12:00:00.000Z',
+  llmModel: 'openai/gpt-oss-120b',
+  temperature: 0.3,
+  prompt: 'Du er en intervjuer for en barnehage.',
 };
 
 describe('AgentDetail', () => {
@@ -36,7 +39,7 @@ describe('AgentDetail', () => {
     notFound.mockClear();
   });
 
-  it('lists the configuration and keeps the system prompt closed', async () => {
+  it('lists the configuration and keeps the advanced settings closed', async () => {
     fetchAgentsMock.mockResolvedValue([agent]);
     const user = userEvent.setup();
 
@@ -49,9 +52,15 @@ describe('AgentDetail', () => {
     );
     expect(screen.queryByText(/Du er en intervjuer/)).not.toBeVisible();
 
-    await user.click(screen.getByRole('button', { name: 'Systemprompt' }));
+    await user.click(screen.getByRole('button', { name: 'Avanserte innstillinger' }));
 
-    expect(screen.getByText(/Du er en intervjuer/)).toBeVisible();
+    expect(screen.getByText('Språkmodell').nextElementSibling).toHaveTextContent(
+      'openai/gpt-oss-120b',
+    );
+    expect(screen.getByText('Temperatur').nextElementSibling).toHaveTextContent('0,3');
+    // The prompt RAGdoll has stored, not one built again from the answers.
+    expect(screen.getByText('Du er en intervjuer for en barnehage.')).toBeVisible();
+    expect(screen.queryByText('Skrevet for hånd')).not.toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Test agenten' })).toHaveAttribute(
       'href',
       '/test-chat?agent=agent-1',
@@ -71,6 +80,32 @@ describe('AgentDetail', () => {
     expect(await screen.findByText('Stilling')).toBeVisible();
     expect(screen.getByText('Stilling').nextElementSibling).toHaveTextContent('Barnehagelærer');
     expect(screen.queryByText(/"type":"interviewer"/)).not.toBeInTheDocument();
+  });
+
+  it('marks a hand-written system prompt', async () => {
+    fetchAgentsMock.mockResolvedValue([
+      {
+        ...agent,
+        description: JSON.stringify({
+          type: 'interviewer',
+          version: 1,
+          answers: configuration,
+          customPrompt: true,
+        }),
+      },
+    ]);
+
+    render(<AgentDetail agentId="agent-1" />);
+
+    expect(await screen.findByText('Skrevet for hånd')).toBeInTheDocument();
+  });
+
+  it('shows the default temperature for an agent saved without one', async () => {
+    fetchAgentsMock.mockResolvedValue([{ ...agent, temperature: null }]);
+
+    render(<AgentDetail agentId="agent-1" />);
+
+    expect((await screen.findByText('Temperatur')).nextElementSibling).toHaveTextContent('0,7');
   });
 
   it('links to the edit page', async () => {

@@ -1,9 +1,10 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest';
 
+import { DEFAULT_ADVANCED_SETTINGS, DEFAULT_MODEL } from '@/domain/advancedSettings';
 import { interviewer } from '@/domain/agentTypes/interviewer';
 import { readStoredAnswers } from '@/domain/agentTypes/storedAnswers';
-import { applyEdit, toRagdollAgent } from './agentMapper';
+import { applyEdit, currentSettings, toRagdollAgent } from './agentMapper';
 import type { FullRagdollAgent } from './ragdoll';
 
 const answers = {
@@ -19,7 +20,14 @@ const answers = {
 
 describe('toRagdollAgent', () => {
   const now = new Date('2026-10-01T08:00:00.000Z');
-  const agent = toRagdollAgent('Butikksjef Kari', interviewer, answers, 'idun-key', now);
+  const agent = toRagdollAgent(
+    'Butikksjef Kari',
+    interviewer,
+    answers,
+    'idun-key',
+    DEFAULT_ADVANCED_SETTINGS,
+    now,
+  );
 
   it('uses the counsellor-chosen name for the agent and its one role', () => {
     expect(agent.name).toBe('Butikksjef Kari');
@@ -38,7 +46,11 @@ describe('toRagdollAgent', () => {
   });
 
   it('stores the answers so they can be read back later', () => {
-    expect(readStoredAnswers(agent.description)).toEqual({ definition: interviewer, answers });
+    expect(readStoredAnswers(agent.description)).toEqual({
+      definition: interviewer,
+      answers,
+      customPrompt: false,
+    });
   });
 
   it('uses the IDUN key for both the LLM and the embeddings', () => {
@@ -48,6 +60,24 @@ describe('toRagdollAgent', () => {
 
   it('stamps the time it was built', () => {
     expect(agent.last_updated).toBe('2026-10-01T08:00:00.000Z');
+  });
+
+  it('uses the default model and temperature without advanced settings', () => {
+    expect(agent.llm_model).toBe(DEFAULT_MODEL);
+    expect(agent.llm_temperature).toBe(0.7);
+  });
+
+  it('uses the chosen model, temperature and hand-written prompt', () => {
+    const custom = toRagdollAgent('Kari', interviewer, answers, 'idun-key', {
+      model: 'meta/llama-3.3-70b',
+      temperature: 0.2,
+      customPrompt: 'Du er Kari.',
+    });
+
+    expect(custom.llm_model).toBe('meta/llama-3.3-70b');
+    expect(custom.llm_temperature).toBe(0.2);
+    expect(custom.prompt).toBe('Du er Kari.');
+    expect(readStoredAnswers(custom.description)?.customPrompt).toBe(true);
   });
 });
 
@@ -61,7 +91,7 @@ describe('applyEdit', () => {
   };
   const now = new Date('2026-10-06T12:00:00.000Z');
   const newAnswers = { ...answers, vanskelighetsgrad: 'vanskelig' };
-  const edited = applyEdit(existing, 'Nytt navn', interviewer, newAnswers, now);
+  const edited = applyEdit(existing, 'Nytt navn', interviewer, newAnswers, undefined, now);
 
   it('changes the name, the role, the prompt and the stored answers', () => {
     expect(edited.name).toBe('Nytt navn');
@@ -80,5 +110,81 @@ describe('applyEdit', () => {
     expect(edited.llm_temperature).toBe(0.2);
     expect(edited.context_aware_retrieval).toBe(false);
     expect(edited.llm_api_key).toBe('idun-key');
+  });
+});
+
+describe('applyEdit with advanced settings', () => {
+  const newAnswers = { ...answers, vanskelighetsgrad: 'vanskelig' };
+  const handWritten = {
+    ...toRagdollAgent('Kari', interviewer, answers, 'idun-key', {
+      model: 'meta/llama-3.3-70b',
+      temperature: 0.2,
+      customPrompt: 'Du er Kari.',
+    }),
+    id: 'agent-1',
+  };
+
+  it('keeps a hand-written prompt, model and temperature when only the answers change', () => {
+    const edited = applyEdit(handWritten, 'Kari', interviewer, newAnswers);
+
+    expect(edited.prompt).toBe('Du er Kari.');
+    expect(edited.llm_model).toBe('meta/llama-3.3-70b');
+    expect(edited.llm_temperature).toBe(0.2);
+    expect(readStoredAnswers(edited.description)?.customPrompt).toBe(true);
+  });
+
+  it('builds the prompt from the answers again when the hand-written one is dropped', () => {
+    const edited = applyEdit(handWritten, 'Kari', interviewer, newAnswers, {
+      model: 'meta/llama-3.3-70b',
+      temperature: 0.2,
+      customPrompt: null,
+    });
+
+    expect(edited.prompt).toContain('vanskelig');
+    expect(readStoredAnswers(edited.description)?.customPrompt).toBe(false);
+  });
+
+  it('saves new settings', () => {
+    const edited = applyEdit(handWritten, 'Kari', interviewer, answers, {
+      model: DEFAULT_MODEL,
+      temperature: 1.1,
+      customPrompt: 'Du er Kari, men strengere.',
+    });
+
+    expect(edited.llm_model).toBe(DEFAULT_MODEL);
+    expect(edited.llm_temperature).toBe(1.1);
+    expect(edited.prompt).toBe('Du er Kari, men strengere.');
+  });
+});
+
+describe('currentSettings', () => {
+  it('reads the settings of an agent with a hand-written prompt', () => {
+    const agent = {
+      ...toRagdollAgent('Kari', interviewer, answers, 'idun-key', {
+        model: 'meta/llama-3.3-70b',
+        temperature: 0.2,
+        customPrompt: 'Du er Kari.',
+      }),
+      id: 'agent-1',
+    };
+
+    expect(currentSettings(agent)).toEqual({
+      model: 'meta/llama-3.3-70b',
+      temperature: 0.2,
+      customPrompt: 'Du er Kari.',
+    });
+  });
+
+  it('gives null as the prompt when it was built from the answers', () => {
+    const agent = { ...toRagdollAgent('Kari', interviewer, answers, 'idun-key'), id: 'agent-1' };
+
+    expect(currentSettings(agent).customPrompt).toBeNull();
+  });
+
+  it('gives the default temperature to an agent RAGdoll returns without one', () => {
+    const agent = { ...toRagdollAgent('Kari', interviewer, answers, 'idun-key'), id: 'agent-1' };
+    delete (agent as Record<string, unknown>).llm_temperature;
+
+    expect(currentSettings(agent).temperature).toBe(0.7);
   });
 });

@@ -22,14 +22,22 @@ describe('toStoredDescription and readStoredAnswers', () => {
   it('reads back what was saved', () => {
     const description = toStoredDescription(interviewer, answers);
     expect(JSON.parse(description)).toMatchObject({ type: 'interviewer', version: 1 });
-    expect(readStoredAnswers(description)).toEqual({ definition: interviewer, answers });
+    expect(readStoredAnswers(description)).toEqual({
+      definition: interviewer,
+      answers,
+      customPrompt: false,
+    });
   });
 });
 
 describe('readStoredAnswers', () => {
   it('reads an agent saved before agent types existed as an interviewer', () => {
     const oldDescription = JSON.stringify(answers);
-    expect(readStoredAnswers(oldDescription)).toEqual({ definition: interviewer, answers });
+    expect(readStoredAnswers(oldDescription)).toEqual({
+      definition: interviewer,
+      answers,
+      customPrompt: false,
+    });
   });
 
   it('returns null for an unknown agent type', () => {
@@ -57,5 +65,16 @@ describe('readStoredAnswers', () => {
     expect(readStoredAnswers('En vanlig beskrivelse')).toBeNull();
     expect(readStoredAnswers('"bare tekst"')).toBeNull();
     expect(readStoredAnswers('{"tittel":"Noe helt annet"}')).toBeNull();
+  });
+
+  it('reads back that the prompt was written by hand', () => {
+    const description = toStoredDescription(interviewer, answers, { customPrompt: true });
+    expect(readStoredAnswers(description)?.customPrompt).toBe(true);
+  });
+
+  it('does not write the flag when the prompt is built from the answers', () => {
+    expect(JSON.parse(toStoredDescription(interviewer, answers))).not.toHaveProperty(
+      'customPrompt',
+    );
   });
 });
