@@ -2,6 +2,7 @@
 import { NextRequest } from 'next/server';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { readStoredAnswers } from '@/domain/agentTypes/storedAnswers';
 import { getSessionToken } from '@/lib/session-tokens';
 import { listAgents, RagdollError, saveAgent } from '@/server/ragdoll';
 import { GET, POST } from './route';
@@ -66,6 +67,20 @@ describe('POST /api/agents', () => {
     expect(token).toBe('session-token');
     expect(agent.name).toBe('Testintervjuer');
     expect(agent.llm_api_key).toBe('idun-key');
+  });
+
+  it('stores where answers came from, and leaves out sources that are not valid', async () => {
+    saveAgentMock.mockResolvedValue('new-agent-1');
+    const sources = {
+      jobbsoker: { kind: 'profile', id: 'profile-1' },
+      intervjuer: { kind: 'robot', id: 'x' },
+    };
+
+    await POST(postRequest({ name: 'Testintervjuer', configuration, sources }));
+
+    const [, saved] = saveAgentMock.mock.calls[0];
+    const stored = readStoredAnswers(saved.description);
+    expect(stored?.sources).toEqual({ jobbsoker: { kind: 'profile', id: 'profile-1' } });
   });
 
   it('answers 401 and saves nothing when the user is not logged in', async () => {

@@ -19,7 +19,7 @@ const answers = {
 
 describe('toRagdollAgent', () => {
   const now = new Date('2026-10-01T08:00:00.000Z');
-  const agent = toRagdollAgent('Butikksjef Kari', interviewer, answers, 'idun-key', now);
+  const agent = toRagdollAgent('Butikksjef Kari', interviewer, answers, 'idun-key', {}, now);
 
   it('uses the counsellor-chosen name for the agent and its one role', () => {
     expect(agent.name).toBe('Butikksjef Kari');
@@ -38,7 +38,18 @@ describe('toRagdollAgent', () => {
   });
 
   it('stores the answers so they can be read back later', () => {
-    expect(readStoredAnswers(agent.description)).toEqual({ definition: interviewer, answers });
+    expect(readStoredAnswers(agent.description)).toEqual({
+      definition: interviewer,
+      answers,
+      sources: {},
+    });
+  });
+
+  it('stores where answers came from', () => {
+    const sources = { jobbsoker: { kind: 'profile' as const, id: 'profile-1' } };
+    const withSources = toRagdollAgent('Kari', interviewer, answers, 'idun-key', sources);
+
+    expect(readStoredAnswers(withSources.description)?.sources).toEqual(sources);
   });
 
   it('uses the IDUN key for both the LLM and the embeddings', () => {
@@ -61,7 +72,7 @@ describe('applyEdit', () => {
   };
   const now = new Date('2026-10-06T12:00:00.000Z');
   const newAnswers = { ...answers, vanskelighetsgrad: 'vanskelig' };
-  const edited = applyEdit(existing, 'Nytt navn', interviewer, newAnswers, now);
+  const edited = applyEdit(existing, 'Nytt navn', interviewer, newAnswers, {}, now);
 
   it('changes the name, the role, the prompt and the stored answers', () => {
     expect(edited.name).toBe('Nytt navn');
