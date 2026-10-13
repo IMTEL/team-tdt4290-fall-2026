@@ -18,6 +18,9 @@
 - [jsdom](https://github.com/jsdom/jsdom) stands in for the browser. `vitest.setup.ts` registers
   the jest-dom matchers (`toBeInTheDocument`, `toBeDisabled`, ...) and cleans up after each test.
   Tests of server code (Route Handlers) opt out with `// @vitest-environment node`.
+- Each test may take up to 15 seconds (`testTimeout` in `vitest.config.mts`). MUI forms in jsdom
+  are slow when many test files run at once, and the default of 5 seconds made tests time out on
+  busy machines.
 
 ## Running
 
