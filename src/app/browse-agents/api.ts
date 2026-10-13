@@ -86,17 +86,23 @@ export async function updateAgent(
 }
 
 /**
- * Saves a new agent made from another agent, with the name and answers from the clone form, and
- * returns the new agent's id. The original is not changed.
+ * Saves a new agent made from another agent, with the name, answers and advanced settings from the
+ * clone form, and returns the new agent's id. Without `advanced` the clone gets the original's
+ * settings. The original is not changed.
  * Throws Error with a Norwegian message that can be shown as it is.
  */
-export async function cloneAgent(id: string, name: string, answers: Answers): Promise<string> {
+export async function cloneAgent(
+  id: string,
+  name: string,
+  answers: Answers,
+  advanced?: AdvancedSettings,
+): Promise<string> {
   let res: Response;
   try {
     res = await fetch(`/api/agents/${encodeURIComponent(id)}/clone`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, answers }),
+      body: JSON.stringify({ name, answers, advanced }),
     });
   } catch (cause) {
     throw new Error('Fikk ikke kontakt med serveren. Sjekk nettverket og prøv igjen.', { cause });

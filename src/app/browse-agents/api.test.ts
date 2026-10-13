@@ -146,6 +146,16 @@ describe('cloneAgent', () => {
     expect(JSON.parse(init?.body as string)).toEqual({ name: 'Kopi', answers });
   });
 
+  it('sends the advanced settings when there are any', async () => {
+    fetchMock.mockResolvedValue(Response.json({ id: 'agent-2' }, { status: 201 }));
+    const advanced = { model: 'meta/llama-3.3-70b', temperature: 1.1, customPrompt: null };
+
+    await cloneAgent('agent-1', 'Kopi', answers, advanced);
+
+    const [, init] = fetchMock.mock.calls[0];
+    expect(JSON.parse(init?.body as string)).toEqual({ name: 'Kopi', answers, advanced });
+  });
+
   it.each([
     [401, 'Du er logget ut. Logg inn på nytt og prøv igjen.'],
     [404, 'Fant ikke agenten. Den kan ha blitt slettet.'],

@@ -64,7 +64,7 @@ export function CloneAgent({ agentId }: { agentId: string }) {
           )}
           label="Klon agent"
           submitLabel="Lagre som ny agent"
-          onSave={(name, answers) => cloneAgent(agent.id, name, answers)}
+          onSave={(name, answers, settings) => cloneAgent(agent.id, name, answers, settings)}
           allowUnchanged
         />
       ) : (

@@ -65,10 +65,12 @@ describe('CloneAgent', () => {
     render(<CloneAgent agentId="agent-1" />);
     await user.click(await screen.findByRole('button', { name: 'Lagre som ny agent' }));
 
+    // Unchanged advanced settings are not sent, so the clone gets the original's.
     expect(cloneAgentMock).toHaveBeenCalledWith(
       'agent-1',
       'Intervjuer for Barnehagelærer (kopi)',
       answers,
+      undefined,
     );
     expect(updateAgentMock).not.toHaveBeenCalled();
     expect(push).toHaveBeenCalledWith('/browse-agents/agent-2');
