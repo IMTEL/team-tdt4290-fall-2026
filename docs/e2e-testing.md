@@ -7,7 +7,8 @@
 - [What e2e tests are for](#what-e2e-tests-are-for)
 - [Setup](#setup)
 - [Running](#running)
-- [Testing our own app](#testing-our-own-app)
+- [How the tests run](#how-the-tests-run)
+- [The mock backend](#the-mock-backend)
 - [Where tests live](#where-tests-live)
 - [Writing a test](#writing-a-test)
 - [Reports and traces](#reports-and-traces)
@@ -23,7 +24,7 @@ through the app and checks what the user sees. It complements the other two kind
 | Kind               | Tool               | Runs in       | Catches                                                             |
 | ------------------ | ------------------ | ------------- | ------------------------------------------------------------------- |
 | Unit and component | Vitest + jsdom     | Node, no app  | Logic and single components, with RAGdoll and auth mocked           |
-| End-to-end         | Playwright         | Real browsers | Pages, routing and flows across several pages, in the running app   |
+| End-to-end         | Playwright         | Real browsers | Login, pages and flows across several pages, against a mock backend |
 | Manual check       | You, before a demo | Your browser  | Real RAGdoll, Keycloak and IDUN, which automated tests do not reach |
 
 Keep e2e tests few and focused on the main flows. Anything that can be tested in Vitest should be
@@ -47,39 +48,67 @@ On Linux, add `--with-deps` to also install the system libraries the browsers ne
 ```bash
 npm run test:e2e                              # every test, in all three browsers, headless
 npx playwright test --project=chromium        # one browser only: much faster while you work
-npx playwright test tests/example.spec.ts     # one file
-npx playwright test -g "has title"            # tests whose name matches
+npx playwright test tests/profiles.spec.ts    # one file
+npx playwright test -g "log"                  # tests whose name matches
 npx playwright test --ui                      # UI mode: pick tests, watch them run, time-travel
 npx playwright test --headed                  # show the browser window
 npx playwright test --debug                   # step through with the Playwright Inspector
-npx playwright codegen http://localhost:3000  # record clicks into test code
+npx playwright codegen localhost:3100         # record clicks into test code (start the servers first)
 ```
 
 `npm run check` does **not** run the e2e tests. Run `npm run test:e2e` yourself when you change a
 flow they cover.
 
-## Testing our own app
+## How the tests run
 
-Right now `tests/example.spec.ts` is the example Playwright generates, and it visits
-`playwright.dev`, not our app. `playwright.config.ts` has no `baseURL` and no `webServer` yet,
-so Playwright does not start the app for you.
+You don't need Docker, RAGdoll, Keycloak, `.env` or the IDUN key. `npm run test:e2e` starts two
+servers itself (`webServer` in `playwright.config.ts`), runs the tests and stops them again:
 
-To run tests against our app today:
+| Server       | Port | What it is                                                                            |
+| ------------ | ---- | ------------------------------------------------------------------------------------- |
+| Mock backend | 8181 | `tests/support/mock-backend.mjs`: a fake Keycloak and a fake RAGdoll in one           |
+| The app      | 3100 | `npm run build && next start`, a production build with every variable set to the mock |
 
-1. Start the app in one terminal: `npm run dev` (or `npm run build && npm run start`).
-2. In the test, go to the full URL: `await page.goto('http://localhost:3000/')`.
-3. Run the tests in another terminal.
+The app gets its environment variables from `playwright.config.ts`, and they win over `.env`. So
+the e2e tests never touch your local RAGdoll or the real IDUN, even if `.env` is filled in.
 
-Once we uncomment `baseURL` and `webServer` in `playwright.config.ts`, Playwright starts the app
-itself (and reuses one that is already running locally), and tests can use relative paths like
-`page.goto('/browse-agents')`. Update this section when that happens.
+The app runs on 3100, not 3000, so you can keep `npm run dev` running while you test. It is a
+production build because Next.js does not allow a second `next dev` in the same project. The
+build takes a minute or so; the tests themselves take seconds.
 
-Pages behind login (`/configure`, `/browse-agents`, `/test-chat` ...) need Keycloak and RAGdoll
-running locally, as described in the [README](../README.md). The start page works without them.
+While you write tests, use UI mode: `npx playwright test --ui`. It builds and starts the servers
+once and keeps them running, so every re-run takes seconds. Close it and open it again after you
+change app code, so the app is rebuilt.
+
+Locally, Playwright also reuses servers that are already running on 3100 and 8181 instead of
+starting new ones. If you kill a run halfway, check that nothing is left on those ports, or the
+next run tests an old build.
+
+## The mock backend
+
+`tests/support/mock-backend.mjs` answers the same requests as Keycloak and RAGdoll, with the same
+shapes, and keeps everything in memory. It uses only Node built-ins.
+
+- **Login**: the mock Keycloak has no password form. Clicking **Logg inn** goes through the real
+  NextAuth flow (redirect, code, signed ID token, RAGdoll `/api/login`) and comes straight back,
+  logged in as a **new user** called «Test Bruker N».
+- **Every login is a new user**, with no agents, templates or profiles. So each test starts from
+  an empty account, and tests running in parallel never see each other's data. A test that needs
+  data creates it, through the UI or through our own API (see `tests/agents.spec.ts`).
+- **Chat**: no LLM. Every reply, from the configurator or a saved agent, is
+  `Mock-svar: <the last message you sent>`.
+- **What it does not check**: the mock trusts what it gets and does not know RAGdoll's rules. A
+  test passing against the mock does not prove the real RAGdoll accepts the same request. That is
+  what the [manual check](testing.md#manual-end-to-end-check) is for.
+
+When the app starts calling a RAGdoll endpoint the mock does not have, the mock answers 404 with
+`Mock backend has no <METHOD> <path>`, and the app shows its error message. Add the endpoint to
+the mock, copying the request and response shapes from `src/server/ragdoll.ts`.
 
 ## Where tests live
 
-In `tests/`, named `*.spec.ts`, e.g. `tests/browse-agents.spec.ts`. One file per flow or page.
+In `tests/`, named `*.spec.ts`, one file per flow or page: `auth.spec.ts`, `agents.spec.ts`,
+`profiles.spec.ts` ... Helpers and the mock backend are in `tests/support/`.
 
 Vitest only picks up `src/**/*.test.{ts,tsx}`, and Playwright only looks in `tests/`, so the two
 never run each other's files.
@@ -89,14 +118,18 @@ never run each other's files.
 ```ts
 import { test, expect } from '@playwright/test';
 
-test('start page shows the heading', async ({ page }) => {
-  await page.goto('http://localhost:3000/');
+import { logIn } from './support/auth';
 
-  await expect(
-    page.getByRole('heading', { name: 'Konfigurator for intervjuagenter' }),
-  ).toBeVisible();
+test('a new user has no agents', async ({ page }) => {
+  await logIn(page, '/browse-agents');
+
+  await expect(page.getByText('Du har ingen agenter ennå.')).toBeVisible();
 });
 ```
+
+`page.goto` takes paths (`'/browse-agents'`); `baseURL` in the config adds the host. `logIn(page,
+path)` logs in a new user through the login page and opens `path`. Leave it out for pages that
+work without login.
 
 - **Find elements the way a user would**: `getByRole`, `getByLabel`, `getByText`, with the
   Norwegian text shown in the UI. Avoid CSS selectors and MUI class names; they change.
@@ -104,8 +137,8 @@ test('start page shows the heading', async ({ page }) => {
   retry until they pass or time out. Never use `page.waitForTimeout`.
 - **Keep tests independent**: each test starts from a fresh browser context and must not depend
   on another test having run first. Tests run in parallel.
-- **Test data**: log in as the local test user `test@example.com` / `test`, or create what you
-  need in the test. Never use real job seeker data, here or anywhere else in the repo.
+- **Test data**: create what the test needs in the test itself; every login starts empty. Use
+  invented data. Never use real job seeker data, here or anywhere else in the repo.
 - **No secrets**: never put the IDUN key, access keys or tokens in a test.
 - Do not commit `test.only`; CI fails if it finds one (`forbidOnly`).
 
@@ -133,7 +166,7 @@ npx playwright show-report   # click a test, then the trace
 
 1. `npm ci`
 2. `npx playwright install --with-deps`
-3. `npx playwright test`
+3. `npm run test:e2e`, which builds the app and starts it and the mock backend
 4. Uploads `playwright-report/` as an artifact named `playwright-report`, kept for 30 days, also
    when tests fail.
 
@@ -144,16 +177,17 @@ To see why a CI run failed: open the run on GitHub, download the `playwright-rep
 unzip it and run `npx playwright show-report <unzipped folder>`. Failed tests that were retried
 have a trace.
 
-The workflow has no `.env`, RAGdoll or Keycloak, so tests that need login or the backend cannot
-pass in CI yet. Keep those out of CI (for example with `test.skip(!!process.env.CI, '...')`)
-until we decide how to provide a backend there.
+CI needs no secrets: every variable the app needs is set in `playwright.config.ts`, and points at
+the mock backend. Tests that log in run in CI just as they do locally.
 
 ## Troubleshooting
 
-| Problem                                                     | Fix                                                                                                             |
-| ----------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
-| `Executable doesn't exist at ...` / "browser not installed" | Run `npx playwright install`. Needed after a fresh clone and after upgrading `@playwright/test`.                |
-| `net::ERR_CONNECTION_REFUSED` at `localhost:3000`           | The app is not running. Start `npm run dev` first (see [Testing our own app](#testing-our-own-app)).            |
-| A test passes locally but fails in CI                       | Download the report artifact and open the trace. Usually a missing `await`, or an assertion that does not wait. |
-| A test fails only in WebKit or Firefox                      | Run it with `--project=webkit --headed` to watch it. Do not just delete the browser from the config.            |
-| Tests are slow while you work                               | Use `--project=chromium` and run only the file you are working on.                                              |
+| Problem                                                            | Fix                                                                                                                            |
+| ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------ |
+| `Executable doesn't exist at ...` / "browser not installed"        | Run `npx playwright install`. Needed after a fresh clone and after upgrading `@playwright/test`.                               |
+| `Error: http://localhost:3100 is already used`                     | Something else runs on port 3100 or 8181, for example servers left over from a run that was killed. Stop it (`lsof -i :3100`). |
+| The tests run old code                                             | Playwright reused a server left on port 3100. Stop it (`lsof -i :3100`), or reopen UI mode after code changes.                 |
+| The app shows an error and the mock logs `Mock backend has no ...` | The app calls a RAGdoll endpoint the mock doesn't have yet. Add it (see [The mock backend](#the-mock-backend)).                |
+| A test passes locally but fails in CI                              | Download the report artifact and open the trace. Usually a missing `await`, or an assertion that does not wait.                |
+| A test fails only in WebKit or Firefox                             | Run it with `--project=webkit --headed` to watch it. Do not just delete the browser from the config.                           |
+| Tests are slow while you work                                      | Use `--project=chromium` and run only the file you are working on.                                                             |

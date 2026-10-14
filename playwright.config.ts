@@ -1,79 +1,59 @@
 import { defineConfig, devices } from '@playwright/test';
 
-/**
- * Read environment variables from file.
- * https://github.com/motdotla/dotenv
- */
-// import dotenv from 'dotenv';
-// import path from 'path';
-// dotenv.config({ path: path.resolve(__dirname, '.env') });
+// The e2e tests run against a production build on its own port, so they don't clash with
+// `npm run dev` on 3000. Keycloak and RAGdoll are replaced by tests/support/mock-backend.mjs.
+// See docs/e2e-testing.md.
+const APP_PORT = 3100;
+const MOCK_PORT = 8181;
+const appUrl = `http://localhost:${APP_PORT}`;
+const mockUrl = `http://localhost:${MOCK_PORT}`;
 
-/**
- * See https://playwright.dev/docs/test-configuration.
- */
 export default defineConfig({
   testDir: './tests',
-  /* Run tests in files in parallel */
   fullyParallel: true,
-  /* Fail the build on CI if you accidentally left test.only in the source code. */
+  // Fail CI if someone leaves test.only in the code.
   forbidOnly: !!process.env.CI,
-  /* Retry on CI only */
   retries: process.env.CI ? 2 : 0,
-  /* Opt out of parallel tests on CI. */
   workers: process.env.CI ? 1 : undefined,
-  /* Reporter to use. See https://playwright.dev/docs/test-reporters */
   reporter: 'html',
-  /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
-    /* Base URL to use in actions like `await page.goto('')`. */
-    baseURL: 'http://localhost:3000',
-
-    /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
+    baseURL: appUrl,
+    // Record a trace when a failed test is retried. See https://playwright.dev/docs/trace-viewer
     trace: 'on-first-retry',
   },
 
-  /* Configure projects for major browsers */
   projects: [
-    {
-      name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
-    },
-
-    {
-      name: 'firefox',
-      use: { ...devices['Desktop Firefox'] },
-    },
-
-    {
-      name: 'webkit',
-      use: { ...devices['Desktop Safari'] },
-    },
-
-    /* Test against mobile viewports. */
-    // {
-    //   name: 'Mobile Chrome',
-    //   use: { ...devices['Pixel 5'] },
-    // },
-    // {
-    //   name: 'Mobile Safari',
-    //   use: { ...devices['iPhone 12'] },
-    // },
-
-    /* Test against branded browsers. */
-    // {
-    //   name: 'Microsoft Edge',
-    //   use: { ...devices['Desktop Edge'], channel: 'msedge' },
-    // },
-    // {
-    //   name: 'Google Chrome',
-    //   use: { ...devices['Desktop Chrome'], channel: 'chrome' },
-    // },
+    { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
+    { name: 'firefox', use: { ...devices['Desktop Firefox'] } },
+    { name: 'webkit', use: { ...devices['Desktop Safari'] } },
   ],
 
-  /* Run your local dev server before starting the tests */
-  // webServer: {
-  //   command: 'npm run start',
-  //   url: 'http://localhost:3000',
-  //   reuseExistingServer: !process.env.CI,
-  // },
+  webServer: [
+    {
+      command: 'node tests/support/mock-backend.mjs',
+      url: `${mockUrl}/health`,
+      env: { MOCK_BACKEND_PORT: String(MOCK_PORT) },
+      reuseExistingServer: !process.env.CI,
+    },
+    {
+      // A production build, because a second `next dev` can't run next to yours.
+      command: `npm run build && npx next start -p ${APP_PORT}`,
+      url: appUrl,
+      timeout: 300_000,
+      reuseExistingServer: !process.env.CI,
+      // These win over .env, so the app talks to the mock, never to a real backend.
+      env: {
+        BACKEND_API_URL: mockUrl,
+        RAGDOLL_API_URL: mockUrl,
+        RAGDOLL_CONFIGURATOR_AGENT_ID: 'mock-configurator',
+        RAGDOLL_CONFIGURATOR_ACCESS_KEY: 'mock-access-key',
+        NEXTAUTH_URL: appUrl,
+        NEXTAUTH_SECRET: 'e2e-only-secret-not-used-anywhere-else',
+        KEYCLOAK_CLIENT_ID: 'ragdoll-config',
+        KEYCLOAK_CLIENT_SECRET: 'mock-client-secret',
+        KEYCLOAK_ISSUER: `${mockUrl}/realms/ragdoll`,
+        IDUN_API_KEY: 'mock-idun-key',
+      },
+    },
+  ],
 });
