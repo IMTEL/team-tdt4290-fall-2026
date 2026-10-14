@@ -55,7 +55,9 @@ describe('/configure', () => {
   it('shows the steps, and previews the industries grouped by sector before one can be chosen', () => {
     render(<ConfigurePage />);
 
-    expect(screen.getByText('Velg intervjuer').closest('[aria-current="step"]')).not.toBeNull();
+    expect(
+      screen.getByText('Velg intervjuer og profil').closest('[aria-current="step"]'),
+    ).not.toBeNull();
     expect(screen.getByText('Velg bransje')).toBeVisible();
 
     const preview = screen.getByRole('region', { name: 'Bransjer du kan velge i neste steg' });

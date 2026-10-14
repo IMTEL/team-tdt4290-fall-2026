@@ -21,7 +21,7 @@ import styles from './page.module.css';
 // undefined: the counsellor hasn't chosen yet. null: they chose to continue without a template.
 type Choice<T> = T | null | undefined;
 
-const STEPS = ['Velg intervjuer', 'Velg bransje', 'Svar på spørsmålene'];
+const STEPS = ['Velg intervjuer og profil', 'Velg bransje', 'Svar på spørsmålene'];
 
 /** Shows where the counsellor is, so they know the industry comes after the interviewer. */
 function Steps({ active }: { active: number }) {
