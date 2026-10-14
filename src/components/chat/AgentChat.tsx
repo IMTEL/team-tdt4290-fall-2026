@@ -21,7 +21,12 @@ export function AgentChat({ send, initialMessages }: AgentChatProps) {
 
   return (
     <div className={styles.chat}>
-      <MessageList messages={messages} isTyping={isWaiting} />
+      <MessageList
+        messages={messages}
+        isTyping={isWaiting}
+        onAnswer={sendMessage}
+        answersDisabled={error !== null}
+      />
       {error && (
         <Alert
           severity="error"
@@ -35,6 +40,7 @@ export function AgentChat({ send, initialMessages }: AgentChatProps) {
           {error}
         </Alert>
       )}
+      {/* Always open, so the user can also write something of their own instead of answering. */}
       <ChatInput onSend={sendMessage} disabled={isWaiting || error !== null} />
     </div>
   );

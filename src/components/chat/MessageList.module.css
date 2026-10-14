@@ -87,3 +87,12 @@
   white-space: nowrap;
   border: 0;
 }
+
+/* The clickable answers under the newest question, indented like the text in the bubble above. */
+.options {
+  align-self: flex-start;
+  width: 100%;
+  padding-inline: 0.875rem;
+  /* Sits right under its question instead of a whole message gap below it. */
+  margin-top: -0.75rem;
+}

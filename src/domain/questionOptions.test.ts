@@ -20,6 +20,7 @@ describe('parseQuestionOptions', () => {
           { number: 1, label: 'Offentlig' },
           { number: 2, label: 'Privat' },
         ],
+        skippable: false,
       },
     });
   });
@@ -45,6 +46,7 @@ describe('parseQuestionOptions', () => {
         { number: 1, label: 'HR' },
         { number: 2, label: 'Leder' },
       ],
+      skippable: false,
     });
   });
 
@@ -63,6 +65,26 @@ describe('parseQuestionOptions', () => {
   it('returns no options when the marker has no numbered lines after it', () => {
     const reply = 'Hvilken stilling?\n[ALTERNATIVER: ett]';
     expect(parseQuestionOptions(reply)).toEqual({ text: reply, options: null });
+  });
+});
+
+describe('parseQuestionOptions for an optional question', () => {
+  it('makes a question without options skippable, and hides the marker', () => {
+    const reply = `Hva heter bedriften?
+[VALGFRITT]`;
+    expect(parseQuestionOptions(reply)).toEqual({
+      text: 'Hva heter bedriften?',
+      options: { multiple: false, choices: [], skippable: true },
+    });
+  });
+
+  it('makes a question with options skippable', () => {
+    const reply = `${singleChoiceReply}
+[VALGFRITT]`;
+    const { text, options } = parseQuestionOptions(reply);
+    expect(text).toBe('Flott! Er arbeidsgiveren offentlig eller privat?');
+    expect(options?.skippable).toBe(true);
+    expect(options?.choices).toHaveLength(2);
   });
 });
 
