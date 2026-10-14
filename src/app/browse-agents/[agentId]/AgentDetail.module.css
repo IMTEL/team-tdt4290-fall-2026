@@ -1,11 +1,6 @@
-/* The summary in sentences at the top of the page. */
+/* The summary box at the top of the page. MUI's Paper gives it the border, radius and padding. */
 .summary {
-  margin-bottom: 1.5rem;
-  padding: 1rem 1.25rem;
-  border: 1px solid var(--border);
-  border-left: 4px solid var(--ring);
-  border-radius: var(--radius-md);
-  background: var(--muted);
+  background-color: var(--muted);
 }
 
 .summaryLabel {

@@ -10,6 +10,7 @@ import AccordionSummary from '@mui/material/AccordionSummary';
 import Alert from '@mui/material/Alert';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
+import Paper from '@mui/material/Paper';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 
@@ -49,7 +50,13 @@ export function AgentDetail({ agentId }: { agentId: string }) {
       </Typography>
 
       {summary && (
-        <section aria-labelledby="summary-heading" className={styles.summary}>
+        <Paper
+          component="section"
+          variant="outlined"
+          aria-labelledby="summary-heading"
+          className={styles.summary}
+          sx={{ p: 2, mb: 3 }}
+        >
           {/* English translation: Summary */}
           <Typography
             id="summary-heading"
@@ -60,7 +67,7 @@ export function AgentDetail({ agentId }: { agentId: string }) {
             Oppsummering
           </Typography>
           <Typography variant="body1">{summary}</Typography>
-        </section>
+        </Paper>
       )}
 
       {stored ? (
