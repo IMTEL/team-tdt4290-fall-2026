@@ -1,5 +1,5 @@
 import type { Agent } from '@/lib/types';
-import type { Answers } from '@/domain/agentTypes/types';
+import type { AnswerSources, Answers } from '@/domain/agentTypes/types';
 
 const GENERIC_ERROR = 'Noe gikk galt. Prøv igjen.';
 
@@ -53,16 +53,21 @@ function saveErrorMessage(status: number): string {
 }
 
 /**
- * Saves a new name and new answers for an agent, and returns the updated agent.
+ * Saves a new name, new answers and their sources for an agent, and returns the updated agent.
  * Throws Error with a Norwegian message that can be shown as it is.
  */
-export async function updateAgent(id: string, name: string, answers: Answers): Promise<Agent> {
+export async function updateAgent(
+  id: string,
+  name: string,
+  answers: Answers,
+  sources: AnswerSources = {},
+): Promise<Agent> {
   let res: Response;
   try {
     res = await fetch(`/api/agents/${encodeURIComponent(id)}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, answers }),
+      body: JSON.stringify({ name, answers, sources }),
     });
   } catch (cause) {
     throw new Error('Fikk ikke kontakt med serveren. Sjekk nettverket og prøv igjen.', { cause });
@@ -79,13 +84,18 @@ export async function updateAgent(id: string, name: string, answers: Answers): P
  * returns the new agent's id. The original is not changed.
  * Throws Error with a Norwegian message that can be shown as it is.
  */
-export async function cloneAgent(id: string, name: string, answers: Answers): Promise<string> {
+export async function cloneAgent(
+  id: string,
+  name: string,
+  answers: Answers,
+  sources: AnswerSources = {},
+): Promise<string> {
   let res: Response;
   try {
     res = await fetch(`/api/agents/${encodeURIComponent(id)}/clone`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, answers }),
+      body: JSON.stringify({ name, answers, sources }),
     });
   } catch (cause) {
     throw new Error('Fikk ikke kontakt med serveren. Sjekk nettverket og prøv igjen.', { cause });

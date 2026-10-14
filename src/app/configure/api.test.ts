@@ -43,6 +43,7 @@ describe('sendConfigurationTurn', () => {
     ).resolves.toEqual({
       reply: 'Neste?',
       configuration: null,
+      sources: {},
     });
 
     const [url, init] = fetchMock.mock.calls[0];
@@ -90,6 +91,29 @@ describe('sendConfigurationTurn', () => {
     expect(result.configuration).toEqual(configuration);
   });
 
+  it('returns the valid sources the server sends with a finished configuration', async () => {
+    fetchMock.mockResolvedValue(
+      Response.json({
+        reply: 'Ferdig',
+        configuration,
+        sources: {
+          intervjuer: { kind: 'template', id: 'teamleder' },
+          jobbsoker: { kind: 'unknown', id: 'profile-1' },
+        },
+        done: true,
+      }),
+    );
+
+    const result = await sendConfigurationTurn(
+      { templateId: 'teamleder', profileId: null },
+      messages,
+    );
+
+    expect(result.sources).toEqual({
+      intervjuer: { kind: 'template', id: 'teamleder' },
+    });
+  });
+
   it('tells the user to log in again when the session has expired', async () => {
     fetchMock.mockResolvedValue(Response.json({ error: 'Not signed in' }, { status: 401 }));
 
@@ -110,14 +134,15 @@ describe('sendConfigurationTurn', () => {
 });
 
 describe('saveConfiguredAgent', () => {
-  it('posts the name and configuration and returns the new id', async () => {
+  it('posts the name, configuration and sources and returns the new id', async () => {
     fetchMock.mockResolvedValue(Response.json({ id: 'agent-1' }, { status: 201 }));
+    const sources = { intervjuer: { kind: 'template' as const, id: 'daglig-leder' } };
 
-    await expect(saveConfiguredAgent('Kari', configuration)).resolves.toBe('agent-1');
+    await expect(saveConfiguredAgent('Kari', configuration, sources)).resolves.toBe('agent-1');
 
     const [url, init] = fetchMock.mock.calls[0];
     expect(url).toBe('/api/agents');
-    expect(JSON.parse(init?.body as string)).toEqual({ name: 'Kari', configuration });
+    expect(JSON.parse(init?.body as string)).toEqual({ name: 'Kari', configuration, sources });
   });
 
   it('throws a ChatError with a safe message when saving fails', async () => {

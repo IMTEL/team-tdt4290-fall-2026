@@ -7,6 +7,7 @@ import Button from '@mui/material/Button';
 import TextField from '@mui/material/TextField';
 
 import { ChatError } from '@/components/chat/sendToAgent';
+import type { AnswerSources } from '@/domain/agentTypes/types';
 import type { Configuration } from '@/domain/configuration';
 import { saveConfiguredAgent } from './api';
 import styles from './SaveAgentForm.module.css';
@@ -20,8 +21,14 @@ type SaveStatus =
   | { kind: 'saved'; id: string }
   | { kind: 'error'; message: string };
 
+type SaveAgentFormProps = {
+  configuration: Configuration;
+  /** The template and profile the answers came from, so the edit form can show them later. */
+  sources?: AnswerSources;
+};
+
 /** Shown under the chat once the configurator has finished: name the interviewer and save it. */
-export function SaveAgentForm({ configuration }: { configuration: Configuration }) {
+export function SaveAgentForm({ configuration, sources = {} }: SaveAgentFormProps) {
   const [name, setName] = useState(`Intervjuer for ${configuration.stilling}`);
   const [status, setStatus] = useState<SaveStatus>({ kind: 'idle' });
 
@@ -29,7 +36,7 @@ export function SaveAgentForm({ configuration }: { configuration: Configuration 
     event.preventDefault();
     setStatus({ kind: 'saving' });
     try {
-      const id = await saveConfiguredAgent(name.trim(), configuration);
+      const id = await saveConfiguredAgent(name.trim(), configuration, sources);
       setStatus({ kind: 'saved', id });
     } catch (error) {
       // Only ChatError messages are written for users; anything else could be technical.

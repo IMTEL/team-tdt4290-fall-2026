@@ -2,7 +2,7 @@ import type { NextRequest } from 'next/server';
 
 import { cleanName } from '@/domain/agentName';
 import { hasAllAnswers } from '@/domain/agentTypes/registry';
-import { readStoredAnswers } from '@/domain/agentTypes/storedAnswers';
+import { cleanSources, readStoredAnswers } from '@/domain/agentTypes/storedAnswers';
 import { getSessionToken } from '@/lib/session-tokens';
 import { toRagdollAgent } from '@/server/agentMapper';
 import { configErrorResponse, ragdollErrorResponse } from '@/server/errorResponse';
@@ -22,10 +22,12 @@ export async function POST(req: NextRequest, { params }: Params) {
 
   let name: string | null;
   let answers: unknown;
+  let sources: unknown;
   try {
     const body = await req.json();
     name = cleanName(body?.name);
     answers = body?.answers;
+    sources = body?.sources;
   } catch {
     return Response.json({ error: 'Invalid JSON' }, { status: 400 });
   }
@@ -53,7 +55,13 @@ export async function POST(req: NextRequest, { params }: Params) {
       return Response.json({ error: 'Invalid answers' }, { status: 400 });
     }
 
-    const clone = toRagdollAgent(name, stored.definition, answers, idunKey);
+    const clone = toRagdollAgent(
+      name,
+      stored.definition,
+      answers,
+      idunKey,
+      cleanSources(stored.definition, sources),
+    );
     const id = await saveAgent(sessionToken, clone);
     return Response.json({ id }, { status: 201 });
   } catch (error) {

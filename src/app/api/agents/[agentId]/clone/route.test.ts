@@ -89,6 +89,16 @@ describe('POST /api/agents/[agentId]/clone', () => {
     expect(readStoredAnswers(saved.description)?.answers).toEqual(cloneAnswers);
   });
 
+  it('stores where answers came from', async () => {
+    const sources = { jobbsoker: { kind: 'profile', id: 'profile-1' } };
+
+    await POST(postRequest({ ...validBody, sources }), params);
+
+    const [, saved] = saveAgentMock.mock.calls[0];
+    const stored = readStoredAnswers(saved.description);
+    expect(stored?.sources).toEqual({ jobbsoker: { kind: 'profile', id: 'profile-1' } });
+  });
+
   it('leaves the original agent unchanged', async () => {
     await POST(postRequest(validBody), params);
 

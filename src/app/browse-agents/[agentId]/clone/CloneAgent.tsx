@@ -13,6 +13,7 @@ import Typography from '@mui/material/Typography';
 import { cloneName } from '@/domain/agentName';
 import { readStoredAnswers } from '@/domain/agentTypes/storedAnswers';
 import { cloneAgent } from '../../api';
+import { useAnswerPresets } from '../../useAnswerPresets';
 import { useAgent } from '../../useAgent';
 import { EditAgentForm } from '../edit/EditAgentForm';
 
@@ -22,6 +23,8 @@ import { EditAgentForm } from '../edit/EditAgentForm';
  */
 export function CloneAgent({ agentId }: { agentId: string }) {
   const state = useAgent(agentId);
+  const stored = state.kind === 'ready' ? readStoredAnswers(state.agent.description) : null;
+  const presets = useAnswerPresets(stored?.definition);
 
   if (state.kind === 'missing') notFound();
   if (state.kind === 'loading') return <Typography>Laster agent …</Typography>;
@@ -29,7 +32,6 @@ export function CloneAgent({ agentId }: { agentId: string }) {
   if (state.kind !== 'ready') return null;
 
   const { agent } = state;
-  const stored = readStoredAnswers(agent.description);
 
   return (
     <Box sx={{ p: { xs: 2, md: 4 }, maxWidth: 960, mx: 'auto' }}>
@@ -57,10 +59,12 @@ export function CloneAgent({ agentId }: { agentId: string }) {
           initialName={cloneName(agent.name)}
           definition={stored.definition}
           initialAnswers={stored.answers}
+          initialSources={stored.sources}
           label="Klon agent"
           submitLabel="Lagre som ny agent"
-          onSave={(name, answers) => cloneAgent(agent.id, name, answers)}
+          onSave={(name, answers, sources) => cloneAgent(agent.id, name, answers, sources)}
           allowUnchanged
+          presets={presets}
         />
       ) : (
         <Alert severity="info">Denne agenten ble ikke laget her, og kan ikke klones.</Alert>

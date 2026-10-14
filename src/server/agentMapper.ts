@@ -1,5 +1,10 @@
 import { readStoredAnswers, toStoredDescription } from '@/domain/agentTypes/storedAnswers';
-import type { AgentRole, AgentTypeDefinition, Answers } from '@/domain/agentTypes/types';
+import type {
+  AgentRole,
+  AgentTypeDefinition,
+  AnswerSources,
+  Answers,
+} from '@/domain/agentTypes/types';
 import type {
   FullRagdollAgent,
   NewRagdollAgent,
@@ -12,7 +17,8 @@ const LLM_MODEL = 'openai/gpt-oss-120b';
 const EMBEDDING_MODEL = 'idun:Qwen/Qwen3-Embedding-8B';
 
 /**
- * Builds the RAGdoll agent for a new agent from the counsellor's answers.
+ * Builds the RAGdoll agent for a new agent from the counsellor's answers, and the sources of those
+ * that came from a template or profile.
  * `idunKey` is the project's IDUN key: counsellors have none, so every agent gets ours.
  */
 export function toRagdollAgent(
@@ -20,10 +26,11 @@ export function toRagdollAgent(
   definition: AgentTypeDefinition,
   answers: Answers,
   idunKey: string,
+  sources: AnswerSources = {},
   now: Date = new Date(),
 ): NewRagdollAgent {
   return {
-    ...fromAnswers(name, definition, answers, now),
+    ...fromAnswers(name, definition, answers, sources, now),
     llm_provider: 'idun',
     llm_model: LLM_MODEL,
     llm_api_key: idunKey,
@@ -44,16 +51,23 @@ export function applyEdit(
   name: string,
   definition: AgentTypeDefinition,
   answers: Answers,
+  sources: AnswerSources = {},
   now: Date = new Date(),
 ): FullRagdollAgent {
-  return { ...existing, ...fromAnswers(name, definition, answers, now) };
+  return { ...existing, ...fromAnswers(name, definition, answers, sources, now) };
 }
 
 /** The fields of a RAGdoll agent that come from the counsellor's choices. */
-function fromAnswers(name: string, definition: AgentTypeDefinition, answers: Answers, now: Date) {
+function fromAnswers(
+  name: string,
+  definition: AgentTypeDefinition,
+  answers: Answers,
+  sources: AnswerSources,
+  now: Date,
+) {
   return {
     name,
-    description: toStoredDescription(definition, answers),
+    description: toStoredDescription(definition, answers, sources),
     // The prompt is always rebuilt from the answers, so an edit also gets the newest prompt.
     prompt: definition.buildPrompt(answers),
     roles: definition.buildRoles(name, answers).map(toRagdollRole),

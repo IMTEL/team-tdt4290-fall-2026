@@ -284,10 +284,20 @@ the update route and the mapper only call the definition and never name a field,
 for the interviewer, or a new type such as a learning assistant, needs no change there. Adding a
 type is one new file and one line in `registry.ts`.
 
-The answers are stored in the agent's `description` as `{type, version, answers}`
+The answers are stored in the agent's `description` as `{type, version, answers, sources}`
 (`storedAnswers.ts`). Agents saved before agent types existed have only the answers, and are read
 as interviewers. Reading is lenient: a field the type got after the agent was saved comes back
 empty, so the counsellor can fill it in. Saving is strict: every field needs an answer.
+
+`sources` remembers which template or job seeker profile an answer came from, as
+`{ <field>: { kind: 'template' | 'profile', id } }`. The text stays in `answers`, since the prompt
+is built from it; the source only lets the edit and clone form show the template or profile. On
+`/configure`, `/api/configure/turn` returns the sources with the finished configuration, since it
+is what puts the template's and profile's text in the answers. A source is dropped when the
+counsellor rewrites the text. If the template or profile has been changed or deleted since, the
+form says so, and the source is kept as long as the text is, since it still tells where the text
+came from. Edits to a template or profile never change existing agents. Agents saved before
+sources existed have none.
 
 ### Chatting with an agent
 
@@ -376,7 +386,7 @@ Code: [`src/app/api/logout/route.ts`](../src/app/api/logout/route.ts),
 | ---------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
 | Configurator prompt                | Source in `prompts/configurator.nb.md` in this repo; copied by hand into the agent's **General Agent Prompt** in RAGdoll                                                                                                                                                                            | Same: the repo is the source, RAGdoll holds a copy                      |
 | Counsellors' interviewer agents    | RAGdoll (MongoDB), created by `POST /api/agents` and listed by `GET /api/agents`, owned by the logged-in counsellor. `/browse-agents` reads that list                                                                                                                                               | Same                                                                    |
-| Configuration answers              | JSON `{type, version, answers}` in the saved agent's `description` (`src/domain/agentTypes/storedAnswers.ts`). Older agents have only the answers                                                                                                                                                   | A field of its own, if RAGdoll gets a `metadata` field                  |
+| Configuration answers              | JSON `{type, version, answers, sources}` in the saved agent's `description` (`src/domain/agentTypes/storedAnswers.ts`). Older agents have only the answers                                                                                                                                          | A field of its own, if RAGdoll gets a `metadata` field                  |
 | Templates (role, industry, ...)    | Built-in: four interviewer personas in `src/data/interviewer-templates.ts`. Saved: each counsellor's own templates in RAGdoll's `templates` collection (type `interviewer`), visible only to them. `/configure` shows built-in first, then saved; the server fills `Intervjuer` from the chosen one | Same                                                                    |
 | Published agents for The Candidate | Not yet                                                                                                                                                                                                                                                                                             | Agent marked as published in RAGdoll; The Candidate reads it from there |
 | Users                              | Keycloak (login) and RAGdoll (user record, created on first `POST /api/login`)                                                                                                                                                                                                                      | Same                                                                    |
