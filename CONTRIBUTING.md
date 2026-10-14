@@ -171,6 +171,15 @@ Read [`docs/design-guide.md`](docs/design-guide.md) before writing UI. In short:
 - Same for spacing and font sizes: use the scale, not arbitrary pixel values.
 - Prefer configuration over hard-coding: questionnaire, templates and scenario definitions live in data files, not in components.
 
+### Prompts
+
+The agent prompts live in `prompts/` (for example `prompts/configurator.nb.md`). The prompt text itself is in Norwegian (bokmål), because that is what the agents answer in. This applies to people and to AI coding assistants alike:
+
+- **One requirement per bullet.** Every section of a prompt is a bullet list, so requirements can be added one by one.
+- **Add, don't rewrite.** A new requirement is a new bullet in the section it belongs to. Do not reword, merge or delete existing bullets unless the change is meant to replace that requirement, and say so in the commit message.
+- **Keep the fixed formats exact.** Blocks the code reads (such as `[ALTERNATIVER: …]` and `KONFIGURASJON`) must match the parsers in `src/domain/`. Change both in the same commit.
+- **RAGdoll holds a copy.** After changing a prompt, paste the text inside the ` ```text ` block into the agent in RAGdoll.
+
 ## 8. Secrets and personal data
 
 - Secrets go in `.env` (git-ignored); `.env.example` lists every variable with a dummy value.
