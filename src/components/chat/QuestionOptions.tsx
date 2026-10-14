@@ -15,17 +15,6 @@ import {
 } from '@/domain/questionOptions';
 import styles from './QuestionOptions.module.css';
 
-// Rounded buttons for the answers and for skipping, so they look alike.
-const PILL = {
-  textTransform: 'none',
-  borderRadius: 999,
-  px: 2,
-  fontWeight: 500,
-  borderColor: 'divider',
-  color: 'text.primary',
-  '&:hover': { borderColor: 'primary.main', bgcolor: 'action.hover' },
-} as const;
-
 type QuestionOptionsProps = {
   options: Options;
   /** Called with the answer as a chat message, e.g. "1. HR, 3. Kollega. Annet: …". */
@@ -40,14 +29,16 @@ type QuestionOptionsProps = {
  * is not in the list. An optional question also gets a "Hopp over" button.
  */
 export function QuestionOptions({ options, onAnswer, disabled = false }: QuestionOptionsProps) {
-  const [chosen, setChosen] = useState<Choice[]>([]);
+  // The numbers of the ticked options. Numbers, not Choice objects: the options are parsed again
+  // on every render of the chat, so the objects are new each time.
+  const [chosen, setChosen] = useState<number[]>([]);
   const [other, setOther] = useState('');
   const canSend = !disabled && (chosen.length > 0 || other.trim() !== '');
   const hasChoices = options.choices.length > 0;
 
-  function toggle(choice: Choice) {
+  function toggle({ number }: Choice) {
     setChosen((current) =>
-      current.includes(choice) ? current.filter((c) => c !== choice) : [...current, choice],
+      current.includes(number) ? current.filter((n) => n !== number) : [...current, number],
     );
   }
 
@@ -57,7 +48,7 @@ export function QuestionOptions({ options, onAnswer, disabled = false }: Questio
     // Keep the agent's order, not the order the boxes were ticked in.
     onAnswer(
       formatAnswer(
-        options.choices.filter((c) => chosen.includes(c)),
+        options.choices.filter((c) => chosen.includes(c.number)),
         other,
       ),
     );
@@ -73,7 +64,10 @@ export function QuestionOptions({ options, onAnswer, disabled = false }: Questio
               label={`${choice.number}. ${choice.label}`}
               disabled={disabled}
               control={
-                <Checkbox checked={chosen.includes(choice)} onChange={() => toggle(choice)} />
+                <Checkbox
+                  checked={chosen.includes(choice.number)}
+                  onChange={() => toggle(choice)}
+                />
               }
             />
           ))}
@@ -84,10 +78,9 @@ export function QuestionOptions({ options, onAnswer, disabled = false }: Questio
           {options.choices.map((choice) => (
             <Button
               key={choice.number}
-              variant="outlined"
+              variant="pill"
               disabled={disabled}
               onClick={() => onAnswer(formatAnswer([choice]))}
-              sx={PILL}
             >
               <span className={styles.number}>{choice.number}.</span> {choice.label}
             </Button>
@@ -112,12 +105,11 @@ export function QuestionOptions({ options, onAnswer, disabled = false }: Questio
       )}
       {options.skippable && (
         <Button
-          variant="outlined"
+          variant="pill"
           disabled={disabled}
           onClick={() => onAnswer(SKIP_ANSWER)}
           startIcon={<SkipNextIcon />}
           className={styles.skip}
-          sx={PILL}
         >
           Hopp over
         </Button>

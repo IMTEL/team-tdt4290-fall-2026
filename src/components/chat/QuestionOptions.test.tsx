@@ -73,6 +73,21 @@ describe('QuestionOptions with several answers allowed', () => {
     expect(onAnswer).toHaveBeenCalledExactlyOnceWith('2. Leder');
   });
 
+  it('keeps the ticked options when the chat renders the question again', async () => {
+    const onAnswer = vi.fn();
+    const { rerender } = render(<QuestionOptions options={multiple} onAnswer={onAnswer} />);
+    const user = userEvent.setup();
+
+    await user.click(screen.getByRole('checkbox', { name: '2. Leder' }));
+    // The chat parses the reply again on every render, so the options are new objects.
+    const parsedAgain = { ...multiple, choices: choices.map((c) => ({ ...c })) };
+    rerender(<QuestionOptions options={parsedAgain} onAnswer={onAnswer} />);
+    await user.click(sendButton());
+
+    expect(screen.getByRole('checkbox', { name: '2. Leder' })).toBeChecked();
+    expect(onAnswer).toHaveBeenCalledExactlyOnceWith('2. Leder');
+  });
+
   it('can not send before something is chosen or written', () => {
     setup(multiple);
 
