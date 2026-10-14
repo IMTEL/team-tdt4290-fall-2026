@@ -4,7 +4,7 @@ export type RagdollAgent = { id: string; accessKey: string; roleName?: string };
 export type RagdollMessage = { role: 'user' | 'assistant'; content: string };
 
 export type RagdollErrorKind =
-  'config' | 'timeout' | 'unreachable' | 'bad-response' | 'unauthorized' | 'not-found';
+  'config' | 'timeout' | 'unreachable' | 'bad-response' | 'unauthorized' | 'not-found' | 'rejected';
 
 /** A failure talking to RAGdoll. `message` is technical and only meant for the server log. */
 export class RagdollError extends Error {
@@ -481,9 +481,16 @@ async function requestAsUser(
     throw new RagdollError('unreachable', 'Could not reach RAGdoll', { cause });
   }
 
-  // RAGdoll answers 401 for an expired token and 422 for a missing or broken one.
-  if (res.status === 401 || res.status === 422) {
-    throw new RagdollError('unauthorized', `RAGdoll answered ${res.status}: ${await res.text()}`);
+  // RAGdoll answers 401 for an expired or missing token, and 422 for a broken one.
+  if (res.status === 401) {
+    throw new RagdollError('unauthorized', `RAGdoll answered 401: ${await res.text()}`);
+  }
+  // 422 is also how RAGdoll rejects a body it doesn't accept, with a list of field errors. That
+  // means our request and RAGdoll's model disagree, so it must not look like being logged out.
+  if (res.status === 422) {
+    const text = await res.text();
+    const kind = isFieldErrorList(text) ? 'rejected' : 'unauthorized';
+    throw new RagdollError(kind, `RAGdoll answered 422: ${text}`);
   }
   if (res.status === 404) {
     throw new RagdollError('not-found', `RAGdoll answered 404: ${await res.text()}`);
@@ -497,6 +504,18 @@ async function requestAsUser(
     throw new RagdollError('bad-response', 'RAGdoll did not answer with JSON');
   }
   return data;
+}
+
+/**
+ * True if the body is FastAPI's answer to a request that didn't match its model:
+ * `{detail: [{loc, msg, ...}, ...]}`. A broken token gives `{detail: "<message>"}` instead.
+ */
+function isFieldErrorList(text: string): boolean {
+  try {
+    return Array.isArray(JSON.parse(text)?.detail);
+  } catch {
+    return false;
+  }
 }
 
 /** Only the fields we pass on. This also leaves the agent's API keys behind. */

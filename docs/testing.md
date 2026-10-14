@@ -147,8 +147,9 @@ Unit and component level only:
   the user does not have gives 404 and is never written, so RAGdoll cannot create a new one;
   RAGdoll failures give 502.
 - `src/server/ragdoll.test.ts`: `askAgent`, `saveAgent`, `listAgents`, `fetchFullAgent` and
-  `updateAgent` against a mocked `fetch`: the session token is sent, 401 and 422 become
-  `unauthorized`, an id that is not the user's becomes `not-found`, an update sends the id with
+  `updateAgent` against a mocked `fetch`: the session token is sent, 401 and a 422 about the
+  token become `unauthorized`, while a 422 listing fields RAGdoll doesn't accept becomes
+  `rejected` (502, not "logged out"), an id that is not the user's becomes `not-found`, an update sends the id with
   empty keys, and nothing returns the agents' API keys. The template and settings functions call
   the right paths (settings under our namespace), turn 404 into `not-found`, and keep only the
   fields we use.

@@ -835,6 +835,38 @@ describe('profiles', () => {
     ]);
   });
 
+  // RAGdoll's real answers: a broken token gives a message, a body it doesn't accept a list.
+  it('throws unauthorized for a 422 about the token', async () => {
+    fetchMock.mockResolvedValue(Response.json({ detail: 'Not enough segments' }, { status: 422 }));
+
+    await expect(createProfile(SESSION_TOKEN, newProfile)).rejects.toMatchObject({
+      kind: 'unauthorized',
+    });
+  });
+
+  it('throws rejected, not unauthorized, for a 422 listing fields RAGdoll does not accept', async () => {
+    fetchMock.mockResolvedValue(
+      Response.json(
+        {
+          detail: [
+            {
+              type: 'extra_forbidden',
+              loc: ['body', 'experience_level'],
+              msg: 'Extra inputs are not permitted',
+              input: 'none',
+            },
+          ],
+        },
+        { status: 422 },
+      ),
+    );
+
+    await expect(createProfile(SESSION_TOKEN, newProfile)).rejects.toMatchObject({
+      kind: 'rejected',
+      message: expect.stringContaining('experience_level'),
+    });
+  });
+
   it('throws a bad-response error when the list has something that is not a profile', async () => {
     fetchMock.mockResolvedValue(Response.json([{ id: 'profile-1' }]));
 
