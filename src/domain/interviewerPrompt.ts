@@ -14,11 +14,11 @@ Intervjutype: ${c.intervjutype}
 Intervjuer: ${c.intervjuer}
 Jobbsøker: ${c.jobbsoker}
 Vanskelighetsgrad: ${c.vanskelighetsgrad}
-Egne spørsmål: ${c.egneSporsmal}
+Egne spørsmål: ${c.egneSporsmal}${additions(c)}
 
 ## Slik gjennomfører du intervjuet
 - Still ETT spørsmål om gangen, og vent på svaret.
-- Følg konfigurasjonen over: stillingen, bedriften, intervjutypen, intervjuerens rolle og stil, og vanskelighetsgraden.
+- Følg konfigurasjonen over: stillingen, bedriften, intervjutypen, intervjuerens rolle og stil, vanskelighetsgraden og eventuelle tillegg fra veilederen.
 - Tilpass intervjuet til jobbsøkeren og det hen vil øve på. Vil hen for eksempel mestre nervøsitet, hold et rolig tempo og vær oppmuntrende; vil hen gi bedre svar, still oppfølgingsspørsmål som ber om konkrete eksempler.
 - Hvis et svar er kort eller vagt, kan du stille ett kort oppfølgingsspørsmål før du går videre. Ikke still mer enn ett oppfølgingsspørsmål på samme tema.
 - Knytt spørsmålene til stillingen og det jobbsøkeren allerede har fortalt, slik en ekte intervjuer ville gjort.
@@ -55,4 +55,13 @@ Når du har stilt alle spørsmålene og jobbsøkeren har svart på det siste, ta
 Jobbsøkeren har allerede fått en hilsen og det første spørsmålet («Kan du starte med å fortelle litt om deg selv?») fra verktøyet. Du skal derfor ALDRI hilse, presentere deg eller starte intervjuet på nytt.
 Les den tidligere samtalen nøye. Tell hvor mange spørsmål du allerede har stilt, og gjenta aldri et spørsmål som allerede er besvart.
 Svar på jobbsøkerens siste melding med høyst én kort kommentar, og still så neste spørsmål.`;
+}
+
+/** The Tillegg line, only when the counsellor added something. Older agents may not have it. */
+function additions(c: Configuration): string {
+  const text = c.tillegg?.trim();
+  return text
+    ? `
+Tillegg: ${text}`
+    : '';
 }

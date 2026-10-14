@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest';
 
-import { parseConfiguration } from './configuration';
+import { isConfiguration, parseConfiguration } from './configuration';
 
 // A reply that ends with a complete block, the way prompts/configurator.nb.md asks for it.
 // This one has no Intervjuer line, as when a template decides the interviewer.
@@ -35,7 +35,17 @@ describe('parseConfiguration', () => {
       jobbsoker: 'under 25, lite erfaring, godt norsknivå, øve på å fortelle om egne styrker',
       vanskelighetsgrad: 'lett | Antall spørsmål: 6 | Oppfølgingsspørsmål: ja',
       egneSporsmal: 'ingen',
+      tillegg: '',
     });
+  });
+
+  it('reads what the counsellor added, and leaves it empty when the line is missing', () => {
+    const withAdditions = `${completeReply}
+Tillegg: Snakk sakte og tydelig.`;
+    expect(parseConfiguration(withAdditions, { intervjuer: interviewer })?.tillegg).toBe(
+      'Snakk sakte og tydelig.',
+    );
+    expect(parseConfiguration(completeReply, { intervjuer: interviewer })?.tillegg).toBe('');
   });
 
   it('reads the Intervjuer line when there is no template', () => {
@@ -92,5 +102,18 @@ describe('parseConfiguration', () => {
     expect(parseConfiguration(replyWithInterviewer, { jobbsoker: jobSeeker })?.jobbsoker).toBe(
       jobSeeker,
     );
+  });
+});
+
+describe('isConfiguration', () => {
+  const configuration = parseConfiguration(completeReply, { intervjuer: interviewer });
+
+  it('accepts a configuration with nothing added', () => {
+    expect(isConfiguration(configuration)).toBe(true);
+  });
+
+  it('rejects an empty required field, or a missing optional one', () => {
+    expect(isConfiguration({ ...configuration, stilling: '' })).toBe(false);
+    expect(isConfiguration({ ...configuration, tillegg: undefined })).toBe(false);
   });
 });

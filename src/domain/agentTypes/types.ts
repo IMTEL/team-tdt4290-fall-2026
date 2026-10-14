@@ -11,8 +11,8 @@ export type AnswerSource = { kind: 'template' | 'profile'; id: string };
 /** The source of each answer that came from one, by field key. */
 export type AnswerSources = Record<string, AnswerSource>;
 
-/** One thing the counsellor decides about an agent. */
-export type AgentField = { key: string; label: string };
+/** One thing the counsellor decides about an agent. An optional field may be left empty. */
+export type AgentField = { key: string; label: string; optional?: boolean };
 
 /** A role. The mapper turns it into a RAGdoll role. */
 export type AgentRole = { name: string; description: string };

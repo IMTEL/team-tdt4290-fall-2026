@@ -28,6 +28,7 @@ const configuration = {
   jobbsoker: 'under 25, lite erfaring',
   vanskelighetsgrad: 'lett | Antall spørsmål: 6 | Oppfølgingsspørsmål: ja',
   egneSporsmal: 'ingen',
+  tillegg: '',
 };
 
 function postRequest(body: unknown) {

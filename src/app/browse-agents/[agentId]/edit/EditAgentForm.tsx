@@ -14,6 +14,7 @@ import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 
 import { MAX_NAME_LENGTH } from '@/domain/agentName';
+import { hasAllAnswers } from '@/domain/agentTypes/registry';
 import type {
   AgentTypeDefinition,
   AnswerSource,
@@ -155,8 +156,7 @@ export function EditAgentForm({
   }
 
   const isSaving = status.kind === 'saving';
-  const isComplete =
-    name.trim() !== '' && definition.fields.every(({ key }) => answers[key]?.trim());
+  const isComplete = name.trim() !== '' && hasAllAnswers(definition, answers);
   const changes =
     (name.trim() !== initialName ? 1 : 0) +
     definition.fields.filter(
@@ -236,7 +236,7 @@ export function EditAgentForm({
         <Box
           sx={{ display: 'grid', gap: 2, gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)' } }}
         >
-          {definition.fields.map(({ key, label }) => {
+          {definition.fields.map(({ key, label, optional }) => {
             // Measured on the saved answer, so the layout does not jump while typing.
             const isLong = (initialAnswers[key] ?? '').length > LONG_ANSWER;
             return (
@@ -245,7 +245,7 @@ export function EditAgentForm({
                 label={label}
                 value={answers[key] ?? ''}
                 onChange={(event) => typeAnswer(key, event.target.value)}
-                required
+                required={!optional}
                 multiline
                 minRows={isLong ? 3 : 1}
                 fullWidth
