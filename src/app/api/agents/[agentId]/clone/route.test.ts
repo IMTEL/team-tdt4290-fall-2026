@@ -55,11 +55,18 @@ const original = {
 
 // An original with its own model, temperature and hand-written prompt.
 const tunedOriginal = {
-  ...toRagdollAgent('Butikkintervju', interviewer, answers, 'idun-key', {
-    model: 'old/model',
-    temperature: 0.2,
-    customPrompt: 'Du er Kari.',
-  }),
+  ...toRagdollAgent(
+    'Butikkintervju',
+    interviewer,
+    answers,
+    'idun-key',
+    {},
+    {
+      model: 'old/model',
+      temperature: 0.2,
+      customPrompt: 'Du er Kari.',
+    },
+  ),
   id: 'agent-1',
 };
 
@@ -108,6 +115,16 @@ describe('POST /api/agents/[agentId]/clone', () => {
     expect(saved.name).toBe('Butikkintervju (kopi)');
     expect(saved.prompt).toContain('vanskelig');
     expect(readStoredAnswers(saved.description)?.answers).toEqual(cloneAnswers);
+  });
+
+  it('stores where answers came from', async () => {
+    const sources = { jobbsoker: { kind: 'profile', id: 'profile-1' } };
+
+    await POST(postRequest({ ...validBody, sources }), params);
+
+    const [, saved] = saveAgentMock.mock.calls[0];
+    const stored = readStoredAnswers(saved.description);
+    expect(stored?.sources).toEqual({ jobbsoker: { kind: 'profile', id: 'profile-1' } });
   });
 
   it('leaves the original agent unchanged', async () => {

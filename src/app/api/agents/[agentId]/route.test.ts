@@ -117,6 +117,16 @@ describe('PUT /api/agents/[agentId]', () => {
     expect(saved.llm_temperature).toBe(0.2);
   });
 
+  it('stores where answers came from', async () => {
+    const sources = { jobbsoker: { kind: 'profile', id: 'profile-1' } };
+
+    await PUT(putRequest({ name: 'Nytt navn', answers: newAnswers, sources }), params);
+
+    const [, saved] = updateAgentMock.mock.calls[0];
+    const stored = readStoredAnswers(saved.description);
+    expect(stored?.sources).toEqual({ jobbsoker: { kind: 'profile', id: 'profile-1' } });
+  });
+
   it('answers 401 and touches nothing when the user is not logged in', async () => {
     getSessionTokenMock.mockResolvedValue(null);
 

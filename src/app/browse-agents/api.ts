@@ -1,5 +1,5 @@
 import type { AdvancedSettings } from '@/domain/advancedSettings';
-import type { Answers } from '@/domain/agentTypes/types';
+import type { AnswerSources, Answers } from '@/domain/agentTypes/types';
 import type { Agent } from '@/lib/types';
 
 const GENERIC_ERROR = 'Noe gikk galt. Prøv igjen.';
@@ -58,14 +58,15 @@ function saveErrorMessage(status: number): string {
 }
 
 /**
- * Saves a new name, new answers and new advanced settings for an agent, and returns the updated
- * agent. Without `advanced` the agent keeps the settings it has.
+ * Saves a new name, new answers, their sources and new advanced settings for an agent, and
+ * returns the updated agent. Without `advanced` the agent keeps the settings it has.
  * Throws Error with a Norwegian message that can be shown as it is.
  */
 export async function updateAgent(
   id: string,
   name: string,
   answers: Answers,
+  sources: AnswerSources = {},
   advanced?: AdvancedSettings,
 ): Promise<Agent> {
   let res: Response;
@@ -73,7 +74,7 @@ export async function updateAgent(
     res = await fetch(`/api/agents/${encodeURIComponent(id)}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, answers, advanced }),
+      body: JSON.stringify({ name, answers, sources, advanced }),
     });
   } catch (cause) {
     throw new Error('Fikk ikke kontakt med serveren. Sjekk nettverket og prøv igjen.', { cause });
@@ -95,6 +96,7 @@ export async function cloneAgent(
   id: string,
   name: string,
   answers: Answers,
+  sources: AnswerSources = {},
   advanced?: AdvancedSettings,
 ): Promise<string> {
   let res: Response;
@@ -102,7 +104,7 @@ export async function cloneAgent(
     res = await fetch(`/api/agents/${encodeURIComponent(id)}/clone`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, answers, advanced }),
+      body: JSON.stringify({ name, answers, sources, advanced }),
     });
   } catch (cause) {
     throw new Error('Fikk ikke kontakt med serveren. Sjekk nettverket og prøv igjen.', { cause });

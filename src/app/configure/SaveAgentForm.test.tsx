@@ -54,7 +54,7 @@ describe('SaveAgentForm', () => {
     await user.click(saveButton());
 
     // Without changes to the advanced settings the server uses its defaults.
-    expect(saveMock).toHaveBeenCalledWith('Butikksjef Kari', configuration, undefined);
+    expect(saveMock).toHaveBeenCalledWith('Butikksjef Kari', configuration, {}, undefined);
     expect(await screen.findByText(/«Butikksjef Kari» er lagret/)).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Test intervjueren' })).toHaveAttribute(
       'href',
@@ -75,10 +75,15 @@ describe('SaveAgentForm', () => {
     await user.click(screen.getByRole('option', { name: 'meta/llama-3.3-70b' }));
     await user.click(saveButton());
 
-    expect(saveMock).toHaveBeenCalledWith('Intervjuer for Butikkmedarbeider', configuration, {
-      ...DEFAULT_ADVANCED_SETTINGS,
-      model: 'meta/llama-3.3-70b',
-    });
+    expect(saveMock).toHaveBeenCalledWith(
+      'Intervjuer for Butikkmedarbeider',
+      configuration,
+      {},
+      {
+        ...DEFAULT_ADVANCED_SETTINGS,
+        model: 'meta/llama-3.3-70b',
+      },
+    );
   });
 
   it('cannot be saved with an empty hand-written prompt', async () => {

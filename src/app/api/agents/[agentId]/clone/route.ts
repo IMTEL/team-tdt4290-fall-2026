@@ -3,7 +3,7 @@ import type { NextRequest } from 'next/server';
 import { type AdvancedSettings, parseAdvancedSettings } from '@/domain/advancedSettings';
 import { cleanName } from '@/domain/agentName';
 import { hasAllAnswers } from '@/domain/agentTypes/registry';
-import { readStoredAnswers } from '@/domain/agentTypes/storedAnswers';
+import { cleanSources, readStoredAnswers } from '@/domain/agentTypes/storedAnswers';
 import { getSessionToken } from '@/lib/session-tokens';
 import { currentSettings, toRagdollAgent } from '@/server/agentMapper';
 import { configErrorResponse, ragdollErrorResponse } from '@/server/errorResponse';
@@ -27,11 +27,13 @@ export async function POST(req: NextRequest, { params }: Params) {
   let name: string | null;
   let answers: unknown;
   let advanced: unknown;
+  let sources: unknown;
   try {
     const body = await req.json();
     name = cleanName(body?.name);
     answers = body?.answers;
     advanced = body?.advanced;
+    sources = body?.sources;
   } catch {
     return Response.json({ error: 'Invalid JSON' }, { status: 400 });
   }
@@ -74,7 +76,14 @@ export async function POST(req: NextRequest, { params }: Params) {
       settings = parsed;
     }
 
-    const clone = toRagdollAgent(name, stored.definition, answers, idunKey, settings);
+    const clone = toRagdollAgent(
+      name,
+      stored.definition,
+      answers,
+      idunKey,
+      cleanSources(stored.definition, sources),
+      settings,
+    );
     const id = await saveAgent(sessionToken, clone);
     return Response.json({ id }, { status: 201 });
   } catch (error) {

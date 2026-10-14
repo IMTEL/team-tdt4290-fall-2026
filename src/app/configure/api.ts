@@ -2,6 +2,9 @@ import { ChatError } from '@/components/chat/sendToAgent';
 import type { ChatMessage } from '@/components/chat/types';
 import type { InterviewerTemplate } from '@/data/interviewer-templates';
 import type { AdvancedSettings } from '@/domain/advancedSettings';
+import { interviewer } from '@/domain/agentTypes/interviewer';
+import { cleanSources } from '@/domain/agentTypes/storedAnswers';
+import type { AnswerSources } from '@/domain/agentTypes/types';
 import { isConfiguration, type Configuration } from '@/domain/configuration';
 
 const GENERIC_ERROR = 'Noe gikk galt. Prøv igjen.';
@@ -10,6 +13,8 @@ export type TurnResult = {
   reply: string;
   /** Set only when this reply finished the configuration. */
   configuration: Configuration | null;
+  /** The template and profile the finished configuration's answers came from. */
+  sources: AnswerSources;
 };
 
 async function postJson(url: string, body: unknown, signal?: AbortSignal): Promise<Response> {
@@ -70,22 +75,26 @@ export async function sendConfigurationTurn(
 
   const data = await res.json().catch(() => null);
   if (typeof data?.reply !== 'string') throw new ChatError(GENERIC_ERROR);
+  const configuration = isConfiguration(data.configuration) ? data.configuration : null;
   return {
     reply: data.reply,
-    configuration: isConfiguration(data.configuration) ? data.configuration : null,
+    configuration,
+    sources: configuration ? cleanSources(interviewer, data.sources) : {},
   };
 }
 
 /**
- * Saves the finished configuration as a new agent owned by the logged-in counsellor. Without
- * `advanced` the server uses the default model, temperature and built prompt.
+ * Saves the finished configuration as a new agent owned by the logged-in counsellor, with the
+ * template and profile the interviewer and job seeker came from. Without `advanced` the server
+ * uses the default model, temperature and built prompt.
  */
 export async function saveConfiguredAgent(
   name: string,
   configuration: Configuration,
+  sources: AnswerSources = {},
   advanced?: AdvancedSettings,
 ): Promise<string> {
-  const res = await postJson('/api/agents', { name, configuration, advanced });
+  const res = await postJson('/api/agents', { name, configuration, sources, advanced });
   if (!res.ok) throw errorFor(res);
 
   const data = await res.json().catch(() => null);

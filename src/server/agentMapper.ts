@@ -4,7 +4,12 @@ import {
   settingsOf,
 } from '@/domain/advancedSettings';
 import { readStoredAnswers, toStoredDescription } from '@/domain/agentTypes/storedAnswers';
-import type { AgentRole, AgentTypeDefinition, Answers } from '@/domain/agentTypes/types';
+import type {
+  AgentRole,
+  AgentTypeDefinition,
+  AnswerSources,
+  Answers,
+} from '@/domain/agentTypes/types';
 import type {
   FullRagdollAgent,
   NewRagdollAgent,
@@ -16,7 +21,8 @@ import type {
 const EMBEDDING_MODEL = 'idun:Qwen/Qwen3-Embedding-8B';
 
 /**
- * Builds the RAGdoll agent for a new agent from the counsellor's answers and advanced settings.
+ * Builds the RAGdoll agent for a new agent from the counsellor's answers, the sources of those
+ * that came from a template or profile, and the advanced settings.
  * `idunKey` is the project's IDUN key: counsellors have none, so every agent gets ours.
  */
 export function toRagdollAgent(
@@ -24,11 +30,12 @@ export function toRagdollAgent(
   definition: AgentTypeDefinition,
   answers: Answers,
   idunKey: string,
+  sources: AnswerSources = {},
   settings: AdvancedSettings = DEFAULT_ADVANCED_SETTINGS,
   now: Date = new Date(),
 ): NewRagdollAgent {
   return {
-    ...fromChoices(name, definition, answers, settings, now),
+    ...fromChoices(name, definition, answers, sources, settings, now),
     llm_provider: 'idun',
     llm_api_key: idunKey,
     embedding_model: EMBEDDING_MODEL,
@@ -49,10 +56,11 @@ export function applyEdit(
   name: string,
   definition: AgentTypeDefinition,
   answers: Answers,
+  sources: AnswerSources = {},
   settings: AdvancedSettings = currentSettings(existing),
   now: Date = new Date(),
 ): FullRagdollAgent {
-  return { ...existing, ...fromChoices(name, definition, answers, settings, now) };
+  return { ...existing, ...fromChoices(name, definition, answers, sources, settings, now) };
 }
 
 /** The advanced settings a saved agent has now. */
@@ -72,13 +80,14 @@ function fromChoices(
   name: string,
   definition: AgentTypeDefinition,
   answers: Answers,
+  sources: AnswerSources,
   settings: AdvancedSettings,
   now: Date,
 ) {
   const customPrompt = settings.customPrompt !== null;
   return {
     name,
-    description: toStoredDescription(definition, answers, { customPrompt }),
+    description: toStoredDescription(definition, answers, sources, { customPrompt }),
     // Unless the counsellor wrote it by hand, the prompt is rebuilt from the answers, so an edit
     // also gets the newest prompt.
     prompt: settings.customPrompt ?? definition.buildPrompt(answers),

@@ -25,6 +25,7 @@ describe('toRagdollAgent', () => {
     interviewer,
     answers,
     'idun-key',
+    {},
     DEFAULT_ADVANCED_SETTINGS,
     now,
   );
@@ -49,8 +50,16 @@ describe('toRagdollAgent', () => {
     expect(readStoredAnswers(agent.description)).toEqual({
       definition: interviewer,
       answers,
+      sources: {},
       customPrompt: false,
     });
+  });
+
+  it('stores where answers came from', () => {
+    const sources = { jobbsoker: { kind: 'profile' as const, id: 'profile-1' } };
+    const withSources = toRagdollAgent('Kari', interviewer, answers, 'idun-key', sources);
+
+    expect(readStoredAnswers(withSources.description)?.sources).toEqual(sources);
   });
 
   it('uses the IDUN key for both the LLM and the embeddings', () => {
@@ -68,11 +77,18 @@ describe('toRagdollAgent', () => {
   });
 
   it('uses the chosen model, temperature and hand-written prompt', () => {
-    const custom = toRagdollAgent('Kari', interviewer, answers, 'idun-key', {
-      model: 'meta/llama-3.3-70b',
-      temperature: 0.2,
-      customPrompt: 'Du er Kari.',
-    });
+    const custom = toRagdollAgent(
+      'Kari',
+      interviewer,
+      answers,
+      'idun-key',
+      {},
+      {
+        model: 'meta/llama-3.3-70b',
+        temperature: 0.2,
+        customPrompt: 'Du er Kari.',
+      },
+    );
 
     expect(custom.llm_model).toBe('meta/llama-3.3-70b');
     expect(custom.llm_temperature).toBe(0.2);
@@ -91,7 +107,7 @@ describe('applyEdit', () => {
   };
   const now = new Date('2026-10-06T12:00:00.000Z');
   const newAnswers = { ...answers, vanskelighetsgrad: 'vanskelig' };
-  const edited = applyEdit(existing, 'Nytt navn', interviewer, newAnswers, undefined, now);
+  const edited = applyEdit(existing, 'Nytt navn', interviewer, newAnswers, {}, undefined, now);
 
   it('changes the name, the role, the prompt and the stored answers', () => {
     expect(edited.name).toBe('Nytt navn');
@@ -116,11 +132,18 @@ describe('applyEdit', () => {
 describe('applyEdit with advanced settings', () => {
   const newAnswers = { ...answers, vanskelighetsgrad: 'vanskelig' };
   const handWritten = {
-    ...toRagdollAgent('Kari', interviewer, answers, 'idun-key', {
-      model: 'meta/llama-3.3-70b',
-      temperature: 0.2,
-      customPrompt: 'Du er Kari.',
-    }),
+    ...toRagdollAgent(
+      'Kari',
+      interviewer,
+      answers,
+      'idun-key',
+      {},
+      {
+        model: 'meta/llama-3.3-70b',
+        temperature: 0.2,
+        customPrompt: 'Du er Kari.',
+      },
+    ),
     id: 'agent-1',
   };
 
@@ -134,22 +157,36 @@ describe('applyEdit with advanced settings', () => {
   });
 
   it('builds the prompt from the answers again when the hand-written one is dropped', () => {
-    const edited = applyEdit(handWritten, 'Kari', interviewer, newAnswers, {
-      model: 'meta/llama-3.3-70b',
-      temperature: 0.2,
-      customPrompt: null,
-    });
+    const edited = applyEdit(
+      handWritten,
+      'Kari',
+      interviewer,
+      newAnswers,
+      {},
+      {
+        model: 'meta/llama-3.3-70b',
+        temperature: 0.2,
+        customPrompt: null,
+      },
+    );
 
     expect(edited.prompt).toContain('vanskelig');
     expect(readStoredAnswers(edited.description)?.customPrompt).toBe(false);
   });
 
   it('saves new settings', () => {
-    const edited = applyEdit(handWritten, 'Kari', interviewer, answers, {
-      model: DEFAULT_MODEL,
-      temperature: 1.1,
-      customPrompt: 'Du er Kari, men strengere.',
-    });
+    const edited = applyEdit(
+      handWritten,
+      'Kari',
+      interviewer,
+      answers,
+      {},
+      {
+        model: DEFAULT_MODEL,
+        temperature: 1.1,
+        customPrompt: 'Du er Kari, men strengere.',
+      },
+    );
 
     expect(edited.llm_model).toBe(DEFAULT_MODEL);
     expect(edited.llm_temperature).toBe(1.1);
@@ -160,11 +197,18 @@ describe('applyEdit with advanced settings', () => {
 describe('currentSettings', () => {
   it('reads the settings of an agent with a hand-written prompt', () => {
     const agent = {
-      ...toRagdollAgent('Kari', interviewer, answers, 'idun-key', {
-        model: 'meta/llama-3.3-70b',
-        temperature: 0.2,
-        customPrompt: 'Du er Kari.',
-      }),
+      ...toRagdollAgent(
+        'Kari',
+        interviewer,
+        answers,
+        'idun-key',
+        {},
+        {
+          model: 'meta/llama-3.3-70b',
+          temperature: 0.2,
+          customPrompt: 'Du er Kari.',
+        },
+      ),
       id: 'agent-1',
     };
 

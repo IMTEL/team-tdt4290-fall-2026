@@ -72,6 +72,7 @@ describe('POST /api/configure/turn', () => {
     expect(await res.json()).toEqual({
       reply: 'Hvilken bransje er stillingen i?',
       configuration: null,
+      sources: {},
       done: false,
     });
     expect(askAgentMock).toHaveBeenCalledWith(
@@ -89,6 +90,7 @@ describe('POST /api/configure/turn', () => {
     expect(body.done).toBe(true);
     expect(body.configuration.stilling).toBe('Butikkmedarbeider');
     expect(body.configuration.intervjuer).toBe(findTemplate('teamleder')?.persona);
+    expect(body.sources).toEqual({ intervjuer: { kind: 'template', id: 'teamleder' } });
   });
 
   it('takes the interviewer from a template the counsellor saved in RAGdoll', async () => {
@@ -106,6 +108,7 @@ describe('POST /api/configure/turn', () => {
 
     expect(getTemplateMock).toHaveBeenCalledWith('session-token', 'saved-1');
     expect(body.configuration.intervjuer).toBe('Intervjueren er butikksjef.');
+    expect(body.sources).toEqual({ intervjuer: { kind: 'template', id: 'saved-1' } });
   });
 
   it('answers 502 and asks nothing when RAGdoll fails to load a saved template', async () => {
@@ -130,6 +133,7 @@ describe('POST /api/configure/turn', () => {
 
     expect(body.done).toBe(true);
     expect(body.configuration.intervjuer).toBe('butikksjef, vennlig');
+    expect(body.sources).toEqual({});
   });
 
   it('takes the job seeker from the chosen profile, together with the template', async () => {
@@ -157,6 +161,10 @@ describe('POST /api/configure/turn', () => {
       'aldersgruppe 18–24 år; vil øve på: mestre nervøsitet',
     );
     expect(body.configuration.intervjuer).toBe(findTemplate('teamleder')?.persona);
+    expect(body.sources).toEqual({
+      intervjuer: { kind: 'template', id: 'teamleder' },
+      jobbsoker: { kind: 'profile', id: 'profile-1' },
+    });
   });
 
   it('answers 400 and asks nothing when the profile is not one of the counsellor’s', async () => {

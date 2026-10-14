@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { findTemplate } from '@/data/interviewer-templates';
-import { sendConfigurationTurn } from './api';
+import { saveConfiguredAgent, sendConfigurationTurn } from './api';
 import { ConfigurationChat } from './ConfigurationChat';
 
 // The chat itself is tested in AgentChat.test.tsx and the save form in SaveAgentForm.test.tsx.
@@ -12,8 +12,10 @@ import { ConfigurationChat } from './ConfigurationChat';
 vi.mock('./api', async (importOriginal) => ({
   ...(await importOriginal<typeof import('./api')>()),
   sendConfigurationTurn: vi.fn(),
+  saveConfiguredAgent: vi.fn(),
 }));
 const sendMock = vi.mocked(sendConfigurationTurn);
+const saveMock = vi.mocked(saveConfiguredAgent);
 const template = findTemplate('teamleder')!;
 const profile = {
   id: 'profile-1',
@@ -46,6 +48,7 @@ async function sendMessage(text: string) {
 describe('ConfigurationChat', () => {
   afterEach(() => {
     sendMock.mockReset();
+    saveMock.mockReset();
   });
 
   it('opens with the assistant naming the template and asking about the job', () => {
@@ -56,7 +59,7 @@ describe('ConfigurationChat', () => {
   });
 
   it('sends the template and the conversation, greeting included, to the configurator', async () => {
-    sendMock.mockResolvedValue({ reply: 'Neste spørsmål', configuration: null });
+    sendMock.mockResolvedValue({ reply: 'Neste spørsmål', configuration: null, sources: {} });
     render(<ConfigurationChat template={template} profile={null} />);
 
     await sendMessage('Butikkmedarbeider');
@@ -71,7 +74,7 @@ describe('ConfigurationChat', () => {
   });
 
   it('without a template, names none and sends null as the template', async () => {
-    sendMock.mockResolvedValue({ reply: 'Neste spørsmål', configuration: null });
+    sendMock.mockResolvedValue({ reply: 'Neste spørsmål', configuration: null, sources: {} });
     render(<ConfigurationChat template={null} profile={null} />);
 
     expect(screen.queryByText(/malen/)).not.toBeInTheDocument();
@@ -83,7 +86,7 @@ describe('ConfigurationChat', () => {
   });
 
   it('names the profile in the greeting and sends its id along with the template', async () => {
-    sendMock.mockResolvedValue({ reply: 'Neste spørsmål', configuration: null });
+    sendMock.mockResolvedValue({ reply: 'Neste spørsmål', configuration: null, sources: {} });
     render(<ConfigurationChat template={template} profile={profile} />);
 
     expect(screen.getByText(/malen «Teamleder»/)).toBeInTheDocument();
@@ -103,7 +106,7 @@ describe('ConfigurationChat', () => {
   });
 
   it('does not offer to save before the configuration is finished', async () => {
-    sendMock.mockResolvedValue({ reply: 'Neste spørsmål', configuration: null });
+    sendMock.mockResolvedValue({ reply: 'Neste spørsmål', configuration: null, sources: {} });
     render(<ConfigurationChat template={template} profile={null} />);
 
     await sendMessage('Butikkmedarbeider');
@@ -113,7 +116,7 @@ describe('ConfigurationChat', () => {
   });
 
   it('offers to save once the configurator has finished', async () => {
-    sendMock.mockResolvedValue({ reply: 'Ferdig!', configuration });
+    sendMock.mockResolvedValue({ reply: 'Ferdig!', configuration, sources: {} });
     render(<ConfigurationChat template={template} profile={null} />);
 
     await sendMessage('Ja, det stemmer');
@@ -121,6 +124,23 @@ describe('ConfigurationChat', () => {
     expect(await screen.findByRole('button', { name: 'Lagre agent' })).toBeInTheDocument();
     expect(screen.getByRole('textbox', { name: /Navn på intervjueren/ })).toHaveValue(
       'Intervjuer for Butikkmedarbeider',
+    );
+  });
+
+  it('saves the agent with the sources the server sent with the configuration', async () => {
+    const sources = { intervjuer: { kind: 'template' as const, id: 'teamleder' } };
+    sendMock.mockResolvedValue({ reply: 'Ferdig!', configuration, sources });
+    saveMock.mockResolvedValue('agent-1');
+    render(<ConfigurationChat template={template} profile={profile} />);
+
+    await sendMessage('Ja, det stemmer');
+    await userEvent.setup().click(await screen.findByRole('button', { name: 'Lagre agent' }));
+
+    expect(saveMock).toHaveBeenCalledWith(
+      'Intervjuer for Butikkmedarbeider',
+      configuration,
+      sources,
+      undefined,
     );
   });
 });

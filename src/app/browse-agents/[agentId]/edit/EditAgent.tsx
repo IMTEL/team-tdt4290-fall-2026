@@ -13,12 +13,15 @@ import Typography from '@mui/material/Typography';
 import { settingsOf } from '@/domain/advancedSettings';
 import { readStoredAnswers } from '@/domain/agentTypes/storedAnswers';
 import { updateAgent } from '../../api';
+import { useAnswerPresets } from '../../useAnswerPresets';
 import { useAgent } from '../../useAgent';
 import { EditAgentForm } from './EditAgentForm';
 
 /** Loads one of the counsellor's agents and shows the form for editing it. */
 export function EditAgent({ agentId }: { agentId: string }) {
   const state = useAgent(agentId);
+  const stored = state.kind === 'ready' ? readStoredAnswers(state.agent.description) : null;
+  const presets = useAnswerPresets(stored?.definition);
 
   if (state.kind === 'missing') notFound();
   if (state.kind === 'loading') return <Typography>Laster agent …</Typography>;
@@ -26,7 +29,6 @@ export function EditAgent({ agentId }: { agentId: string }) {
   if (state.kind !== 'ready') return null;
 
   const { agent } = state;
-  const stored = readStoredAnswers(agent.description);
 
   return (
     <Box sx={{ p: { xs: 2, md: 4 }, maxWidth: 960, mx: 'auto' }}>
@@ -54,14 +56,16 @@ export function EditAgent({ agentId }: { agentId: string }) {
           initialName={agent.name}
           definition={stored.definition}
           initialAnswers={stored.answers}
+          initialSources={stored.sources}
           initialSettings={settingsOf(
             { model: agent.llmModel, temperature: agent.temperature, prompt: agent.prompt },
             stored.customPrompt,
           )}
           label="Rediger agent"
+          presets={presets}
           submitLabel="Lagre endringer"
-          onSave={async (newName, newAnswers, newSettings) => {
-            await updateAgent(agent.id, newName, newAnswers, newSettings);
+          onSave={async (newName, newAnswers, newSources, newSettings) => {
+            await updateAgent(agent.id, newName, newAnswers, newSources, newSettings);
             return agent.id;
           }}
         />

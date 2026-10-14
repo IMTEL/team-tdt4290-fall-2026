@@ -4,8 +4,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { type AdvancedSettings, DEFAULT_ADVANCED_SETTINGS } from '@/domain/advancedSettings';
 import { interviewer } from '@/domain/agentTypes/interviewer';
-import type { Answers } from '@/domain/agentTypes/types';
-import { EditAgentForm } from './EditAgentForm';
+import type { AnswerSources, Answers } from '@/domain/agentTypes/types';
+import { EditAgentForm, type AnswerPreset } from './EditAgentForm';
 
 const push = vi.hoisted(() => vi.fn());
 
@@ -19,7 +19,14 @@ vi.mock('@/components/agents/useLanguageModels', () => ({
 }));
 
 const onSave =
-  vi.fn<(name: string, answers: Answers, settings?: AdvancedSettings) => Promise<string>>();
+  vi.fn<
+    (
+      name: string,
+      answers: Answers,
+      sources: AnswerSources,
+      settings?: AdvancedSettings,
+    ) => Promise<string>
+  >();
 
 const answers = {
   stilling: 'Barnehagelærer',
@@ -32,22 +39,48 @@ const answers = {
   egneSporsmal: 'ingen',
 };
 
-function renderForm(
+const profilePreset: AnswerPreset = {
+  field: 'jobbsoker',
+  kind: 'profile',
+  label: 'Jobbsøkerprofil',
+  loaded: true,
+  options: [
+    { id: 'profile-1', label: 'Profil A', value: 'aldersgruppe 30–39 år' },
+    // Same text as Profil A: only the stored source can tell them apart.
+    { id: 'profile-2', label: 'Profil B', value: 'aldersgruppe 30–39 år' },
+  ],
+  manageHref: '/profiles',
+  manageLabel: 'Administrer profiler',
+};
+
+type RenderOptions = {
+  initialAnswers?: Answers;
+  initialSources?: AnswerSources;
+  initialSettings?: AdvancedSettings;
+  allowUnchanged?: boolean;
+  presets?: AnswerPreset[];
+};
+
+function renderForm({
   initialAnswers = answers,
+  initialSources,
   initialSettings = DEFAULT_ADVANCED_SETTINGS,
   allowUnchanged = false,
-) {
+  presets,
+}: RenderOptions = {}) {
   render(
     <EditAgentForm
       agentId="agent-1"
       initialName="Intervjuer for Barnehagelærer"
       definition={interviewer}
       initialAnswers={initialAnswers}
+      initialSources={initialSources}
       initialSettings={initialSettings}
       label="Rediger agent"
       submitLabel="Lagre endringer"
       onSave={onSave}
       allowUnchanged={allowUnchanged}
+      presets={presets}
     />,
   );
 }
@@ -92,6 +125,7 @@ describe('EditAgentForm', () => {
     expect(onSave).toHaveBeenCalledWith(
       'Ny intervjuer',
       { ...answers, vanskelighetsgrad: 'vanskelig' },
+      {},
       undefined,
     );
     expect(push).toHaveBeenCalledWith('/browse-agents/agent-2');
@@ -111,14 +145,19 @@ describe('EditAgentForm', () => {
     expect(screen.getByText('1 endring som ikke er lagret')).toBeVisible();
     await user.click(saveButton());
 
-    expect(onSave).toHaveBeenCalledWith('Intervjuer for Barnehagelærer', answers, {
-      ...DEFAULT_ADVANCED_SETTINGS,
-      customPrompt: 'Du er en streng barnehagestyrer.',
-    });
+    expect(onSave).toHaveBeenCalledWith(
+      'Intervjuer for Barnehagelærer',
+      answers,
+      {},
+      {
+        ...DEFAULT_ADVANCED_SETTINGS,
+        customPrompt: 'Du er en streng barnehagestyrer.',
+      },
+    );
   });
 
   it('says the answers no longer change a hand-written prompt', () => {
-    renderForm(answers, { ...DEFAULT_ADVANCED_SETTINGS, customPrompt: 'Du er Kari.' });
+    renderForm({ initialSettings: { ...DEFAULT_ADVANCED_SETTINGS, customPrompt: 'Du er Kari.' } });
 
     expect(
       screen.getByText('Systemprompten er skrevet for hånd, så disse svarene endrer den ikke.'),
@@ -129,14 +168,14 @@ describe('EditAgentForm', () => {
     onSave.mockResolvedValue('agent-1');
     const user = userEvent.setup();
     // Saved by another client with three decimals, which the form would not accept.
-    renderForm(answers, { ...DEFAULT_ADVANCED_SETTINGS, temperature: 0.333 });
+    renderForm({ initialSettings: { ...DEFAULT_ADVANCED_SETTINGS, temperature: 0.333 } });
 
     await replaceText(user, 'Navn', 'Ny intervjuer');
     expect(screen.getByText('1 endring som ikke er lagret')).toBeVisible();
     expect(saveButton()).toBeEnabled();
     await user.click(saveButton());
 
-    expect(onSave).toHaveBeenCalledWith('Ny intervjuer', answers, undefined);
+    expect(onSave).toHaveBeenCalledWith('Ny intervjuer', answers, {}, undefined);
   });
 
   it('cannot be saved with an invalid temperature, and says why in Norwegian', async () => {
@@ -179,11 +218,11 @@ describe('EditAgentForm', () => {
   it('can be saved without changes when that is allowed, as for a clone', async () => {
     onSave.mockResolvedValue('agent-2');
     const user = userEvent.setup();
-    renderForm(answers, DEFAULT_ADVANCED_SETTINGS, true);
+    renderForm({ allowUnchanged: true });
 
     await user.click(saveButton());
 
-    expect(onSave).toHaveBeenCalledWith('Intervjuer for Barnehagelærer', answers, undefined);
+    expect(onSave).toHaveBeenCalledWith('Intervjuer for Barnehagelærer', answers, {}, undefined);
   });
 
   it('cannot be saved while a field is empty', async () => {
@@ -196,9 +235,122 @@ describe('EditAgentForm', () => {
   });
 
   it('shows an empty field for an answer the agent type got after saving', () => {
-    renderForm({ ...answers, bedrift: '' });
+    renderForm({ initialAnswers: { ...answers, bedrift: '' } });
 
     expect(field('Bedrift')).toHaveValue('');
     expect(saveButton()).toBeDisabled();
+  });
+
+  describe('presets', () => {
+    const select = () => screen.getByRole('combobox', { name: 'Jobbsøkerprofil' });
+    const profileAnswers = { ...answers, jobbsoker: 'aldersgruppe 30–39 år' };
+
+    async function choose(user: UserEvent, option: string) {
+      await user.click(select());
+      await user.click(screen.getByRole('option', { name: option }));
+    }
+
+    it('fills in the answer, remembers the source, and saves both', async () => {
+      onSave.mockResolvedValue('agent-1');
+      const user = userEvent.setup();
+      renderForm({ presets: [profilePreset] });
+
+      await choose(user, 'Profil B');
+
+      expect(field('Jobbsøker')).toHaveValue('aldersgruppe 30–39 år');
+      expect(select()).toHaveTextContent('Profil B');
+      expect(screen.getByText('1 endring som ikke er lagret')).toBeVisible();
+
+      await user.click(saveButton());
+
+      expect(onSave).toHaveBeenCalledWith(
+        'Intervjuer for Barnehagelærer',
+        { ...answers, jobbsoker: 'aldersgruppe 30–39 år' },
+        { jobbsoker: { kind: 'profile', id: 'profile-2' } },
+        undefined,
+      );
+    });
+
+    it('shows the stored source, also when another option has the same text', () => {
+      renderForm({
+        initialAnswers: profileAnswers,
+        initialSources: { jobbsoker: { kind: 'profile', id: 'profile-2' } },
+        presets: [profilePreset],
+      });
+
+      expect(select()).toHaveTextContent('Profil B');
+    });
+
+    it('drops the source when the counsellor types in the field', async () => {
+      onSave.mockResolvedValue('agent-1');
+      const user = userEvent.setup();
+      renderForm({
+        initialAnswers: profileAnswers,
+        initialSources: { jobbsoker: { kind: 'profile', id: 'profile-1' } },
+        presets: [profilePreset],
+      });
+
+      await user.type(field('Jobbsøker'), ', snakker engelsk');
+
+      expect(select()).toHaveTextContent('Egen tekst');
+      await user.click(saveButton());
+      expect(onSave.mock.calls[0][2]).toEqual({});
+    });
+
+    it('shows "Egen tekst" for an answer without a source, even if the text matches', () => {
+      renderForm({ initialAnswers: profileAnswers, presets: [profilePreset] });
+
+      expect(select()).toHaveTextContent('Egen tekst');
+    });
+
+    it('says so when the source has been changed since', () => {
+      renderForm({
+        initialSources: { jobbsoker: { kind: 'profile', id: 'profile-1' } },
+        presets: [profilePreset],
+      });
+
+      expect(select()).toHaveTextContent('Egen tekst');
+      expect(screen.getByText('Teksten kom fra «Profil A», som er endret siden.')).toBeVisible();
+    });
+
+    it('does not report a missing source while the options are loading', () => {
+      renderForm({
+        initialSources: { jobbsoker: { kind: 'profile', id: 'deleted' } },
+        presets: [{ ...profilePreset, loaded: false }],
+      });
+
+      expect(screen.queryByText(/finnes lenger/)).not.toBeInTheDocument();
+    });
+
+    it('says so when the source no longer exists once loaded', () => {
+      renderForm({
+        initialSources: { jobbsoker: { kind: 'profile', id: 'deleted' } },
+        presets: [profilePreset],
+      });
+
+      expect(
+        screen.getByText('Teksten kom fra en jobbsøkerprofil som ikke finnes lenger.'),
+      ).toBeVisible();
+    });
+
+    it('puts the saved answer back as own text when "Egen tekst" is chosen', async () => {
+      const user = userEvent.setup();
+      renderForm({ presets: [profilePreset] });
+
+      await choose(user, 'Profil A');
+      await choose(user, 'Egen tekst');
+
+      expect(field('Jobbsøker')).toHaveValue('under 25, lite erfaring');
+      expect(screen.getByText('Ingen endringer ennå')).toBeVisible();
+    });
+
+    it('links to where the options are managed', () => {
+      renderForm({ presets: [profilePreset] });
+
+      expect(screen.getByRole('link', { name: 'Administrer profiler' })).toHaveAttribute(
+        'href',
+        '/profiles',
+      );
+    });
   });
 });

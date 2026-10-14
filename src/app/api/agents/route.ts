@@ -7,6 +7,7 @@ import {
 } from '@/domain/advancedSettings';
 import { interviewer } from '@/domain/agentTypes/interviewer';
 import { hasAllAnswers } from '@/domain/agentTypes/registry';
+import { cleanSources } from '@/domain/agentTypes/storedAnswers';
 
 import { getSessionToken } from '@/lib/session-tokens';
 import { toAgentListItem, toRagdollAgent } from '@/server/agentMapper';
@@ -29,11 +30,13 @@ export async function POST(req: NextRequest) {
   let name: string | null;
   let configuration;
   let advanced: unknown;
+  let sources: unknown;
   try {
     const body = await req.json();
     name = cleanName(body?.name);
     configuration = body?.configuration;
     advanced = body?.advanced;
+    sources = body?.sources;
   } catch {
     return Response.json({ error: 'Invalid JSON' }, { status: 400 });
   }
@@ -65,7 +68,14 @@ export async function POST(req: NextRequest) {
       settings = parsed;
     }
 
-    const agent = toRagdollAgent(name, interviewer, configuration, idunKey, settings);
+    const agent = toRagdollAgent(
+      name,
+      interviewer,
+      configuration,
+      idunKey,
+      cleanSources(interviewer, sources),
+      settings,
+    );
     const id = await saveAgent(sessionToken, agent);
     return Response.json({ id }, { status: 201 });
   } catch (error) {
