@@ -230,6 +230,7 @@ describe('saveConfiguredAgent', () => {
 describe('fetchSavedTemplates', () => {
   const saved = {
     id: 'saved-1',
+    agentType: 'interviewer',
     title: 'Butikksjef',
     description: 'Vennlig.',
     focus: ['Service'],
@@ -239,19 +240,19 @@ describe('fetchSavedTemplates', () => {
   it('returns the saved templates', async () => {
     fetchMock.mockResolvedValue(Response.json({ templates: [saved] }));
 
-    await expect(fetchSavedTemplates()).resolves.toEqual([saved]);
-    expect(fetchMock.mock.calls[0][0]).toBe('/api/templates');
+    await expect(fetchSavedTemplates('interviewer')).resolves.toEqual([saved]);
+    expect(fetchMock.mock.calls[0][0]).toBe('/api/templates?agentType=interviewer');
   });
 
   it('throws when the server fails', async () => {
     fetchMock.mockResolvedValue(Response.json({ error: 'Not signed in' }, { status: 401 }));
 
-    await expect(fetchSavedTemplates()).rejects.toThrow();
+    await expect(fetchSavedTemplates('interviewer')).rejects.toThrow();
   });
 
   it('throws when a template has the wrong shape', async () => {
     fetchMock.mockResolvedValue(Response.json({ templates: [{ ...saved, focus: 'Service' }] }));
 
-    await expect(fetchSavedTemplates()).rejects.toThrow();
+    await expect(fetchSavedTemplates('interviewer')).rejects.toThrow();
   });
 });

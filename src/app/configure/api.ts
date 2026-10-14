@@ -1,6 +1,6 @@
 import { ChatError } from '@/components/chat/sendToAgent';
 import type { ChatMessage } from '@/components/chat/types';
-import type { InterviewerTemplate } from '@/data/interviewer-templates';
+import type { AgentTemplate } from '@/data/templates';
 import type { AdvancedSettings } from '@/domain/advancedSettings';
 import { hasAllAnswers } from '@/domain/agentTypes/registry';
 import { cleanSources } from '@/domain/agentTypes/storedAnswers';
@@ -118,11 +118,12 @@ export async function saveConfiguredAgent(
   return data.id;
 }
 
-function isTemplate(value: unknown): value is InterviewerTemplate {
+function isTemplate(value: unknown): value is AgentTemplate {
   if (typeof value !== 'object' || value === null) return false;
   const template = value as Record<string, unknown>;
   return (
     typeof template.id === 'string' &&
+    typeof template.agentType === 'string' &&
     typeof template.title === 'string' &&
     typeof template.description === 'string' &&
     typeof template.persona === 'string' &&
@@ -132,11 +133,15 @@ function isTemplate(value: unknown): value is InterviewerTemplate {
 }
 
 /**
- * The templates the counsellor has saved, newest first. Not the built-in ones.
+ * The templates the counsellor has saved for one agent type, newest first. Not the built-in ones.
  * Throws Error if they could not be loaded.
  */
-export async function fetchSavedTemplates(signal?: AbortSignal): Promise<InterviewerTemplate[]> {
-  const res = await fetch('/api/templates', { cache: 'no-store', signal });
+export async function fetchSavedTemplates(
+  agentType: string,
+  signal?: AbortSignal,
+): Promise<AgentTemplate[]> {
+  const url = `/api/templates?agentType=${encodeURIComponent(agentType)}`;
+  const res = await fetch(url, { cache: 'no-store', signal });
   if (!res.ok) throw new Error(`Could not load templates: ${res.status}`);
 
   const data = await res.json().catch(() => null);

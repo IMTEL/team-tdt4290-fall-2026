@@ -41,13 +41,30 @@ export type ConfiguratorSetup = {
   rules: string[];
 };
 
+/** How the template form and picker talk about this type's templates. */
+export type TemplateText = {
+  /** Help under the template's name, e.g. "Hvem er intervjueren? For eksempel «Butikksjef»." */
+  titleHint: string;
+  /** Help under the short description shown on the template's card. */
+  descriptionHint: string;
+  /** The label of the text that fills in the field, e.g. "Beskrivelse av intervjueren". */
+  textLabel: string;
+  /** Help under that text. */
+  textHint: string;
+  /** Above the template cards on /configure: what a template decides here. */
+  pickerLead: string;
+};
+
 /**
  * Which field a ready-made text fills in, when the counsellor picks one before the chat. Such a
  * field is not asked about, and the edit form offers the same choice.
  */
 export type AgentPresets = {
-  /** The field an interviewer template's persona fills in. */
-  interviewerTemplate?: string;
+  /**
+   * The field a template's text fills in, and how to talk about such templates. A type with this
+   * can be chosen for a template on /create-template.
+   */
+  template?: { field: string; text: TemplateText };
   /** The field a job seeker profile's description fills in. */
   jobSeekerProfile?: string;
   /** The fields an industry template fills in: the job, and the industry with its sector. */

@@ -69,7 +69,8 @@ Unit and component level only:
   history without repeating the user's message; no technical error text; leaving the page aborts
   the request.
 - `src/components/templates/TemplatePicker.test.tsx`: every template is shown, clicking one
-  selects it, "Fortsett uten mal" selects none, "Lag en ny mal" links to `/create-template`, and
+  selects it, "Fortsett uten mal" selects none, "Lag en ny mal" links to `/create-template` (with
+  the agent type when given), the type's lead is shown, and
   only saved templates have edit and delete.
 - `src/app/configure/page.test.tsx`: the page starts by asking for the agent type, with planned
   types shown as "Kommer snart" and not choosable; choosing the interviewer shows the template
@@ -93,7 +94,9 @@ Unit and component level only:
   new agent and to the agents; sends advanced settings only when they were changed; no saving
   without a name or with an empty hand-written prompt; shows the error and lets the user try again.
 - `src/components/templates/TemplateForm.test.tsx`: a new template is saved with trimmed fields
-  and links back to `/configure`; cannot be saved without the required fields or with too many
+  and its agent type, and links back to `/configure`; the agent type dropdown lists the types
+  templates can be made for, with planned ones shown but disabled, starts with the type it is
+  given, takes its labels from the type, and is locked for a saved template; cannot be saved without the required fields or with too many
   focus areas; shows the error and keeps what was typed; a saved template starts with its values
   and saves the changes.
 - `src/components/templates/DeleteTemplateButton.test.tsx`: asks before deleting; cancelling
@@ -133,7 +136,9 @@ Unit and component level only:
   the interviewer from a built-in or a saved template, and asks nothing if a saved one cannot be
   loaded; never passes RAGdoll's message on.
 - `src/app/api/templates/route.test.ts` and `src/app/api/templates/[templateId]/route.test.ts`:
-  lists only readable interviewer templates, saves a valid template as type `interviewer`, reads
+  lists only readable templates, for the agent type asked for (400 for an unknown or planned
+  one) or for every type templates can be made for, saves a valid template with its agent type as
+  RAGdoll's type, reads
   and edits one template (404 for one that is missing or not ours), 400 for bad bodies, 401 when
   logged out, deletes with 204 and 404 for an unknown template.
 - `src/app/api/user-settings/route.test.ts`: reads and replaces the settings; 400 unless the body
@@ -153,8 +158,9 @@ Unit and component level only:
   empty keys, and nothing returns the agents' API keys. The template and settings functions call
   the right paths (settings under our namespace), turn 404 into `not-found`, and keep only the
   fields we use.
-- `src/server/templateMapper.test.ts`: a new template is trimmed and validated, stored as type
-  `interviewer` and read back; other types and badly shaped content are skipped.
+- `src/server/templateMapper.test.ts`: a new template is trimmed and validated (including an agent
+  type templates can be made for), stored with its agent type as RAGdoll's type and read back;
+  other apps' types, planned types and badly shaped content are skipped.
 - `src/server/agentMapper.test.ts`: the RAGdoll agent gets the chosen name, the built prompt, the
   stored answers and the IDUN key for both the LLM and the embeddings; `applyEdit` changes the
   name, roles, prompt and answers but keeps the id and every other field. Advanced settings: the
@@ -181,10 +187,11 @@ Unit and component level only:
   interviewer or industry template winning). A made-up teacher type shows that a new type needs
   only its definition.
 - `src/domain/interviewerPrompt.test.ts`: filling the interviewer prompt from the answers.
-- `src/domain/agentTypes/registry.test.ts`: looking up an agent type, the planned types (none has a
+- `src/domain/agentTypes/registry.test.ts`: looking up an agent type, every counsellor having
+  every type for now, which types templates can be made for, the planned types (none has a
   definition), checking that every field has an answer, the interviewer's prompt and role, and for
   every registered type: a label, description and greeting, unique fields with questions, presets
-  that name its own fields, and a prompt, roles and name built from a full set of answers.
+  that name its own fields, the wording for its templates if it has them, and a prompt, roles and name built from a full set of answers.
 - `src/domain/agentTypes/storedAnswers.test.ts`: answers are saved with their type and version
   and read back; agents saved before agent types existed are read as interviewers; a field added
   to a type later comes back empty, and answers to removed fields are left out; descriptions we

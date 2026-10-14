@@ -5,7 +5,7 @@ import { useCallback, useMemo, useState } from 'react';
 import { AgentChat } from '@/components/chat/AgentChat';
 import type { ChatMessage, SendMessages } from '@/components/chat/types';
 import { SECTOR_LABELS, type IndustryTemplate } from '@/data/industry-templates';
-import type { InterviewerTemplate } from '@/data/interviewer-templates';
+import type { AgentTemplate } from '@/data/templates';
 import { decidedFields, firstQuestion } from '@/domain/agentTypes/configurator';
 import type { AgentTypeDefinition, AnswerSources, Answers } from '@/domain/agentTypes/types';
 import type { JobSeekerProfile } from '@/domain/jobSeekerProfile';
@@ -18,12 +18,12 @@ import { SaveAgentForm } from './SaveAgentForm';
 // industry template, the job is already known, so an interviewer's chat asks about the company.
 function greeting(
   definition: AgentTypeDefinition,
-  template: InterviewerTemplate | null,
+  template: AgentTemplate | null,
   profile: JobSeekerProfile | null,
   industry: IndustryTemplate | null,
 ): ChatMessage {
   const decided = decidedFields(definition, {
-    interviewerTemplate: template !== null,
+    template: template !== null,
     jobSeekerProfile: profile !== null,
     industryTemplate: industry !== null,
   });
@@ -48,7 +48,7 @@ type ConfigurationChatProps = {
   /** The type of agent being set up. */
   definition: AgentTypeDefinition;
   /** Null when the counsellor started without a template. */
-  template: InterviewerTemplate | null;
+  template: AgentTemplate | null;
   /** Null when the counsellor chose no job seeker profile. */
   profile: JobSeekerProfile | null;
   /** The industry template, or null when the counsellor started without one. */

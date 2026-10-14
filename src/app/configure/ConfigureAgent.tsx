@@ -13,8 +13,8 @@ import { IndustryPicker } from '@/components/templates/IndustryPicker';
 import { IndustryPreview } from '@/components/templates/IndustryPreview';
 import { TemplatePicker } from '@/components/templates/TemplatePicker';
 import { industryTemplates, type IndustryTemplate } from '@/data/industry-templates';
-import { interviewerTemplates, type InterviewerTemplate } from '@/data/interviewer-templates';
-import { listAgentTypes, listPlannedAgentTypes } from '@/domain/agentTypes/registry';
+import { builtInTemplates, type AgentTemplate } from '@/data/templates';
+import { listAccessibleAgentTypes, listPlannedAgentTypes } from '@/domain/agentTypes/registry';
 import type { AgentTypeDefinition } from '@/domain/agentTypes/types';
 import type { JobSeekerProfile } from '@/domain/jobSeekerProfile';
 import { fetchSavedTemplates } from './api';
@@ -46,30 +46,33 @@ function Steps({ steps, active }: { steps: string[]; active: number }) {
  */
 export function ConfigureAgent() {
   const [definition, setDefinition] = useState<AgentTypeDefinition | undefined>(undefined);
-  const [choice, setChoice] = useState<Choice<InterviewerTemplate>>(undefined);
+  const [choice, setChoice] = useState<Choice<AgentTemplate>>(undefined);
   const [industry, setIndustry] = useState<Choice<IndustryTemplate>>(undefined);
-  const [saved, setSaved] = useState<InterviewerTemplate[]>([]);
+  const [saved, setSaved] = useState<AgentTemplate[]>([]);
   const [profiles, setProfiles] = useState<JobSeekerProfile[]>([]);
   const [profileId, setProfileId] = useState('');
   // For a type with a profile but no template, where no template card moves the counsellor on.
   const [presetsDone, setPresetsDone] = useState(false);
 
   const presets = definition?.presets ?? {};
-  const usesTemplates = Boolean(presets.interviewerTemplate);
+  const usesTemplates = Boolean(presets.template);
+  const agentType = definition?.id;
   const usesProfiles = Boolean(presets.jobSeekerProfile);
   const usesIndustries = Boolean(presets.industryTemplate);
 
   useEffect(() => {
-    if (!usesTemplates && !usesProfiles) return;
+    if (!agentType || (!usesTemplates && !usesProfiles)) return;
     const controller = new AbortController();
     // Without the saved templates or profiles, the counsellor can still go on without them.
     const logError = (error: unknown) => {
       if (!controller.signal.aborted) console.error(error);
     };
-    if (usesTemplates) fetchSavedTemplates(controller.signal).then(setSaved).catch(logError);
+    if (usesTemplates) {
+      fetchSavedTemplates(agentType, controller.signal).then(setSaved).catch(logError);
+    }
     if (usesProfiles) fetchProfiles(controller.signal).then(setProfiles).catch(logError);
     return () => controller.abort();
-  }, [usesTemplates, usesProfiles]);
+  }, [agentType, usesTemplates, usesProfiles]);
 
   function chooseType(next: AgentTypeDefinition | undefined) {
     setDefinition(next);
@@ -82,7 +85,7 @@ export function ConfigureAgent() {
   if (!definition) {
     return (
       <AgentTypePicker
-        types={listAgentTypes()}
+        types={listAccessibleAgentTypes()}
         planned={listPlannedAgentTypes()}
         onSelect={chooseType}
       />
@@ -95,7 +98,7 @@ export function ConfigureAgent() {
   // The steps this type has, e.g. "Velg intervjuer og profil", then "Velg bransje".
   const usesPresetStep = usesTemplates || usesProfiles;
   const presetStep = `Velg ${[
-    usesTemplates && fieldLabel(presets.interviewerTemplate).toLowerCase(),
+    usesTemplates && fieldLabel(presets.template?.field).toLowerCase(),
     usesProfiles && 'profil',
   ]
     .filter(Boolean)
@@ -146,8 +149,10 @@ export function ConfigureAgent() {
         )}
         {usesTemplates ? (
           <TemplatePicker
-            templates={interviewerTemplates}
+            templates={builtInTemplates(definition.id)}
             savedTemplates={saved}
+            agentType={definition.id}
+            lead={presets.template?.text.pickerLead}
             onSelect={setChoice}
             onDeleted={(id) => setSaved((current) => current.filter((item) => item.id !== id))}
           />
@@ -169,7 +174,7 @@ export function ConfigureAgent() {
       <p>
         {usesTemplates && (
           <>
-            {fieldLabel(presets.interviewerTemplate)}:{' '}
+            {fieldLabel(presets.template?.field)}:{' '}
             <strong>{template ? template.title : 'Ingen mal valgt'}</strong>
           </>
         )}

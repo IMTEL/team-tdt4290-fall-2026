@@ -5,7 +5,7 @@ import {
   industryConfiguration,
   type IndustryTemplate,
 } from '@/data/industry-templates';
-import { findTemplate, type InterviewerTemplate } from '@/data/interviewer-templates';
+import { findBuiltInTemplate, type AgentTemplate } from '@/data/templates';
 import { buildBriefing, parseAnswers } from '@/domain/agentTypes/configurator';
 import { DEFAULT_AGENT_TYPE, getAgentType } from '@/domain/agentTypes/registry';
 import type { AgentTypeDefinition, AnswerSources, Answers } from '@/domain/agentTypes/types';
@@ -63,7 +63,7 @@ export async function POST(req: NextRequest) {
       if (
         typeof body.templateId !== 'string' ||
         !body.templateId ||
-        !definition.presets?.interviewerTemplate
+        !definition.presets?.template
       ) {
         return Response.json({ error: 'Unknown template' }, { status: 400 });
       }
@@ -95,14 +95,15 @@ export async function POST(req: NextRequest) {
     return Response.json({ error: 'Invalid JSON' }, { status: 400 });
   }
 
-  let template: InterviewerTemplate | undefined;
+  let template: AgentTemplate | undefined;
   if (templateId) {
     try {
       template = await findAnyTemplate(sessionToken, templateId);
     } catch (error) {
       return ragdollErrorResponse(error);
     }
-    if (!template) {
+    // A template for another agent type has text for another field.
+    if (!template || template.agentType !== definition.id) {
       return Response.json({ error: 'Unknown template' }, { status: 400 });
     }
   }
@@ -139,10 +140,11 @@ export async function POST(req: NextRequest) {
   // where they came from.
   const decided: Answers = {};
   const sources: AnswerSources = {};
-  const { interviewerTemplate, jobSeekerProfile, industryTemplate } = definition.presets ?? {};
-  if (interviewerTemplate && template?.persona) {
-    decided[interviewerTemplate] = template.persona;
-    sources[interviewerTemplate] = { kind: 'template', id: template.id };
+  const { jobSeekerProfile, industryTemplate } = definition.presets ?? {};
+  const templateField = definition.presets?.template?.field;
+  if (templateField && template?.persona) {
+    decided[templateField] = template.persona;
+    sources[templateField] = { kind: 'template', id: template.id };
   }
   if (jobSeekerProfile && jobSeeker && profileId) {
     decided[jobSeekerProfile] = jobSeeker;
@@ -179,8 +181,8 @@ export async function POST(req: NextRequest) {
 async function findAnyTemplate(
   sessionToken: string,
   templateId: string,
-): Promise<InterviewerTemplate | undefined> {
-  const builtIn = findTemplate(templateId);
+): Promise<AgentTemplate | undefined> {
+  const builtIn = findBuiltInTemplate(templateId);
   if (builtIn) return builtIn;
 
   try {

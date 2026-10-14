@@ -1,4 +1,12 @@
-import { getAgentType, hasAllAnswers, listAgentTypes, listPlannedAgentTypes } from './registry';
+import {
+  getAgentType,
+  getTemplateAgentType,
+  hasAllAnswers,
+  listAccessibleAgentTypes,
+  listAgentTypes,
+  listPlannedAgentTypes,
+  listTemplateAgentTypes,
+} from './registry';
 import { presetFields } from './configurator';
 import type { AgentPresets } from './types';
 
@@ -32,6 +40,20 @@ describe('getAgentType', () => {
 describe('listAgentTypes', () => {
   it('lists every agent type', () => {
     expect(listAgentTypes()).toEqual([interviewer]);
+  });
+});
+
+describe('the agent types a counsellor may use', () => {
+  it('are every type, for every counsellor, for now', () => {
+    expect(listAccessibleAgentTypes()).toEqual(listAgentTypes());
+  });
+
+  it('can have templates when they have a template preset', () => {
+    expect(listTemplateAgentTypes()).toEqual([interviewer]);
+    expect(getTemplateAgentType('interviewer')).toBe(interviewer);
+    expect(getTemplateAgentType('teacher')).toBeUndefined();
+    expect(getTemplateAgentType('finnes-ikke')).toBeUndefined();
+    expect(getTemplateAgentType(undefined)).toBeUndefined();
   });
 });
 
@@ -70,6 +92,12 @@ describe.each(listAgentTypes().map((definition) => [definition.label, definition
       for (const kind of Object.keys(presets) as (keyof AgentPresets)[]) {
         for (const key of presetFields(presets, kind)) expect(keys(definition)).toContain(key);
       }
+    });
+
+    it('says how to talk about its templates, if it has them', () => {
+      const text = definition.presets?.template?.text;
+      if (!text) return;
+      for (const value of Object.values(text)) expect(value.trim()).not.toBe('');
     });
 
     it('builds a prompt, roles and a name from a full set of answers', () => {

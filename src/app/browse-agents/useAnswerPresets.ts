@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 
 import { fetchProfiles } from '@/components/profiles/api';
-import { interviewerTemplates, type InterviewerTemplate } from '@/data/interviewer-templates';
+import { builtInTemplates, type AgentTemplate } from '@/data/templates';
 import type { AgentTypeDefinition } from '@/domain/agentTypes/types';
 import {
   describeJobSeeker,
@@ -20,9 +20,10 @@ import type { AnswerPreset } from './[agentId]/edit/EditAgentForm';
  */
 export function useAnswerPresets(definition: AgentTypeDefinition | undefined): AnswerPreset[] {
   // Null until loaded. Stays empty if loading fails.
-  const [saved, setSaved] = useState<InterviewerTemplate[] | null>(null);
+  const [saved, setSaved] = useState<AgentTemplate[] | null>(null);
   const [profiles, setProfiles] = useState<JobSeekerProfile[] | null>(null);
-  const templateField = definition?.presets?.interviewerTemplate;
+  const agentType = definition?.id;
+  const templateField = definition?.presets?.template?.field;
   const profileField = definition?.presets?.jobSeekerProfile;
 
   useEffect(() => {
@@ -35,7 +36,7 @@ export function useAnswerPresets(definition: AgentTypeDefinition | undefined): A
       setEmpty();
     };
     if (templateField) {
-      fetchSavedTemplates(controller.signal)
+      fetchSavedTemplates(agentType!, controller.signal)
         .then(setSaved)
         .catch(failed(() => setSaved([])));
     }
@@ -45,16 +46,17 @@ export function useAnswerPresets(definition: AgentTypeDefinition | undefined): A
         .catch(failed(() => setProfiles([])));
     }
     return () => controller.abort();
-  }, [templateField, profileField]);
+  }, [agentType, templateField, profileField]);
 
   const presets: AnswerPreset[] = [];
   if (templateField) {
     presets.push({
       field: templateField,
       kind: 'template',
-      label: 'Intervjuermal',
+      // The field's name and "mal", e.g. "Intervjuermal".
+      label: `${definition!.fields.find(({ key }) => key === templateField)?.label ?? ''}mal`,
       loaded: saved !== null,
-      options: [...interviewerTemplates, ...(saved ?? [])].map((template) => ({
+      options: [...builtInTemplates(agentType!), ...(saved ?? [])].map((template) => ({
         id: template.id,
         label: template.title,
         value: template.persona,

@@ -16,6 +16,7 @@ const fetchSavedTemplatesMock = vi.mocked(fetchSavedTemplates);
 
 const savedTemplate = {
   id: 'template-1',
+  agentType: 'interviewer',
   title: 'Streng leder',
   description: 'Stiller vanskelige spørsmål',
   focus: [],

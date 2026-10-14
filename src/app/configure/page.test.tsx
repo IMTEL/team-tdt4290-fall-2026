@@ -193,6 +193,7 @@ describe('/configure', () => {
         templates: [
           {
             id: 'saved-1',
+            agentType: 'interviewer',
             title: 'Min butikksjef',
             description: 'Lagret av meg.',
             focus: ['Service'],
@@ -213,6 +214,7 @@ describe('/configure', () => {
   it('removes a saved template from the picker once it is deleted', async () => {
     const saved = {
       id: 'saved-1',
+      agentType: 'interviewer',
       title: 'Min butikksjef',
       description: 'Lagret av meg.',
       focus: [],

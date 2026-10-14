@@ -34,6 +34,25 @@ export function listAgentTypes(): AgentTypeDefinition[] {
   return Object.values(AGENT_TYPES);
 }
 
+/**
+ * The agent types the counsellor may set up and make templates for. For now every counsellor may
+ * use every type. This is the one place to change if that should depend on the counsellor later;
+ * the type chooser, the template form and the template routes all ask here.
+ */
+export function listAccessibleAgentTypes(): AgentTypeDefinition[] {
+  return listAgentTypes();
+}
+
+/** The accessible agent types that templates can be made for: those with a template preset. */
+export function listTemplateAgentTypes(): AgentTypeDefinition[] {
+  return listAccessibleAgentTypes().filter((definition) => definition.presets?.template);
+}
+
+/** The accessible agent type with this id that templates can be made for, or undefined. */
+export function getTemplateAgentType(id: unknown): AgentTypeDefinition | undefined {
+  return listTemplateAgentTypes().find((definition) => definition.id === id);
+}
+
 /** The types that are not made yet, without any that has since got a definition. */
 export function listPlannedAgentTypes(): PlannedAgentType[] {
   return PLANNED_AGENT_TYPES.filter((planned) => !AGENT_TYPES[planned.id]);

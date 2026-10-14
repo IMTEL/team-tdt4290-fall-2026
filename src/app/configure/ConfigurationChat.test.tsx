@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { findIndustryTemplate } from '@/data/industry-templates';
-import { findTemplate } from '@/data/interviewer-templates';
+import { findBuiltInTemplate } from '@/data/templates';
 import { interviewer } from '@/domain/agentTypes/interviewer';
 import { saveConfiguredAgent, sendConfigurationTurn } from './api';
 import { ConfigurationChat } from './ConfigurationChat';
@@ -18,7 +18,7 @@ vi.mock('./api', async (importOriginal) => ({
 }));
 const sendMock = vi.mocked(sendConfigurationTurn);
 const saveMock = vi.mocked(saveConfiguredAgent);
-const template = findTemplate('teamleder')!;
+const template = findBuiltInTemplate('teamleder')!;
 const profile = {
   id: 'profile-1',
   label: 'Profil A',

@@ -5,6 +5,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { parseFocus, TemplateForm } from './TemplateForm';
 
 const saved = {
+  agentType: 'interviewer',
   title: 'Butikksjef',
   description: 'Vennlig og direkte.',
   focus: ['Service', 'Samarbeid'],
@@ -47,9 +48,10 @@ describe('TemplateForm for a new template', () => {
 
     expect(onSave).toHaveBeenCalledWith(saved);
     expect(await screen.findByText(/Malen «Butikksjef» er lagret/)).toBeInTheDocument();
-    expect(
-      screen.getByRole('link', { name: 'Bruk den til å sette opp en intervjuer' }),
-    ).toHaveAttribute('href', '/configure');
+    expect(screen.getByRole('link', { name: 'Bruk den til å sette opp en agent' })).toHaveAttribute(
+      'href',
+      '/configure',
+    );
   });
 
   it('cannot be saved until the required fields are filled in', async () => {
@@ -85,6 +87,36 @@ describe('TemplateForm for a new template', () => {
     expect(saveButton()).toBeEnabled();
   });
 
+  it('lets the counsellor choose the agent type, with planned types shown but not choosable', async () => {
+    const { user } = setup();
+    const type = screen.getByRole('combobox', { name: /Type agent/ });
+    expect(type).toHaveTextContent('Intervjuer');
+
+    await user.click(type);
+
+    expect(screen.getByRole('option', { name: 'Intervjuer' })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'Lærer (kommer snart)' })).toHaveAttribute(
+      'aria-disabled',
+      'true',
+    );
+  });
+
+  it('takes its labels from the chosen agent type', () => {
+    setup();
+
+    expect(screen.getByText('Hvem er intervjueren? For eksempel «Butikksjef».')).toBeVisible();
+    expect(screen.getByRole('textbox', { name: /Beskrivelse av intervjueren/ })).toBeVisible();
+  });
+
+  it('saves the chosen agent type with the template', async () => {
+    const { user, onSave, fillIn } = setup();
+
+    await fillIn();
+    await user.click(screen.getByRole('button', { name: 'Lagre mal' }));
+
+    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ agentType: 'interviewer' }));
+  });
+
   it('has a cancel link back to /configure', () => {
     setup();
 
@@ -105,6 +137,27 @@ describe('TemplateForm for a saved template', () => {
 
     expect(onSave).toHaveBeenCalledWith({ ...saved, title: 'Kjøpmann' });
     expect(await screen.findByText(/Malen «Kjøpmann» er lagret/)).toBeInTheDocument();
+  });
+});
+
+describe('TemplateForm agent type', () => {
+  it('cannot be changed once the template is saved', () => {
+    render(<TemplateForm initial={saved} onSave={vi.fn()} />);
+
+    expect(screen.getByRole('combobox', { name: /Type agent/ })).toHaveAttribute(
+      'aria-disabled',
+      'true',
+    );
+    expect(screen.getByText('Typen kan ikke endres etter at malen er lagret.')).toBeVisible();
+  });
+
+  it('starts with the agent type it is given, and ignores one templates cannot be made for', () => {
+    const { unmount } = render(<TemplateForm defaultAgentType="interviewer" onSave={vi.fn()} />);
+    expect(screen.getByRole('combobox', { name: /Type agent/ })).toHaveTextContent('Intervjuer');
+    unmount();
+
+    render(<TemplateForm defaultAgentType="teacher" onSave={vi.fn()} />);
+    expect(screen.getByRole('combobox', { name: /Type agent/ })).toHaveTextContent('Intervjuer');
   });
 });
 

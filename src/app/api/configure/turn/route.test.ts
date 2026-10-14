@@ -3,7 +3,7 @@ import { NextRequest } from 'next/server';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { findIndustryTemplate, industryConfiguration } from '@/data/industry-templates';
-import { findTemplate } from '@/data/interviewer-templates';
+import { findBuiltInTemplate } from '@/data/templates';
 import { getSessionToken } from '@/lib/session-tokens';
 import { askAgent, getProfile, getTemplate, RagdollError } from '@/server/ragdoll';
 import { POST } from './route';
@@ -89,7 +89,9 @@ describe('POST /api/configure/turn', () => {
 
     const [, [briefing]] = askAgentMock.mock.calls[0];
     expect(briefing.content).toContain('1. Stilling: Hvilken stilling skal jobbsøkeren øve til?');
-    expect(briefing.content).toContain(`- Intervjuer: ${findTemplate('teamleder')?.persona}`);
+    expect(briefing.content).toContain(
+      `- Intervjuer: ${findBuiltInTemplate('teamleder')?.persona}`,
+    );
     expect(briefing.content).not.toMatch(/^Intervjuer:/m);
   });
 
@@ -104,7 +106,9 @@ describe('POST /api/configure/turn', () => {
     const { stilling, bransje } = industryConfiguration(findIndustryTemplate('helsefagarbeider')!);
     expect(briefing.content).toContain(`- Stilling: ${stilling}`);
     expect(briefing.content).toContain(`- Bransje: ${bransje}`);
-    expect(briefing.content).toContain(`- Intervjuer: ${findTemplate('teamleder')?.persona}`);
+    expect(briefing.content).toContain(
+      `- Intervjuer: ${findBuiltInTemplate('teamleder')?.persona}`,
+    );
     expect(briefing.content).toContain('1. Bedrift:');
     expect(briefing.content).not.toMatch(/^Stilling:/m);
   });
@@ -124,7 +128,7 @@ describe('POST /api/configure/turn', () => {
     expect(body.done).toBe(true);
     expect(body.configuration).toMatchObject({
       ...industryConfiguration(findIndustryTemplate('lagermedarbeider')!),
-      intervjuer: findTemplate('teamleder')?.persona,
+      intervjuer: findBuiltInTemplate('teamleder')?.persona,
     });
     expect(body.configuration.bransje).toBe('Transport og logistikk (privat)');
     // Only the interviewer and job seeker remember a source; the edit form has no industry choice.
@@ -148,7 +152,7 @@ describe('POST /api/configure/turn', () => {
 
     expect(body.done).toBe(true);
     expect(body.configuration.stilling).toBe('Butikkmedarbeider');
-    expect(body.configuration.intervjuer).toBe(findTemplate('teamleder')?.persona);
+    expect(body.configuration.intervjuer).toBe(findBuiltInTemplate('teamleder')?.persona);
     expect(body.sources).toEqual({ intervjuer: { kind: 'template', id: 'teamleder' } });
   });
 
@@ -219,7 +223,7 @@ describe('POST /api/configure/turn', () => {
     expect(body.configuration.jobbsoker).toBe(
       'aldersgruppe 18–24 år; vil øve på: mestre nervøsitet',
     );
-    expect(body.configuration.intervjuer).toBe(findTemplate('teamleder')?.persona);
+    expect(body.configuration.intervjuer).toBe(findBuiltInTemplate('teamleder')?.persona);
     expect(body.sources).toEqual({
       intervjuer: { kind: 'template', id: 'teamleder' },
       jobbsoker: { kind: 'profile', id: 'profile-1' },

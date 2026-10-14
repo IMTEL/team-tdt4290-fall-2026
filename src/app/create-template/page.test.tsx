@@ -20,7 +20,7 @@ describe('/create-template', () => {
   it('saves the form as a new template', async () => {
     saveMock.mockResolvedValue('template-1');
     const user = userEvent.setup();
-    render(<CreateTemplatePage />);
+    render(await CreateTemplatePage({ searchParams: Promise.resolve({}) }));
 
     // Pastes instead of typing: typing re-renders the MUI field once per letter, which is slow
     // enough to time out when the whole test suite runs at once.
@@ -35,6 +35,7 @@ describe('/create-template', () => {
     await user.click(screen.getByRole('button', { name: 'Lagre mal' }));
 
     expect(saveMock).toHaveBeenCalledWith({
+      agentType: 'interviewer',
       title: 'Butikksjef',
       description: 'Vennlig.',
       focus: [],

@@ -76,7 +76,20 @@ export const interviewer: AgentTypeDefinition = {
     ],
   },
   presets: {
-    interviewerTemplate: 'intervjuer',
+    template: {
+      field: 'intervjuer',
+      text: {
+        titleHint: 'Hvem er intervjueren? For eksempel «Butikksjef».',
+        descriptionHint: 'Én setning om hvordan intervjueren er. Vises på kortet.',
+        textLabel: 'Beskrivelse av intervjueren',
+        textHint:
+          'Hvem intervjueren er, hvordan hen oppfører seg og hva hen spør om. Assistenten bruker ' +
+          'denne teksten.',
+        pickerLead:
+          'Malen bestemmer hvem som intervjuer jobbsøkeren. Resten setter du opp i samtalen. ' +
+          'Uten mal spør assistenten deg om intervjueren også.',
+      },
+    },
     jobSeekerProfile: 'jobbsoker',
     industryTemplate: { job: 'stilling', industry: 'bransje' },
   },

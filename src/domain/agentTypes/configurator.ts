@@ -21,9 +21,13 @@ export function decidedFields(definition: AgentTypeDefinition, chosen: ChosenPre
 
 /** The fields one kind of preset fills in for a type, or none if the type doesn't have it. */
 export function presetFields(presets: AgentPresets, kind: keyof AgentPresets): string[] {
-  const preset = presets[kind];
-  if (!preset) return [];
-  return typeof preset === 'string' ? [preset] : [preset.job, preset.industry];
+  if (kind === 'template') return presets.template ? [presets.template.field] : [];
+  if (kind === 'industryTemplate') {
+    return presets.industryTemplate
+      ? [presets.industryTemplate.job, presets.industryTemplate.industry]
+      : [];
+  }
+  return presets[kind] ? [presets[kind]] : [];
 }
 
 /** The question the chat opens with: the first field nothing has decided. */

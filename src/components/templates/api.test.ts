@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { deleteTemplate, fetchTemplate, saveTemplate, updateTemplate } from './api';
 
 const template = {
+  agentType: 'interviewer',
   title: 'Butikksjef',
   description: 'Vennlig og direkte.',
   focus: ['Service'],

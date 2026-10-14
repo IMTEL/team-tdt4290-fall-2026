@@ -53,21 +53,24 @@ const replyWithInterviewer = completeReply.replace(
 
 describe('decidedFields', () => {
   it('gives the fields the chosen template and profile fill in', () => {
-    expect(
-      decidedFields(interviewer, { interviewerTemplate: true, jobSeekerProfile: true }),
-    ).toEqual(['intervjuer', 'jobbsoker']);
+    expect(decidedFields(interviewer, { template: true, jobSeekerProfile: true })).toEqual([
+      'intervjuer',
+      'jobbsoker',
+    ]);
     expect(decidedFields(interviewer, { jobSeekerProfile: true })).toEqual(['jobbsoker']);
-    expect(decidedFields(interviewer, { interviewerTemplate: false })).toEqual([]);
+    expect(decidedFields(interviewer, { template: false })).toEqual([]);
   });
 
   it('gives both fields an industry template fills in, in the type’s field order', () => {
-    expect(
-      decidedFields(interviewer, { interviewerTemplate: true, industryTemplate: true }),
-    ).toEqual(['stilling', 'bransje', 'intervjuer']);
+    expect(decidedFields(interviewer, { template: true, industryTemplate: true })).toEqual([
+      'stilling',
+      'bransje',
+      'intervjuer',
+    ]);
   });
 
   it('decides nothing for a type without presets', () => {
-    expect(decidedFields(teacher, { interviewerTemplate: true })).toEqual([]);
+    expect(decidedFields(teacher, { template: true })).toEqual([]);
   });
 });
 
