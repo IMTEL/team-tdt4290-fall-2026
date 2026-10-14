@@ -27,7 +27,7 @@ type SaveAgentFormProps = {
   configuration: Configuration;
   /** The template and profile the answers came from, so the edit form can show them later. */
   sources?: AnswerSources;
-  /** Shown above the name field, e.g. the configuration that will be saved. */
+  /** Shown below the name field, e.g. the configuration that will be saved. */
   children?: ReactNode;
   /** The counsellor wants to change something, or is done after saving: close the pop-up. */
   onClose: () => void;
@@ -67,7 +67,6 @@ export function SaveAgentForm({
   return (
     <form className={styles.form} onSubmit={handleSubmit} aria-label="Lagre intervjueren">
       <DialogContent dividers className={styles.content}>
-        {children}
         {isSaved ? (
           <Alert severity="success">
             «{name.trim()}» er lagret.{' '}
@@ -88,9 +87,11 @@ export function SaveAgentForm({
               disabled={isSaving}
               slotProps={{ htmlInput: { maxLength: MAX_NAME_LENGTH } }}
             />
-            {status.kind === 'error' && <Alert severity="error">{status.message}</Alert>}
           </>
         )}
+        {children}
+        {/* Last, so it shows next to the save button that was just clicked. */}
+        {status.kind === 'error' && <Alert severity="error">{status.message}</Alert>}
       </DialogContent>
       <DialogActions>
         {isSaved ? (
