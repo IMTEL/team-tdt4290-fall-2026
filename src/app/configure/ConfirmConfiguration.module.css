@@ -1,0 +1,10 @@
+.confirm {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.change {
+  align-self: flex-start;
+}

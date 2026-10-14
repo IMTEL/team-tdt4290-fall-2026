@@ -9,7 +9,7 @@ import type { AnswerSources } from '@/domain/agentTypes/types';
 import type { Configuration } from '@/domain/configuration';
 import type { JobSeekerProfile } from '@/domain/jobSeekerProfile';
 import { sendConfigurationTurn } from './api';
-import { SaveAgentForm } from './SaveAgentForm';
+import { ConfirmConfiguration } from './ConfirmConfiguration';
 
 // The assistant opens the conversation. Fixed text, so it costs no LLM call. It is also sent to
 // RAGdoll as the first turn, so the agent doesn't greet again, and knows what was chosen: a
@@ -69,12 +69,14 @@ export function ConfigurationChat({ template, profile }: ConfigurationChatProps)
     <>
       <AgentChat send={askConfigurator} initialMessages={initialMessages} />
       {/* A new key when the configuration changes resets the form, so a changed
-          configuration can be saved again. */}
+          configuration can be saved again. "Endre noe" closes it until the configurator writes
+          a new configuration. */}
       {finished && (
-        <SaveAgentForm
+        <ConfirmConfiguration
           key={JSON.stringify(finished.configuration)}
           configuration={finished.configuration}
           sources={finished.sources}
+          onChange={() => setFinished(null)}
         />
       )}
     </>
