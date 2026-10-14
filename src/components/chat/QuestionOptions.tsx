@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, type FormEvent } from 'react';
+import SkipNextIcon from '@mui/icons-material/SkipNext';
 import Button from '@mui/material/Button';
 import Checkbox from '@mui/material/Checkbox';
 import FormControlLabel from '@mui/material/FormControlLabel';
@@ -13,6 +14,17 @@ import {
   type QuestionOptions as Options,
 } from '@/domain/questionOptions';
 import styles from './QuestionOptions.module.css';
+
+// Rounded buttons for the answers and for skipping, so they look alike.
+const PILL = {
+  textTransform: 'none',
+  borderRadius: 999,
+  px: 2,
+  fontWeight: 500,
+  borderColor: 'divider',
+  color: 'text.primary',
+  '&:hover': { borderColor: 'primary.main', bgcolor: 'action.hover' },
+} as const;
 
 type QuestionOptionsProps = {
   options: Options;
@@ -75,15 +87,7 @@ export function QuestionOptions({ options, onAnswer, disabled = false }: Questio
               variant="outlined"
               disabled={disabled}
               onClick={() => onAnswer(formatAnswer([choice]))}
-              sx={{
-                textTransform: 'none',
-                borderRadius: 999,
-                px: 2,
-                fontWeight: 500,
-                borderColor: 'divider',
-                color: 'text.primary',
-                '&:hover': { borderColor: 'primary.main', bgcolor: 'action.hover' },
-              }}
+              sx={PILL}
             >
               <span className={styles.number}>{choice.number}.</span> {choice.label}
             </Button>
@@ -108,12 +112,12 @@ export function QuestionOptions({ options, onAnswer, disabled = false }: Questio
       )}
       {options.skippable && (
         <Button
-          variant="text"
-          size="small"
+          variant="outlined"
           disabled={disabled}
           onClick={() => onAnswer(SKIP_ANSWER)}
+          startIcon={<SkipNextIcon />}
           className={styles.skip}
-          sx={{ textTransform: 'none' }}
+          sx={PILL}
         >
           Hopp over
         </Button>
