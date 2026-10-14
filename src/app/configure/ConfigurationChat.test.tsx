@@ -1,10 +1,10 @@
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { findTemplate } from '@/data/interviewer-templates';
 import { saveConfiguredAgent, sendConfigurationTurn } from './api';
-import { ConfigurationChat } from './ConfigurationChat';
+import { ConfigurationChat, FINISHED_REPLY } from './ConfigurationChat';
 
 // The chat itself is tested in AgentChat.test.tsx and the save form in SaveAgentForm.test.tsx.
 // Here we only check what this page adds: the greeting, which route answers, and showing the
@@ -157,7 +157,7 @@ describe('ConfigurationChat', () => {
 
     await sendMessage('Ja, det stemmer');
 
-    const summary = await screen.findByRole('region', { name: 'Stemmer dette?' });
+    const summary = await screen.findByRole('dialog', { name: 'Stemmer dette?' });
     expect(within(summary).getByText('Stilling').nextElementSibling).toHaveTextContent(
       'Butikkmedarbeider',
     );
@@ -175,10 +175,39 @@ describe('ConfigurationChat', () => {
       .setup()
       .click(await screen.findByRole('button', { name: 'Nei, jeg vil endre noe' }));
 
-    expect(screen.queryByRole('region', { name: 'Stemmer dette?' })).not.toBeInTheDocument();
+    // The pop-up fades out before it is gone.
+    await waitFor(() =>
+      expect(screen.queryByRole('dialog', { name: 'Stemmer dette?' })).not.toBeInTheDocument(),
+    );
 
     await sendMessage('Bytt til andre intervju');
-    expect(await screen.findByRole('region', { name: 'Stemmer dette?' })).toBeInTheDocument();
+    expect(await screen.findByRole('dialog', { name: 'Stemmer dette?' })).toBeInTheDocument();
+  });
+
+  it('shows a short message in the chat instead of the KONFIGURASJON block', async () => {
+    sendMock.mockResolvedValue({
+      reply: 'KONFIGURASJON\nStilling: Butikkmedarbeider',
+      configuration,
+      sources: {},
+    });
+    render(<ConfigurationChat template={template} profile={null} />);
+
+    await sendMessage('Nei, jeg er ferdig');
+
+    expect(await screen.findByText(FINISHED_REPLY)).toBeInTheDocument();
+    expect(screen.queryByText(/KONFIGURASJON/)).not.toBeInTheDocument();
+  });
+
+  it('opens the summary again after it was closed', async () => {
+    sendMock.mockResolvedValue({ reply: 'Ferdig!', configuration, sources: {} });
+    render(<ConfigurationChat template={template} profile={null} />);
+    const user = userEvent.setup();
+
+    await sendMessage('Nei, jeg er ferdig');
+    await user.click(await screen.findByRole('button', { name: 'Nei, jeg vil endre noe' }));
+    await user.click(await screen.findByRole('button', { name: 'Se oppsummeringen' }));
+
+    expect(await screen.findByRole('dialog', { name: 'Stemmer dette?' })).toBeInTheDocument();
   });
 
   it('saves the agent with the sources the server sent with the configuration', async () => {
