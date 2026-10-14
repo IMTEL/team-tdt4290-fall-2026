@@ -60,11 +60,24 @@ Unit and component level only:
 - `src/components/chat/ChatInput.test.tsx`: Enter and the button send the trimmed text and clear
   the box, Shift+Enter adds a new line, blank text and a disabled input never send.
 - `src/components/chat/MessageList.test.tsx`: messages in order with a hidden speaker label, and
-  the typing bubble only while the assistant answers.
-- `src/app/configure/ConfigurationChat.test.tsx`: greeting, typing bubble and reply; the whole
+  the typing bubble only while the assistant answers; the newest question's answer options can be
+  clicked, older ones are shown as a numbered list, and options are hidden while the assistant
+  answers.
+- `src/components/chat/AgentChat.test.tsx`: greeting, typing bubble and reply; the whole
   conversation (greeting included) is sent; friendly error, sending blocked, Retry resends the same
   history without repeating the user's message; no technical error text; leaving the page aborts
   the request.
+- `src/components/chat/QuestionOptions.test.tsx`: one-answer options are buttons with the agent's
+  numbers that answer at once; several-answer options are checkboxes sent in the agent's order
+  together with the free-text answer; a free-text answer alone can be sent; nothing is sent before
+  something is chosen or written; optional questions get «Hopp over», alone or next to the
+  options; everything is disabled while the agent answers.
+- `src/domain/questionOptions.test.ts`: the `[ALTERNATIVER: ett|flere]` block is split from the
+  text, keeps the agent's numbers, tolerates `1)` and spacing, and a reply without a block or
+  without options is plain text; a `[VALGFRITT]` line makes a question skippable and is hidden;
+  answers are written as `1. HR, 3. Kollega. Annet: …`.
+- `src/components/agents/AnswerList.test.tsx`: each label with its answer, and a dash for an
+  empty one.
 - `src/components/templates/TemplatePicker.test.tsx`: every template is shown, clicking one
   selects it, "Fortsett uten mal" selects none, "Lag en ny mal" links to `/create-template`, and
   only saved templates have edit and delete.
@@ -73,8 +86,10 @@ Unit and component level only:
   picker; saved templates are shown after the built-in ones, and the built-in ones still show if
   the saved ones cannot be loaded; a deleted template disappears from the picker; the tab title.
 - `src/app/configure/ConfigurationChat.test.tsx`: the greeting names the template; the template id
-  and the whole conversation (greeting included) go to the configuration turn route; the save form only appears once the
-  configuration is finished.
+  and the whole conversation (greeting included) go to the configuration turn route; a clicked
+  answer option is sent as a chat message and the conversation goes on; the save form and the
+  finished configuration (with Tillegg) only appear once the configuration is finished, and
+  «Nei, jeg vil endre noe» closes them until the configurator writes a new configuration.
 - `src/app/configure/SaveAgentForm.test.tsx`: saves under the chosen name and links to testing the
   new agent and to the agents;
   no saving without a name; shows the error and lets the user try again.
@@ -139,10 +154,11 @@ Unit and component level only:
   stored answers and the IDUN key for both the LLM and the embeddings; `applyEdit` changes the
   name, roles, prompt and answers but keeps the id and every other field.
 - `src/domain/configuration.test.ts` and `src/domain/interviewerPrompt.test.ts`: reading the
-  `KONFIGURASJON` block (complete, missing or empty lines, extra spaces) and filling the
-  interviewer prompt from it.
-- `src/domain/agentTypes/registry.test.ts`: looking up an agent type, checking that every field
-  has an answer, and the interviewer's prompt and role.
+  `KONFIGURASJON` block (complete, missing or empty lines, extra spaces, the optional Tillegg)
+  and filling the interviewer prompt from it, with the Tillegg line only when something was added.
+- `src/domain/agentTypes/registry.test.ts`: looking up an agent type, checking that every required
+  field has an answer while the optional Tillegg may be empty or missing, and the interviewer's
+  prompt and role.
 - `src/domain/agentTypes/storedAnswers.test.ts`: answers are saved with their type and version
   and read back; agents saved before agent types existed are read as interviewers; a field added
   to a type later comes back empty, and answers to removed fields are left out; descriptions we
