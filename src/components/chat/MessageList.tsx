@@ -2,7 +2,7 @@
 
 import { Fragment, useEffect, useRef } from 'react';
 
-import { parseQuestionOptions, type ParsedReply } from '@/domain/questionOptions';
+import type { ParsedReply } from '@/domain/questionOptions';
 import { cn } from '@/lib/utils';
 import { QuestionOptions } from './QuestionOptions';
 import type { ChatMessage } from './types';
@@ -16,6 +16,11 @@ type MessageListProps = {
   onAnswer?: (text: string) => void;
   /** The answer options can't be used, e.g. while an error is shown. */
   answersDisabled?: boolean;
+  /**
+   * Splits an assistant reply into text and answer options, for agents that write options.
+   * Without it, replies are shown as they are.
+   */
+  parseReply?: (content: string) => ParsedReply;
 };
 
 export function MessageList({
@@ -23,6 +28,7 @@ export function MessageList({
   isTyping = false,
   onAnswer,
   answersDisabled = false,
+  parseReply,
 }: MessageListProps) {
   const listRef = useRef<HTMLOListElement>(null);
 
@@ -37,7 +43,7 @@ export function MessageList({
   return (
     <ol ref={listRef} role="log" aria-live="polite" aria-label="Samtale" className={styles.list}>
       {messages.map((m) => {
-        const reply = m.role === 'assistant' ? parseQuestionOptions(m.content) : null;
+        const reply = m.role === 'assistant' && parseReply ? parseReply(m.content) : null;
         // Only the newest question can be answered by clicking; older options are just text.
         const answer = m === last && !isTyping ? onAnswer : undefined;
         const options = answer ? reply?.options : null;

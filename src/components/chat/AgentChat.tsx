@@ -3,6 +3,7 @@
 import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
 
+import type { ParsedReply } from '@/domain/questionOptions';
 import { ChatInput } from './ChatInput';
 import { MessageList } from './MessageList';
 import type { ChatMessage, SendMessages } from './types';
@@ -14,9 +15,11 @@ type AgentChatProps = {
   send: SendMessages;
   /** Shown before the user writes anything; also sent to the agent as the first turns. */
   initialMessages: ChatMessage[];
+  /** For agents that write answer options: splits a reply into text and options. */
+  parseReply?: (content: string) => ParsedReply;
 };
 
-export function AgentChat({ send, initialMessages }: AgentChatProps) {
+export function AgentChat({ send, initialMessages, parseReply }: AgentChatProps) {
   const { messages, isWaiting, error, sendMessage, retry } = useChat(send, initialMessages);
 
   return (
@@ -26,6 +29,7 @@ export function AgentChat({ send, initialMessages }: AgentChatProps) {
         isTyping={isWaiting}
         onAnswer={sendMessage}
         answersDisabled={error !== null}
+        parseReply={parseReply}
       />
       {error && (
         <Alert

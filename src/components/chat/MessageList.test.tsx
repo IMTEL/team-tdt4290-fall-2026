@@ -2,6 +2,7 @@ import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 
+import { parseQuestionOptions } from '@/domain/questionOptions';
 import { MessageList } from './MessageList';
 import type { ChatMessage } from './types';
 
@@ -42,7 +43,13 @@ describe('MessageList', () => {
 
     it('lets the newest question be answered by clicking, without showing the block as text', async () => {
       const onAnswer = vi.fn();
-      render(<MessageList messages={[...messages, question]} onAnswer={onAnswer} />);
+      render(
+        <MessageList
+          messages={[...messages, question]}
+          onAnswer={onAnswer}
+          parseReply={parseQuestionOptions}
+        />,
+      );
 
       expect(screen.queryByText(/ALTERNATIVER/)).not.toBeInTheDocument();
       const user = userEvent.setup();
@@ -57,7 +64,9 @@ describe('MessageList', () => {
         question,
         { id: '4', role: 'user' as const, content: '2. Privat' },
       ];
-      render(<MessageList messages={answered} onAnswer={vi.fn()} />);
+      render(
+        <MessageList messages={answered} onAnswer={vi.fn()} parseReply={parseQuestionOptions} />,
+      );
 
       expect(screen.queryByRole('button', { name: '1. Offentlig' })).not.toBeInTheDocument();
       expect(
@@ -66,9 +75,23 @@ describe('MessageList', () => {
     });
 
     it('hides the options while the assistant is answering', () => {
-      render(<MessageList messages={[...messages, question]} onAnswer={vi.fn()} isTyping />);
+      render(
+        <MessageList
+          messages={[...messages, question]}
+          onAnswer={vi.fn()}
+          parseReply={parseQuestionOptions}
+          isTyping
+        />,
+      );
 
       expect(screen.queryByRole('button', { name: '1. Offentlig' })).not.toBeInTheDocument();
+    });
+
+    it('shows the reply as it is for an agent that does not write options', () => {
+      render(<MessageList messages={[...messages, question]} onAnswer={vi.fn()} />);
+
+      expect(screen.queryByRole('button', { name: '1. Offentlig' })).not.toBeInTheDocument();
+      expect(screen.getByText(/\[ALTERNATIVER: ett\]/)).toBeInTheDocument();
     });
   });
 });

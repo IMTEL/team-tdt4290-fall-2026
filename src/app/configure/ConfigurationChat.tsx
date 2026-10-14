@@ -6,11 +6,14 @@ import Button from '@mui/material/Button';
 import { AgentChat } from '@/components/chat/AgentChat';
 import type { ChatMessage, SendMessages } from '@/components/chat/types';
 import type { InterviewerTemplate } from '@/data/interviewer-templates';
+import { interviewer } from '@/domain/agentTypes/interviewer';
 import type { AnswerSources } from '@/domain/agentTypes/types';
 import type { Configuration } from '@/domain/configuration';
 import type { JobSeekerProfile } from '@/domain/jobSeekerProfile';
+import { parseQuestionOptions } from '@/domain/questionOptions';
 import { sendConfigurationTurn } from './api';
 import { ConfirmConfiguration } from './ConfirmConfiguration';
+import styles from './ConfigurationChat.module.css';
 
 // Shown in the chat instead of the KONFIGURASJON block, which the pop-up shows in a readable way.
 export const FINISHED_REPLY =
@@ -75,16 +78,21 @@ export function ConfigurationChat({ template, profile }: ConfigurationChatProps)
 
   return (
     <>
-      <AgentChat send={askConfigurator} initialMessages={initialMessages} />
+      <AgentChat
+        send={askConfigurator}
+        initialMessages={initialMessages}
+        parseReply={parseQuestionOptions}
+      />
       {/* A new key when the configuration changes resets the form, so a changed
           configuration can be saved again. */}
       {finished && (
         <>
-          <Button variant="contained" onClick={() => setOpen(true)} sx={{ mt: 2 }}>
+          <Button variant="contained" onClick={() => setOpen(true)} className={styles.reopen}>
             Se oppsummeringen
           </Button>
           <ConfirmConfiguration
             key={JSON.stringify(finished.configuration)}
+            fields={interviewer.fields}
             configuration={finished.configuration}
             sources={finished.sources}
             open={open}

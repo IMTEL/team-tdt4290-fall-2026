@@ -26,10 +26,11 @@ const configuration = {
 
 function setup() {
   const user = userEvent.setup();
-  render(<SaveAgentForm configuration={configuration} />);
+  const onClose = vi.fn();
+  render(<SaveAgentForm configuration={configuration} onClose={onClose} />);
   const nameBox = () => screen.getByRole('textbox', { name: /Navn på intervjueren/ });
   const saveButton = () => screen.getByRole('button', { name: 'Lagre agent' });
-  return { user, nameBox, saveButton };
+  return { user, nameBox, saveButton, onClose };
 }
 
 describe('SaveAgentForm', () => {
@@ -77,5 +78,24 @@ describe('SaveAgentForm', () => {
     await user.click(saveButton());
     expect(await screen.findByText(/er lagret/)).toBeInTheDocument();
     expect(saveMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('goes back to the chat to change something', async () => {
+    const { user, onClose } = setup();
+
+    await user.click(screen.getByRole('button', { name: 'Nei, jeg vil endre noe' }));
+
+    expect(onClose).toHaveBeenCalledOnce();
+  });
+
+  it('offers only to close once the interviewer is saved', async () => {
+    saveMock.mockResolvedValue('agent-1');
+    const { user, saveButton, onClose } = setup();
+
+    await user.click(saveButton());
+    await user.click(await screen.findByRole('button', { name: 'Lukk' }));
+
+    expect(screen.queryByRole('button', { name: 'Lagre agent' })).not.toBeInTheDocument();
+    expect(onClose).toHaveBeenCalledOnce();
   });
 });
