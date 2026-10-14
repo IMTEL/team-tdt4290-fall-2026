@@ -6,21 +6,27 @@ import { AgentChat } from '@/components/chat/AgentChat';
 import type { ChatMessage, SendMessages } from '@/components/chat/types';
 import { SECTOR_LABELS, type IndustryTemplate } from '@/data/industry-templates';
 import type { InterviewerTemplate } from '@/data/interviewer-templates';
-import type { AnswerSources } from '@/domain/agentTypes/types';
-import type { Configuration } from '@/domain/configuration';
+import { decidedFields, firstQuestion } from '@/domain/agentTypes/configurator';
+import type { AgentTypeDefinition, AnswerSources, Answers } from '@/domain/agentTypes/types';
 import type { JobSeekerProfile } from '@/domain/jobSeekerProfile';
 import { sendConfigurationTurn } from './api';
 import { SaveAgentForm } from './SaveAgentForm';
 
 // The assistant opens the conversation. Fixed text, so it costs no LLM call. It is also sent to
-// RAGdoll as the first turn, so the agent doesn't greet again, and knows what was chosen: a
-// template decides the interviewer, an industry template the job and industry, and a profile the
-// job seeker. With an industry template, the job is already known, so it asks about the company.
+// RAGdoll, after the server's briefing, so the agent doesn't greet again, and knows what was
+// chosen. It asks the type's first question that a template or profile hasn't answered: with an
+// industry template, the job is already known, so an interviewer's chat asks about the company.
 function greeting(
+  definition: AgentTypeDefinition,
   template: InterviewerTemplate | null,
   profile: JobSeekerProfile | null,
   industry: IndustryTemplate | null,
 ): ChatMessage {
+  const decided = decidedFields(definition, {
+    interviewerTemplate: template !== null,
+    jobSeekerProfile: profile !== null,
+    industryTemplate: industry !== null,
+  });
   const chosen = [
     template && ` Du har valgt malen «${template.title}».`,
     industry &&
@@ -30,18 +36,17 @@ function greeting(
   ]
     .filter(Boolean)
     .join('');
-  const question = industry
-    ? 'Hvilken bedrift eller virksomhet skal intervjuet være hos?'
-    : 'Hvilken stilling skal jobbsøkeren øve til?';
   return {
     id: 'greeting',
     role: 'assistant',
-    content: `Hei! Jeg hjelper deg med å sette opp en AI-intervjuer.${chosen} ${question}`,
+    content: `${definition.configurator.greeting}${chosen} ${firstQuestion(definition, decided)}`,
   };
 }
 
 // A client component because page.tsx (a server component) can't pass a function to AgentChat.
 type ConfigurationChatProps = {
+  /** The type of agent being set up. */
+  definition: AgentTypeDefinition;
   /** Null when the counsellor started without a template. */
   template: InterviewerTemplate | null;
   /** Null when the counsellor chose no job seeker profile. */
@@ -50,12 +55,17 @@ type ConfigurationChatProps = {
   industry?: IndustryTemplate | null;
 };
 
-export function ConfigurationChat({ template, profile, industry = null }: ConfigurationChatProps) {
+export function ConfigurationChat({
+  definition,
+  template,
+  profile,
+  industry = null,
+}: ConfigurationChatProps) {
   // The finished configuration and its sources, once the configurator has written its
   // KONFIGURASJON block. Lives only in this browser tab: nothing is stored until the counsellor
   // saves.
   const [finished, setFinished] = useState<{
-    configuration: Configuration;
+    configuration: Answers;
     sources: AnswerSources;
   } | null>(null);
 
@@ -63,14 +73,15 @@ export function ConfigurationChat({ template, profile, industry = null }: Config
   const profileId = profile?.id ?? null;
   const industryTemplateId = industry?.id ?? null;
   const initialMessages = useMemo(
-    () => [greeting(template, profile, industry)],
-    [template, profile, industry],
+    () => [greeting(definition, template, profile, industry)],
+    [definition, template, profile, industry],
   );
 
   // useCallback keeps it the same function on every render.
   const askConfigurator = useCallback<SendMessages>(
     async (messages, signal) => {
       const result = await sendConfigurationTurn(
+        definition,
         { templateId, profileId, industryTemplateId },
         messages,
         signal,
@@ -81,7 +92,7 @@ export function ConfigurationChat({ template, profile, industry = null }: Config
       }
       return result.reply;
     },
-    [templateId, profileId, industryTemplateId],
+    [definition, templateId, profileId, industryTemplateId],
   );
 
   return (
@@ -91,6 +102,7 @@ export function ConfigurationChat({ template, profile, industry = null }: Config
           configuration can be saved again. */}
       {finished && (
         <SaveAgentForm
+          definition={definition}
           key={JSON.stringify(finished.configuration)}
           configuration={finished.configuration}
           sources={finished.sources}

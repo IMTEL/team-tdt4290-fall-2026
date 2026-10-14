@@ -77,12 +77,30 @@ describe('useAnswerPresets', () => {
     expect(result.current[1].options).toEqual([]);
   });
 
-  it('gives no presets for other agent types, and loads nothing', () => {
-    const other = { ...interviewer, id: 'other' } as AgentTypeDefinition;
+  it('gives no presets for a type without any, and loads nothing', () => {
+    const other: AgentTypeDefinition = { ...interviewer, id: 'other', presets: undefined };
 
     const { result } = renderHook(() => useAnswerPresets(other));
 
     expect(result.current).toEqual([]);
     expect(fetchProfilesMock).not.toHaveBeenCalled();
+  });
+
+  it('fills in the fields the type’s presets name, and loads only what it uses', async () => {
+    const other: AgentTypeDefinition = {
+      ...interviewer,
+      id: 'other',
+      presets: { jobSeekerProfile: 'stilling' },
+    };
+    fetchProfilesMock.mockResolvedValue([]);
+
+    const { result } = renderHook(() => useAnswerPresets(other));
+
+    expect(result.current.map(({ field, kind }) => ({ field, kind }))).toEqual([
+      { field: 'stilling', kind: 'profile' },
+    ]);
+    await waitFor(() => expect(result.current[0].loaded).toBe(true));
+    expect(fetchProfilesMock).toHaveBeenCalled();
+    expect(fetchSavedTemplatesMock).not.toHaveBeenCalled();
   });
 });

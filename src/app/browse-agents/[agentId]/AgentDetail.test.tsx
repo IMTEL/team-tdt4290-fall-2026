@@ -82,6 +82,37 @@ describe('AgentDetail', () => {
     expect(screen.queryByText(/"type":"interviewer"/)).not.toBeInTheDocument();
   });
 
+  it('shows the agent type', async () => {
+    fetchAgentsMock.mockResolvedValue([
+      {
+        ...agent,
+        description: JSON.stringify({ type: 'interviewer', version: 1, answers: configuration }),
+      },
+    ]);
+
+    render(<AgentDetail agentId="agent-1" />);
+
+    expect(await screen.findByText('Agenttype: Intervjuer')).toBeVisible();
+  });
+
+  it('shows an agent saved before agent types existed as an interviewer', async () => {
+    // `agent` has only the answers in its description, the way agents were saved then.
+    fetchAgentsMock.mockResolvedValue([agent]);
+
+    render(<AgentDetail agentId="agent-1" />);
+
+    expect(await screen.findByText('Agenttype: Intervjuer')).toBeVisible();
+  });
+
+  it('shows no type for an agent that was not made in this app', async () => {
+    fetchAgentsMock.mockResolvedValue([{ ...agent, description: 'En vanlig beskrivelse' }]);
+
+    render(<AgentDetail agentId="agent-1" />);
+
+    expect(await screen.findByText('En vanlig beskrivelse')).toBeVisible();
+    expect(screen.queryByText(/Agenttype/)).not.toBeInTheDocument();
+  });
+
   it('marks a hand-written system prompt', async () => {
     fetchAgentsMock.mockResolvedValue([
       {

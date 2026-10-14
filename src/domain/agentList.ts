@@ -20,7 +20,7 @@ export function agentSummary(agent: Agent): string {
     .join(' · ');
 }
 
-/** The agent's role for its card. Placeholder until #56: for now the name of its agent type. */
+/** The agent's role for its card: the name of its agent type, or "" if it is not ours. */
 export function agentRole(agent: Agent): string {
   return agent.typeLabel ?? '';
 }

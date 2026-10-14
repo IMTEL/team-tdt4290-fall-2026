@@ -6,8 +6,9 @@ import {
   type IndustryTemplate,
 } from '@/data/industry-templates';
 import { findTemplate, type InterviewerTemplate } from '@/data/interviewer-templates';
-import type { AnswerSources } from '@/domain/agentTypes/types';
-import { parseConfiguration } from '@/domain/configuration';
+import { buildBriefing, parseAnswers } from '@/domain/agentTypes/configurator';
+import { DEFAULT_AGENT_TYPE, getAgentType } from '@/domain/agentTypes/registry';
+import type { AgentTypeDefinition, AnswerSources, Answers } from '@/domain/agentTypes/types';
 import { getSessionToken } from '@/lib/session-tokens';
 import { isRagdollMessage } from '@/server/chatMessages';
 import { configErrorResponse, ragdollErrorResponse } from '@/server/errorResponse';
@@ -23,12 +24,12 @@ import {
 import { fromRagdollTemplate } from '@/server/templateMapper';
 
 /**
- * One turn of the configuration chat. Sends the conversation to the shared configurator agent
- * and checks whether its reply finishes the configuration. If the counsellor chose an interviewer
- * template, it decides the interviewer, a job seeker profile decides the job seeker, and an
- * industry template decides the job and industry. The configurator doesn't ask about what is
- * already decided. A finished configuration comes with the sources of the interviewer and job
- * seeker answers.
+ * One turn of the configuration chat. Sends the conversation to the shared configurator agent,
+ * after a briefing built from the agent type's definition, and checks whether its reply finishes
+ * the configuration. A template, industry template or profile the counsellor chose decides the
+ * fields the type's presets name, so the configurator doesn't ask about them, but gets their text
+ * to fit the rest to. A finished configuration comes with the sources of the interviewer template
+ * and profile answers.
  */
 export async function POST(req: NextRequest) {
   // The configurator is shared, but only logged-in counsellors may use it (it spends IDUN quota).
@@ -37,6 +38,7 @@ export async function POST(req: NextRequest) {
     return Response.json({ error: 'Not signed in' }, { status: 401 });
   }
 
+  let definition: AgentTypeDefinition | undefined;
   let messages: RagdollMessage[];
   let templateId: string | undefined;
   let profileId: string | undefined;
@@ -51,23 +53,40 @@ export async function POST(req: NextRequest) {
       return Response.json({ error: 'Invalid messages in request body' }, { status: 400 });
     }
     messages = body.messages;
+    // No agentType means a client from before agent types could be chosen: an interviewer.
+    definition = getAgentType(body.agentType ?? DEFAULT_AGENT_TYPE);
+    if (!definition) {
+      return Response.json({ error: 'Unknown agent type' }, { status: 400 });
+    }
     // No templateId means the counsellor started without a template.
     if (body.templateId !== undefined) {
-      if (typeof body.templateId !== 'string' || !body.templateId) {
+      if (
+        typeof body.templateId !== 'string' ||
+        !body.templateId ||
+        !definition.presets?.interviewerTemplate
+      ) {
         return Response.json({ error: 'Unknown template' }, { status: 400 });
       }
       templateId = body.templateId;
     }
     // No profileId means the counsellor didn't choose a job seeker profile.
     if (body.profileId !== undefined) {
-      if (typeof body.profileId !== 'string' || !body.profileId) {
+      if (
+        typeof body.profileId !== 'string' ||
+        !body.profileId ||
+        !definition.presets?.jobSeekerProfile
+      ) {
         return Response.json({ error: 'Unknown profile' }, { status: 400 });
       }
       profileId = body.profileId;
     }
     // No industryTemplateId means the counsellor started without an industry template.
     if (body.industryTemplateId !== undefined) {
-      if (typeof body.industryTemplateId !== 'string' || !body.industryTemplateId) {
+      if (
+        typeof body.industryTemplateId !== 'string' ||
+        !body.industryTemplateId ||
+        !definition.presets?.industryTemplate
+      ) {
         return Response.json({ error: 'Unknown industry template' }, { status: 400 });
       }
       industryTemplateId = body.industryTemplateId;
@@ -118,18 +137,33 @@ export async function POST(req: NextRequest) {
 
   // The template's and profile's text goes into these answers unchanged, so this is where we know
   // where they came from.
-  const sources: AnswerSources = {
-    ...(template?.persona && { intervjuer: { kind: 'template', id: template.id } }),
-    ...(jobSeeker && profileId && { jobbsoker: { kind: 'profile', id: profileId } }),
+  const decided: Answers = {};
+  const sources: AnswerSources = {};
+  const { interviewerTemplate, jobSeekerProfile, industryTemplate } = definition.presets ?? {};
+  if (interviewerTemplate && template?.persona) {
+    decided[interviewerTemplate] = template.persona;
+    sources[interviewerTemplate] = { kind: 'template', id: template.id };
+  }
+  if (jobSeekerProfile && jobSeeker && profileId) {
+    decided[jobSeekerProfile] = jobSeeker;
+    sources[jobSeekerProfile] = { kind: 'profile', id: profileId };
+  }
+  // No source: the edit form has no industry choice, so there is nothing to show it in.
+  if (industryTemplate && industry) {
+    const { stilling, bransje } = industryConfiguration(industry);
+    decided[industryTemplate.job] = stilling;
+    decided[industryTemplate.industry] = bransje;
+  }
+
+  // The briefing goes first, so the configurator knows what to ask before it reads the chat.
+  const briefing: RagdollMessage = {
+    role: 'user',
+    content: buildBriefing(definition, decided),
   };
 
   try {
-    const reply = await askAgent({ id, accessKey }, messages);
-    const configuration = parseConfiguration(reply, {
-      intervjuer: template?.persona,
-      jobbsoker: jobSeeker,
-      ...(industry && industryConfiguration(industry)),
-    });
+    const reply = await askAgent({ id, accessKey }, [briefing, ...messages]);
+    const configuration = parseAnswers(reply, definition, decided);
     return Response.json({
       reply,
       configuration,

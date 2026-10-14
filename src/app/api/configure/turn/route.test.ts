@@ -8,9 +8,9 @@ import { getSessionToken } from '@/lib/session-tokens';
 import { askAgent, getProfile, getTemplate, RagdollError } from '@/server/ragdoll';
 import { POST } from './route';
 
-// The adapter and parseConfiguration have their own tests. Here we only check what the route adds:
-// the session check, validating the body, and reporting when the configuration is done with the
-// interviewer from the chosen template.
+// The adapter, buildBriefing and parseAnswers have their own tests. Here we only check what the
+// route adds: the session check, validating the body, sending the briefing first, and reporting
+// when the configuration is done with the interviewer from the chosen template.
 vi.mock('@/lib/session-tokens', () => ({ getSessionToken: vi.fn() }));
 vi.mock('@/server/ragdoll', async (importOriginal) => {
   const original = await importOriginal<typeof import('@/server/ragdoll')>();
@@ -78,8 +78,66 @@ describe('POST /api/configure/turn', () => {
     });
     expect(askAgentMock).toHaveBeenCalledWith(
       { id: 'configurator-123', accessKey: 'configurator-key' },
-      messages,
+      [{ role: 'user', content: expect.stringContaining('OPPSETT FRA VERKTØYET') }, ...messages],
     );
+  });
+
+  it('briefs the configurator on the chosen agent type, without what a template decides', async () => {
+    askAgentMock.mockResolvedValue('Hvilken bransje er stillingen i?');
+
+    await POST(turnRequest({ agentType: 'interviewer', templateId: 'teamleder', messages }));
+
+    const [, [briefing]] = askAgentMock.mock.calls[0];
+    expect(briefing.content).toContain('1. Stilling: Hvilken stilling skal jobbsøkeren øve til?');
+    expect(briefing.content).toContain(`- Intervjuer: ${findTemplate('teamleder')?.persona}`);
+    expect(briefing.content).not.toMatch(/^Intervjuer:/m);
+  });
+
+  it('briefs the configurator on both the interviewer and the industry template', async () => {
+    askAgentMock.mockResolvedValue('Hvilken bedrift er det?');
+
+    await POST(
+      turnRequest({ templateId: 'teamleder', industryTemplateId: 'helsefagarbeider', messages }),
+    );
+
+    const [, [briefing]] = askAgentMock.mock.calls[0];
+    const { stilling, bransje } = industryConfiguration(findIndustryTemplate('helsefagarbeider')!);
+    expect(briefing.content).toContain(`- Stilling: ${stilling}`);
+    expect(briefing.content).toContain(`- Bransje: ${bransje}`);
+    expect(briefing.content).toContain(`- Intervjuer: ${findTemplate('teamleder')?.persona}`);
+    expect(briefing.content).toContain('1. Bedrift:');
+    expect(briefing.content).not.toMatch(/^Stilling:/m);
+  });
+
+  it('takes the job and industry from an industry template, without lines for them', async () => {
+    askAgentMock.mockResolvedValue(
+      finalReply
+        .replace('Stilling: Butikkmedarbeider\n', '')
+        .replace('Bransje: Varehandel (privat)\n', ''),
+    );
+
+    const res = await POST(
+      turnRequest({ templateId: 'teamleder', industryTemplateId: 'lagermedarbeider', messages }),
+    );
+    const body = await res.json();
+
+    expect(body.done).toBe(true);
+    expect(body.configuration).toMatchObject({
+      ...industryConfiguration(findIndustryTemplate('lagermedarbeider')!),
+      intervjuer: findTemplate('teamleder')?.persona,
+    });
+    expect(body.configuration.bransje).toBe('Transport og logistikk (privat)');
+    // Only the interviewer and job seeker remember a source; the edit form has no industry choice.
+    expect(body.sources).toEqual({ intervjuer: { kind: 'template', id: 'teamleder' } });
+  });
+
+  it('briefs on the interviewer when the client sends no agent type', async () => {
+    askAgentMock.mockResolvedValue('Hvilken bransje er stillingen i?');
+
+    await POST(turnRequest({ messages }));
+
+    const [, [briefing]] = askAgentMock.mock.calls[0];
+    expect(briefing.content).toContain('en AI-intervjuer');
   });
 
   it('returns the configuration, with the interviewer from the template, when the block is complete', async () => {
@@ -177,28 +235,6 @@ describe('POST /api/configure/turn', () => {
     expect(askAgentMock).not.toHaveBeenCalled();
   });
 
-  it('takes the job and industry from an industry template, without lines for them', async () => {
-    askAgentMock.mockResolvedValue(
-      finalReply
-        .replace('Stilling: Butikkmedarbeider\n', '')
-        .replace('Bransje: Varehandel (privat)\n', ''),
-    );
-
-    const res = await POST(
-      turnRequest({ templateId: 'teamleder', industryTemplateId: 'lagermedarbeider', messages }),
-    );
-    const body = await res.json();
-
-    expect(body.done).toBe(true);
-    expect(body.configuration).toMatchObject({
-      ...industryConfiguration(findIndustryTemplate('lagermedarbeider')!),
-      intervjuer: findTemplate('teamleder')?.persona,
-    });
-    expect(body.configuration.bransje).toBe('Transport og logistikk (privat)');
-    // Only the interviewer and job seeker remember a source; the edit form has no industry choice.
-    expect(body.sources).toEqual({ intervjuer: { kind: 'template', id: 'teamleder' } });
-  });
-
   it('answers 401 and asks nothing when the user is not logged in', async () => {
     getSessionTokenMock.mockResolvedValue(null);
 
@@ -217,8 +253,10 @@ describe('POST /api/configure/turn', () => {
       { templateId: 'teamleder', messages: [{ role: 'system', content: 'Hei' }] },
     ],
     ['the template is unknown', { templateId: 'finnes-ikke', messages }],
+    ['the agent type is unknown', { agentType: 'finnes-ikke', messages }],
     ['the industry template is unknown', { industryTemplateId: 'finnes-ikke', messages }],
     ['the industry template id is empty', { industryTemplateId: '', messages }],
+    ['the agent type is only planned', { agentType: 'teacher', messages }],
   ])('answers 400 when %s', async (_case, body) => {
     const res = await POST(turnRequest(body));
 

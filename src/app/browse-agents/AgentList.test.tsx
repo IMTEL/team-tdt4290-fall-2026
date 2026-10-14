@@ -54,7 +54,7 @@ describe('AgentList', () => {
     render(<AgentList />);
 
     expect(await screen.findByText(/Du har ingen agenter ennå/)).toBeVisible();
-    expect(screen.getByRole('link', { name: 'Sett opp en intervjuer' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Sett opp en agent' })).toHaveAttribute(
       'href',
       '/configure',
     );

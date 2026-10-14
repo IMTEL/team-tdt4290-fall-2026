@@ -15,17 +15,18 @@ import type { AnswerPreset } from './[agentId]/edit/EditAgentForm';
 
 /**
  * The templates and job seeker profiles an interviewer's answers can be filled in from, the same
- * way the configure page uses them: a template gives the Intervjuer answer, a profile the
- * Jobbsøker answer. Other agent types get none.
+ * way the configure page uses them: the type's presets say which answer a template and a profile
+ * fill in. A type without presets gets none.
  */
 export function useAnswerPresets(definition: AgentTypeDefinition | undefined): AnswerPreset[] {
   // Null until loaded. Stays empty if loading fails.
   const [saved, setSaved] = useState<InterviewerTemplate[] | null>(null);
   const [profiles, setProfiles] = useState<JobSeekerProfile[] | null>(null);
-  const isInterviewer = definition?.id === 'interviewer';
+  const templateField = definition?.presets?.interviewerTemplate;
+  const profileField = definition?.presets?.jobSeekerProfile;
 
   useEffect(() => {
-    if (!isInterviewer) return;
+    if (!templateField && !profileField) return;
     const controller = new AbortController();
     // Without the saved templates or profiles, the counsellor can still edit the text by hand.
     const failed = (setEmpty: () => void) => (error: unknown) => {
@@ -33,20 +34,23 @@ export function useAnswerPresets(definition: AgentTypeDefinition | undefined): A
       console.error(error);
       setEmpty();
     };
-    fetchSavedTemplates(controller.signal)
-      .then(setSaved)
-      .catch(failed(() => setSaved([])));
-    fetchProfiles(controller.signal)
-      .then(setProfiles)
-      .catch(failed(() => setProfiles([])));
+    if (templateField) {
+      fetchSavedTemplates(controller.signal)
+        .then(setSaved)
+        .catch(failed(() => setSaved([])));
+    }
+    if (profileField) {
+      fetchProfiles(controller.signal)
+        .then(setProfiles)
+        .catch(failed(() => setProfiles([])));
+    }
     return () => controller.abort();
-  }, [isInterviewer]);
+  }, [templateField, profileField]);
 
-  if (!isInterviewer) return [];
-
-  return [
-    {
-      field: 'intervjuer',
+  const presets: AnswerPreset[] = [];
+  if (templateField) {
+    presets.push({
+      field: templateField,
       kind: 'template',
       label: 'Intervjuermal',
       loaded: saved !== null,
@@ -57,9 +61,11 @@ export function useAnswerPresets(definition: AgentTypeDefinition | undefined): A
       })),
       manageHref: '/configure',
       manageLabel: 'Administrer maler',
-    },
-    {
-      field: 'jobbsoker',
+    });
+  }
+  if (profileField) {
+    presets.push({
+      field: profileField,
       kind: 'profile',
       label: 'Jobbsøkerprofil',
       loaded: profiles !== null,
@@ -73,6 +79,7 @@ export function useAnswerPresets(definition: AgentTypeDefinition | undefined): A
       }),
       manageHref: '/profiles',
       manageLabel: 'Administrer profiler',
-    },
-  ];
+    });
+  }
+  return presets;
 }

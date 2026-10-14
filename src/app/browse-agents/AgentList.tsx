@@ -45,7 +45,7 @@ export function AgentList() {
   if (state.agents.length === 0) {
     return (
       <Typography>
-        Du har ingen agenter ennå. <Link href="/configure">Sett opp en intervjuer</Link>
+        Du har ingen agenter ennå. <Link href="/configure">Sett opp en agent</Link>
       </Typography>
     );
   }

@@ -263,6 +263,7 @@ describe('toAgentListItem', () => {
     const item = toAgentListItem({ ...summary, description: JSON.stringify(answers) });
 
     expect(item.type).toBe('interviewer');
+    expect(item.typeLabel).toBe('Intervjuer');
     expect(item.stilling).toBe('Butikkmedarbeider');
   });
 

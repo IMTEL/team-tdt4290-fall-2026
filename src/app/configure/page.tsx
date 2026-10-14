@@ -1,30 +1,30 @@
 import type { Metadata } from 'next';
 
-import { ConfigureInterviewer } from './ConfigureInterviewer';
+import { ConfigureAgent } from './ConfigureAgent';
 import styles from './page.module.css';
 
 export const metadata: Metadata = {
-  title: 'Konfigurer intervjuer',
-  description: 'Sett opp en AI-intervjuer som jobbsøkere kan øve jobbintervju med.',
+  title: 'Sett opp en agent',
+  description: 'Sett opp en AI-agent, for eksempel en intervjuer, som jobbsøkere kan øve med.',
 };
 
 export default function ConfigurePage() {
   return (
     <div className={styles.page}>
       <header className={styles.header}>
-        <h1 className={styles.title}>Sett opp en intervjuer</h1>
+        <h1 className={styles.title}>Sett opp en agent</h1>
         <p className={styles.lead}>
-          {/* English translation: Choose a template for the interviewer and one for the industry,
-          then answer the questions from the assistant, and we will create an AI interviewer that
-          job seekers can practice with. You can also continue without templates, and the
-          assistant will ask the questions needed. */}
-          Velg en mal for intervjueren og en for bransjen, og svar så på spørsmålene fra
-          assistenten. Da lager vi en AI-intervjuer som jobbsøkeren kan øve med. Du kan også
-          fortsette uten maler, og assistenten vil stille de nødvendige spørsmålene for deg.
+          {/* English translation: Choose what kind of agent to set up, then answer the questions
+          from the assistant, and we will create an AI agent that job seekers can practice with.
+          For an interviewer you can also choose templates for the interviewer and the industry,
+          and a job seeker profile, or let the assistant ask you about everything. */}
+          Velg hva slags agent du vil sette opp, og svar så på spørsmålene fra assistenten. Da lager
+          vi en AI-agent som jobbsøkeren kan øve med. For en intervjuer kan du også velge maler for
+          intervjueren og bransjen og en jobbsøkerprofil, eller la assistenten spørre deg om alt.
         </p>
       </header>
 
-      <ConfigureInterviewer />
+      <ConfigureAgent />
     </div>
   );
 }
