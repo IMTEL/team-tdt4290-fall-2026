@@ -140,6 +140,7 @@ describe('ConfigurationChat', () => {
       'Intervjuer for Butikkmedarbeider',
       configuration,
       sources,
+      undefined,
     );
   });
 });

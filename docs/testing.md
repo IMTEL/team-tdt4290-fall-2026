@@ -20,6 +20,9 @@
 - [jsdom](https://github.com/jsdom/jsdom) stands in for the browser. `vitest.setup.ts` registers
   the jest-dom matchers (`toBeInTheDocument`, `toBeDisabled`, ...) and cleans up after each test.
   Tests of server code (Route Handlers) opt out with `// @vitest-environment node`.
+- Each test may take up to 15 seconds (`testTimeout` in `vitest.config.mts`). MUI forms in jsdom
+  are slow when many test files run at once, and the default of 5 seconds made tests time out on
+  busy machines.
 
 ## Running
 
@@ -76,8 +79,8 @@ Unit and component level only:
   and the whole conversation (greeting included) go to the configuration turn route; the save form only appears once the
   configuration is finished.
 - `src/app/configure/SaveAgentForm.test.tsx`: saves under the chosen name and links to testing the
-  new agent and to the agents;
-  no saving without a name; shows the error and lets the user try again.
+  new agent and to the agents; sends advanced settings only when they were changed; no saving
+  without a name or with an empty hand-written prompt; shows the error and lets the user try again.
 - `src/components/templates/TemplateForm.test.tsx`: a new template is saved with trimmed fields
   and links back to `/configure`; cannot be saved without the required fields or with too many
   focus areas; shows the error and keeps what was typed; a saved template starts with its values
@@ -137,7 +140,23 @@ Unit and component level only:
   `interviewer` and read back; other types and badly shaped content are skipped.
 - `src/server/agentMapper.test.ts`: the RAGdoll agent gets the chosen name, the built prompt, the
   stored answers and the IDUN key for both the LLM and the embeddings; `applyEdit` changes the
-  name, roles, prompt and answers but keeps the id and every other field.
+  name, roles, prompt and answers but keeps the id and every other field. Advanced settings: the
+  default model and temperature, the chosen ones, a hand-written prompt that survives an edit of
+  the answers, and the built prompt again when the hand-written one is dropped.
+- `src/domain/advancedSettings.test.ts`: models outside the list, temperatures outside 0-2 or with
+  more than two decimals, and empty or too long prompts are rejected with Norwegian messages;
+  badly shaped settings from the browser give null.
+- `src/components/agents/AdvancedSettingsFields.test.tsx`: closed by default with a one-line
+  summary; shows the built prompt until the counsellor writes one; a decimal comma is accepted;
+  errors show in the heading and under the field; reset to the defaults; a message when the
+  models could not be loaded.
+- `src/app/api/models/route.test.ts`: 401 when logged out; the models RAGdoll offers with the
+  default first; falls back to the default when RAGdoll fails (401 included, which can be IDUN
+  rejecting the key) or the IDUN key is missing.
+- `src/app/api/agents/route.test.ts` and `[agentId]/route.test.ts` also cover advanced settings:
+  saved when sent, defaults (new agent) or the agent's own settings (edit) when not, the default
+  and the agent's current model are accepted without asking RAGdoll, 502 when another model
+  cannot be checked, and 400 for an unknown model, a temperature above 2 or an empty prompt.
 - `src/domain/configuration.test.ts` and `src/domain/interviewerPrompt.test.ts`: reading the
   `KONFIGURASJON` block (complete, missing or empty lines, extra spaces) and filling the
   interviewer prompt from it.
@@ -146,15 +165,18 @@ Unit and component level only:
 - `src/domain/agentTypes/storedAnswers.test.ts`: answers are saved with their type and version
   and read back; agents saved before agent types existed are read as interviewers; a field added
   to a type later comes back empty, and answers to removed fields are left out; descriptions we
-  did not write give null.
+  did not write give null; the hand-written prompt mark is read back and only written when set.
 - `src/app/browse-agents/api.test.ts`: loading the agent list, and saving an edit with `PUT`;
   401, 404, 504, other errors and network failures become Norwegian messages.
 - `src/app/browse-agents/[agentId]/AgentDetail.test.tsx`: shows the answers in the old and the
-  new storage format, keeps the system prompt closed until opened, links to the edit page, and
-  calls `notFound` for an unknown id.
+  new storage format, keeps the advanced settings (model, temperature, the stored prompt, a mark
+  for a hand-written one, the default temperature for older agents) closed until opened, links to
+  the edit page, and calls `notFound` for an unknown id.
 - `src/app/browse-agents/[agentId]/edit/EditAgentForm.test.tsx`: the form is filled in from the
-  agent; saving sends the changes and goes back to the agent; a failed save shows the error and
-  keeps what was typed; saving is blocked until something has changed and while a field is empty.
+  agent; saving sends the changes and goes back to the agent; unchanged advanced settings are not
+  sent; a hand-written prompt starts from the built one and is saved; an invalid temperature blocks
+  saving with a Norwegian message; a failed save shows the error and keeps what was typed; saving
+  is blocked until something has changed and while a field is empty.
 
 Log in (Keycloak via NextAuth, with RAGdoll's own session tokens):
 

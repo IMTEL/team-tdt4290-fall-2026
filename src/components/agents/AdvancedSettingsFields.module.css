@@ -1,0 +1,45 @@
+.summary {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.fields {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.temperature {
+  display: grid;
+  grid-template-columns: 1fr 120px;
+  gap: 16px;
+  align-items: center;
+}
+
+.prompt {
+  margin: 0;
+  max-height: 320px;
+  overflow: auto;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  white-space: pre-wrap;
+  font-size: 0.875rem;
+  color: var(--muted-foreground);
+}
+
+.promptField {
+  margin-top: 8px;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+@media (max-width: 600px) {
+  .temperature {
+    grid-template-columns: 1fr;
+  }
+}
