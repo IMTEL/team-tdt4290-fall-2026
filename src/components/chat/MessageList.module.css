@@ -1,19 +1,24 @@
 /* The list scrolls on its own; min-height: 0 lets it shrink inside the flex column. */
 .list {
+  /* Shared by the bubbles and the answer options under them, so they stay lined up. */
+  --message-gap: var(--space-3);
+  --bubble-padding-x: 0.875rem;
+  --bubble-max-width: 80%;
+
   flex: 1;
   min-height: 0;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
-  padding: 1rem;
+  gap: var(--message-gap);
+  padding: var(--space-4);
   list-style: none;
 }
 
 .message {
   position: relative;
-  max-width: 80%;
-  padding: 0.625rem 0.875rem;
+  max-width: var(--bubble-max-width);
+  padding: 0.625rem var(--bubble-padding-x);
   border-radius: var(--radius-lg);
   line-height: 1.5;
   white-space: pre-wrap;
@@ -92,7 +97,15 @@
 .options {
   align-self: flex-start;
   width: 100%;
-  padding-inline: 0.875rem;
+  max-width: var(--bubble-max-width);
+  padding-inline: var(--bubble-padding-x);
   /* Sits right under its question instead of a whole message gap below it. */
-  margin-top: -0.75rem;
+  margin-top: calc(-1 * var(--message-gap));
+}
+
+/* MUI's sm breakpoint. Media queries can't read CSS variables. */
+@media (max-width: 600px) {
+  .options {
+    max-width: 100%;
+  }
 }

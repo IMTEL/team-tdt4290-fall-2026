@@ -1,0 +1,10 @@
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+/* Keeps line breaks the counsellor wrote, e.g. in Tillegg. */
+.answer {
+  white-space: pre-wrap;
+}

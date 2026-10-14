@@ -1,7 +1,7 @@
-import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 
 import type { AgentField, Answers } from '@/domain/agentTypes/types';
+import styles from './AnswerList.module.css';
 
 type AnswerListProps = {
   fields: AgentField[];
@@ -11,18 +11,18 @@ type AnswerListProps = {
 /** An agent's configuration as a list of labels and answers, in the order of the fields. */
 export function AnswerList({ fields, answers }: AnswerListProps) {
   return (
-    <Box component="dl" sx={{ m: 0 }}>
+    <dl className={styles.list}>
       {fields.map(({ key, label }) => (
-        <Box key={key} sx={{ mb: 1.5 }}>
+        <div key={key}>
           <Typography component="dt" variant="subtitle2">
             {label}
           </Typography>
-          <Typography component="dd" sx={{ m: 0, whiteSpace: 'pre-wrap' }}>
+          <Typography component="dd" className={styles.answer}>
             {/* Empty when nothing was added, or the field is newer than the agent. */}
             {answers[key] || '–'}
           </Typography>
-        </Box>
+        </div>
       ))}
-    </Box>
+    </dl>
   );
 }

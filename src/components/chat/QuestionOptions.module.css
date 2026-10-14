@@ -1,8 +1,10 @@
 .options {
+  /* Room for a short answer, without stretching across the whole chat. */
+  --other-field-width: 18rem;
+
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
-  max-width: 80%;
+  gap: var(--space-2);
 }
 
 .checkboxes {
@@ -13,12 +15,13 @@
 .buttons {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  gap: var(--space-2);
 }
 
-/* The agent's number, quieter than the answer itself. */
+/* The agent's number, quieter than the answer itself. The space after it in the markup keeps
+   the accessible name "1. HR", so the margin only adds a little. */
 .number {
-  margin-right: 0.375rem;
+  margin-right: var(--space-1);
   color: var(--muted-foreground);
   font-variant-numeric: tabular-nums;
 }
@@ -30,16 +33,9 @@
 .other {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: var(--space-2);
 }
 
-/* Room for a short answer, without stretching across the whole chat. */
 .otherField {
-  width: min(100%, 18rem);
-}
-
-@media (max-width: 600px) {
-  .options {
-    max-width: 100%;
-  }
+  width: min(100%, var(--other-field-width));
 }
