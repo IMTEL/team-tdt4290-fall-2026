@@ -37,6 +37,24 @@ describe('AgentCard', () => {
     expect(card).toHaveTextContent(/^Butikksjef Kari$/);
   });
 
+  it('shows the agent’s avatar inside the link to the agent’s page', () => {
+    const { container } = render(<AgentCard agent={{ ...agent, avatar: 'rev' }} />);
+
+    const image = container.querySelector('img');
+    expect(image).toHaveAttribute('src', '/avatars/rev.svg');
+    expect(screen.getByRole('link', { name: /Butikksjef Kari/ })).toContainElement(image);
+  });
+
+  it.each([
+    ['has no avatar', null],
+    ['was saved before avatars existed', undefined],
+    ['has an avatar we no longer have', 'fjernet-avatar'],
+  ])('shows the default image when the agent %s', (_, avatar) => {
+    const { container } = render(<AgentCard agent={{ ...agent, avatar }} />);
+
+    expect(container.querySelector('img')).toHaveAttribute('src', '/avatars/default.svg');
+  });
+
   it('keeps the test button outside the link to the agent’s page', () => {
     render(<AgentCard agent={agent} />);
 

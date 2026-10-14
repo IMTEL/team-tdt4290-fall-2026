@@ -25,6 +25,7 @@ const onSave =
       answers: Answers,
       sources: AnswerSources,
       settings?: AdvancedSettings,
+      avatar?: string | null,
     ) => Promise<string>
   >();
 
@@ -57,6 +58,7 @@ type RenderOptions = {
   initialAnswers?: Answers;
   initialSources?: AnswerSources;
   initialSettings?: AdvancedSettings;
+  initialAvatar?: string | null;
   allowUnchanged?: boolean;
   presets?: AnswerPreset[];
 };
@@ -65,6 +67,7 @@ function renderForm({
   initialAnswers = answers,
   initialSources,
   initialSettings = DEFAULT_ADVANCED_SETTINGS,
+  initialAvatar = null,
   allowUnchanged = false,
   presets,
 }: RenderOptions = {}) {
@@ -76,6 +79,7 @@ function renderForm({
       initialAnswers={initialAnswers}
       initialSources={initialSources}
       initialSettings={initialSettings}
+      initialAvatar={initialAvatar}
       label="Rediger agent"
       submitLabel="Lagre endringer"
       onSave={onSave}
@@ -127,6 +131,7 @@ describe('EditAgentForm', () => {
       { ...answers, vanskelighetsgrad: 'vanskelig' },
       {},
       undefined,
+      undefined,
     );
     expect(push).toHaveBeenCalledWith('/browse-agents/agent-2');
   });
@@ -153,6 +158,7 @@ describe('EditAgentForm', () => {
         ...DEFAULT_ADVANCED_SETTINGS,
         customPrompt: 'Du er en streng barnehagestyrer.',
       },
+      undefined,
     );
   });
 
@@ -175,7 +181,7 @@ describe('EditAgentForm', () => {
     expect(saveButton()).toBeEnabled();
     await user.click(saveButton());
 
-    expect(onSave).toHaveBeenCalledWith('Ny intervjuer', answers, {}, undefined);
+    expect(onSave).toHaveBeenCalledWith('Ny intervjuer', answers, {}, undefined, undefined);
   });
 
   it('cannot be saved with an invalid temperature, and says why in Norwegian', async () => {
@@ -222,7 +228,84 @@ describe('EditAgentForm', () => {
 
     await user.click(saveButton());
 
-    expect(onSave).toHaveBeenCalledWith('Intervjuer for Barnehagelærer', answers, {}, undefined);
+    expect(onSave).toHaveBeenCalledWith(
+      'Intervjuer for Barnehagelærer',
+      answers,
+      {},
+      undefined,
+      undefined,
+    );
+  });
+
+  describe('avatar', () => {
+    const avatarRadio = (name: string) => screen.getByRole('radio', { name });
+
+    it('shows the avatar the agent has, or the default image', () => {
+      renderForm({ initialAvatar: 'ugle' });
+
+      expect(avatarRadio('Ugle')).toBeChecked();
+    });
+
+    it('shows the default image as chosen for an agent without an avatar', () => {
+      renderForm();
+
+      expect(avatarRadio('Standard')).toBeChecked();
+    });
+
+    it('saves a new avatar and counts it as a change', async () => {
+      onSave.mockResolvedValue('agent-1');
+      const user = userEvent.setup();
+      renderForm();
+
+      expect(saveButton()).toBeDisabled();
+      await user.click(avatarRadio('Rev'));
+
+      expect(screen.getByText('1 endring som ikke er lagret')).toBeVisible();
+      await user.click(saveButton());
+      expect(onSave).toHaveBeenCalledWith(
+        'Intervjuer for Barnehagelærer',
+        answers,
+        {},
+        undefined,
+        'rev',
+      );
+    });
+
+    it('saves null when the default image is chosen instead of an avatar', async () => {
+      onSave.mockResolvedValue('agent-1');
+      const user = userEvent.setup();
+      renderForm({ initialAvatar: 'ugle' });
+
+      await user.click(avatarRadio('Standard'));
+      await user.click(saveButton());
+
+      expect(onSave).toHaveBeenCalledWith(
+        'Intervjuer for Barnehagelærer',
+        answers,
+        {},
+        undefined,
+        null,
+      );
+    });
+
+    it('does not send the avatar when it is chosen back to what it was', async () => {
+      onSave.mockResolvedValue('agent-1');
+      const user = userEvent.setup();
+      renderForm({ initialAvatar: 'ugle', allowUnchanged: true });
+
+      await user.click(avatarRadio('Rev'));
+      await user.click(avatarRadio('Ugle'));
+      expect(screen.getByText('Ingen endringer ennå')).toBeVisible();
+      await user.click(saveButton());
+
+      expect(onSave).toHaveBeenCalledWith(
+        'Intervjuer for Barnehagelærer',
+        answers,
+        {},
+        undefined,
+        undefined,
+      );
+    });
   });
 
   it('cannot be saved while a field is empty', async () => {
@@ -267,6 +350,7 @@ describe('EditAgentForm', () => {
         'Intervjuer for Barnehagelærer',
         { ...answers, jobbsoker: 'aldersgruppe 30–39 år' },
         { jobbsoker: { kind: 'profile', id: 'profile-2' } },
+        undefined,
         undefined,
       );
     });

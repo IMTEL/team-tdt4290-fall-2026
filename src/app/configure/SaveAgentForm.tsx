@@ -7,6 +7,7 @@ import Button from '@mui/material/Button';
 import TextField from '@mui/material/TextField';
 
 import { AdvancedSettingsFields } from '@/components/agents/AdvancedSettingsFields';
+import { AvatarPicker } from '@/components/agents/AvatarPicker';
 import { useLanguageModels } from '@/components/agents/useLanguageModels';
 import { ChatError } from '@/components/chat/sendToAgent';
 import { advancedSettingsErrors, DEFAULT_ADVANCED_SETTINGS } from '@/domain/advancedSettings';
@@ -34,6 +35,7 @@ type SaveAgentFormProps = {
 export function SaveAgentForm({ definition, configuration, sources = {} }: SaveAgentFormProps) {
   const [name, setName] = useState(() => definition.defaultName(configuration));
   const [settings, setSettings] = useState(DEFAULT_ADVANCED_SETTINGS);
+  const [avatar, setAvatar] = useState<string | null>(null);
   const [status, setStatus] = useState<SaveStatus>({ kind: 'idle' });
   const languageModels = useLanguageModels();
   const settingsErrors = advancedSettingsErrors(settings, languageModels.models);
@@ -44,13 +46,7 @@ export function SaveAgentForm({ definition, configuration, sources = {} }: SaveA
     try {
       // Untouched settings are not sent, and the server uses its defaults.
       const advanced = settings === DEFAULT_ADVANCED_SETTINGS ? undefined : settings;
-      const id = await saveConfiguredAgent(
-        name.trim(),
-        definition,
-        configuration,
-        sources,
-        advanced,
-      );
+      const id = await saveConfiguredAgent(name.trim(), configuration, sources, advanced, avatar);
       setStatus({ kind: 'saved', id });
     } catch (error) {
       // Only ChatError messages are written for users; anything else could be technical.
@@ -85,6 +81,12 @@ export function SaveAgentForm({ definition, configuration, sources = {} }: SaveA
         disabled={isSaving}
         slotProps={{ htmlInput: { maxLength: MAX_NAME_LENGTH } }}
       />
+      <div className={styles.avatar}>
+        {/* English translation: Choose an avatar for the interviewer */}
+        <p className={styles.avatarLabel}>Velg en avatar for intervjueren</p>
+        <AvatarPicker value={avatar} onChange={setAvatar} disabled={isSaving} />
+      </div>
+      {/* The configurator only makes interviewers until #56 lets the counsellor choose the type. */}
       <AdvancedSettingsFields
         value={settings}
         onChange={setSettings}

@@ -61,11 +61,12 @@ export function EditAgent({ agentId }: { agentId: string }) {
             { model: agent.llmModel, temperature: agent.temperature, prompt: agent.prompt },
             stored.customPrompt,
           )}
+          initialAvatar={stored.avatar}
           label="Rediger agent"
           presets={presets}
           submitLabel="Lagre endringer"
-          onSave={async (newName, newAnswers, newSources, newSettings) => {
-            await updateAgent(agent.id, newName, newAnswers, newSources, newSettings);
+          onSave={async (newName, newAnswers, newSources, newSettings, newAvatar) => {
+            await updateAgent(agent.id, newName, newAnswers, newSources, newSettings, newAvatar);
             return agent.id;
           }}
         />

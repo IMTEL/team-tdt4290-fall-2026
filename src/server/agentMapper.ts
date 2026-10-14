@@ -24,6 +24,7 @@ const EMBEDDING_MODEL = 'idun:Qwen/Qwen3-Embedding-8B';
  * Builds the RAGdoll agent for a new agent from the counsellor's answers, the sources of those
  * that came from a template or profile, and the advanced settings.
  * `idunKey` is the project's IDUN key: counsellors have none, so every agent gets ours.
+ * `avatar` is the id of one of our avatars, or null for the default image.
  */
 export function toRagdollAgent(
   name: string,
@@ -33,9 +34,10 @@ export function toRagdollAgent(
   sources: AnswerSources = {},
   settings: AdvancedSettings = DEFAULT_ADVANCED_SETTINGS,
   now: Date = new Date(),
+  avatar: string | null = null,
 ): NewRagdollAgent {
   return {
-    ...fromChoices(name, definition, answers, sources, settings, now),
+    ...fromChoices(name, definition, answers, sources, settings, avatar, now),
     llm_provider: 'idun',
     llm_api_key: idunKey,
     embedding_model: EMBEDDING_MODEL,
@@ -50,6 +52,7 @@ export function toRagdollAgent(
  * The existing agent with the counsellor's new name, answers and advanced settings. Every other
  * field is kept as it is, because RAGdoll resets any field we leave out of an update to its
  * default. Without new settings, the agent keeps its model, temperature and hand-written prompt.
+ * Without a new avatar it keeps its avatar, and null gives it the default image.
  */
 export function applyEdit(
   existing: FullRagdollAgent,
@@ -59,8 +62,14 @@ export function applyEdit(
   sources: AnswerSources = {},
   settings: AdvancedSettings = currentSettings(existing),
   now: Date = new Date(),
+  avatar: string | null = currentAvatar(existing),
 ): FullRagdollAgent {
-  return { ...existing, ...fromChoices(name, definition, answers, sources, settings, now) };
+  return { ...existing, ...fromChoices(name, definition, answers, sources, settings, avatar, now) };
+}
+
+/** The avatar a saved agent has now: the id of one of our avatars, or null for the default. */
+export function currentAvatar(agent: FullRagdollAgent): string | null {
+  return readStoredAnswers(agent.description)?.avatar ?? null;
 }
 
 /** The advanced settings a saved agent has now. */
@@ -82,12 +91,13 @@ function fromChoices(
   answers: Answers,
   sources: AnswerSources,
   settings: AdvancedSettings,
+  avatar: string | null,
   now: Date,
 ) {
   const customPrompt = settings.customPrompt !== null;
   return {
     name,
-    description: toStoredDescription(definition, answers, sources, { customPrompt }),
+    description: toStoredDescription(definition, answers, sources, { customPrompt, avatar }),
     // Unless the counsellor wrote it by hand, the prompt is rebuilt from the answers, so an edit
     // also gets the newest prompt.
     prompt: settings.customPrompt ?? definition.buildPrompt(answers),
@@ -109,6 +119,8 @@ function toRagdollRole(role: AgentRole): RagdollRole {
  * answer is missing.
  */
 export type AgentListItem = RagdollAgentSummary & {
+  /** The id of the agent's avatar, or null for the default image. */
+  avatar: string | null;
   type: string | null;
   typeLabel: string | null;
   stilling: string | null;
@@ -122,6 +134,7 @@ export function toAgentListItem(summary: RagdollAgentSummary): AgentListItem {
   return {
     // The description stays: the detail and edit pages read the answers from it.
     ...summary,
+    avatar: stored?.avatar ?? null,
     type: stored?.definition.id ?? null,
     typeLabel: stored?.definition.label ?? null,
     // Only interviewers have these answers. Other agent types, and answers left empty because the

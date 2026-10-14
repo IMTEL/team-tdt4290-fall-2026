@@ -65,10 +65,11 @@ export function CloneAgent({ agentId }: { agentId: string }) {
             { model: agent.llmModel, temperature: agent.temperature, prompt: agent.prompt },
             stored.customPrompt,
           )}
+          initialAvatar={stored.avatar}
           label="Klon agent"
           submitLabel="Lagre som ny agent"
-          onSave={(name, answers, sources, settings) =>
-            cloneAgent(agent.id, name, answers, sources, settings)
+          onSave={(name, answers, sources, settings, avatar) =>
+            cloneAgent(agent.id, name, answers, sources, settings, avatar)
           }
           allowUnchanged
           presets={presets}

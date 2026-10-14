@@ -127,6 +127,57 @@ describe('POST /api/agents/[agentId]/clone', () => {
     expect(stored?.sources).toEqual({ jobbsoker: { kind: 'profile', id: 'profile-1' } });
   });
 
+  it('gives the clone the original’s avatar when none is sent', async () => {
+    fetchFullAgentMock.mockResolvedValue({
+      ...toRagdollAgent(
+        'Butikkintervju',
+        interviewer,
+        answers,
+        'idun-key',
+        {},
+        undefined,
+        undefined,
+        'bjorn',
+      ),
+      id: 'agent-1',
+    });
+
+    await POST(postRequest(validBody), params);
+
+    const [, saved] = saveAgentMock.mock.calls[0];
+    expect(readStoredAnswers(saved.description)?.avatar).toBe('bjorn');
+  });
+
+  it('gives the clone the avatar that was chosen, or the default image for null', async () => {
+    fetchFullAgentMock.mockResolvedValue({
+      ...toRagdollAgent(
+        'Butikkintervju',
+        interviewer,
+        answers,
+        'idun-key',
+        {},
+        undefined,
+        undefined,
+        'bjorn',
+      ),
+      id: 'agent-1',
+    });
+
+    await POST(postRequest({ ...validBody, avatar: 'sol' }), params);
+    await POST(postRequest({ ...validBody, avatar: null }), params);
+
+    const [first, second] = saveAgentMock.mock.calls.map(([, saved]) => saved);
+    expect(readStoredAnswers(first.description)?.avatar).toBe('sol');
+    expect(readStoredAnswers(second.description)?.avatar).toBeNull();
+  });
+
+  it('answers 400 and saves nothing for an avatar that is not one of ours', async () => {
+    const res = await POST(postRequest({ ...validBody, avatar: 'fjernet-avatar' }), params);
+
+    expect(res.status).toBe(400);
+    expect(saveAgentMock).not.toHaveBeenCalled();
+  });
+
   it('leaves the original agent unchanged', async () => {
     await POST(postRequest(validBody), params);
 

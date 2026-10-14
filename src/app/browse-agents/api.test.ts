@@ -50,6 +50,20 @@ describe('fetchAgents', () => {
     await expect(fetchAgents()).rejects.toThrow('Noe gikk galt. Prøv igjen.');
   });
 
+  it('accepts an agent with an avatar, and one without', async () => {
+    fetchMock.mockResolvedValue(
+      Response.json({ agents: [{ ...agent, avatar: 'ugle' }, { ...agent, avatar: null }, agent] }),
+    );
+
+    await expect(fetchAgents()).resolves.toHaveLength(3);
+  });
+
+  it('fails when an agent’s avatar is not text', async () => {
+    fetchMock.mockResolvedValue(Response.json({ agents: [{ ...agent, avatar: 7 }] }));
+
+    await expect(fetchAgents()).rejects.toThrow('Noe gikk galt. Prøv igjen.');
+  });
+
   it('fails when an agent has no advanced settings', async () => {
     const withoutModel: Record<string, unknown> = { ...agent };
     delete withoutModel.llmModel;
@@ -109,6 +123,20 @@ describe('updateAgent', () => {
     });
   });
 
+  it('sends the avatar, and null for the default image, but nothing when it is not changed', async () => {
+    // A new response for each call: the body of a response can only be read once.
+    fetchMock.mockImplementation(async () => Response.json({ agent }));
+
+    await updateAgent('agent-1', 'Nytt navn', answers, {}, undefined, 'ugle');
+    await updateAgent('agent-1', 'Nytt navn', answers, {}, undefined, null);
+    await updateAgent('agent-1', 'Nytt navn', answers);
+
+    const bodies = fetchMock.mock.calls.map(([, init]) => JSON.parse(init?.body as string));
+    expect(bodies[0]).toHaveProperty('avatar', 'ugle');
+    expect(bodies[1]).toHaveProperty('avatar', null);
+    expect(bodies[2]).not.toHaveProperty('avatar');
+  });
+
   it.each([
     [401, 'Du er logget ut. Logg inn på nytt og prøv igjen.'],
     [400, 'Endringene ble ikke godtatt. Sjekk feltene og prøv igjen.'],
@@ -165,6 +193,20 @@ describe('cloneAgent', () => {
       sources: {},
       advanced,
     });
+  });
+
+  it('sends the avatar, and null for the default image, but nothing when it is not changed', async () => {
+    // A new response for each call: the body of a response can only be read once.
+    fetchMock.mockImplementation(async () => Response.json({ id: 'agent-2' }, { status: 201 }));
+
+    await cloneAgent('agent-1', 'Kopi', answers, {}, undefined, 'sol');
+    await cloneAgent('agent-1', 'Kopi', answers, {}, undefined, null);
+    await cloneAgent('agent-1', 'Kopi', answers);
+
+    const bodies = fetchMock.mock.calls.map(([, init]) => JSON.parse(init?.body as string));
+    expect(bodies[0]).toHaveProperty('avatar', 'sol');
+    expect(bodies[1]).toHaveProperty('avatar', null);
+    expect(bodies[2]).not.toHaveProperty('avatar');
   });
 
   it.each([

@@ -1,3 +1,4 @@
+import { type AvatarId, cleanAvatar } from '../avatars';
 import { DEFAULT_AGENT_TYPE, getAgentType } from './registry';
 import type { AgentTypeDefinition, AnswerSource, AnswerSources, Answers } from './types';
 
@@ -7,13 +8,14 @@ const VERSION = 1;
 /**
  * An agent's answers, together with the agent type they belong to and where they came from.
  * `customPrompt` is true when the counsellor wrote the system prompt by hand, so the answers must
- * not rebuild it.
+ * not rebuild it. `avatar` is the id of the agent's avatar, or null for the default image.
  */
 export type StoredAnswers = {
   definition: AgentTypeDefinition;
   answers: Answers;
   sources: AnswerSources;
   customPrompt: boolean;
+  avatar: AvatarId | null;
 };
 
 /**
@@ -24,15 +26,18 @@ export function toStoredDescription(
   definition: AgentTypeDefinition,
   answers: Answers,
   sources: AnswerSources = {},
-  { customPrompt = false }: { customPrompt?: boolean } = {},
+  { customPrompt = false, avatar = null }: { customPrompt?: boolean; avatar?: string | null } = {},
 ): string {
-  // The flag is only written when it is set, so agents saved before it existed read as false.
+  // The flag and the avatar are only written when they are set, so agents saved before they
+  // existed read as false and as having no avatar. An id that is not one of ours is left out too.
+  const avatarId = cleanAvatar(avatar);
   return JSON.stringify({
     type: definition.id,
     version: VERSION,
     answers,
     sources,
     ...(customPrompt && { customPrompt: true }),
+    ...(avatarId && { avatar: avatarId }),
   });
 }
 
@@ -76,7 +81,7 @@ export function readStoredAnswers(description: string): StoredAnswers | null {
   }
   if (typeof saved !== 'object' || saved === null) return null;
 
-  const { type, answers, sources, customPrompt } = unwrap(saved as Record<string, unknown>);
+  const { type, answers, sources, customPrompt, avatar } = unwrap(saved as Record<string, unknown>);
 
   const definition = typeof type === 'string' ? getAgentType(type) : undefined;
   if (!definition || typeof answers !== 'object' || answers === null) return null;
@@ -90,6 +95,7 @@ export function readStoredAnswers(description: string): StoredAnswers | null {
     answers: filled,
     sources: cleanSources(definition, sources),
     customPrompt: customPrompt === true,
+    avatar: cleanAvatar(avatar),
   };
 }
 
@@ -115,6 +121,7 @@ function unwrap(saved: Record<string, unknown>): {
   answers: unknown;
   sources: unknown;
   customPrompt: unknown;
+  avatar: unknown;
 } {
   if ('type' in saved && 'answers' in saved) {
     // Agents saved before sources existed have none.
@@ -123,7 +130,14 @@ function unwrap(saved: Record<string, unknown>): {
       answers: saved.answers,
       sources: saved.sources,
       customPrompt: saved.customPrompt,
+      avatar: saved.avatar,
     };
   }
-  return { type: DEFAULT_AGENT_TYPE, answers: saved, sources: undefined, customPrompt: false };
+  return {
+    type: DEFAULT_AGENT_TYPE,
+    answers: saved,
+    sources: undefined,
+    customPrompt: false,
+    avatar: undefined,
+  };
 }

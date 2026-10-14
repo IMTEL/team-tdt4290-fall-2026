@@ -5,7 +5,14 @@ import type { Agent } from '@/lib/types';
 const GENERIC_ERROR = 'Noe gikk galt. Prøv igjen.';
 
 // Only the list sends these, so an agent may come without them. The update answer does not.
-const LIST_FIELDS = ['type', 'typeLabel', 'stilling', 'bransje', 'vanskelighetsgrad'] as const;
+const LIST_FIELDS = [
+  'avatar',
+  'type',
+  'typeLabel',
+  'stilling',
+  'bransje',
+  'vanskelighetsgrad',
+] as const;
 
 function isAgent(value: unknown): value is Agent {
   if (typeof value !== 'object' || value === null) return false;
@@ -58,8 +65,9 @@ function saveErrorMessage(status: number): string {
 }
 
 /**
- * Saves a new name, new answers, their sources and new advanced settings for an agent, and
- * returns the updated agent. Without `advanced` the agent keeps the settings it has.
+ * Saves a new name, new answers, their sources, new advanced settings and a new avatar for an
+ * agent, and returns the updated agent. Without `advanced` the agent keeps the settings it has,
+ * and without `avatar` it keeps its avatar. `null` gives it the default image.
  * Throws Error with a Norwegian message that can be shown as it is.
  */
 export async function updateAgent(
@@ -68,13 +76,14 @@ export async function updateAgent(
   answers: Answers,
   sources: AnswerSources = {},
   advanced?: AdvancedSettings,
+  avatar?: string | null,
 ): Promise<Agent> {
   let res: Response;
   try {
     res = await fetch(`/api/agents/${encodeURIComponent(id)}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, answers, sources, advanced }),
+      body: JSON.stringify({ name, answers, sources, advanced, avatar }),
     });
   } catch (cause) {
     throw new Error('Fikk ikke kontakt med serveren. Sjekk nettverket og prøv igjen.', { cause });
@@ -87,9 +96,9 @@ export async function updateAgent(
 }
 
 /**
- * Saves a new agent made from another agent, with the name, answers and advanced settings from the
- * clone form, and returns the new agent's id. Without `advanced` the clone gets the original's
- * settings. The original is not changed.
+ * Saves a new agent made from another agent, with the name, answers, advanced settings and avatar
+ * from the clone form, and returns the new agent's id. Without `advanced` the clone gets the
+ * original's settings, and without `avatar` the original's avatar. The original is not changed.
  * Throws Error with a Norwegian message that can be shown as it is.
  */
 export async function cloneAgent(
@@ -98,13 +107,14 @@ export async function cloneAgent(
   answers: Answers,
   sources: AnswerSources = {},
   advanced?: AdvancedSettings,
+  avatar?: string | null,
 ): Promise<string> {
   let res: Response;
   try {
     res = await fetch(`/api/agents/${encodeURIComponent(id)}/clone`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, answers, sources, advanced }),
+      body: JSON.stringify({ name, answers, sources, advanced, avatar }),
     });
   } catch (cause) {
     throw new Error('Fikk ikke kontakt med serveren. Sjekk nettverket og prøv igjen.', { cause });
