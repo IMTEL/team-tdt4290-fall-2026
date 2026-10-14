@@ -1,6 +1,8 @@
 import { ChatError } from '@/components/chat/sendToAgent';
 import type { ChatMessage } from '@/components/chat/types';
 import type { InterviewerTemplate } from '@/data/interviewer-templates';
+import { interviewer } from '@/domain/agentTypes/interviewer';
+import { cleanSources } from '@/domain/agentTypes/storedAnswers';
 import type { AnswerSources } from '@/domain/agentTypes/types';
 import { isConfiguration, type Configuration } from '@/domain/configuration';
 
@@ -10,6 +12,8 @@ export type TurnResult = {
   reply: string;
   /** Set only when this reply finished the configuration. */
   configuration: Configuration | null;
+  /** The template and profile the finished configuration's answers came from. */
+  sources: AnswerSources;
 };
 
 async function postJson(url: string, body: unknown, signal?: AbortSignal): Promise<Response> {
@@ -67,9 +71,11 @@ export async function sendConfigurationTurn(
 
   const data = await res.json().catch(() => null);
   if (typeof data?.reply !== 'string') throw new ChatError(GENERIC_ERROR);
+  const configuration = isConfiguration(data.configuration) ? data.configuration : null;
   return {
     reply: data.reply,
-    configuration: isConfiguration(data.configuration) ? data.configuration : null,
+    configuration,
+    sources: configuration ? cleanSources(interviewer, data.sources) : {},
   };
 }
 

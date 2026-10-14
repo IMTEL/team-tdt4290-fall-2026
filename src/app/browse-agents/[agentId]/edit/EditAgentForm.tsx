@@ -71,6 +71,10 @@ export function presetChoice(
   return { optionId: '', note: `Teksten kom fra «${option.label}», som er endret siden.` };
 }
 
+function sameSource(a: AnswerSource | undefined, b: AnswerSource | undefined): boolean {
+  return a?.kind === b?.kind && a?.id === b?.id;
+}
+
 type EditAgentFormProps = {
   agentId: string;
   initialName: string;
@@ -157,7 +161,7 @@ export function EditAgentForm({
     (name.trim() !== initialName ? 1 : 0) +
     definition.fields.filter(
       ({ key }) =>
-        answers[key] !== initialAnswers[key] || sources[key]?.id !== initialSources[key]?.id,
+        answers[key] !== initialAnswers[key] || !sameSource(sources[key], initialSources[key]),
     ).length;
 
   return (

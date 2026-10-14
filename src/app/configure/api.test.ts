@@ -43,6 +43,7 @@ describe('sendConfigurationTurn', () => {
     ).resolves.toEqual({
       reply: 'Neste?',
       configuration: null,
+      sources: {},
     });
 
     const [url, init] = fetchMock.mock.calls[0];
@@ -88,6 +89,29 @@ describe('sendConfigurationTurn', () => {
     );
 
     expect(result.configuration).toEqual(configuration);
+  });
+
+  it('returns the valid sources the server sends with a finished configuration', async () => {
+    fetchMock.mockResolvedValue(
+      Response.json({
+        reply: 'Ferdig',
+        configuration,
+        sources: {
+          intervjuer: { kind: 'template', id: 'teamleder' },
+          jobbsoker: { kind: 'unknown', id: 'profile-1' },
+        },
+        done: true,
+      }),
+    );
+
+    const result = await sendConfigurationTurn(
+      { templateId: 'teamleder', profileId: null },
+      messages,
+    );
+
+    expect(result.sources).toEqual({
+      intervjuer: { kind: 'template', id: 'teamleder' },
+    });
   });
 
   it('tells the user to log in again when the session has expired', async () => {

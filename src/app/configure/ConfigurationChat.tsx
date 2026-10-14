@@ -40,29 +40,26 @@ type ConfigurationChatProps = {
 };
 
 export function ConfigurationChat({ template, profile }: ConfigurationChatProps) {
-  // The finished configuration, once the configurator has written its KONFIGURASJON block.
-  // Lives only in this browser tab: nothing is stored until the counsellor saves.
-  const [configuration, setConfiguration] = useState<Configuration | null>(null);
+  // The finished configuration and its sources, once the configurator has written its
+  // KONFIGURASJON block. Lives only in this browser tab: nothing is stored until the counsellor
+  // saves.
+  const [finished, setFinished] = useState<{
+    configuration: Configuration;
+    sources: AnswerSources;
+  } | null>(null);
 
   const templateId = template?.id ?? null;
   const profileId = profile?.id ?? null;
   const initialMessages = useMemo(() => [greeting(template, profile)], [template, profile]);
-  // The chat puts the template's and profile's text in these answers unchanged, so they are
-  // where the answers came from.
-  const sources = useMemo<AnswerSources>(
-    () => ({
-      ...(templateId && { intervjuer: { kind: 'template', id: templateId } }),
-      ...(profileId && { jobbsoker: { kind: 'profile', id: profileId } }),
-    }),
-    [templateId, profileId],
-  );
 
   // useCallback keeps it the same function on every render.
   const askConfigurator = useCallback<SendMessages>(
     async (messages, signal) => {
       const result = await sendConfigurationTurn({ templateId, profileId }, messages, signal);
       // A reply without a block leaves the last finished configuration as it was.
-      if (result.configuration) setConfiguration(result.configuration);
+      if (result.configuration) {
+        setFinished({ configuration: result.configuration, sources: result.sources });
+      }
       return result.reply;
     },
     [templateId, profileId],
@@ -73,11 +70,11 @@ export function ConfigurationChat({ template, profile }: ConfigurationChatProps)
       <AgentChat send={askConfigurator} initialMessages={initialMessages} />
       {/* A new key when the configuration changes resets the form, so a changed
           configuration can be saved again. */}
-      {configuration && (
+      {finished && (
         <SaveAgentForm
-          key={JSON.stringify(configuration)}
-          configuration={configuration}
-          sources={sources}
+          key={JSON.stringify(finished.configuration)}
+          configuration={finished.configuration}
+          sources={finished.sources}
         />
       )}
     </>

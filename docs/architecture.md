@@ -291,10 +291,13 @@ empty, so the counsellor can fill it in. Saving is strict: every field needs an 
 
 `sources` remembers which template or job seeker profile an answer came from, as
 `{ <field>: { kind: 'template' | 'profile', id } }`. The text stays in `answers`, since the prompt
-is built from it; the source only lets the edit and clone form show the template or profile. It is
-dropped when the counsellor rewrites the text, and the form says so when the template or profile
-has been changed or deleted since. Edits to a template or profile never change existing agents.
-Agents saved before sources existed have none.
+is built from it; the source only lets the edit and clone form show the template or profile. On
+`/configure`, `/api/configure/turn` returns the sources with the finished configuration, since it
+is what puts the template's and profile's text in the answers. A source is dropped when the
+counsellor rewrites the text. If the template or profile has been changed or deleted since, the
+form says so, and the source is kept as long as the text is, since it still tells where the text
+came from. Edits to a template or profile never change existing agents. Agents saved before
+sources existed have none.
 
 ### Chatting with an agent
 

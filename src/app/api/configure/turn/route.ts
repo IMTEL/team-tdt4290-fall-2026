@@ -1,6 +1,7 @@
 import type { NextRequest } from 'next/server';
 
 import { findTemplate, type InterviewerTemplate } from '@/data/interviewer-templates';
+import type { AnswerSources } from '@/domain/agentTypes/types';
 import { parseConfiguration } from '@/domain/configuration';
 import { getSessionToken } from '@/lib/session-tokens';
 import { isRagdollMessage } from '@/server/chatMessages';
@@ -20,7 +21,7 @@ import { fromRagdollTemplate } from '@/server/templateMapper';
  * One turn of the configuration chat. Sends the conversation to the shared configurator agent
  * and checks whether its reply finishes the configuration. If the counsellor chose a template, it
  * decides the interviewer, and a job seeker profile decides the job seeker, so the configurator
- * doesn't ask about them.
+ * doesn't ask about them. A finished configuration comes with the sources of those answers.
  */
 export async function POST(req: NextRequest) {
   // The configurator is shared, but only logged-in counsellors may use it (it spends IDUN quota).
@@ -91,13 +92,25 @@ export async function POST(req: NextRequest) {
     return configErrorResponse();
   }
 
+  // The template's and profile's text goes into these answers unchanged, so this is where we know
+  // where they came from.
+  const sources: AnswerSources = {
+    ...(template?.persona && { intervjuer: { kind: 'template', id: template.id } }),
+    ...(jobSeeker && profileId && { jobbsoker: { kind: 'profile', id: profileId } }),
+  };
+
   try {
     const reply = await askAgent({ id, accessKey }, messages);
     const configuration = parseConfiguration(reply, {
       intervjuer: template?.persona,
       jobbsoker: jobSeeker,
     });
-    return Response.json({ reply, configuration, done: configuration !== null });
+    return Response.json({
+      reply,
+      configuration,
+      sources: configuration ? sources : {},
+      done: configuration !== null,
+    });
   } catch (error) {
     return ragdollErrorResponse(error);
   }
