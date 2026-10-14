@@ -16,8 +16,12 @@ import Typography from '@mui/material/Typography';
 import { readStoredAnswers } from '@/domain/agentTypes/storedAnswers';
 
 import { useAgent } from '../useAgent';
+import styles from './AgentDetail.module.css';
 
-/** One saved agent: the configuration as a list, and the system prompt closed until opened. */
+/**
+ * One saved agent: a summary in sentences, the configuration as a list, and the system prompt
+ * closed until opened.
+ */
 export function AgentDetail({ agentId }: { agentId: string }) {
   const state = useAgent(agentId);
 
@@ -35,12 +39,29 @@ export function AgentDetail({ agentId }: { agentId: string }) {
 
   // Knows the old and the new way of storing answers, and works for every agent type.
   const stored = readStoredAnswers(state.agent.description);
+  // Empty if the answers say too little to write a sentence about.
+  const summary = stored ? stored.definition.buildSummary(stored.answers) : '';
 
   return (
     <Box sx={{ p: 3, maxWidth: 720 }}>
       <Typography variant="h4" component="h1" sx={{ mb: 2 }}>
         {state.agent.name}
       </Typography>
+
+      {summary && (
+        <section aria-labelledby="summary-heading" className={styles.summary}>
+          {/* English translation: Summary */}
+          <Typography
+            id="summary-heading"
+            variant="overline"
+            component="h2"
+            className={styles.summaryLabel}
+          >
+            Oppsummering
+          </Typography>
+          <Typography variant="body1">{summary}</Typography>
+        </section>
+      )}
 
       {stored ? (
         <Box component="dl" sx={{ m: 0 }}>

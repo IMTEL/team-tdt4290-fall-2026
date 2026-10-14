@@ -141,6 +141,10 @@ Unit and component level only:
 - `src/domain/configuration.test.ts` and `src/domain/interviewerPrompt.test.ts`: reading the
   `KONFIGURASJON` block (complete, missing or empty lines, extra spaces) and filling the
   interviewer prompt from it.
+- `src/domain/interviewerSummary.test.ts` and `src/domain/difficulty.test.ts`: the summary in up to
+  three sentences; each sentence is left out when its answers are empty; the type and level of
+  difficulty (also when the chat added the number of questions); a long job seeker description is
+  cut after a whole part; nothing known gives "".
 - `src/domain/agentTypes/registry.test.ts`: looking up an agent type, checking that every field
   has an answer, and the interviewer's prompt and role.
 - `src/domain/agentTypes/storedAnswers.test.ts`: answers are saved with their type and version
@@ -150,8 +154,9 @@ Unit and component level only:
 - `src/app/browse-agents/api.test.ts`: loading the agent list, and saving an edit with `PUT`;
   401, 404, 504, other errors and network failures become Norwegian messages.
 - `src/app/browse-agents/[agentId]/AgentDetail.test.tsx`: shows the answers in the old and the
-  new storage format, keeps the system prompt closed until opened, links to the edit page, and
-  calls `notFound` for an unknown id.
+  new storage format, shows the summary above them (and leaves out its empty sentences, and the
+  whole summary for an agent we did not make), keeps the system prompt closed until opened, links
+  to the edit page, and calls `notFound` for an unknown id.
 - `src/app/browse-agents/[agentId]/edit/EditAgentForm.test.tsx`: the form is filled in from the
   agent; saving sends the changes and goes back to the agent; a failed save shows the error and
   keeps what was typed; saving is blocked until something has changed and while a field is empty.

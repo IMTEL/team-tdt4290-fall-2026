@@ -58,6 +58,46 @@ describe('AgentDetail', () => {
     );
   });
 
+  describe('the summary', () => {
+    it('is shown above the configuration', async () => {
+      fetchAgentsMock.mockResolvedValue([agent]);
+
+      render(<AgentDetail agentId="agent-1" />);
+
+      const summary = await screen.findByRole('region', { name: 'Oppsummering' });
+      expect(summary).toHaveTextContent(
+        'Dette er en intervjuer for stillingen barnehagelærer i bransjen barnehage (offentlig). ' +
+          'Det er et første intervju med vanskelighetsgrad lett. ' +
+          'Jobbsøkeren er beskrevet slik: under 25, lite erfaring.',
+      );
+      // The summary comes before the first field of the list.
+      expect(
+        summary.compareDocumentPosition(screen.getByText('Stilling')) &
+          Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+    });
+
+    it('leaves out the sentences that have no answers', async () => {
+      const description = JSON.stringify({ ...configuration, jobbsoker: '', intervjutype: '' });
+      fetchAgentsMock.mockResolvedValue([{ ...agent, description }]);
+
+      render(<AgentDetail agentId="agent-1" />);
+
+      const summary = await screen.findByRole('region', { name: 'Oppsummering' });
+      expect(summary).toHaveTextContent(/barnehage \(offentlig\)\. Vanskelighetsgraden er lett\.$/);
+      expect(summary).not.toHaveTextContent('Jobbsøkeren');
+    });
+
+    it('is left out for an agent that was not made in this app', async () => {
+      fetchAgentsMock.mockResolvedValue([{ ...agent, description: 'En vanlig beskrivelse' }]);
+
+      render(<AgentDetail agentId="agent-1" />);
+
+      expect(await screen.findByText('En vanlig beskrivelse')).toBeVisible();
+      expect(screen.queryByRole('region', { name: 'Oppsummering' })).not.toBeInTheDocument();
+    });
+  });
+
   it('shows an agent saved in the new format, with type and version', async () => {
     fetchAgentsMock.mockResolvedValue([
       {
