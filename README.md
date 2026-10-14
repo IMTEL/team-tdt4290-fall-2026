@@ -64,7 +64,7 @@ We use the stack the customer proposed in the project brief, and reuse existing 
 | Auth          | NextAuth v4 with the Keycloak provider, against RAGdoll's Keycloak. The Keycloak token is exchanged for a RAGdoll session                                                                        |
 | Backend       | RAGdoll (Python 3, FastAPI, MongoDB, Docker Compose, `uv`, Ruff, pytest), called only from our server                                                                                            |
 | LLMs          | IDUN (NTNU), through RAGdoll                                                                                                                                                                     |
-| Tests         | Vitest, jsdom and Testing Library                                                                                                                                                                |
+| Tests         | Vitest, jsdom and Testing Library; Playwright for end-to-end tests ([`docs/e2e-testing.md`](docs/e2e-testing.md))                                                                                |
 | CI            | GitHub Actions: lint (ESLint), format check (Prettier), typecheck, tests and build on every pull request                                                                                         |
 
 The palette, the spacing and type scale, and the rules for using the components are in [`docs/design-guide.md`](docs/design-guide.md). Read it before writing UI code. Why the stack looks like this is recorded in [`docs/decisions/`](docs/decisions/), for example [0002: MUI with CSS Modules](docs/decisions/0002-mui-with-css-modules.md).
