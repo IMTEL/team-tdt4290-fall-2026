@@ -126,7 +126,7 @@ describe('buildBriefing', () => {
         `- Intervjuer: ${persona}`,
     );
     expect(briefing).toContain('1. Bedrift: Hvilken bedrift eller virksomhet');
-    expect(briefing).toMatch(/KONFIGURASJON\nBedrift: …\n/);
+    expect(briefing).toMatch(/KONFIGURASJON\nBedrift: navn \| Visjon og verdier: …\n/);
   });
 
   it('has no decided section when nothing is decided', () => {

@@ -35,6 +35,7 @@ export const interviewer: AgentTypeDefinition = {
         'veilederen kan hoppe over det. Så visjon og verdier, og eventuelt nettside som kontekst: ' +
         'et åpent spørsmål uten alternativer. Bedrift-linjen skal alltid være med i blokken; er ' +
         'navnet hoppet over, skriv «ikke oppgitt» for det.',
+      format: 'navn | Visjon og verdier: …',
     },
     {
       key: 'intervjutype',
@@ -59,7 +60,9 @@ export const interviewer: AgentTypeDefinition = {
       hint:
         'Fire spørsmål, ett per melding, uten personopplysninger: aldersgruppe (under 25, 25–39, ' +
         '40+), erfaring, språknivå i norsk, og hva personen trenger å øve på (for eksempel ' +
-        'nervøsitet, hull i CV-en, å fortelle om egne styrker; med [ALTERNATIVER: flere]).',
+        'nervøsitet, hull i CV-en, å fortelle om egne styrker; med [ALTERNATIVER: flere]). ' +
+        'Oppgir veilederen en alder, skriv bare aldersgruppen den hører til. Erfaring kan være ' +
+        'en hvilken som helst tid, også under ett år (for eksempel «1 måned»).',
       format: 'aldersgruppe, erfaring, norsknivå, øvingsmål',
     },
     {
