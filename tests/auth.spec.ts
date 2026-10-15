@@ -9,6 +9,29 @@ test('a signed-out user is sent to the login page', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'Logg inn' })).toBeVisible();
 });
 
+// Every page that talks to RAGdoll needs a login (src/proxy.ts).
+for (const path of [
+  '/configure',
+  '/create-template',
+  '/profiles',
+  '/profiles/new',
+  '/test-chat',
+  '/browse-agents/some-agent',
+]) {
+  test(`${path} needs a login`, async ({ page }) => {
+    await page.goto(path);
+
+    await expect(page).toHaveURL(/\/login\?callbackUrl=/);
+  });
+}
+
+test('a signed-out user sees a login link in the navbar', async ({ page }) => {
+  await page.goto('/');
+
+  await expect(page.getByRole('link', { name: 'Logg inn' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Logg ut' })).toBeHidden();
+});
+
 test('logging in returns the user to the page they wanted', async ({ page }) => {
   await page.goto('/browse-agents');
 
@@ -16,6 +39,20 @@ test('logging in returns the user to the page they wanted', async ({ page }) => 
 
   await expect(page).toHaveURL(/\/browse-agents$/);
   await expect(page.getByText(/^Test Bruker \d+$/)).toBeVisible();
+});
+
+test('the login page says so when a login failed', async ({ page }) => {
+  await page.goto('/login?error=OAuthCallback');
+
+  await expect(page.getByText('Innloggingen mislyktes. Prøv igjen.')).toBeVisible();
+});
+
+test('a logged-in user who opens the login page is sent to the start page', async ({ page }) => {
+  await logIn(page);
+
+  await page.goto('/login');
+
+  await expect(page).toHaveURL(/\/$/);
 });
 
 test('logging out ends the session', async ({ page }) => {

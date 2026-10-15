@@ -94,9 +94,12 @@ shapes, and keeps everything in memory. It uses only Node built-ins.
   logged in as a **new user** called «Test Bruker N».
 - **Every login is a new user**, with no agents, templates or profiles. So each test starts from
   an empty account, and tests running in parallel never see each other's data. A test that needs
-  data creates it, through the UI or through our own API (see `tests/agents.spec.ts`).
+  data creates it, through the UI or through our own API with the helpers in
+  `tests/support/data.ts` (`createAgent`, `createTemplate`, `createProfile`).
 - **Chat**: no LLM. Every reply, from the configurator or a saved agent, is
-  `Mock-svar: <the last message you sent>`.
+  `Mock-svar: <the last message you sent>`. To finish the configurator chat, send it a
+  `KONFIGURASJON` block (`configurationBlock()` in `tests/support/data.ts`): the reply echoes it,
+  and the app reads it as a finished configuration.
 - **What it does not check**: the mock trusts what it gets and does not know RAGdoll's rules. A
   test passing against the mock does not prove the real RAGdoll accepts the same request. That is
   what the [manual check](testing.md#manual-end-to-end-check) is for.
@@ -107,8 +110,20 @@ the mock, copying the request and response shapes from `src/server/ragdoll.ts`.
 
 ## Where tests live
 
-In `tests/`, named `*.spec.ts`, one file per flow or page: `auth.spec.ts`, `agents.spec.ts`,
-`profiles.spec.ts` ... Helpers and the mock backend are in `tests/support/`.
+In `tests/`, named `*.spec.ts`, one file per flow or page:
+
+| File                | Covers                                                            |
+| ------------------- | ----------------------------------------------------------------- |
+| `home.spec.ts`      | Start page, navbar links, theme toggle                            |
+| `auth.spec.ts`      | Login, logout, protected pages, login errors                      |
+| `agents.spec.ts`    | Agent list, agent page, edit (with presets), clone, delete        |
+| `configure.spec.ts` | Configurator: template and profile choice, chat, saving the agent |
+| `templates.spec.ts` | Create, edit, delete and use interviewer templates                |
+| `profiles.spec.ts`  | Create, edit, delete job seeker profiles, form validation         |
+| `test-chat.spec.ts` | Testing an agent in the chat: greeting, sending, starting over    |
+
+Helpers and the mock backend are in `tests/support/`: `auth.ts` logs in, `data.ts` creates test
+data through our API.
 
 Vitest only picks up `src/**/*.test.{ts,tsx}`, and Playwright only looks in `tests/`, so the two
 never run each other's files.
