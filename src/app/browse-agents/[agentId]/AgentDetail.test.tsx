@@ -130,7 +130,6 @@ describe('AgentDetail', () => {
     await screen.findByRole('heading', { name: agent.name });
     expect(container.querySelector('img')).toHaveAttribute('src', '/avatars/default.svg');
   });
-  });
 
   it('shows an agent saved in the new format, with type and version', async () => {
     fetchAgentsMock.mockResolvedValue([

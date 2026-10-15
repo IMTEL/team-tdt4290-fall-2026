@@ -61,7 +61,7 @@ describe('SaveAgentForm', () => {
       configuration,
       {},
       undefined,
-      null
+      null,
     );
     expect(await screen.findByText(/«Butikksjef Kari» er lagret/)).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Test agenten' })).toHaveAttribute(
@@ -113,6 +113,7 @@ describe('SaveAgentForm', () => {
 
     expect(saveMock).toHaveBeenCalledWith(
       'Intervjuer for Butikkmedarbeider',
+      interviewer,
       configuration,
       {},
       undefined,

@@ -99,7 +99,6 @@ export async function sendConfigurationTurn(
  * uses the default model, temperature and built prompt. Without `avatar` (or with null) the agent
  * shows the default image.
  */
- */
 export async function saveConfiguredAgent(
   name: string,
   definition: AgentTypeDefinition,
@@ -108,13 +107,13 @@ export async function saveConfiguredAgent(
   advanced?: AdvancedSettings,
   avatar?: string | null,
 ): Promise<string> {
-  const res = await postJson('/api/agents', { 
-    name, 
-    type: definition.id, 
-    configuration, 
-    sources, 
-    advanced, 
-    avatar 
+  const res = await postJson('/api/agents', {
+    name,
+    type: definition.id,
+    configuration,
+    sources,
+    advanced,
+    avatar,
   });
   if (!res.ok) throw errorFor(res);
 

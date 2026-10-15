@@ -46,7 +46,14 @@ export function SaveAgentForm({ definition, configuration, sources = {} }: SaveA
     try {
       // Untouched settings are not sent, and the server uses its defaults.
       const advanced = settings === DEFAULT_ADVANCED_SETTINGS ? undefined : settings;
-      const id = await saveConfiguredAgent(name.trim(), configuration, sources, advanced, avatar);
+      const id = await saveConfiguredAgent(
+        name.trim(),
+        definition,
+        configuration,
+        sources,
+        advanced,
+        avatar,
+      );
       setStatus({ kind: 'saved', id });
     } catch (error) {
       // Only ChatError messages are written for users; anything else could be technical.
