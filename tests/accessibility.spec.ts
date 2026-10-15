@@ -12,8 +12,8 @@ test.skip(({ browserName }) => browserName !== 'chromium', 'axe gives the same r
 const NO_AGENT = '000000000000000000000000';
 
 async function sendMessage(page: Page, text: string) {
-  await page.getByRole('textbox', { name: 'Melding' }).fill(text);
-  await page.getByRole('button', { name: 'Send' }).click();
+  await page.getByRole('textbox', { name: 'Melding', exact: true }).fill(text);
+  await page.getByRole('button', { name: 'Send', exact: true }).click();
 }
 
 for (const colorScheme of ['light', 'dark'] as const) {
@@ -24,7 +24,7 @@ for (const colorScheme of ['light', 'dark'] as const) {
     test.describe('signed out', () => {
       test('start page', async ({ page }) => {
         await page.goto('/');
-        await expect(page.getByRole('link', { name: 'Logg inn' })).toBeVisible();
+        await expect(page.getByRole('link', { name: 'Logg inn', exact: true })).toBeVisible();
         await expectNoAccessibilityViolations(page);
       });
 
@@ -36,8 +36,8 @@ for (const colorScheme of ['light', 'dark'] as const) {
 
       test('theme menu', async ({ page }) => {
         await page.goto('/');
-        await page.getByRole('button', { name: 'Bytt tema' }).click();
-        await expect(page.getByRole('menuitem', { name: 'Mørk' })).toBeVisible();
+        await page.getByRole('button', { name: 'Bytt tema', exact: true }).click();
+        await expect(page.getByRole('menuitem', { name: 'Mørk', exact: true })).toBeVisible();
         await expectNoAccessibilityViolations(page);
       });
     });
@@ -53,7 +53,9 @@ for (const colorScheme of ['light', 'dark'] as const) {
         await logIn(page);
         await createAgent(page, 'Intervjuer for butikk');
         await page.goto('/browse-agents');
-        await expect(page.getByRole('heading', { name: 'Intervjuer for butikk' })).toBeVisible();
+        await expect(
+          page.getByRole('heading', { name: 'Intervjuer for butikk', exact: true }),
+        ).toBeVisible();
         await expectNoAccessibilityViolations(page);
       });
 
@@ -61,7 +63,7 @@ for (const colorScheme of ['light', 'dark'] as const) {
         await logIn(page);
         const id = await createAgent(page, 'Intervjuer for butikk');
         await page.goto(`/browse-agents/${id}`);
-        await page.getByRole('button', { name: 'Systemprompt' }).click();
+        await page.getByRole('button', { name: 'Systemprompt', exact: true }).click();
         await expect(page.getByRole('region')).toBeVisible();
         await expectNoAccessibilityViolations(page);
       });
@@ -70,7 +72,7 @@ for (const colorScheme of ['light', 'dark'] as const) {
         await logIn(page);
         const id = await createAgent(page, 'Intervjuer for butikk');
         await page.goto(`/browse-agents/${id}`);
-        await page.getByRole('button', { name: 'Slett' }).click();
+        await page.getByRole('button', { name: 'Slett', exact: true }).click();
         await expect(page.getByRole('dialog')).toBeVisible();
         await expectNoAccessibilityViolations(page);
       });
@@ -88,7 +90,7 @@ for (const colorScheme of ['light', 'dark'] as const) {
         await logIn(page);
         const id = await createAgent(page, 'Intervjuer for butikk');
         await page.goto(`/browse-agents/${id}/edit`);
-        await page.getByRole('combobox', { name: 'Intervjuermal' }).click();
+        await page.getByRole('combobox', { name: 'Intervjuermal', exact: true }).click();
         await expect(page.getByRole('listbox')).toBeVisible();
         await expectNoAccessibilityViolations(page);
       });
@@ -97,7 +99,7 @@ for (const colorScheme of ['light', 'dark'] as const) {
         await logIn(page);
         const id = await createAgent(page, 'Intervjuer for butikk');
         await page.goto(`/browse-agents/${id}/clone`);
-        await expect(page.getByRole('heading', { name: 'Klon agent' })).toBeVisible();
+        await expect(page.getByRole('heading', { name: 'Klon agent', exact: true })).toBeVisible();
         await expectNoAccessibilityViolations(page);
       });
 
@@ -113,7 +115,9 @@ for (const colorScheme of ['light', 'dark'] as const) {
         await logIn(page);
         await createTemplate(page, { title: 'Butikksjef' });
         await page.goto('/configure');
-        await expect(page.getByRole('heading', { level: 3, name: 'Butikksjef' })).toBeVisible();
+        await expect(
+          page.getByRole('heading', { level: 3, name: 'Butikksjef', exact: true }),
+        ).toBeVisible();
         await expectNoAccessibilityViolations(page);
       });
 
@@ -121,24 +125,26 @@ for (const colorScheme of ['light', 'dark'] as const) {
         await logIn(page);
         await createProfile(page, { label: 'Profil A', ageRange: '18-24' });
         await page.goto('/configure');
-        await page.getByRole('combobox', { name: 'Jobbsøkerprofil' }).click();
+        await page.getByRole('combobox', { name: 'Jobbsøkerprofil', exact: true }).click();
         await expect(page.getByRole('listbox')).toBeVisible();
         await expectNoAccessibilityViolations(page);
       });
 
       test('chat with a finished configuration', async ({ page }) => {
         await logIn(page, '/configure');
-        await page.getByRole('button', { name: 'Fortsett uten mal' }).click();
+        await page.getByRole('button', { name: 'Fortsett uten mal', exact: true }).click();
         await sendMessage(page, configurationBlock());
-        await expect(page.getByRole('form', { name: 'Lagre intervjueren' })).toBeVisible();
+        await expect(
+          page.getByRole('form', { name: 'Lagre intervjueren', exact: true }),
+        ).toBeVisible();
         await expectNoAccessibilityViolations(page);
       });
 
       test('saved agent message', async ({ page }) => {
         await logIn(page, '/configure');
-        await page.getByRole('button', { name: 'Fortsett uten mal' }).click();
+        await page.getByRole('button', { name: 'Fortsett uten mal', exact: true }).click();
         await sendMessage(page, configurationBlock());
-        await page.getByRole('button', { name: 'Lagre agent' }).click();
+        await page.getByRole('button', { name: 'Lagre agent', exact: true }).click();
         await expect(page.getByText(/er lagret\./)).toBeVisible();
         await expectNoAccessibilityViolations(page);
       });
@@ -147,7 +153,9 @@ for (const colorScheme of ['light', 'dark'] as const) {
     test.describe('templates', () => {
       test('new template form with an error', async ({ page }) => {
         await logIn(page, '/create-template');
-        await page.getByRole('textbox', { name: 'Fokusområder' }).fill('a, b, c, d, e, f, g');
+        await page
+          .getByRole('textbox', { name: 'Fokusområder', exact: true })
+          .fill('a, b, c, d, e, f, g');
         await expect(page.getByText('Skriv høyst 6 fokusområder.')).toBeVisible();
         await expectNoAccessibilityViolations(page);
       });
@@ -166,7 +174,7 @@ for (const colorScheme of ['light', 'dark'] as const) {
         await logIn(page);
         await createTemplate(page, { title: 'Butikksjef' });
         await page.goto('/configure');
-        await page.getByRole('button', { name: 'Slett Butikksjef' }).click();
+        await page.getByRole('button', { name: 'Slett Butikksjef', exact: true }).click();
         await expect(page.getByRole('dialog')).toBeVisible();
         await expectNoAccessibilityViolations(page);
       });
@@ -183,14 +191,14 @@ for (const colorScheme of ['light', 'dark'] as const) {
         await logIn(page);
         await createProfile(page, { label: 'Profil A', ageRange: '25-29' });
         await page.goto('/profiles');
-        await expect(page.getByRole('heading', { name: 'Profil A' })).toBeVisible();
+        await expect(page.getByRole('heading', { name: 'Profil A', exact: true })).toBeVisible();
         await expectNoAccessibilityViolations(page);
       });
 
       test('new profile form with an error', async ({ page }) => {
         await logIn(page, '/profiles/new');
         const tooMany = Array.from({ length: 21 }, (_, i) => `Språk ${i + 1}`).join(', ');
-        await page.getByRole('textbox', { name: 'Språk' }).fill(tooMany);
+        await page.getByRole('textbox', { name: 'Språk', exact: true }).fill(tooMany);
         await expect(page.getByText('Skriv høyst 20 språk.')).toBeVisible();
         await expectNoAccessibilityViolations(page);
       });
@@ -209,7 +217,7 @@ for (const colorScheme of ['light', 'dark'] as const) {
         await logIn(page);
         await createProfile(page, { label: 'Profil A' });
         await page.goto('/profiles');
-        await page.getByRole('button', { name: 'Slett Profil A' }).click();
+        await page.getByRole('button', { name: 'Slett Profil A', exact: true }).click();
         await expect(page.getByRole('dialog')).toBeVisible();
         await expectNoAccessibilityViolations(page);
       });
@@ -218,7 +226,7 @@ for (const colorScheme of ['light', 'dark'] as const) {
     test.describe('test chat', () => {
       test('without an agent', async ({ page }) => {
         await logIn(page, '/test-chat');
-        await expect(page.getByRole('link', { name: 'agentene dine' })).toBeVisible();
+        await expect(page.getByRole('link', { name: 'agentene dine', exact: true })).toBeVisible();
         await expectNoAccessibilityViolations(page);
       });
 

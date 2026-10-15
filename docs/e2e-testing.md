@@ -155,6 +155,10 @@ work without login.
 
 - **Find elements the way a user would**: `getByRole`, `getByLabel`, `getByText`, with the
   Norwegian text shown in the UI. Avoid CSS selectors and MUI class names; they change.
+- **Match names exactly**: write `getByRole('button', { name: 'Send', exact: true })`. Without
+  `exact`, Playwright ignores case and matches any part of the name, so the test still passes
+  when the button is renamed to «Sendd» or «Send inn». Use a regular expression when you mean a
+  part on purpose, such as `{ name: /^Daglig leder/ }` for a card whose name goes on.
 - **Use the `expect(...)` assertions that wait**: `toBeVisible`, `toHaveText`, `toHaveURL`. They
   retry until they pass or time out. Never use `page.waitForTimeout`.
 - **Keep tests independent**: each test starts from a fresh browser context and must not depend
@@ -179,7 +183,7 @@ test('delete profile dialog', async ({ page }) => {
   await logIn(page);
   await createProfile(page, { label: 'Profil A' });
   await page.goto('/profiles');
-  await page.getByRole('button', { name: 'Slett Profil A' }).click();
+  await page.getByRole('button', { name: 'Slett Profil A', exact: true }).click();
   await expect(page.getByRole('dialog')).toBeVisible();
   await expectNoAccessibilityViolations(page);
 });

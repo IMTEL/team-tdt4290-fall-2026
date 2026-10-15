@@ -7,6 +7,6 @@ import { expect, type Page } from '@playwright/test';
  */
 export async function logIn(page: Page, path = '/'): Promise<void> {
   await page.goto(`/login?callbackUrl=${encodeURIComponent(path)}`);
-  await page.getByRole('button', { name: 'Logg inn' }).click();
-  await expect(page.getByRole('button', { name: 'Logg ut' })).toBeVisible();
+  await page.getByRole('button', { name: 'Logg inn', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Logg ut', exact: true })).toBeVisible();
 }

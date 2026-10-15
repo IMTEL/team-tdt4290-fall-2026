@@ -11,7 +11,7 @@ test('a new user has no agents', async ({ page }) => {
   await logIn(page, '/browse-agents');
 
   await expect(page.getByText('Du har ingen agenter ennå.')).toBeVisible();
-  await page.getByRole('link', { name: 'Sett opp en intervjuer' }).click();
+  await page.getByRole('link', { name: 'Sett opp en intervjuer', exact: true }).click();
   await expect(page).toHaveURL(/\/configure$/);
 });
 
@@ -21,8 +21,12 @@ test('a saved agent is listed under its type, with a summary', async ({ page }) 
 
   await page.goto('/browse-agents');
 
-  await expect(page.getByRole('heading', { level: 2, name: 'Intervjuer' })).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Intervjuer for butikk' })).toBeVisible();
+  await expect(
+    page.getByRole('heading', { level: 2, name: 'Intervjuer', exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: 'Intervjuer for butikk', exact: true }),
+  ).toBeVisible();
   await expect(page.getByText('Butikkmedarbeider · Lett')).toBeVisible();
 });
 
@@ -31,14 +35,16 @@ test('a saved agent is listed and can be tested in a chat', async ({ page }) => 
   await createAgent(page, 'Intervjuer for butikk');
 
   await page.goto('/browse-agents');
-  await expect(page.getByRole('heading', { name: 'Intervjuer for butikk' })).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: 'Intervjuer for butikk', exact: true }),
+  ).toBeVisible();
 
-  await page.getByRole('link', { name: 'Test agenten' }).click();
-  await page.getByRole('textbox', { name: 'Melding' }).fill('Jeg heter Ola.');
-  await page.getByRole('button', { name: 'Send' }).click();
+  await page.getByRole('link', { name: 'Test agenten', exact: true }).click();
+  await page.getByRole('textbox', { name: 'Melding', exact: true }).fill('Jeg heter Ola.');
+  await page.getByRole('button', { name: 'Send', exact: true }).click();
 
   // The mock answers with a fixed prefix and the last message, so no LLM is involved.
-  await expect(page.getByRole('log', { name: 'Samtale' })).toContainText(
+  await expect(page.getByRole('log', { name: 'Samtale', exact: true })).toContainText(
     'Mock-svar: Jeg heter Ola.',
   );
 });
@@ -51,13 +57,13 @@ test('the agent page shows the configuration and the system prompt', async ({ pa
   await page.getByRole('link', { name: /Intervjuer for butikk/ }).click();
 
   await expect(
-    page.getByRole('heading', { level: 1, name: 'Intervjuer for butikk' }),
+    page.getByRole('heading', { level: 1, name: 'Intervjuer for butikk', exact: true }),
   ).toBeVisible();
   await expect(page.getByRole('definition').filter({ hasText: 'Butikkmedarbeider' })).toBeVisible();
   await expect(page.getByRole('definition').filter({ hasText: 'En matbutikk' })).toBeVisible();
 
   // The system prompt is closed until the counsellor opens it.
-  const prompt = page.getByRole('button', { name: 'Systemprompt' });
+  const prompt = page.getByRole('button', { name: 'Systemprompt', exact: true });
   await expect(prompt).toHaveAttribute('aria-expanded', 'false');
   await prompt.click();
   await expect(prompt).toHaveAttribute('aria-expanded', 'true');
@@ -75,13 +81,13 @@ test('an agent can be edited', async ({ page }) => {
   const id = await createAgent(page, 'Intervjuer for butikk');
   await page.goto(`/browse-agents/${id}`);
 
-  await page.getByRole('link', { name: 'Rediger' }).click();
-  await expect(page.getByRole('heading', { name: 'Rediger agent' })).toBeVisible();
+  await page.getByRole('link', { name: 'Rediger', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Rediger agent', exact: true })).toBeVisible();
   await expect(field(page, 'Navn')).toHaveValue('Intervjuer for butikk');
   await expect(field(page, 'Stilling')).toHaveValue('Butikkmedarbeider');
 
   // Nothing to save before something is changed.
-  const save = page.getByRole('button', { name: 'Lagre endringer' });
+  const save = page.getByRole('button', { name: 'Lagre endringer', exact: true });
   await expect(save).toBeDisabled();
   await expect(page.getByText('Ingen endringer ennå')).toBeVisible();
 
@@ -98,7 +104,7 @@ test('an agent can be edited', async ({ page }) => {
 
   await expect(page).toHaveURL(new RegExp(`/browse-agents/${id}$`));
   await expect(
-    page.getByRole('heading', { level: 1, name: 'Krevende butikkintervju' }),
+    page.getByRole('heading', { level: 1, name: 'Krevende butikkintervju', exact: true }),
   ).toBeVisible();
   await expect(page.getByRole('definition').filter({ hasText: 'vanskelig' })).toBeVisible();
 });
@@ -108,11 +114,11 @@ test('an edit can fill in the interviewer from a template', async ({ page }) => 
   const id = await createAgent(page, 'Intervjuer for butikk');
   await page.goto(`/browse-agents/${id}/edit`);
 
-  await page.getByRole('combobox', { name: 'Intervjuermal' }).click();
-  await page.getByRole('option', { name: 'Daglig leder' }).click();
+  await page.getByRole('combobox', { name: 'Intervjuermal', exact: true }).click();
+  await page.getByRole('option', { name: 'Daglig leder', exact: true }).click();
 
   await expect(field(page, 'Intervjuer')).toHaveValue(/^Intervjueren er daglig leder/);
-  await page.getByRole('button', { name: 'Lagre endringer' }).click();
+  await page.getByRole('button', { name: 'Lagre endringer', exact: true }).click();
 
   await expect(page).toHaveURL(new RegExp(`/browse-agents/${id}$`));
   await expect(
@@ -120,8 +126,10 @@ test('an edit can fill in the interviewer from a template', async ({ page }) => 
   ).toBeVisible();
 
   // The edit form remembers which template the text came from.
-  await page.getByRole('link', { name: 'Rediger' }).click();
-  await expect(page.getByRole('combobox', { name: 'Intervjuermal' })).toHaveText('Daglig leder');
+  await page.getByRole('link', { name: 'Rediger', exact: true }).click();
+  await expect(page.getByRole('combobox', { name: 'Intervjuermal', exact: true })).toHaveText(
+    'Daglig leder',
+  );
 });
 
 test('cancelling an edit changes nothing', async ({ page }) => {
@@ -130,11 +138,11 @@ test('cancelling an edit changes nothing', async ({ page }) => {
   await page.goto(`/browse-agents/${id}/edit`);
 
   await field(page, 'Navn').fill('Et annet navn');
-  await page.getByRole('link', { name: 'Avbryt' }).click();
+  await page.getByRole('link', { name: 'Avbryt', exact: true }).click();
 
   await expect(page).toHaveURL(new RegExp(`/browse-agents/${id}$`));
   await expect(
-    page.getByRole('heading', { level: 1, name: 'Intervjuer for butikk' }),
+    page.getByRole('heading', { level: 1, name: 'Intervjuer for butikk', exact: true }),
   ).toBeVisible();
 });
 
@@ -143,15 +151,15 @@ test('an agent can be cloned, and the original stays as it was', async ({ page }
   const id = await createAgent(page, 'Intervjuer for butikk');
   await page.goto(`/browse-agents/${id}`);
 
-  await page.getByRole('link', { name: 'Klon' }).click();
-  await expect(page.getByRole('heading', { name: 'Klon agent' })).toBeVisible();
+  await page.getByRole('link', { name: 'Klon', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Klon agent', exact: true })).toBeVisible();
   await expect(field(page, 'Navn')).toHaveValue('Intervjuer for butikk (kopi)');
   await field(page, 'Stilling').fill('Kassemedarbeider');
 
-  await page.getByRole('button', { name: 'Lagre som ny agent' }).click();
+  await page.getByRole('button', { name: 'Lagre som ny agent', exact: true }).click();
 
   await expect(
-    page.getByRole('heading', { level: 1, name: 'Intervjuer for butikk (kopi)' }),
+    page.getByRole('heading', { level: 1, name: 'Intervjuer for butikk (kopi)', exact: true }),
   ).toBeVisible();
   await expect(page).not.toHaveURL(new RegExp(`/browse-agents/${id}$`));
   await expect(page.getByRole('definition').filter({ hasText: 'Kassemedarbeider' })).toBeVisible();
@@ -172,14 +180,14 @@ test('an agent can be deleted after confirming', async ({ page }) => {
   await page.goto(`/browse-agents/${id}`);
 
   // Cancelling keeps the agent.
-  await page.getByRole('button', { name: 'Slett' }).click();
+  await page.getByRole('button', { name: 'Slett', exact: true }).click();
   const dialog = page.getByRole('dialog');
   await expect(dialog).toContainText('Slette «Intervjuer for butikk»?');
-  await dialog.getByRole('button', { name: 'Avbryt' }).click();
+  await dialog.getByRole('button', { name: 'Avbryt', exact: true }).click();
   await expect(dialog).toBeHidden();
 
-  await page.getByRole('button', { name: 'Slett' }).click();
-  await dialog.getByRole('button', { name: 'Slett' }).click();
+  await page.getByRole('button', { name: 'Slett', exact: true }).click();
+  await dialog.getByRole('button', { name: 'Slett', exact: true }).click();
 
   await expect(page).toHaveURL(/\/browse-agents$/);
   await expect(page.getByText('Du har ingen agenter ennå.')).toBeVisible();

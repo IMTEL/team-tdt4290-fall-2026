@@ -6,7 +6,7 @@ test('a signed-out user is sent to the login page', async ({ page }) => {
   await page.goto('/browse-agents');
 
   await expect(page).toHaveURL(/\/login\?callbackUrl=/);
-  await expect(page.getByRole('heading', { name: 'Logg inn' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Logg inn', exact: true })).toBeVisible();
 });
 
 // Every page that talks to RAGdoll needs a login (src/proxy.ts).
@@ -28,14 +28,14 @@ for (const path of [
 test('a signed-out user sees a login link in the navbar', async ({ page }) => {
   await page.goto('/');
 
-  await expect(page.getByRole('link', { name: 'Logg inn' })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Logg ut' })).toBeHidden();
+  await expect(page.getByRole('link', { name: 'Logg inn', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Logg ut', exact: true })).toBeHidden();
 });
 
 test('logging in returns the user to the page they wanted', async ({ page }) => {
   await page.goto('/browse-agents');
 
-  await page.getByRole('button', { name: 'Logg inn' }).click();
+  await page.getByRole('button', { name: 'Logg inn', exact: true }).click();
 
   await expect(page).toHaveURL(/\/browse-agents$/);
   await expect(page.getByText(/^Test Bruker \d+$/)).toBeVisible();
@@ -58,7 +58,7 @@ test('a logged-in user who opens the login page is sent to the start page', asyn
 test('logging out ends the session', async ({ page }) => {
   await logIn(page);
 
-  await page.getByRole('button', { name: 'Logg ut' }).click();
+  await page.getByRole('button', { name: 'Logg ut', exact: true }).click();
 
   await expect(page).toHaveURL(/\/login/);
   await page.goto('/browse-agents');

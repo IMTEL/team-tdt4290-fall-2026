@@ -6,7 +6,7 @@ test('start page shows the heading without logging in', async ({ page }) => {
   await page.goto('/');
 
   await expect(
-    page.getByRole('heading', { name: 'Konfigurator for intervjuagenter' }),
+    page.getByRole('heading', { name: 'Konfigurator for intervjuagenter', exact: true }),
   ).toBeVisible();
 });
 
@@ -25,7 +25,7 @@ test('the navbar links to every page and marks the one that is open', async ({ p
     await nav.getByRole('link', { name: link, exact: true }).click();
 
     await expect(page).toHaveURL(url);
-    await expect(page.getByRole('heading', { level: 1, name: heading })).toBeVisible();
+    await expect(page.getByRole('heading', { level: 1, name: heading, exact: true })).toBeVisible();
     await expect(nav.getByRole('link', { name: link, exact: true })).toHaveAttribute(
       'aria-current',
       'page',
@@ -37,14 +37,14 @@ test('the theme can be changed and is remembered', async ({ page }) => {
   await page.goto('/');
   const html = page.locator('html');
 
-  await page.getByRole('button', { name: 'Bytt tema' }).click();
-  await page.getByRole('menuitem', { name: 'Mørk' }).click();
+  await page.getByRole('button', { name: 'Bytt tema', exact: true }).click();
+  await page.getByRole('menuitem', { name: 'Mørk', exact: true }).click();
   await expect(html).toHaveClass(/\bdark\b/);
 
   await page.reload();
   await expect(html).toHaveClass(/\bdark\b/);
 
-  await page.getByRole('button', { name: 'Bytt tema' }).click();
-  await page.getByRole('menuitem', { name: 'Lys' }).click();
+  await page.getByRole('button', { name: 'Bytt tema', exact: true }).click();
+  await page.getByRole('menuitem', { name: 'Lys', exact: true }).click();
   await expect(html).toHaveClass(/\blight\b/);
 });
