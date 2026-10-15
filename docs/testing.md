@@ -203,11 +203,16 @@ Unit and component level only:
 - `src/app/browse-agents/api.test.ts`: loading the agent list, and saving an edit with `PUT`;
   401, 404, 504, other errors and network failures become Norwegian messages.
 - `src/app/browse-agents/[agentId]/AgentDetail.test.tsx`: shows the answers in the old and the
-  new storage format, and the agent type (an interviewer for agents saved before types existed,
-  none for agents not made here), shows the summary above the answers (and leaves out its empty
-  sentences, and the whole summary for an agent we did not make), keeps the advanced settings (model, temperature, the stored
-  prompt, a mark for a hand-written one, the default temperature for older agents) closed until
-  opened, links to the edit page, and calls `notFound` for an unknown id.
+  new storage format, the avatar next to the name (the default image when there is none), the
+  agent type under the name (an interviewer for agents saved before types existed, none for agents
+  not made here) and the last-changed date (left out when it is not a date), shows the summary above the answers (and leaves out its
+  empty sentences, and the whole summary for an agent we did not make), the actions between the
+  summary and the tabs, opens on the configuration tab
+  and shows the advanced settings (model, temperature, the default temperature for older agents)
+  and the stored prompt (with a mark for a hand-written one) on their own tabs, also with the
+  arrow keys (only the open tab points to its panel), copies the prompt (and says what to do when
+  the browser refuses), links back to the list and to the edit and clone pages with the id
+  encoded, shows a skeleton while loading, and calls `notFound` for an unknown id.
 - `src/app/browse-agents/[agentId]/edit/EditAgentForm.test.tsx`: the form is filled in from the
   agent; saving sends the changes and goes back to the agent; unchanged advanced settings are not
   sent; a hand-written prompt starts from the built one and is saved; an invalid temperature blocks
