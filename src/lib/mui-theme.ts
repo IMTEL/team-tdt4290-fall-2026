@@ -1,6 +1,13 @@
 import { nbNO as coreNbNO } from '@mui/material/locale';
 import { createTheme, type ThemeOptions } from '@mui/material/styles';
 
+// <Button variant="pill">: a rounded, outlined button for choices, e.g. answer options in a chat.
+declare module '@mui/material/Button' {
+  interface ButtonPropsVariantOverrides {
+    pill: true;
+  }
+}
+
 const tokens = {
   background: '#F1FAEE',
   foreground: '#1D3557',
@@ -29,6 +36,30 @@ const themeOptions: ThemeOptions = {
   typography: {
     // matches the --font-geist-sans variable set on <html> in layout.tsx
     fontFamily: 'var(--font-geist-sans, ui-sans-serif, system-ui, sans-serif)',
+  },
+  components: {
+    MuiButton: {
+      variants: [
+        {
+          props: { variant: 'pill' },
+          style: ({ theme }) => ({
+            textTransform: 'none',
+            fontWeight: 500,
+            borderRadius: 'var(--radius-full)',
+            border: `1px solid ${theme.vars.palette.divider}`,
+            padding: theme.spacing(0.75, 2),
+            color: theme.vars.palette.text.primary,
+            '&:hover': {
+              borderColor: theme.vars.palette.primary.main,
+              backgroundColor: theme.vars.palette.action.hover,
+            },
+            '&.Mui-disabled': {
+              borderColor: theme.vars.palette.action.disabledBackground,
+            },
+          }),
+        },
+      ],
+    },
   },
   colorSchemes: {
     light: {

@@ -78,13 +78,7 @@ export function buildBriefing(definition: AgentTypeDefinition, decided: Answers 
       ].join('\n'),
     );
   }
-  sections.push(
-    [
-      '## Blokken du avslutter med',
-      BLOCK_START,
-      ...open.map(({ label, format }) => `${label}: ${format ?? '…'}`),
-    ].join('\n'),
-  );
+  sections.push(['## Blokken du avslutter med', BLOCK_START, ...open.map(blockLine)].join('\n'));
   return sections.join('\n\n');
 }
 
@@ -92,7 +86,8 @@ export function buildBriefing(definition: AgentTypeDefinition, decided: Answers 
  * Reads the answers out of the configurator's block: one `Label: answer` line per field of the
  * type. `decided` holds answers settled before the chat, from a template or profile. Their lines
  * are not needed, and these values win over what the configurator writes. Every other line is
- * required. Returns null if the reply has no block, or if a line is missing or empty.
+ * required, except an optional field's, which becomes empty when its line is missing.
+ * Returns null if the reply has no block, or if a required line is missing or empty.
  */
 export function parseAnswers(
   reply: string,
@@ -108,14 +103,14 @@ export function parseAnswers(
     .map((line) => line.trim());
 
   const answers: Answers = {};
-  for (const { key, label } of definition.fields) {
+  for (const { key, label, optional } of definition.fields) {
     if (decided[key]) {
       answers[key] = decided[key];
       continue;
     }
     const line = lines.find((l) => l.startsWith(`${label}:`));
-    const value = line?.slice(label.length + 1).trim();
-    if (!value) return null;
+    const value = line?.slice(label.length + 1).trim() ?? '';
+    if (!value && !optional) return null;
     answers[key] = value;
   }
   return answers;
@@ -125,6 +120,13 @@ function openFields(definition: AgentTypeDefinition, decided: string[]): AgentFi
   return definition.fields.filter(({ key }) => !decided.includes(key));
 }
 
-function describeField({ label, question, hint }: AgentField): string {
-  return [`${label}: ${question}`, hint].filter(Boolean).join(' ');
+// "(valgfritt)" tells the configurator to offer «Hopp over» and to leave the line out when empty,
+// whatever the hint says.
+function describeField({ label, question, hint, optional }: AgentField): string {
+  return [`${label}${optional ? ' (valgfritt)' : ''}: ${question}`, hint].filter(Boolean).join(' ');
+}
+
+function blockLine({ label, format, optional }: AgentField): string {
+  const line = `${label}: ${format ?? '…'}`;
+  return optional ? `${line} (valgfritt: utelat linjen hvis ingenting ble lagt til)` : line;
 }

@@ -21,6 +21,7 @@ const configuration = {
   jobbsoker: 'under 25, lite erfaring',
   vanskelighetsgrad: 'lett',
   egneSporsmal: 'ingen',
+  tillegg: '',
 };
 
 const agent = {

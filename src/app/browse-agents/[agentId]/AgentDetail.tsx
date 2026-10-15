@@ -16,6 +16,7 @@ import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 
 import { AgentAvatar } from '@/components/agents/AgentAvatar';
+import { AnswerList } from '@/components/agents/AnswerList';
 import { DEFAULT_TEMPERATURE, formatTemperature } from '@/domain/advancedSettings';
 import { readStoredAnswers } from '@/domain/agentTypes/storedAnswers';
 
@@ -84,19 +85,7 @@ export function AgentDetail({ agentId }: { agentId: string }) {
       )}
 
       {stored ? (
-        <Box component="dl" sx={{ m: 0 }}>
-          {stored.definition.fields.map(({ key, label }) => (
-            <Box key={key} sx={{ mb: 1.5 }}>
-              <Typography component="dt" variant="subtitle2">
-                {label}
-              </Typography>
-              <Typography component="dd" sx={{ m: 0 }}>
-                {/* Empty when the agent type got this field after the agent was saved. */}
-                {stored.answers[key] || '–'}
-              </Typography>
-            </Box>
-          ))}
-        </Box>
+        <AnswerList fields={stored.definition.fields} answers={stored.answers} />
       ) : (
         <Typography variant="body1">{state.agent.description}</Typography>
       )}

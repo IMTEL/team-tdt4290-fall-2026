@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useMemo, useState } from 'react';
+import Button from '@mui/material/Button';
 
 import { AgentChat } from '@/components/chat/AgentChat';
 import type { ChatMessage, SendMessages } from '@/components/chat/types';
@@ -9,8 +10,14 @@ import type { AgentTemplate } from '@/data/templates';
 import { decidedFields, firstQuestion } from '@/domain/agentTypes/configurator';
 import type { AgentTypeDefinition, AnswerSources, Answers } from '@/domain/agentTypes/types';
 import type { JobSeekerProfile } from '@/domain/jobSeekerProfile';
+import { parseQuestionOptions } from '@/domain/questionOptions';
 import { sendConfigurationTurn } from './api';
-import { SaveAgentForm } from './SaveAgentForm';
+import { ConfirmConfiguration } from './ConfirmConfiguration';
+import styles from './ConfigurationChat.module.css';
+
+// Shown in the chat instead of the KONFIGURASJON block, which the pop-up shows in a readable way.
+export const FINISHED_REPLY =
+  'Takk! Nå har jeg det jeg trenger. Se gjennom oppsummeringen og lagre agenten.';
 
 // The assistant opens the conversation. Fixed text, so it costs no LLM call. It is also sent to
 // RAGdoll, after the server's briefing, so the agent doesn't greet again, and knows what was
@@ -68,6 +75,8 @@ export function ConfigurationChat({
     configuration: Answers;
     sources: AnswerSources;
   } | null>(null);
+  // Whether the pop-up with the finished configuration is open.
+  const [open, setOpen] = useState(false);
 
   const templateId = template?.id ?? null;
   const profileId = profile?.id ?? null;
@@ -87,26 +96,38 @@ export function ConfigurationChat({
         signal,
       );
       // A reply without a block leaves the last finished configuration as it was.
-      if (result.configuration) {
-        setFinished({ configuration: result.configuration, sources: result.sources });
-      }
-      return result.reply;
+      if (!result.configuration) return result.reply;
+
+      setFinished({ configuration: result.configuration, sources: result.sources });
+      setOpen(true);
+      return FINISHED_REPLY;
     },
     [definition, templateId, profileId, industryTemplateId],
   );
 
   return (
     <>
-      <AgentChat send={askConfigurator} initialMessages={initialMessages} />
+      <AgentChat
+        send={askConfigurator}
+        initialMessages={initialMessages}
+        parseReply={parseQuestionOptions}
+      />
       {/* A new key when the configuration changes resets the form, so a changed
           configuration can be saved again. */}
       {finished && (
-        <SaveAgentForm
-          definition={definition}
-          key={JSON.stringify(finished.configuration)}
-          configuration={finished.configuration}
-          sources={finished.sources}
-        />
+        <>
+          <Button variant="contained" onClick={() => setOpen(true)} className={styles.reopen}>
+            Se oppsummeringen
+          </Button>
+          <ConfirmConfiguration
+            key={JSON.stringify(finished.configuration)}
+            definition={definition}
+            configuration={finished.configuration}
+            sources={finished.sources}
+            open={open}
+            onClose={() => setOpen(false)}
+          />
+        </>
       )}
     </>
   );

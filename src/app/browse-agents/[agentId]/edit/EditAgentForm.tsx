@@ -18,6 +18,7 @@ import { AvatarPicker } from '@/components/agents/AvatarPicker';
 import { useLanguageModels } from '@/components/agents/useLanguageModels';
 import { type AdvancedSettings, advancedSettingsErrors } from '@/domain/advancedSettings';
 import { MAX_NAME_LENGTH } from '@/domain/agentName';
+import { hasAllAnswers } from '@/domain/agentTypes/registry';
 import type {
   AgentTypeDefinition,
   AnswerSource,
@@ -194,7 +195,7 @@ export function EditAgentForm({
     settingsChanges > 0 ? advancedSettingsErrors(settings, languageModels.models) : {};
   const isComplete =
     name.trim() !== '' &&
-    definition.fields.every(({ key }) => answers[key]?.trim()) &&
+    hasAllAnswers(definition, answers) &&
     Object.keys(settingsErrors).length === 0;
   const changes =
     (name.trim() !== initialName ? 1 : 0) +
@@ -290,7 +291,7 @@ export function EditAgentForm({
         <Box
           sx={{ display: 'grid', gap: 2, gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)' } }}
         >
-          {definition.fields.map(({ key, label }) => {
+          {definition.fields.map(({ key, label, optional }) => {
             // Measured on the saved answer, so the layout does not jump while typing.
             const isLong = (initialAnswers[key] ?? '').length > LONG_ANSWER;
             return (
@@ -299,7 +300,7 @@ export function EditAgentForm({
                 label={label}
                 value={answers[key] ?? ''}
                 onChange={(event) => typeAnswer(key, event.target.value)}
-                required
+                required={!optional}
                 multiline
                 minRows={isLong ? 3 : 1}
                 fullWidth

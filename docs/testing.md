@@ -63,11 +63,24 @@ Unit and component level only:
 - `src/components/chat/ChatInput.test.tsx`: Enter and the button send the trimmed text and clear
   the box, Shift+Enter adds a new line, blank text and a disabled input never send.
 - `src/components/chat/MessageList.test.tsx`: messages in order with a hidden speaker label, and
-  the typing bubble only while the assistant answers.
-- `src/app/configure/ConfigurationChat.test.tsx`: greeting, typing bubble and reply; the whole
+  the typing bubble only while the assistant answers; the newest question's answer options can be
+  clicked, older ones are shown as a numbered list, and options are hidden while the assistant
+  answers.
+- `src/components/chat/AgentChat.test.tsx`: greeting, typing bubble and reply; the whole
   conversation (greeting included) is sent; friendly error, sending blocked, Retry resends the same
   history without repeating the user's message; no technical error text; leaving the page aborts
   the request.
+- `src/components/chat/QuestionOptions.test.tsx`: one-answer options are buttons with the agent's
+  numbers that answer at once; several-answer options are checkboxes sent in the agent's order
+  together with the free-text answer; a free-text answer alone can be sent; nothing is sent before
+  something is chosen or written; optional questions get «Hopp over», alone or next to the
+  options; everything is disabled while the agent answers.
+- `src/domain/questionOptions.test.ts`: the `[ALTERNATIVER: ett|flere]` block is split from the
+  text, keeps the agent's numbers, tolerates `1)` and spacing, and a reply without a block or
+  without options is plain text; a `[VALGFRITT]` line makes a question skippable and is hidden;
+  answers are written as `1. HR, 3. Kollega. Annet: …`.
+- `src/components/agents/AnswerList.test.tsx`: each label with its answer, and a dash for an
+  empty one.
 - `src/components/templates/TemplatePicker.test.tsx`: every template is shown, clicking one
   selects it, "Fortsett uten mal" selects none, "Lag en ny mal" links to `/create-template` (with
   the agent type when given), the type's lead is shown, and
@@ -86,10 +99,13 @@ Unit and component level only:
   industry and sector, clicking one selects it, "Fortsett uten bransjemal" selects none, and the
   sector filter shows only public or only private jobs.
 - `src/app/configure/ConfigurationChat.test.tsx`: the greeting names the template; with an
-  industry template it names that too and asks about the company instead of the job; the agent type,
-  the template id
-  and the whole conversation (greeting included) go to the configuration turn route; the save form only appears once the
-  configuration is finished.
+  industry template it names that too and asks about the company instead of the job; the agent
+  type, the template id and the whole conversation (greeting included) go to the configuration
+  turn route; a clicked answer option is sent as a chat message and the conversation goes on; a
+  finished configuration shows a short message in the chat instead of the `KONFIGURASJON` block
+  and opens the «Stemmer dette?» pop-up with the configuration (Tillegg included) and the save
+  form; «Nei, jeg vil endre noe» closes it, «Se oppsummeringen» opens it again, and a new
+  configuration opens it again.
 - `src/app/configure/SaveAgentForm.test.tsx`: saves under the chosen name and links to testing the
   new agent and to the agents; sends advanced settings only when they were changed; no saving
   without a name or with an empty hand-written prompt; shows the error and lets the user try again.
@@ -183,17 +199,19 @@ Unit and component level only:
 - `src/domain/agentTypes/configurator.test.ts`: which fields a template or profile decides, the
   chat's first question, the briefing (questions in order with hints, the type's rules, the block,
   and decided fields left out of both but listed with their text), and reading the `KONFIGURASJON`
-  block for any type (complete, missing or empty lines, extra spaces, fields fixed by an
-  interviewer or industry template winning). A made-up teacher type shows that a new type needs
+  block for any type (complete, missing or empty lines, extra spaces, the optional Tillegg left
+  empty when its line is missing, fields fixed by an interviewer or industry template winning). A made-up teacher type shows that a new type needs
   only its definition.
-- `src/domain/interviewerPrompt.test.ts`: filling the interviewer prompt from the answers.
+- `src/domain/interviewerPrompt.test.ts`: filling the interviewer prompt from the answers, with
+  the Tillegg line only when something was added.
 - `src/domain/interviewerSummary.test.ts` and `src/domain/difficulty.test.ts`: the summary in up to
   three sentences; each sentence is left out when its answers are empty; the type and level of
   difficulty (also when the chat added the number of questions); a long job seeker description is
   cut after a whole part; nothing known gives "".
 - `src/domain/agentTypes/registry.test.ts`: looking up an agent type, every counsellor having
   every type for now, which types templates can be made for, the planned types (none has a
-  definition), checking that every field has an answer, the interviewer's prompt and role, and for
+  definition), checking that every required field has an answer while the optional Tillegg may be
+  empty or missing, the interviewer's prompt and role, and for
   every registered type: a label, description and greeting, unique fields with questions, presets
   that name its own fields, the wording for its templates if it has them, and a prompt, roles and name built from a full set of answers.
 - `src/domain/agentTypes/storedAnswers.test.ts`: answers are saved with their type and version

@@ -1,28 +1,24 @@
+/* The Dialog lays out its content and actions; the form only groups them for submitting. */
 .form {
+  display: contents;
+}
+
+.content {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
-  padding: 1rem;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  background: var(--card);
+  gap: var(--space-4);
 }
 
 .lead {
   color: var(--muted-foreground);
 }
 
-.button {
-  align-self: flex-start;
-}
-
 .avatar {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: var(--space-2);
 }
 
 .avatarLabel {
-  margin: 0;
   font-weight: 500;
 }
