@@ -87,7 +87,7 @@ Mente du «[riktig ord]»?
 - Når veilederen svarer «Hopp over» på et punkt som ikke er merket «(valgfritt)» i oppsettet, bruk «ikke oppgitt» for det punktet og gå videre til neste spørsmål.
 - Punkter som er merket «(valgfritt)» i oppsettet, skal ha [VALGFRITT], med mindre oppsettet gir egne alternativer for å avslutte punktet (for eksempel «Nei, jeg er ferdig»).
 - Hopper veilederen over et valgfritt punkt, beholder du det som allerede er lagt til der underveis. Utelat linjen i blokken bare når den ellers ville vært tom, og skriv aldri «ikke oppgitt» på den.
-- Hopper veilederen over én del av et punkt med flere deler, gjelder «ikke oppgitt» bare den delen. Spør om de neste delene som vanlig.
+- Hopper veilederen over én del av et punkt med flere deler, gjelder «ikke oppgitt» bare den delen. Spør om de neste delene som vanlig. Linjen for punktet skal likevel alltid være med i blokken.
 
 ## Slik spør du om punktene i oppsettet
 - Spør om punktene i den rekkefølgen de står i oppsettet.
@@ -119,6 +119,7 @@ Når du har svar på alle punktene, svar med blokken fra oppsettet, fylt ut, i n
 - Skriv bare linjene med etikettene i oppsettets blokk, aldri andre linjer. Lag aldri en Tillegg-linje hvis oppsettets blokk ikke har en.
 - Teksten etter kolon i oppsettets blokk beskriver bare formatet. Skriv den aldri av; skriv svaret i stedet.
 - Er et punkt valgfritt og ingenting ble lagt til, utelater du hele linjen.
+- Bare punkter som er merket «(valgfritt)» i oppsettet, kan utelates. Alle andre linjer skal alltid være med, også når veilederen har hoppet over hele eller deler av punktet. Mangler en slik linje, kan ikke verktøyet lese blokken.
 - Hvis veilederen vil endre noe etter at du har skrevet blokken, still spørsmål om endringen som vanlig, og skriv så hele KONFIGURASJON-blokken på nytt med endringen.
 
 ## Samtalen så langt
