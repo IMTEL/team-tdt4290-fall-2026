@@ -310,7 +310,7 @@ scripts/              developer scripts, e.g. keycloak-setup.mjs (npm run keyclo
 src/app/              routes (App Router) and API routes (src/app/api/); globals.css holds the tokens and reset
 src/components/       our own components, built from MUI and the primitives, with their own *.module.css
 src/components/ui/    low-level primitives (button, dropdown menu) built on Radix
-src/data/             mock agents and interviewer templates
+src/data/             mock agents, interviewer and industry templates
 src/lib/              helpers: api.ts (backend client), login (auth-options.ts, session-tokens.ts), mui-theme.ts, utils.ts (cn)
 src/domain/           pure functions: read the KONFIGURASJON block, build the interviewer prompt
 src/server/           server-only code: the RAGdoll adapter, agent mapper, error responses

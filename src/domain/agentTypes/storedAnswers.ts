@@ -4,11 +4,16 @@ import type { AgentTypeDefinition, AnswerSource, AnswerSources, Answers } from '
 // Bump this if the answers of a type ever change so much that old saves must be converted.
 const VERSION = 1;
 
-/** An agent's answers, together with the agent type they belong to and where they came from. */
+/**
+ * An agent's answers, together with the agent type they belong to and where they came from.
+ * `customPrompt` is true when the counsellor wrote the system prompt by hand, so the answers must
+ * not rebuild it.
+ */
 export type StoredAnswers = {
   definition: AgentTypeDefinition;
   answers: Answers;
   sources: AnswerSources;
+  customPrompt: boolean;
 };
 
 /**
@@ -19,8 +24,16 @@ export function toStoredDescription(
   definition: AgentTypeDefinition,
   answers: Answers,
   sources: AnswerSources = {},
+  { customPrompt = false }: { customPrompt?: boolean } = {},
 ): string {
-  return JSON.stringify({ type: definition.id, version: VERSION, answers, sources });
+  // The flag is only written when it is set, so agents saved before it existed read as false.
+  return JSON.stringify({
+    type: definition.id,
+    version: VERSION,
+    answers,
+    sources,
+    ...(customPrompt && { customPrompt: true }),
+  });
 }
 
 /**
@@ -63,7 +76,7 @@ export function readStoredAnswers(description: string): StoredAnswers | null {
   }
   if (typeof saved !== 'object' || saved === null) return null;
 
-  const { type, answers, sources } = unwrap(saved as Record<string, unknown>);
+  const { type, answers, sources, customPrompt } = unwrap(saved as Record<string, unknown>);
 
   const definition = typeof type === 'string' ? getAgentType(type) : undefined;
   if (!definition || typeof answers !== 'object' || answers === null) return null;
@@ -72,7 +85,12 @@ export function readStoredAnswers(description: string): StoredAnswers | null {
   // Some JSON without a single one of our answers in it was not saved by us.
   if (Object.values(filled).every((answer) => answer === '')) return null;
 
-  return { definition, answers: filled, sources: cleanSources(definition, sources) };
+  return {
+    definition,
+    answers: filled,
+    sources: cleanSources(definition, sources),
+    customPrompt: customPrompt === true,
+  };
 }
 
 /**
@@ -96,10 +114,16 @@ function unwrap(saved: Record<string, unknown>): {
   type: unknown;
   answers: unknown;
   sources: unknown;
+  customPrompt: unknown;
 } {
   if ('type' in saved && 'answers' in saved) {
     // Agents saved before sources existed have none.
-    return { type: saved.type, answers: saved.answers, sources: saved.sources };
+    return {
+      type: saved.type,
+      answers: saved.answers,
+      sources: saved.sources,
+      customPrompt: saved.customPrompt,
+    };
   }
-  return { type: DEFAULT_AGENT_TYPE, answers: saved, sources: undefined };
+  return { type: DEFAULT_AGENT_TYPE, answers: saved, sources: undefined, customPrompt: false };
 }

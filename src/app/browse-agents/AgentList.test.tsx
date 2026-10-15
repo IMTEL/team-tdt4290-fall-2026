@@ -15,6 +15,9 @@ function makeAgent(fields: Partial<Agent> = {}): Agent {
     name: 'Intervjuer for Barnehagelærer',
     description: '{"stilling":"Barnehagelærer"}',
     lastUpdated: '2026-10-02T12:00:00.000Z',
+    llmModel: 'openai/gpt-oss-120b',
+    temperature: 0.7,
+    prompt: 'Du er en intervjuer.',
     type: 'interviewer',
     typeLabel: 'Intervjuer',
     stilling: 'Barnehagelærer',
@@ -51,7 +54,7 @@ describe('AgentList', () => {
     render(<AgentList />);
 
     expect(await screen.findByText(/Du har ingen agenter ennå/)).toBeVisible();
-    expect(screen.getByRole('link', { name: 'Sett opp en intervjuer' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Sett opp en agent' })).toHaveAttribute(
       'href',
       '/configure',
     );

@@ -20,17 +20,22 @@ describe('/create-template', () => {
   it('saves the form as a new template', async () => {
     saveMock.mockResolvedValue('template-1');
     const user = userEvent.setup();
-    render(<CreateTemplatePage />);
+    render(await CreateTemplatePage({ searchParams: Promise.resolve({}) }));
 
-    await user.type(screen.getByRole('textbox', { name: /Navn på malen/ }), 'Butikksjef');
-    await user.type(screen.getByRole('textbox', { name: /Kort beskrivelse/ }), 'Vennlig.');
-    await user.type(
-      screen.getByRole('textbox', { name: /Beskrivelse av intervjueren/ }),
-      'Hen er butikksjef.',
-    );
+    // Pastes instead of typing: typing re-renders the MUI field once per letter, which is slow
+    // enough to time out when the whole test suite runs at once.
+    async function enter(name: RegExp, text: string) {
+      await user.click(screen.getByRole('textbox', { name }));
+      await user.paste(text);
+    }
+
+    await enter(/Navn på malen/, 'Butikksjef');
+    await enter(/Kort beskrivelse/, 'Vennlig.');
+    await enter(/Beskrivelse av intervjueren/, 'Hen er butikksjef.');
     await user.click(screen.getByRole('button', { name: 'Lagre mal' }));
 
     expect(saveMock).toHaveBeenCalledWith({
+      agentType: 'interviewer',
       title: 'Butikksjef',
       description: 'Vennlig.',
       focus: [],

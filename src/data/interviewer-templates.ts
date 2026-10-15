@@ -1,26 +1,9 @@
-export interface InterviewerTemplate {
-  id: string;
-  /** The interviewer's role, shown on the card. */
-  title: string;
-  /** One line for the counsellor about what this interviewer is like. */
-  description: string;
-  /** What the interviewer focuses on, shown as tags on the card. */
-  focus: string[];
-  /** Becomes the Intervjuer field of the configuration. Written as the counsellor would say it. */
-  persona: string;
-}
+import type { AgentTemplate } from './templates';
 
-/** The longest each field of a saved template may be. The server checks them too. */
-export const TEMPLATE_LIMITS = {
-  title: 80,
-  description: 300,
-  focusItems: 6,
-  focusItem: 40,
-  persona: 2000,
-} as const;
-
-export const interviewerTemplates: InterviewerTemplate[] = [
+/** The built-in templates for interviewers. Counsellors can save their own on /create-template. */
+export const interviewerTemplates: AgentTemplate[] = [
   {
+    agentType: 'interviewer',
     id: 'daglig-leder',
     title: 'Daglig leder',
     description: 'Leder en mindre bedrift og ansetter selv. Direkte, opptatt av helheten.',
@@ -31,6 +14,7 @@ export const interviewerTemplates: InterviewerTemplate[] = [
       'holdninger, pålitelighet og hvorfor kandidaten vil jobbe akkurat her.',
   },
   {
+    agentType: 'interviewer',
     id: 'hr-medarbeider',
     title: 'HR-medarbeider',
     description: 'Følger en fast struktur og stiller atferdsspørsmål. Saklig og grundig.',
@@ -41,6 +25,7 @@ export const interviewerTemplates: InterviewerTemplate[] = [
       'samarbeid, styrker og svakheter, og ber om konkrete eksempler.',
   },
   {
+    agentType: 'interviewer',
     id: 'teamleder',
     title: 'Teamleder',
     description: 'Skal jobbe tett med kandidaten til daglig. Praktisk og uformell.',
@@ -51,6 +36,7 @@ export const interviewerTemplates: InterviewerTemplate[] = [
       'med kolleger og håndterer travle dager og uenighet.',
   },
   {
+    agentType: 'interviewer',
     id: 'fagperson',
     title: 'Fagperson',
     description: 'En erfaren kollega som tester fagkunnskap. Nysgjerrig og konkret.',
@@ -60,7 +46,3 @@ export const interviewerTemplates: InterviewerTemplate[] = [
       'tester fagkunnskap med praktiske spørsmål og små case-oppgaver fra hverdagen i jobben.',
   },
 ];
-
-export function findTemplate(id: string): InterviewerTemplate | undefined {
-  return interviewerTemplates.find((template) => template.id === id);
-}

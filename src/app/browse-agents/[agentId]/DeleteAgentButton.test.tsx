@@ -17,6 +17,9 @@ const agent = {
   name: 'Intervjuer for Barnehagelærer',
   description: '{}',
   lastUpdated: '2026-10-02T12:00:00.000Z',
+  llmModel: 'openai/gpt-oss-120b',
+  temperature: 0.7,
+  prompt: 'Du er en intervjuer.',
 };
 
 async function openDialog() {

@@ -2,6 +2,7 @@ import { render, screen } from '@testing-library/react';
 import userEvent, { type UserEvent } from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { type AdvancedSettings, DEFAULT_ADVANCED_SETTINGS } from '@/domain/advancedSettings';
 import { interviewer } from '@/domain/agentTypes/interviewer';
 import type { AnswerSources, Answers } from '@/domain/agentTypes/types';
 import { EditAgentForm, type AnswerPreset } from './EditAgentForm';
@@ -9,8 +10,23 @@ import { EditAgentForm, type AnswerPreset } from './EditAgentForm';
 const push = vi.hoisted(() => vi.fn());
 
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push }) }));
+vi.mock('@/components/agents/useLanguageModels', () => ({
+  useLanguageModels: () => ({
+    models: ['openai/gpt-oss-120b', 'meta/llama-3.3-70b'],
+    loading: false,
+    failed: false,
+  }),
+}));
 
-const onSave = vi.fn<(name: string, answers: Answers, sources: AnswerSources) => Promise<string>>();
+const onSave =
+  vi.fn<
+    (
+      name: string,
+      answers: Answers,
+      sources: AnswerSources,
+      settings?: AdvancedSettings,
+    ) => Promise<string>
+  >();
 
 const answers = {
   stilling: 'Barnehagelærer',
@@ -40,6 +56,7 @@ const profilePreset: AnswerPreset = {
 type RenderOptions = {
   initialAnswers?: Answers;
   initialSources?: AnswerSources;
+  initialSettings?: AdvancedSettings;
   allowUnchanged?: boolean;
   presets?: AnswerPreset[];
 };
@@ -47,6 +64,7 @@ type RenderOptions = {
 function renderForm({
   initialAnswers = answers,
   initialSources,
+  initialSettings = DEFAULT_ADVANCED_SETTINGS,
   allowUnchanged = false,
   presets,
 }: RenderOptions = {}) {
@@ -57,6 +75,7 @@ function renderForm({
       definition={interviewer}
       initialAnswers={initialAnswers}
       initialSources={initialSources}
+      initialSettings={initialSettings}
       label="Rediger agent"
       submitLabel="Lagre endringer"
       onSave={onSave}
@@ -102,12 +121,72 @@ describe('EditAgentForm', () => {
     await replaceText(user, 'Vanskelighetsgrad', 'vanskelig');
     await user.click(saveButton());
 
+    // Unchanged advanced settings are not sent, so the agent keeps the ones it has.
     expect(onSave).toHaveBeenCalledWith(
       'Ny intervjuer',
       { ...answers, vanskelighetsgrad: 'vanskelig' },
       {},
+      undefined,
     );
     expect(push).toHaveBeenCalledWith('/browse-agents/agent-2');
+  });
+
+  it('saves a hand-written system prompt with the advanced settings', async () => {
+    onSave.mockResolvedValue('agent-1');
+    const user = userEvent.setup();
+    renderForm();
+
+    await user.click(screen.getByRole('button', { name: /Avanserte innstillinger/ }));
+    await user.click(screen.getByRole('switch', { name: 'Skriv systemprompten selv' }));
+    // The editor starts with the prompt built from the answers.
+    expect(field('Systemprompt')).toHaveValue(interviewer.buildPrompt(answers));
+
+    await replaceText(user, 'Systemprompt', 'Du er en streng barnehagestyrer.');
+    expect(screen.getByText('1 endring som ikke er lagret')).toBeVisible();
+    await user.click(saveButton());
+
+    expect(onSave).toHaveBeenCalledWith(
+      'Intervjuer for Barnehagelærer',
+      answers,
+      {},
+      {
+        ...DEFAULT_ADVANCED_SETTINGS,
+        customPrompt: 'Du er en streng barnehagestyrer.',
+      },
+    );
+  });
+
+  it('says the answers no longer change a hand-written prompt', () => {
+    renderForm({ initialSettings: { ...DEFAULT_ADVANCED_SETTINGS, customPrompt: 'Du er Kari.' } });
+
+    expect(
+      screen.getByText('Systemprompten er skrevet for hånd, så disse svarene endrer den ikke.'),
+    ).toBeVisible();
+  });
+
+  it('can still be saved when settings it did not change would not pass its own checks', async () => {
+    onSave.mockResolvedValue('agent-1');
+    const user = userEvent.setup();
+    // Saved by another client with three decimals, which the form would not accept.
+    renderForm({ initialSettings: { ...DEFAULT_ADVANCED_SETTINGS, temperature: 0.333 } });
+
+    await replaceText(user, 'Navn', 'Ny intervjuer');
+    expect(screen.getByText('1 endring som ikke er lagret')).toBeVisible();
+    expect(saveButton()).toBeEnabled();
+    await user.click(saveButton());
+
+    expect(onSave).toHaveBeenCalledWith('Ny intervjuer', answers, {}, undefined);
+  });
+
+  it('cannot be saved with an invalid temperature, and says why in Norwegian', async () => {
+    const user = userEvent.setup();
+    renderForm();
+
+    await user.click(screen.getByRole('button', { name: /Avanserte innstillinger/ }));
+    await replaceText(user, 'Verdi', '3');
+
+    expect(saveButton()).toBeDisabled();
+    expect(screen.getByText(/Temperaturen må være et tall mellom 0 og 2/)).toBeVisible();
   });
 
   it('shows the error and keeps what was typed when saving fails', async () => {
@@ -143,7 +222,7 @@ describe('EditAgentForm', () => {
 
     await user.click(saveButton());
 
-    expect(onSave).toHaveBeenCalledWith('Intervjuer for Barnehagelærer', answers, {});
+    expect(onSave).toHaveBeenCalledWith('Intervjuer for Barnehagelærer', answers, {}, undefined);
   });
 
   it('cannot be saved while a field is empty', async () => {
@@ -188,6 +267,7 @@ describe('EditAgentForm', () => {
         'Intervjuer for Barnehagelærer',
         { ...answers, jobbsoker: 'aldersgruppe 30–39 år' },
         { jobbsoker: { kind: 'profile', id: 'profile-2' } },
+        undefined,
       );
     });
 

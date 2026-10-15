@@ -13,6 +13,9 @@ import Stack from '@mui/material/Stack';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 
+import { AdvancedSettingsFields } from '@/components/agents/AdvancedSettingsFields';
+import { useLanguageModels } from '@/components/agents/useLanguageModels';
+import { type AdvancedSettings, advancedSettingsErrors } from '@/domain/advancedSettings';
 import { MAX_NAME_LENGTH } from '@/domain/agentName';
 import type {
   AgentTypeDefinition,
@@ -82,20 +85,30 @@ type EditAgentFormProps = {
   initialAnswers: Answers;
   /** Where the saved answers came from. */
   initialSources?: AnswerSources;
+  initialSettings: AdvancedSettings;
   /** The form's name for screen readers. */
   label: string;
   submitLabel: string;
-  /** Saves the name, answers and sources, and returns the id of the agent to go to afterwards. */
-  onSave: (name: string, answers: Answers, sources: AnswerSources) => Promise<string>;
+  /**
+   * Saves the name, answers, sources and (only the changed) advanced settings, and returns the id
+   * of the agent to go to afterwards. `settings` is undefined when the advanced settings were not
+   * changed.
+   */
+  onSave: (
+    name: string,
+    answers: Answers,
+    sources: AnswerSources,
+    settings?: AdvancedSettings,
+  ) => Promise<string>;
   /** True when saving is allowed without changes, as for a clone. */
   allowUnchanged?: boolean;
   presets?: AnswerPreset[];
 };
 
 /**
- * Change an agent's name and answers, for editing an agent or for saving a clone of it. The fields
- * come from the agent type, so the form works for every type, and a field added to a type shows up
- * here by itself.
+ * Change an agent's name, answers and advanced settings, for editing an agent or for saving a clone
+ * of it. The fields come from the agent type, so the form works for every type, and a field added
+ * to a type shows up here by itself.
  */
 export function EditAgentForm({
   agentId,
@@ -103,6 +116,7 @@ export function EditAgentForm({
   definition,
   initialAnswers,
   initialSources = {},
+  initialSettings,
   label,
   submitLabel,
   onSave,
@@ -113,7 +127,9 @@ export function EditAgentForm({
   const [name, setName] = useState(initialName);
   const [answers, setAnswers] = useState(initialAnswers);
   const [sources, setSources] = useState(initialSources);
+  const [settings, setSettings] = useState(initialSettings);
   const [status, setStatus] = useState<SaveStatus>({ kind: 'idle' });
+  const languageModels = useLanguageModels(initialSettings.model);
 
   function setSource(key: string, source: AnswerSource | null) {
     setSources((current) => {
@@ -144,7 +160,13 @@ export function EditAgentForm({
     event.preventDefault();
     setStatus({ kind: 'saving' });
     try {
-      const savedId = await onSave(name.trim(), answers, sources);
+      // Only changed settings are sent; otherwise the agent keeps the ones it has.
+      const savedId = await onSave(
+        name.trim(),
+        answers,
+        sources,
+        settingsChanges > 0 ? settings : undefined,
+      );
       router.push(`/browse-agents/${savedId}`);
     } catch (error) {
       // The form keeps what was typed, so nothing is lost and the counsellor can try again.
@@ -155,14 +177,24 @@ export function EditAgentForm({
   }
 
   const isSaving = status.kind === 'saving';
+  const settingsChanges = (['model', 'temperature', 'customPrompt'] as const).filter(
+    (key) => settings[key] !== initialSettings[key],
+  ).length;
+  // Unchanged settings are not sent, so settings saved by another client that our form would not
+  // accept (three decimals, say) must not stop the counsellor from changing the name or answers.
+  const settingsErrors =
+    settingsChanges > 0 ? advancedSettingsErrors(settings, languageModels.models) : {};
   const isComplete =
-    name.trim() !== '' && definition.fields.every(({ key }) => answers[key]?.trim());
+    name.trim() !== '' &&
+    definition.fields.every(({ key }) => answers[key]?.trim()) &&
+    Object.keys(settingsErrors).length === 0;
   const changes =
     (name.trim() !== initialName ? 1 : 0) +
     definition.fields.filter(
       ({ key }) =>
         answers[key] !== initialAnswers[key] || !sameSource(sources[key], initialSources[key]),
-    ).length;
+    ).length +
+    settingsChanges;
 
   return (
     <Box
@@ -186,7 +218,13 @@ export function EditAgentForm({
 
       <Section
         title="Konfigurasjon"
-        description="Når du lagrer, lages systemprompten på nytt fra disse svarene."
+        description={
+          settings.customPrompt === null
+            ? // English translation: When you save, the system prompt is made again from these answers.
+              'Når du lagrer, lages systemprompten på nytt fra disse svarene.'
+            : // English translation: The system prompt is written by hand, so these answers do not change it.
+              'Systemprompten er skrevet for hånd, så disse svarene endrer den ikke.'
+        }
       >
         {presets.length > 0 && (
           <Box
@@ -256,6 +294,15 @@ export function EditAgentForm({
           })}
         </Box>
       </Section>
+
+      <AdvancedSettingsFields
+        value={settings}
+        onChange={setSettings}
+        builtPrompt={definition.buildPrompt(answers)}
+        languageModels={languageModels}
+        errors={settingsErrors}
+        disabled={isSaving}
+      />
 
       {status.kind === 'error' && <Alert severity="error">{status.message}</Alert>}
 

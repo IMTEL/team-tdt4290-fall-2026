@@ -17,6 +17,7 @@ const updateMock = vi.mocked(updateTemplate);
 
 const template = {
   id: 'template-1',
+  agentType: 'interviewer',
   title: 'Butikksjef',
   description: 'Vennlig.',
   focus: ['Service'],
@@ -39,7 +40,10 @@ describe('EditTemplate', () => {
     const title = await screen.findByRole('textbox', { name: /Navn på malen/ });
     expect(title).toHaveValue('Butikksjef');
 
-    await user.type(title, ' Kari');
+    // Pastes at the end instead of typing, which is slow enough with MUI to time out.
+    await user.click(title);
+    await user.keyboard('{End}');
+    await user.paste(' Kari');
     await user.click(screen.getByRole('button', { name: 'Lagre endringene' }));
 
     const { id, ...fields } = template;

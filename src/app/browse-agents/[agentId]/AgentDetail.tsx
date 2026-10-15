@@ -14,6 +14,7 @@ import Paper from '@mui/material/Paper';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 
+import { DEFAULT_TEMPERATURE, formatTemperature } from '@/domain/advancedSettings';
 import { readStoredAnswers } from '@/domain/agentTypes/storedAnswers';
 
 import { useAgent } from '../useAgent';
@@ -45,9 +46,15 @@ export function AgentDetail({ agentId }: { agentId: string }) {
 
   return (
     <Box sx={{ p: 3, maxWidth: 720 }}>
-      <Typography variant="h4" component="h1" sx={{ mb: 2 }}>
+      <Typography variant="h4" component="h1" sx={{ mb: stored ? 0.5 : 2 }}>
         {state.agent.name}
       </Typography>
+      {/* Agents saved before types could be chosen are read as interviewers. */}
+      {stored && (
+        <Typography color="text.secondary" sx={{ mb: 2 }}>
+          Agenttype: {stored.definition.label}
+        </Typography>
+      )}
 
       {summary && (
         <Paper
@@ -88,18 +95,51 @@ export function AgentDetail({ agentId }: { agentId: string }) {
         <Typography variant="body1">{state.agent.description}</Typography>
       )}
 
-      {stored && (
-        <Accordion sx={{ mt: 3 }}>
-          <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-            <Typography component="span">Systemprompt</Typography>
-          </AccordionSummary>
-          <AccordionDetails>
-            <Typography component="pre" variant="body2" sx={{ whiteSpace: 'pre-wrap', m: 0 }}>
-              {stored.definition.buildPrompt(stored.answers)}
-            </Typography>
-          </AccordionDetails>
-        </Accordion>
-      )}
+      <Accordion sx={{ mt: 3 }}>
+        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+          {/* English translation: Advanced settings */}
+          <Typography component="span">Avanserte innstillinger</Typography>
+        </AccordionSummary>
+        <AccordionDetails>
+          <Box component="dl" sx={{ m: 0 }}>
+            <Box sx={{ mb: 1.5 }}>
+              <Typography component="dt" variant="subtitle2">
+                {/* English translation: Language model */}
+                Språkmodell
+              </Typography>
+              <Typography component="dd" sx={{ m: 0 }}>
+                {state.agent.llmModel || '–'}
+              </Typography>
+            </Box>
+            <Box sx={{ mb: 1.5 }}>
+              <Typography component="dt" variant="subtitle2">
+                {/* English translation: Temperature */}
+                Temperatur
+              </Typography>
+              <Typography component="dd" sx={{ m: 0 }}>
+                {formatTemperature(state.agent.temperature ?? DEFAULT_TEMPERATURE)}
+              </Typography>
+            </Box>
+            <Box>
+              <Stack component="dt" direction="row" spacing={1} sx={{ alignItems: 'center' }}>
+                {/* English translation: System prompt */}
+                <Typography variant="subtitle2">Systemprompt</Typography>
+                {stored?.customPrompt && (
+                  // English translation: Written by hand
+                  <Chip label="Skrevet for hånd" size="small" variant="outlined" />
+                )}
+              </Stack>
+              <Typography
+                component="dd"
+                variant="body2"
+                sx={{ m: 0, mt: 0.5, whiteSpace: 'pre-wrap', fontFamily: 'monospace' }}
+              >
+                {state.agent.prompt || '–'}
+              </Typography>
+            </Box>
+          </Box>
+        </AccordionDetails>
+      </Accordion>
 
       <Stack direction="row" spacing={1} sx={{ mt: 3 }}>
         <Button

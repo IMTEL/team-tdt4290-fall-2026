@@ -175,8 +175,8 @@ sequenceDiagram
     end
 ```
 
-`GET /api/agents` lists the same user's agents and returns only `id`, `name`, `description` and
-`lastUpdated`, plus what the agent cards and the filter read from the stored answers: `type`,
+`GET /api/agents` lists the same user's agents and returns only `id`, `name`, `description`,
+`lastUpdated` and the advanced settings (`llmModel`, `temperature`, `prompt`), plus what the agent cards and the filter read from the stored answers: `type`,
 `typeLabel`, `stilling`, `bransje` and `vanskelighetsgrad` (null when the agent was not made in
 this app). RAGdoll's copy of the IDUN key is dropped before the list leaves our server.
 
@@ -215,8 +215,7 @@ The route reads, modifies and writes the whole agent, because of how RAGdoll's
 `POST /update-agent/` behaves:
 
 - **It replaces the whole agent.** Every field left out of the body is reset to its default
-  (`context_aware_retrieval`, temperature, and later the advanced settings), so we send back
-  every field we read.
+  (`context_aware_retrieval`, for example), so we send back every field we read.
 - **An unknown id creates a new agent.** So we write only after finding the id among the user's
   agents. We read from `GET /agents/`, not `/fetch-agent`, because `/fetch-agent` answers 401 both
   for an expired session and for an agent that is someone else's or does not exist.
@@ -224,12 +223,48 @@ The route reads, modifies and writes the whole agent, because of how RAGdoll's
   update needs no `IDUN_API_KEY`.
 
 The prompt is rebuilt from the answers on every save, so an edit also brings an older agent up to
-the current prompt. RAGdoll lets both owners and collaborators update an agent. This app has no way
+the current prompt, unless the counsellor wrote it by hand (see below). RAGdoll lets both owners
+and collaborators update an agent. This app has no way
 to add collaborators, so in practice only the owner can edit.
 
 Code: [`src/app/api/agents/[agentId]/route.ts`](../src/app/api/agents/[agentId]/route.ts),
 [`src/server/agentMapper.ts`](../src/server/agentMapper.ts),
 [`src/server/ragdoll.ts`](../src/server/ragdoll.ts).
+
+### Advanced settings
+
+Experienced counsellors can change three things beyond the configuration, both before saving
+(under the save form in `/configure`) and on the edit page. The agent details page shows them
+read-only.
+
+| Setting        | Stored in RAGdoll as | Default                     | Checked by                                                 |
+| -------------- | -------------------- | --------------------------- | ---------------------------------------------------------- |
+| Language model | `llm_model`          | `openai/gpt-oss-120b`       | Must be one of the models `GET /api/models` lists          |
+| Temperature    | `llm_temperature`    | 0.7 (RAGdoll's own default) | 0 to 2, at most two decimals                               |
+| System prompt  | `prompt`             | Built from the answers      | Not empty, at most 20,000 characters, when written by hand |
+
+- `GET /api/models` asks RAGdoll's `POST /get_models` with the project's IDUN key, which stays on
+  the server. If RAGdoll cannot list the models, the default (and an agent's current model) can
+  still be chosen. Any failure counts as "cannot list", 401 included: RAGdoll also answers 401
+  when IDUN rejects the project's key, so it says nothing about the counsellor's login.
+- Saving only asks RAGdoll for the list when the chosen model is neither the default nor the
+  agent's current model. If the list cannot be loaded then, the save answers 502 instead of
+  rejecting a model that may well be valid.
+- A hand-written prompt is marked with `customPrompt: true` in the stored answers. While the mark is
+  there, changing the answers does not rebuild the prompt; turning "Skriv systemprompten selv"
+  off removes the mark and rebuilds it.
+- Without `advanced` in the body, `POST /api/agents` uses the defaults and `PUT` keeps what the
+  agent has.
+- RAGdoll's chat pipeline only uses the temperature from `tdt4290/main` with the fix
+  `fix/agent-temperature`; before that it stored the value but ignored it.
+- A hand-written prompt does not get the guardrails of the built prompt (stay in role, never ask
+  for personal data). The form reminds the counsellor; appending the guardrails always is an open
+  decision.
+
+Code: [`src/domain/advancedSettings.ts`](../src/domain/advancedSettings.ts),
+[`src/components/agents/AdvancedSettingsFields.tsx`](../src/components/agents/AdvancedSettingsFields.tsx),
+[`src/app/api/models/route.ts`](../src/app/api/models/route.ts),
+[`src/server/models.ts`](../src/server/models.ts).
 
 ### Deleting an agent
 
@@ -326,13 +361,14 @@ sequenceDiagram
     participant R as RAGdoll
     participant I as IDUN
 
-    B->>N: POST {messages}
+    B->>N: POST {agentType, templateId?, profileId?, messages}
     N->>N: Require a session, look up configurator id + access key in env
-    N->>R: POST /api/chat/ask {agent_id, access_key, chat_log}
+    N->>N: Build the briefing from the agent type's definition
+    N->>R: POST /api/chat/ask {agent_id, access_key, chat_log: [briefing, ...messages]}
     R->>I: System prompt + history
     I-->>R: Completion
     R-->>N: {response: {response: "<text>", ...}}
-    N-->>B: {reply, configuration, done}
+    N-->>B: {reply, configuration, sources, done}
 ```
 
 The test chat first asks RAGdoll, as the logged-in user, for the agent's chat key and role:
@@ -390,17 +426,17 @@ Code: [`src/app/api/logout/route.ts`](../src/app/api/logout/route.ts),
 
 ## Where agents, prompts and templates are stored
 
-| What                               | Stored where today                                                                                                                                                                                                                                                                                  | Target                                                                  |
-| ---------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
-| Configurator prompt                | Source in `prompts/configurator.nb.md` in this repo; copied by hand into the agent's **General Agent Prompt** in RAGdoll                                                                                                                                                                            | Same: the repo is the source, RAGdoll holds a copy                      |
-| Counsellors' interviewer agents    | RAGdoll (MongoDB), created by `POST /api/agents` and listed by `GET /api/agents`, owned by the logged-in counsellor. `/browse-agents` reads that list                                                                                                                                               | Same                                                                    |
-| Configuration answers              | JSON `{type, version, answers, sources}` in the saved agent's `description` (`src/domain/agentTypes/storedAnswers.ts`). Older agents have only the answers                                                                                                                                          | A field of its own, if RAGdoll gets a `metadata` field                  |
-| Templates (role, industry, ...)    | Built-in: four interviewer personas in `src/data/interviewer-templates.ts`. Saved: each counsellor's own templates in RAGdoll's `templates` collection (type `interviewer`), visible only to them. `/configure` shows built-in first, then saved; the server fills `Intervjuer` from the chosen one | Same                                                                    |
-| Published agents for The Candidate | Not yet                                                                                                                                                                                                                                                                                             | Agent marked as published in RAGdoll; The Candidate reads it from there |
-| Users                              | Keycloak (login) and RAGdoll (user record, created on first `POST /api/login`)                                                                                                                                                                                                                      | Same                                                                    |
-| Job seeker profiles                | RAGdoll's `job_seeker_profiles` collection, each owned by one counsellor and visible only to them. Anonymous: a label, age range, experience, education, languages, practice areas and private notes. Chosen on `/configure`; the server fills `Jobbsøker` from it, without the notes               | Same                                                                    |
-| User settings                      | RAGdoll, in the user record under the namespace `interview-configurator` (`GET`/`PUT /api/user-settings`). No settings are defined yet                                                                                                                                                              | Same                                                                    |
-| Session                            | Encrypted NextAuth cookie in the browser                                                                                                                                                                                                                                                            | Same                                                                    |
+| What                               | Stored where today                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         | Target                                                                  |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------- |
+| Configurator prompt                | Source in `prompts/configurator.nb.md` in this repo; copied by hand into the agent's **General Agent Prompt** in RAGdoll                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   | Same: the repo is the source, RAGdoll holds a copy                      |
+| Counsellors' interviewer agents    | RAGdoll (MongoDB), created by `POST /api/agents` and listed by `GET /api/agents`, owned by the logged-in counsellor. `/browse-agents` reads that list                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      | Same                                                                    |
+| Configuration answers              | JSON `{type, version, answers, sources, customPrompt?}` in the saved agent's `description` (`src/domain/agentTypes/storedAnswers.ts`). Older agents have only the answers                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  | A field of its own, if RAGdoll gets a `metadata` field                  |
+| Templates (role, industry, ...)    | Built-in: four interviewer personas in `src/data/interviewer-templates.ts`, listed by agent type in `src/data/templates.ts`. Saved: each counsellor's own templates in RAGdoll's `templates` collection, visible only to them, with the agent type they are for as RAGdoll's `type` (`interviewer` so far, which older templates already have). `/configure` shows the chosen type's built-in templates first, then saved; the server fills the field the type's `presets.template` names (`Intervjuer`) from the chosen one. Industry: eight built-in general jobs, public or private, in `src/data/industry-templates.ts`; the server fills `Stilling` and `Bransje` from the chosen one | Same                                                                    |
+| Published agents for The Candidate | Not yet                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    | Agent marked as published in RAGdoll; The Candidate reads it from there |
+| Users                              | Keycloak (login) and RAGdoll (user record, created on first `POST /api/login`)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             | Same                                                                    |
+| Job seeker profiles                | RAGdoll's `job_seeker_profiles` collection, each owned by one counsellor and visible only to them. Anonymous: a label, age range, experience, education, languages, practice areas and private notes. Chosen on `/configure`; the server fills `Jobbsøker` from it, without the notes                                                                                                                                                                                                                                                                                                                                                                                                      | Same                                                                    |
+| User settings                      | RAGdoll, in the user record under the namespace `interview-configurator` (`GET`/`PUT /api/user-settings`). No settings are defined yet                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     | Same                                                                    |
+| Session                            | Encrypted NextAuth cookie in the browser                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   | Same                                                                    |
 
 We keep no database of our own. Real job seeker data is never stored: the configurator asks only
 for coarse, non-identifying traits (age group, experience, language level).
@@ -446,12 +482,16 @@ short Norwegian messages:
   `/api/backend` replaces the hard-coded interviewer and the mock agent list.
 - **Prompt builder.** Where the `KONFIGURASJON` block becomes a system prompt: in our server, or in
   RAGdoll.
-- **Templates.** Counsellors can make, edit and delete their own templates. Built-in templates
-  are still maintained in the code; it is open whether IMTEL wants to edit them too.
+- **Templates.** Counsellors can make, edit and delete their own templates, for any agent type
+  with a template preset. Built-in templates are still maintained in the code; it is open whether
+  IMTEL wants to edit them too.
+- **Access to agent types.** Every counsellor may use every agent type, for configuring and for
+  templates. If that should depend on the counsellor, `listAccessibleAgentTypes` in
+  `registry.ts` is the one place to change; where the access is stored (RAGdoll's user settings or
+  Keycloak roles) is not decided.
 - **The Candidate.** How the VR app finds and loads a published agent (contact: Mathias, IMTEL).
 - **RAGdoll changes.** Whether we need changes in RAGdoll, and on which branch (see the README).
 - **Other scenarios.** The brief asks for an architecture that allows scenarios other than job
-  interviews. Saved agents already go through [agent types](#agent-types), so a new scenario is
-  one new type definition. Still open: the configurator chat asks interview questions only, and
-  the counsellor cannot choose a type before configuring
-  ([#56](https://github.com/IMTEL/team-tdt4290-fall-2026/issues/56)).
+  interviews. Every scenario goes through [agent types](#agent-types), including the configurator
+  chat, so a new scenario is one new type definition. Still open: which scenarios IMTEL wants
+  first.

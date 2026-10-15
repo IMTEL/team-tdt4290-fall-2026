@@ -1,6 +1,6 @@
-import type { InterviewerTemplate } from '@/data/interviewer-templates';
+import type { AgentTemplate } from '@/data/templates';
 
-export type NewTemplate = Omit<InterviewerTemplate, 'id'>;
+export type NewTemplate = Omit<AgentTemplate, 'id'>;
 
 const GENERIC_ERROR = 'Noe gikk galt. Prøv igjen.';
 
@@ -49,7 +49,7 @@ export async function saveTemplate(template: NewTemplate): Promise<string> {
  * One of the counsellor's saved templates, or null if they have none with this id.
  * Throws Error with a Norwegian message for any other failure.
  */
-export async function fetchTemplate(id: string): Promise<InterviewerTemplate | null> {
+export async function fetchTemplate(id: string): Promise<AgentTemplate | null> {
   const res = await send(templateUrl(id), { cache: 'no-store' });
   if (res.status === 404) return null;
   if (!res.ok) throw new Error(errorMessage(res.status));

@@ -19,6 +19,7 @@ const listTemplatesMock = vi.mocked(listTemplates);
 const createTemplateMock = vi.mocked(createTemplate);
 
 const template = {
+  agentType: 'interviewer',
   title: 'Butikksjef',
   description: 'Vennlig og direkte.',
   focus: ['Service'],
@@ -32,8 +33,8 @@ const stored = {
   content: { focus: ['Service'], persona: 'Intervjueren er butikksjef.' },
 };
 
-function request(method: string, body?: unknown) {
-  return new NextRequest('http://localhost/api/templates', {
+function request(method: string, body?: unknown, query = '') {
+  return new NextRequest(`http://localhost/api/templates${query}`, {
     method,
     headers: { 'Content-Type': 'application/json' },
     body: body === undefined ? undefined : typeof body === 'string' ? body : JSON.stringify(body),
@@ -56,7 +57,25 @@ afterEach(() => {
 });
 
 describe('GET /api/templates', () => {
-  it('lists the counsellor’s interviewer templates', async () => {
+  it('lists the counsellor’s templates for the agent type asked for', async () => {
+    const res = await GET(request('GET', undefined, '?agentType=interviewer'));
+
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ templates: [{ ...template, id: 'template-1' }] });
+    expect(listTemplatesMock).toHaveBeenCalledWith('session-token', 'interviewer');
+  });
+
+  it.each([
+    ['unknown', 'finnes-ikke'],
+    ['only planned', 'teacher'],
+  ])('answers 400 without calling RAGdoll when the agent type is %s', async (_case, agentType) => {
+    const res = await GET(request('GET', undefined, `?agentType=${agentType}`));
+
+    expect(res.status).toBe(400);
+    expect(listTemplatesMock).not.toHaveBeenCalled();
+  });
+
+  it('lists the templates of every agent type templates can be made for without a type', async () => {
     const res = await GET(request('GET'));
 
     expect(res.status).toBe(200);

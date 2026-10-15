@@ -111,4 +111,13 @@ describe('POST /api/profiles', () => {
 
     expect((await POST(request('POST', { label: 'A' }))).status).toBe(401);
   });
+
+  it('answers 502, not 401, when RAGdoll rejects the profile', async () => {
+    createProfileMock.mockRejectedValue(new RagdollError('rejected', 'RAGdoll answered 422'));
+
+    const res = await POST(request('POST', { label: 'A' }));
+
+    expect(res.status).toBe(502);
+    expect(await res.json()).toEqual({ error: 'RAGdoll rejected the request' });
+  });
 });

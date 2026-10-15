@@ -5,11 +5,17 @@ import TestChatPage, { metadata } from './page';
 
 // TestChat looks the agent up among the counsellor's agents (tested in TestChat.test.tsx).
 vi.mock('@/app/browse-agents/api', () => ({
-  fetchAgents: vi
-    .fn()
-    .mockResolvedValue([
-      { id: 'agent-1', name: 'Intervjuer', description: '', lastUpdated: '2026-10-09T10:00:00Z' },
-    ]),
+  fetchAgents: vi.fn().mockResolvedValue([
+    {
+      id: 'agent-1',
+      name: 'Intervjuer',
+      description: '',
+      lastUpdated: '2026-10-09T10:00:00Z',
+      llmModel: 'openai/gpt-oss-120b',
+      temperature: 0.7,
+      prompt: 'Du er en intervjuer.',
+    },
+  ]),
 }));
 
 // The page is an async server component: await it, then render what it returns.

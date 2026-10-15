@@ -26,6 +26,7 @@ describe('toStoredDescription and readStoredAnswers', () => {
       definition: interviewer,
       answers,
       sources: {},
+      customPrompt: false,
     });
   });
 });
@@ -68,6 +69,7 @@ describe('readStoredAnswers', () => {
       definition: interviewer,
       answers,
       sources: {},
+      customPrompt: false,
     });
   });
 
@@ -96,5 +98,16 @@ describe('readStoredAnswers', () => {
     expect(readStoredAnswers('En vanlig beskrivelse')).toBeNull();
     expect(readStoredAnswers('"bare tekst"')).toBeNull();
     expect(readStoredAnswers('{"tittel":"Noe helt annet"}')).toBeNull();
+  });
+
+  it('reads back that the prompt was written by hand', () => {
+    const description = toStoredDescription(interviewer, answers, {}, { customPrompt: true });
+    expect(readStoredAnswers(description)?.customPrompt).toBe(true);
+  });
+
+  it('does not write the flag when the prompt is built from the answers', () => {
+    expect(JSON.parse(toStoredDescription(interviewer, answers))).not.toHaveProperty(
+      'customPrompt',
+    );
   });
 });
