@@ -163,16 +163,39 @@ Unit and component level only:
   other apps' types, planned types and badly shaped content are skipped.
 - `src/server/agentMapper.test.ts`: the RAGdoll agent gets the chosen name, the built prompt, the
   stored answers and the IDUN key for both the LLM and the embeddings; `applyEdit` changes the
-  name, roles, prompt and answers but keeps the id and every other field.
-- `src/domain/configuration.test.ts` and `src/domain/interviewerPrompt.test.ts`: reading the
-  `KONFIGURASJON` block (complete, missing or empty lines, extra spaces) and filling the
-  interviewer prompt from it.
+  name, roles, prompt and answers but keeps the id and every other field. Advanced settings: the
+  default model and temperature, the chosen ones, a hand-written prompt that survives an edit of
+  the answers, and the built prompt again when the hand-written one is dropped.
+- `src/domain/advancedSettings.test.ts`: models outside the list, temperatures outside 0-2 or with
+  more than two decimals, and empty or too long prompts are rejected with Norwegian messages;
+  badly shaped settings from the browser give null.
+- `src/components/agents/AdvancedSettingsFields.test.tsx`: closed by default with a one-line
+  summary; shows the built prompt until the counsellor writes one; a decimal comma is accepted;
+  errors show in the heading and under the field; reset to the defaults; a message when the
+  models could not be loaded.
+- `src/app/api/models/route.test.ts`: 401 when logged out; the models RAGdoll offers with the
+  default first; falls back to the default when RAGdoll fails (401 included, which can be IDUN
+  rejecting the key) or the IDUN key is missing.
+- `src/app/api/agents/route.test.ts` and `[agentId]/route.test.ts` also cover advanced settings:
+  saved when sent, defaults (new agent) or the agent's own settings (edit) when not, the default
+  and the agent's current model are accepted without asking RAGdoll, 502 when another model
+  cannot be checked, and 400 for an unknown model, a temperature above 2 or an empty prompt.
+- `src/domain/agentTypes/configurator.test.ts`: which fields a template or profile decides, the
+  chat's first question, the briefing (questions in order with hints, the type's rules, the block,
+  and decided fields left out of both but listed with their text), and reading the `KONFIGURASJON`
+  block for any type (complete, missing or empty lines, extra spaces, fields fixed by an
+  interviewer or industry template winning). A made-up teacher type shows that a new type needs
+  only its definition.
+- `src/domain/interviewerPrompt.test.ts`: filling the interviewer prompt from the answers.
 - `src/domain/interviewerSummary.test.ts` and `src/domain/difficulty.test.ts`: the summary in up to
   three sentences; each sentence is left out when its answers are empty; the type and level of
   difficulty (also when the chat added the number of questions); a long job seeker description is
   cut after a whole part; nothing known gives "".
-- `src/domain/agentTypes/registry.test.ts`: looking up an agent type, checking that every field
-  has an answer, and the interviewer's prompt and role.
+- `src/domain/agentTypes/registry.test.ts`: looking up an agent type, every counsellor having
+  every type for now, which types templates can be made for, the planned types (none has a
+  definition), checking that every field has an answer, the interviewer's prompt and role, and for
+  every registered type: a label, description and greeting, unique fields with questions, presets
+  that name its own fields, the wording for its templates if it has them, and a prompt, roles and name built from a full set of answers.
 - `src/domain/agentTypes/storedAnswers.test.ts`: answers are saved with their type and version
   and read back; agents saved before agent types existed are read as interviewers; a field added
   to a type later comes back empty, and answers to removed fields are left out; descriptions we
@@ -180,9 +203,11 @@ Unit and component level only:
 - `src/app/browse-agents/api.test.ts`: loading the agent list, and saving an edit with `PUT`;
   401, 404, 504, other errors and network failures become Norwegian messages.
 - `src/app/browse-agents/[agentId]/AgentDetail.test.tsx`: shows the answers in the old and the
-  new storage format, shows the summary above them (and leaves out its empty sentences, and the
-  whole summary for an agent we did not make), keeps the system prompt closed until opened, links
-  to the edit page, and calls `notFound` for an unknown id.
+  new storage format, and the agent type (an interviewer for agents saved before types existed,
+  none for agents not made here), shows the summary above the answers (and leaves out its empty
+  sentences, and the whole summary for an agent we did not make), keeps the advanced settings (model, temperature, the stored
+  prompt, a mark for a hand-written one, the default temperature for older agents) closed until
+  opened, links to the edit page, and calls `notFound` for an unknown id.
 - `src/app/browse-agents/[agentId]/edit/EditAgentForm.test.tsx`: the form is filled in from the
   agent; saving sends the changes and goes back to the agent; unchanged advanced settings are not
   sent; a hand-written prompt starts from the built one and is saved; an invalid temperature blocks

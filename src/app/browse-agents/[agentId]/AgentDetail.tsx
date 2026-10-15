@@ -10,6 +10,7 @@ import AccordionSummary from '@mui/material/AccordionSummary';
 import Alert from '@mui/material/Alert';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
+import Chip from '@mui/material/Chip';
 import Paper from '@mui/material/Paper';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
@@ -21,8 +22,9 @@ import { useAgent } from '../useAgent';
 import styles from './AgentDetail.module.css';
 
 /**
- * One saved agent: a summary in sentences, the configuration as a list, and the system prompt
- * closed until opened.
+ * One saved agent: a summary in sentences, the configuration as a list, and the advanced settings
+ * (model, temperature and the system prompt RAGdoll has stored) closed until opened. They are
+ * changed on the edit page.
  */
 export function AgentDetail({ agentId }: { agentId: string }) {
   const state = useAgent(agentId);
