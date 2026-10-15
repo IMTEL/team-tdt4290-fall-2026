@@ -11,6 +11,7 @@
 - [The mock backend](#the-mock-backend)
 - [Where tests live](#where-tests-live)
 - [Writing a test](#writing-a-test)
+- [Accessibility](#accessibility)
 - [Reports and traces](#reports-and-traces)
 - [CI](#ci)
 - [Troubleshooting](#troubleshooting)
@@ -112,18 +113,19 @@ the mock, copying the request and response shapes from `src/server/ragdoll.ts`.
 
 In `tests/`, named `*.spec.ts`, one file per flow or page:
 
-| File                | Covers                                                            |
-| ------------------- | ----------------------------------------------------------------- |
-| `home.spec.ts`      | Start page, navbar links, theme toggle                            |
-| `auth.spec.ts`      | Login, logout, protected pages, login errors                      |
-| `agents.spec.ts`    | Agent list, agent page, edit (with presets), clone, delete        |
-| `configure.spec.ts` | Configurator: template and profile choice, chat, saving the agent |
-| `templates.spec.ts` | Create, edit, delete and use interviewer templates                |
-| `profiles.spec.ts`  | Create, edit, delete job seeker profiles, form validation         |
-| `test-chat.spec.ts` | Testing an agent in the chat: greeting, sending, starting over    |
+| File                    | Covers                                                            |
+| ----------------------- | ----------------------------------------------------------------- |
+| `home.spec.ts`          | Start page, navbar links, theme toggle                            |
+| `auth.spec.ts`          | Login, logout, protected pages, login errors                      |
+| `agents.spec.ts`        | Agent list, agent page, edit (with presets), clone, delete        |
+| `configure.spec.ts`     | Configurator: template and profile choice, chat, saving the agent |
+| `templates.spec.ts`     | Create, edit, delete and use interviewer templates                |
+| `profiles.spec.ts`      | Create, edit, delete job seeker profiles, form validation         |
+| `test-chat.spec.ts`     | Testing an agent in the chat: greeting, sending, starting over    |
+| `accessibility.spec.ts` | axe on every page, dialog, menu and error state, light and dark   |
 
 Helpers and the mock backend are in `tests/support/`: `auth.ts` logs in, `data.ts` creates test
-data through our API.
+data through our API, `accessibility.ts` runs axe.
 
 Vitest only picks up `src/**/*.test.{ts,tsx}`, and Playwright only looks in `tests/`, so the two
 never run each other's files.
@@ -156,6 +158,40 @@ work without login.
   invented data. Never use real job seeker data, here or anywhere else in the repo.
 - **No secrets**: never put the IDUN key, access keys or tokens in a test.
 - Do not commit `test.only`; CI fails if it finds one (`forbidOnly`).
+
+## Accessibility
+
+`tests/accessibility.spec.ts` runs [axe](https://github.com/dequelabs/axe-core) on every page and
+on the states a user can open there: dialogs, dropdowns, form errors and the chat. It checks WCAG
+2.0, 2.1 and 2.2 at level A and AA (universell utforming requires 2.1 AA), once in the light and
+once in the dark theme, since the colours differ. It runs only in Chromium: axe checks the page,
+not the browser.
+
+When you add a page, or a dialog, menu or error message, add a test for it:
+
+```ts
+test('delete profile dialog', async ({ page }) => {
+  await logIn(page);
+  await createProfile(page, { label: 'Profil A' });
+  await page.goto('/profiles');
+  await page.getByRole('button', { name: 'Slett Profil A' }).click();
+  await expect(page.getByRole('dialog')).toBeVisible();
+  await expectNoAccessibilityViolations(page);
+});
+```
+
+Open the state first and wait for it with an `expect`; axe only checks what is on the page.
+`expectNoAccessibilityViolations` waits for animations to end, so a dialog that is still fading in
+is not reported as low contrast.
+
+A failure lists each problem with the rule, a link explaining it, the elements and why, for
+example `Element has insufficient color contrast of 3.88 (foreground color: #e63946 ...)`. Fix
+the problem in the app; don't turn the rule off. If a colour fails, see
+[the design guide](design-guide.md#colours-and-contrast).
+
+axe finds roughly a third of accessibility problems. It cannot tell whether a label makes sense,
+whether the focus order is logical or whether a screen reader announces the chat well. Check
+those by hand with the keyboard and a screen reader (VoiceOver: Cmd+F5) before a demo.
 
 ## Reports and traces
 

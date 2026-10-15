@@ -1,17 +1,27 @@
-/* The list scrolls on its own; min-height: 0 lets it shrink inside the flex column. */
+/* The log scrolls on its own; min-height: 0 lets it shrink inside the flex column. */
+.log {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--space-4);
+}
+
+.log:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: -2px;
+}
+
 .list {
   /* Shared by the bubbles and the answer options under them, so they stay lined up. */
   --message-gap: var(--space-3);
   --bubble-padding-x: 0.875rem;
   --bubble-max-width: 80%;
 
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: var(--message-gap);
-  padding: var(--space-4);
+  margin: 0;
+  padding: 0;
   list-style: none;
 }
 

@@ -12,8 +12,12 @@ const tokens = {
   background: '#F1FAEE',
   foreground: '#1D3557',
   secondaryAccent: '#A8DADC', // secondary/accent, light mode
-  destructive: '#E63946',
+  // Darker and lighter than the brand red #E63946, which is below 4.5:1 for text on both themes.
+  destructive: '#C92A37', // 5.1:1 on the light background
+  destructiveDark: '#FF7A82', // 4.9:1 on the dark background and cards
   ringSecondaryDarkChart3: '#457B9D',
+  // A shade darker than #457B9D, so light text on it reaches 4.5:1 (it was 4.3:1).
+  secondaryDark: '#3F7293',
 
   // approximated from oklch, no hex comment in source
   muted: '#C8E9E8',
@@ -73,7 +77,8 @@ const themeOptions: ThemeOptions = {
           contrastText: tokens.foreground,
         },
         error: {
-          main: tokens.destructive,
+          main: tokens.destructive, // #C92A37
+          contrastText: '#FFFFFF',
         },
         background: {
           default: tokens.background,
@@ -93,11 +98,12 @@ const themeOptions: ThemeOptions = {
           contrastText: tokens.foreground,
         },
         secondary: {
-          main: tokens.ringSecondaryDarkChart3, // #457B9D
+          main: tokens.secondaryDark, // #3F7293
           contrastText: tokens.background,
         },
         error: {
-          main: tokens.destructive,
+          main: tokens.destructiveDark, // #FF7A82
+          contrastText: tokens.foreground,
         },
         background: {
           default: tokens.foreground, // #1D3557
