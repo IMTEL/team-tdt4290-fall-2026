@@ -4,6 +4,7 @@ import { useCallback, useMemo, useState } from 'react';
 
 import { AgentChat } from '@/components/chat/AgentChat';
 import type { ChatMessage, SendMessages } from '@/components/chat/types';
+import { SECTOR_LABELS, type IndustryTemplate } from '@/data/industry-templates';
 import type { InterviewerTemplate } from '@/data/interviewer-templates';
 import type { AnswerSources } from '@/domain/agentTypes/types';
 import type { Configuration } from '@/domain/configuration';
@@ -13,21 +14,29 @@ import { SaveAgentForm } from './SaveAgentForm';
 
 // The assistant opens the conversation. Fixed text, so it costs no LLM call. It is also sent to
 // RAGdoll as the first turn, so the agent doesn't greet again, and knows what was chosen: a
-// template decides the interviewer, and a profile decides the job seeker.
+// template decides the interviewer, an industry template the job and industry, and a profile the
+// job seeker. With an industry template, the job is already known, so it asks about the company.
 function greeting(
   template: InterviewerTemplate | null,
   profile: JobSeekerProfile | null,
+  industry: IndustryTemplate | null,
 ): ChatMessage {
   const chosen = [
     template && ` Du har valgt malen «${template.title}».`,
+    industry &&
+      ` Du har valgt bransjemalen «${industry.title}» (${industry.industry}, ` +
+        `${SECTOR_LABELS[industry.sector].toLowerCase()} sektor).`,
     profile && ` Du har valgt jobbsøkerprofilen «${profile.label}».`,
   ]
     .filter(Boolean)
     .join('');
+  const question = industry
+    ? 'Hvilken bedrift eller virksomhet skal intervjuet være hos?'
+    : 'Hvilken stilling skal jobbsøkeren øve til?';
   return {
     id: 'greeting',
     role: 'assistant',
-    content: `Hei! Jeg hjelper deg med å sette opp en AI-intervjuer.${chosen} Hvilken stilling skal jobbsøkeren øve til?`,
+    content: `Hei! Jeg hjelper deg med å sette opp en AI-intervjuer.${chosen} ${question}`,
   };
 }
 
@@ -37,9 +46,11 @@ type ConfigurationChatProps = {
   template: InterviewerTemplate | null;
   /** Null when the counsellor chose no job seeker profile. */
   profile: JobSeekerProfile | null;
+  /** The industry template, or null when the counsellor started without one. */
+  industry?: IndustryTemplate | null;
 };
 
-export function ConfigurationChat({ template, profile }: ConfigurationChatProps) {
+export function ConfigurationChat({ template, profile, industry = null }: ConfigurationChatProps) {
   // The finished configuration and its sources, once the configurator has written its
   // KONFIGURASJON block. Lives only in this browser tab: nothing is stored until the counsellor
   // saves.
@@ -50,19 +61,27 @@ export function ConfigurationChat({ template, profile }: ConfigurationChatProps)
 
   const templateId = template?.id ?? null;
   const profileId = profile?.id ?? null;
-  const initialMessages = useMemo(() => [greeting(template, profile)], [template, profile]);
+  const industryTemplateId = industry?.id ?? null;
+  const initialMessages = useMemo(
+    () => [greeting(template, profile, industry)],
+    [template, profile, industry],
+  );
 
   // useCallback keeps it the same function on every render.
   const askConfigurator = useCallback<SendMessages>(
     async (messages, signal) => {
-      const result = await sendConfigurationTurn({ templateId, profileId }, messages, signal);
+      const result = await sendConfigurationTurn(
+        { templateId, profileId, industryTemplateId },
+        messages,
+        signal,
+      );
       // A reply without a block leaves the last finished configuration as it was.
       if (result.configuration) {
         setFinished({ configuration: result.configuration, sources: result.sources });
       }
       return result.reply;
     },
-    [templateId, profileId],
+    [templateId, profileId, industryTemplateId],
   );
 
   return (
