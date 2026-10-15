@@ -73,6 +73,24 @@ describe('POST /api/agents', () => {
     expect(agent.llm_api_key).toBe('idun-key');
   });
 
+  it('saves the agent as the chosen type', async () => {
+    saveAgentMock.mockResolvedValue('new-agent-1');
+
+    await POST(postRequest({ name: 'Testintervjuer', type: 'interviewer', configuration }));
+
+    const [, saved] = saveAgentMock.mock.calls[0];
+    expect(readStoredAnswers(saved.description)?.definition.id).toBe('interviewer');
+  });
+
+  it('saves an interviewer when the client sends no type', async () => {
+    saveAgentMock.mockResolvedValue('new-agent-1');
+
+    await POST(postRequest({ name: 'Testintervjuer', configuration }));
+
+    const [, saved] = saveAgentMock.mock.calls[0];
+    expect(JSON.parse(saved.description).type).toBe('interviewer');
+  });
+
   it('uses the default model and temperature without advanced settings', async () => {
     saveAgentMock.mockResolvedValue('new-agent-1');
 
@@ -156,6 +174,8 @@ describe('POST /api/agents', () => {
     ['the name is missing', { configuration }],
     ['the name is only spaces', { name: '   ', configuration }],
     ['the configuration is missing', { name: 'Testintervjuer' }],
+    ['the type is unknown', { name: 'Testintervjuer', type: 'finnes-ikke', configuration }],
+    ['the type is only planned', { name: 'Testintervjuer', type: 'teacher', configuration }],
     [
       'a configuration field is empty',
       { name: 'Testintervjuer', configuration: { ...configuration, stilling: '' } },

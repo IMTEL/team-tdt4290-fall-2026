@@ -13,6 +13,7 @@ const deleteMock = vi.mocked(deleteTemplate);
 
 const template = {
   id: 'template-1',
+  agentType: 'interviewer',
   title: 'Butikksjef',
   description: 'Vennlig.',
   focus: [],

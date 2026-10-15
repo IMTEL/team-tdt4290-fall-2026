@@ -7,28 +7,43 @@ import CardActionArea from '@mui/material/CardActionArea';
 import CardActions from '@mui/material/CardActions';
 import Chip from '@mui/material/Chip';
 
-import type { InterviewerTemplate } from '@/data/interviewer-templates';
+import type { AgentTemplate } from '@/data/templates';
 import { DeleteTemplateButton } from './DeleteTemplateButton';
 import styles from './TemplatePicker.module.css';
 
 type TemplatePickerProps = {
   /** The built-in templates. */
-  templates: InterviewerTemplate[];
+  templates: AgentTemplate[];
   /** The counsellor's own templates, shown after the built-in ones and with edit and delete. */
-  savedTemplates?: InterviewerTemplate[];
+  savedTemplates?: AgentTemplate[];
   /** Called with the chosen template, or null to start without one. */
-  onSelect: (template: InterviewerTemplate | null) => void;
+  onSelect: (template: AgentTemplate | null) => void;
   /** Called with the id of a saved template once it is deleted. */
   onDeleted?: (id: string) => void;
+  /** The agent type the templates are for, so a new template gets that type from the start. */
+  agentType?: string;
+  /** What a template decides for this agent type. */
+  lead?: string;
 };
+
+// For an agent type without its own lead.
+const DEFAULT_LEAD =
+  'Malen fyller inn en del av oppsettet. Resten setter du opp i samtalen. Uten mal spør ' +
+  'assistenten deg om alt.';
 
 export function TemplatePicker({
   templates,
   savedTemplates = [],
   onSelect,
   onDeleted = () => {},
+  agentType,
+  lead = DEFAULT_LEAD,
 }: TemplatePickerProps) {
-  function card(template: InterviewerTemplate, saved: boolean) {
+  const newTemplateHref = agentType
+    ? `/create-template?agentType=${encodeURIComponent(agentType)}`
+    : '/create-template';
+
+  function card(template: AgentTemplate, saved: boolean) {
     return (
       <li key={template.id}>
         <Card variant="outlined" className={styles.card}>
@@ -66,22 +81,14 @@ export function TemplatePicker({
         Fortsett uten mal
       </Button>
 
-      <Button
-        component={Link}
-        href="/create-template"
-        variant="outlined"
-        className={styles.scratch}
-      >
+      <Button component={Link} href={newTemplateHref} variant="outlined" className={styles.scratch}>
         Lag en ny mal
       </Button>
 
       <h2 id="template-picker-heading" className={styles.heading}>
         Velg en mal
       </h2>
-      <p className={styles.lead}>
-        Malen bestemmer hvem som intervjuer jobbsøkeren. Resten setter du opp i samtalen. Uten mal
-        spør assistenten deg om intervjueren også.
-      </p>
+      <p className={styles.lead}>{lead}</p>
 
       <ul className={styles.grid}>
         {templates.map((template) => card(template, false))}

@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { fromRagdollTemplate, parseNewTemplate, toRagdollTemplate } from './templateMapper';
 
 const template = {
+  agentType: 'interviewer',
   title: 'Butikksjef',
   description: 'Vennlig og direkte.',
   focus: ['Service', 'Samarbeid'],
@@ -18,6 +19,9 @@ describe('parseNewTemplate', () => {
 
   it.each([
     ['the body is not an object', null],
+    ['the agent type is missing', { ...template, agentType: undefined }],
+    ['the agent type is unknown', { ...template, agentType: 'finnes-ikke' }],
+    ['the agent type is only planned', { ...template, agentType: 'teacher' }],
     ['the title is empty', { ...template, title: '  ' }],
     ['the title is too long', { ...template, title: 'x'.repeat(81) }],
     ['the persona is missing', { ...template, persona: undefined }],
@@ -30,7 +34,7 @@ describe('parseNewTemplate', () => {
 });
 
 describe('toRagdollTemplate and fromRagdollTemplate', () => {
-  it('stores the template as an interviewer template, and reads it back', () => {
+  it('stores the agent type as RAGdoll’s type, and reads it back', () => {
     const stored = toRagdollTemplate(template);
 
     expect(stored).toEqual({
@@ -45,10 +49,12 @@ describe('toRagdollTemplate and fromRagdollTemplate', () => {
     });
   });
 
-  it('skips templates of another type', () => {
-    const stored = { ...toRagdollTemplate(template), id: 'template-1', type: 'other' };
-
-    expect(fromRagdollTemplate(stored)).toBeNull();
+  it('skips templates of a type that is not an agent type templates can be made for', () => {
+    // Other apps' templates, and types that are only planned.
+    for (const type of ['other', 'teacher']) {
+      const stored = { ...toRagdollTemplate(template), id: 'template-1', type };
+      expect(fromRagdollTemplate(stored)).toBeNull();
+    }
   });
 
   it('skips templates whose content has the wrong shape', () => {

@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { ChatError } from '@/components/chat/sendToAgent';
 import { DEFAULT_ADVANCED_SETTINGS } from '@/domain/advancedSettings';
+import { interviewer } from '@/domain/agentTypes/interviewer';
 import { saveConfiguredAgent } from './api';
 import { SaveAgentForm } from './SaveAgentForm';
 
@@ -34,8 +35,8 @@ const configuration = {
 
 function setup() {
   const user = userEvent.setup();
-  render(<SaveAgentForm configuration={configuration} />);
-  const nameBox = () => screen.getByRole('textbox', { name: /Navn på intervjueren/ });
+  render(<SaveAgentForm definition={interviewer} configuration={configuration} />);
+  const nameBox = () => screen.getByRole('textbox', { name: /Navn på agenten/ });
   const saveButton = () => screen.getByRole('button', { name: 'Lagre agent' });
   return { user, nameBox, saveButton };
 }
@@ -54,9 +55,15 @@ describe('SaveAgentForm', () => {
     await user.click(saveButton());
 
     // Without changes to the advanced settings the server uses its defaults.
-    expect(saveMock).toHaveBeenCalledWith('Butikksjef Kari', configuration, {}, undefined);
+    expect(saveMock).toHaveBeenCalledWith(
+      'Butikksjef Kari',
+      interviewer,
+      configuration,
+      {},
+      undefined,
+    );
     expect(await screen.findByText(/«Butikksjef Kari» er lagret/)).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Test intervjueren' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Test agenten' })).toHaveAttribute(
       'href',
       '/test-chat?agent=agent-1',
     );
@@ -77,6 +84,7 @@ describe('SaveAgentForm', () => {
 
     expect(saveMock).toHaveBeenCalledWith(
       'Intervjuer for Butikkmedarbeider',
+      interviewer,
       configuration,
       {},
       {

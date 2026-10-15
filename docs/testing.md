@@ -69,26 +69,34 @@ Unit and component level only:
   history without repeating the user's message; no technical error text; leaving the page aborts
   the request.
 - `src/components/templates/TemplatePicker.test.tsx`: every template is shown, clicking one
-  selects it, "Fortsett uten mal" selects none, "Lag en ny mal" links to `/create-template`, and
+  selects it, "Fortsett uten mal" selects none, "Lag en ny mal" links to `/create-template` (with
+  the agent type when given), the type's lead is shown, and
   only saved templates have edit and delete.
+- `src/app/configure/page.test.tsx`: the page starts by asking for the agent type, with planned
+  types shown as "Kommer snart" and not choosable; choosing the interviewer shows the template
+  picker, the steps and a preview of the industry templates grouped by public and private, and
+  "Bytt agenttype" goes back and forgets the templates; choosing a template, or continuing without
+  one, goes on to the industry picker, and choosing an industry template, or continuing without
+  one, opens the chat with the first question not decided (the company with an industry
+  template); changing the interviewer template keeps the industry template, and the other way
+  round; and the button above the chat goes back to the
+  picker; saved templates are shown after the built-in ones, and the built-in ones still show if
+  the saved ones cannot be loaded; a deleted template disappears from the picker; the tab title.
 - `src/components/templates/IndustryPicker.test.tsx`: every industry template is shown with its
   industry and sector, clicking one selects it, "Fortsett uten bransjemal" selects none, and the
   sector filter shows only public or only private jobs.
-- `src/app/configure/page.test.tsx`: the page starts with the template picker, the steps and a
-  preview of the industry templates grouped by public and private; choosing a template,
-  or continuing without one, goes on to the industry picker, and choosing an industry template, or
-  continuing without one, opens the chat; the buttons above the chat go back to either picker, and
-  changing one keeps the other; saved templates are shown after the built-in ones, and the built-in ones still show if
-  the saved ones cannot be loaded; a deleted template disappears from the picker; the tab title.
-- `src/app/configure/ConfigurationChat.test.tsx`: the greeting names the template; with an industry
-  template it names that too and asks about the company instead of the job; the template ids
+- `src/app/configure/ConfigurationChat.test.tsx`: the greeting names the template; with an
+  industry template it names that too and asks about the company instead of the job; the agent type,
+  the template id
   and the whole conversation (greeting included) go to the configuration turn route; the save form only appears once the
   configuration is finished.
 - `src/app/configure/SaveAgentForm.test.tsx`: saves under the chosen name and links to testing the
   new agent and to the agents; sends advanced settings only when they were changed; no saving
   without a name or with an empty hand-written prompt; shows the error and lets the user try again.
 - `src/components/templates/TemplateForm.test.tsx`: a new template is saved with trimmed fields
-  and links back to `/configure`; cannot be saved without the required fields or with too many
+  and its agent type, and links back to `/configure`; the agent type dropdown lists the types
+  templates can be made for, with planned ones shown but disabled, starts with the type it is
+  given, takes its labels from the type, and is locked for a saved template; cannot be saved without the required fields or with too many
   focus areas; shows the error and keeps what was typed; a saved template starts with its values
   and saves the changes.
 - `src/components/templates/DeleteTemplateButton.test.tsx`: asks before deleting; cancelling
@@ -115,35 +123,44 @@ Unit and component level only:
 - `src/server/profileMapper.test.ts` and `src/app/api/profiles/**/route.test.ts`: profiles are
   trimmed and validated, stored with RAGdoll's field names and read back; the routes give 400,
   401 and 404 where they should.
-- `src/app/configure/api.test.ts`: the browser functions send only `role` and `content`, return
+- `src/app/configure/api.test.ts`: the browser functions send the agent type and only `role` and
+  `content` of each message, return
   the configuration when the server says it is done, and turn failures (including an expired
   login) into Norwegian messages; `fetchSavedTemplates` rejects failures and badly shaped
   templates.
 - `src/app/api/configure/turn/route.test.ts`: 401 when logged out; 400 for bad bodies; 500 when the
-  configurator is not configured; reports `done` only for a complete `KONFIGURASJON` block; takes
+  configurator is not configured, or the agent type is unknown or only planned; sends the briefing
+  for the chosen type (an interviewer when none is sent) before the chat, with the text of what
+  the interviewer and industry templates decide instead of questions about it; takes the job and
+  industry from an industry template, and 400 for an unknown one; reports `done` only for a complete `KONFIGURASJON` block; takes
   the interviewer from a built-in or a saved template, and asks nothing if a saved one cannot be
-  loaded; takes the job and industry from an industry template, and 400 for an unknown one; never passes RAGdoll's message on.
+  loaded; never passes RAGdoll's message on.
 - `src/app/api/templates/route.test.ts` and `src/app/api/templates/[templateId]/route.test.ts`:
-  lists only readable interviewer templates, saves a valid template as type `interviewer`, reads
+  lists only readable templates, for the agent type asked for (400 for an unknown or planned
+  one) or for every type templates can be made for, saves a valid template with its agent type as
+  RAGdoll's type, reads
   and edits one template (404 for one that is missing or not ours), 400 for bad bodies, 401 when
   logged out, deletes with 204 and 404 for an unknown template.
 - `src/app/api/user-settings/route.test.ts`: reads and replaces the settings; 400 unless the body
   has a `settings` object; 401 when logged out.
 - `src/app/api/agents/route.test.ts`: saves with the counsellor's session token and the IDUN key
-  from the environment; 401, 400 and 500 cases save nothing; lists the counsellor's agents.
+  from the environment, as the chosen agent type (an interviewer when none is sent); 401, 400
+  (including an unknown or planned type) and 500 cases save nothing; lists the counsellor's agents.
 - `src/app/api/agents/[agentId]/route.test.ts`: editing updates the same agent (same id) with the
   new name, answers and prompt, and keeps the fields the edit does not touch; 401 and 400 cases
   (bad JSON, bad name, a missing answer, an agent not made in this app) save nothing; an agent
   the user does not have gives 404 and is never written, so RAGdoll cannot create a new one;
   RAGdoll failures give 502.
 - `src/server/ragdoll.test.ts`: `askAgent`, `saveAgent`, `listAgents`, `fetchFullAgent` and
-  `updateAgent` against a mocked `fetch`: the session token is sent, 401 and 422 become
-  `unauthorized`, an id that is not the user's becomes `not-found`, an update sends the id with
+  `updateAgent` against a mocked `fetch`: the session token is sent, 401 and a 422 about the
+  token become `unauthorized`, while a 422 listing fields RAGdoll doesn't accept becomes
+  `rejected` (502, not "logged out"), an id that is not the user's becomes `not-found`, an update sends the id with
   empty keys, and nothing returns the agents' API keys. The template and settings functions call
   the right paths (settings under our namespace), turn 404 into `not-found`, and keep only the
   fields we use.
-- `src/server/templateMapper.test.ts`: a new template is trimmed and validated, stored as type
-  `interviewer` and read back; other types and badly shaped content are skipped.
+- `src/server/templateMapper.test.ts`: a new template is trimmed and validated (including an agent
+  type templates can be made for), stored with its agent type as RAGdoll's type and read back;
+  other apps' types, planned types and badly shaped content are skipped.
 - `src/server/agentMapper.test.ts`: the RAGdoll agent gets the chosen name, the built prompt, the
   stored answers and the IDUN key for both the LLM and the embeddings; `applyEdit` changes the
   name, roles, prompt and answers but keeps the id and every other field. Advanced settings: the
@@ -163,12 +180,18 @@ Unit and component level only:
   saved when sent, defaults (new agent) or the agent's own settings (edit) when not, the default
   and the agent's current model are accepted without asking RAGdoll, 502 when another model
   cannot be checked, and 400 for an unknown model, a temperature above 2 or an empty prompt.
-- `src/domain/configuration.test.ts` and `src/domain/interviewerPrompt.test.ts`: reading the
-  `KONFIGURASJON` block (complete, missing or empty lines, extra spaces, fields fixed by an
-  interviewer or industry template) and filling the
-  interviewer prompt from it.
-- `src/domain/agentTypes/registry.test.ts`: looking up an agent type, checking that every field
-  has an answer, and the interviewer's prompt and role.
+- `src/domain/agentTypes/configurator.test.ts`: which fields a template or profile decides, the
+  chat's first question, the briefing (questions in order with hints, the type's rules, the block,
+  and decided fields left out of both but listed with their text), and reading the `KONFIGURASJON`
+  block for any type (complete, missing or empty lines, extra spaces, fields fixed by an
+  interviewer or industry template winning). A made-up teacher type shows that a new type needs
+  only its definition.
+- `src/domain/interviewerPrompt.test.ts`: filling the interviewer prompt from the answers.
+- `src/domain/agentTypes/registry.test.ts`: looking up an agent type, every counsellor having
+  every type for now, which types templates can be made for, the planned types (none has a
+  definition), checking that every field has an answer, the interviewer's prompt and role, and for
+  every registered type: a label, description and greeting, unique fields with questions, presets
+  that name its own fields, the wording for its templates if it has them, and a prompt, roles and name built from a full set of answers.
 - `src/domain/agentTypes/storedAnswers.test.ts`: answers are saved with their type and version
   and read back; agents saved before agent types existed are read as interviewers; a field added
   to a type later comes back empty, and answers to removed fields are left out; descriptions we
@@ -176,9 +199,10 @@ Unit and component level only:
 - `src/app/browse-agents/api.test.ts`: loading the agent list, and saving an edit with `PUT`;
   401, 404, 504, other errors and network failures become Norwegian messages.
 - `src/app/browse-agents/[agentId]/AgentDetail.test.tsx`: shows the answers in the old and the
-  new storage format, keeps the advanced settings (model, temperature, the stored prompt, a mark
-  for a hand-written one, the default temperature for older agents) closed until opened, links to
-  the edit page, and calls `notFound` for an unknown id.
+  new storage format, and the agent type (an interviewer for agents saved before types existed,
+  none for agents not made here), keeps the advanced settings (model, temperature, the stored
+  prompt, a mark for a hand-written one, the default temperature for older agents) closed until
+  opened, links to the edit page, and calls `notFound` for an unknown id.
 - `src/app/browse-agents/[agentId]/edit/EditAgentForm.test.tsx`: the form is filled in from the
   agent; saving sends the changes and goes back to the agent; unchanged advanced settings are not
   sent; a hand-written prompt starts from the built one and is saved; an invalid temperature blocks
@@ -241,7 +265,7 @@ Before you start: RAGdoll runs locally and `.env` is filled in as described in t
 
 If the form in step 3 never appears, look at the assistant's last reply: every line of the block
 must start with the exact label (`Stilling:`, `Bransje:` ...). If the model formats it
-differently, `parseConfiguration` in `src/domain/configuration.ts` needs to accept that format.
+differently, `parseAnswers` in `src/domain/agentTypes/configurator.ts` needs to accept that format.
 The block only appears when the configurator's **General Agent Prompt** in RAGdoll is the fenced
 prompt in `prompts/configurator.nb.md`.
 

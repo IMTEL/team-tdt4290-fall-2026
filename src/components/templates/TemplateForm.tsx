@@ -4,9 +4,15 @@ import { useState, type FormEvent } from 'react';
 import Link from 'next/link';
 import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
+import MenuItem from '@mui/material/MenuItem';
 import TextField from '@mui/material/TextField';
 
-import { TEMPLATE_LIMITS } from '@/data/interviewer-templates';
+import { TEMPLATE_LIMITS } from '@/data/templates';
+import {
+  getTemplateAgentType,
+  listPlannedAgentTypes,
+  listTemplateAgentTypes,
+} from '@/domain/agentTypes/registry';
 import type { NewTemplate } from './api';
 import styles from './TemplateForm.module.css';
 
@@ -24,12 +30,23 @@ export function parseFocus(text: string): string[] {
 type TemplateFormProps = {
   /** The template to edit. Leave it out to make a new one. */
   initial?: NewTemplate;
+  /** The agent type a new template starts with, e.g. from the link on /configure. */
+  defaultAgentType?: string | null;
   /** Saves the template. Throws Error with a Norwegian message that can be shown as it is. */
   onSave: (template: NewTemplate) => Promise<void>;
 };
 
-/** A form for an interviewer template, new or saved. Saved templates show up on /configure. */
-export function TemplateForm({ initial, onSave }: TemplateFormProps) {
+/**
+ * A form for a template, new or saved, for one of the agent types templates can be made for.
+ * Saved templates show up on /configure for that type. The labels and help come from the type.
+ */
+export function TemplateForm({ initial, defaultAgentType, onSave }: TemplateFormProps) {
+  const types = listTemplateAgentTypes();
+  const [agentType, setAgentType] = useState(
+    initial?.agentType ?? getTemplateAgentType(defaultAgentType)?.id ?? types[0]?.id ?? '',
+  );
+  const definition = getTemplateAgentType(agentType);
+  const text = definition?.presets?.template?.text;
   const [title, setTitle] = useState(initial?.title ?? '');
   const [description, setDescription] = useState(initial?.description ?? '');
   const [focusText, setFocusText] = useState(initial?.focus.join(', ') ?? '');
@@ -43,13 +60,14 @@ export function TemplateForm({ initial, onSave }: TemplateFormProps) {
       : focus.some((item) => item.length > TEMPLATE_LIMITS.focusItem)
         ? `Hvert fokusområde kan ha høyst ${TEMPLATE_LIMITS.focusItem} tegn.`
         : null;
-  const isComplete = Boolean(title.trim() && description.trim() && persona.trim());
+  const isComplete = Boolean(definition && title.trim() && description.trim() && persona.trim());
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setStatus({ kind: 'saving' });
     try {
       await onSave({
+        agentType,
         title: title.trim(),
         description: description.trim(),
         focus,
@@ -68,7 +86,7 @@ export function TemplateForm({ initial, onSave }: TemplateFormProps) {
     return (
       <Alert severity="success">
         Malen «{title.trim()}» er lagret.{' '}
-        <Link href="/configure">Bruk den til å sette opp en intervjuer</Link>
+        <Link href="/configure">Bruk den til å sette opp en agent</Link>
       </Alert>
     );
   }
@@ -82,8 +100,33 @@ export function TemplateForm({ initial, onSave }: TemplateFormProps) {
       aria-label={initial ? 'Rediger malen' : 'Lag en mal'}
     >
       <TextField
+        select
+        label="Type agent"
+        helperText={
+          initial
+            ? 'Typen kan ikke endres etter at malen er lagret.'
+            : 'Hva slags agent malen er for. Du finner den når du setter opp en slik agent.'
+        }
+        value={agentType}
+        onChange={(event) => setAgentType(event.target.value)}
+        required
+        // Agents remember which template they came from, so a saved template keeps its type.
+        disabled={isSaving || Boolean(initial)}
+      >
+        {types.map((type) => (
+          <MenuItem key={type.id} value={type.id}>
+            {type.label}
+          </MenuItem>
+        ))}
+        {listPlannedAgentTypes().map((type) => (
+          <MenuItem key={type.id} value={type.id} disabled>
+            {type.label} (kommer snart)
+          </MenuItem>
+        ))}
+      </TextField>
+      <TextField
         label="Navn på malen"
-        helperText="Hvem er intervjueren? For eksempel «Butikksjef»."
+        helperText={text?.titleHint}
         value={title}
         onChange={(event) => setTitle(event.target.value)}
         required
@@ -92,7 +135,7 @@ export function TemplateForm({ initial, onSave }: TemplateFormProps) {
       />
       <TextField
         label="Kort beskrivelse"
-        helperText="Én setning om hvordan intervjueren er. Vises på kortet."
+        helperText={text?.descriptionHint}
         value={description}
         onChange={(event) => setDescription(event.target.value)}
         required
@@ -111,8 +154,8 @@ export function TemplateForm({ initial, onSave }: TemplateFormProps) {
         disabled={isSaving}
       />
       <TextField
-        label="Beskrivelse av intervjueren"
-        helperText="Hvem intervjueren er, hvordan hen oppfører seg og hva hen spør om. Assistenten bruker denne teksten."
+        label={text?.textLabel ?? 'Beskrivelse'}
+        helperText={text?.textHint}
         value={persona}
         onChange={(event) => setPersona(event.target.value)}
         required

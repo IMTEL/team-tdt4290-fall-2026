@@ -9,12 +9,12 @@ import DialogContent from '@mui/material/DialogContent';
 import DialogContentText from '@mui/material/DialogContentText';
 import DialogTitle from '@mui/material/DialogTitle';
 
-import type { InterviewerTemplate } from '@/data/interviewer-templates';
+import type { AgentTemplate } from '@/data/templates';
 import { deleteTemplate } from './api';
 import styles from './TemplatePicker.module.css';
 
 type DeleteTemplateButtonProps = {
-  template: InterviewerTemplate;
+  template: AgentTemplate;
   /** Called once the template is deleted. */
   onDeleted: (id: string) => void;
 };

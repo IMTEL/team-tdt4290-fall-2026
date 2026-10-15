@@ -43,9 +43,15 @@ export function AgentDetail({ agentId }: { agentId: string }) {
 
   return (
     <Box sx={{ p: 3, maxWidth: 720 }}>
-      <Typography variant="h4" component="h1" sx={{ mb: 2 }}>
+      <Typography variant="h4" component="h1" sx={{ mb: stored ? 0.5 : 2 }}>
         {state.agent.name}
       </Typography>
+      {/* Agents saved before types could be chosen are read as interviewers. */}
+      {stored && (
+        <Typography color="text.secondary" sx={{ mb: 2 }}>
+          Agenttype: {stored.definition.label}
+        </Typography>
+      )}
 
       {stored ? (
         <Box component="dl" sx={{ m: 0 }}>

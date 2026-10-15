@@ -17,6 +17,7 @@ const updateMock = vi.mocked(updateTemplate);
 
 const template = {
   id: 'template-1',
+  agentType: 'interviewer',
   title: 'Butikksjef',
   description: 'Vennlig.',
   focus: ['Service'],

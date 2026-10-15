@@ -10,9 +10,7 @@ import { AdvancedSettingsFields } from '@/components/agents/AdvancedSettingsFiel
 import { useLanguageModels } from '@/components/agents/useLanguageModels';
 import { ChatError } from '@/components/chat/sendToAgent';
 import { advancedSettingsErrors, DEFAULT_ADVANCED_SETTINGS } from '@/domain/advancedSettings';
-import { interviewer } from '@/domain/agentTypes/interviewer';
-import type { AnswerSources } from '@/domain/agentTypes/types';
-import type { Configuration } from '@/domain/configuration';
+import type { AgentTypeDefinition, AnswerSources, Answers } from '@/domain/agentTypes/types';
 import { saveConfiguredAgent } from './api';
 import styles from './SaveAgentForm.module.css';
 
@@ -26,14 +24,15 @@ type SaveStatus =
   | { kind: 'error'; message: string };
 
 type SaveAgentFormProps = {
-  configuration: Configuration;
+  definition: AgentTypeDefinition;
+  configuration: Answers;
   /** The template and profile the answers came from, so the edit form can show them later. */
   sources?: AnswerSources;
 };
 
-/** Shown under the chat once the configurator has finished: name the interviewer and save it. */
-export function SaveAgentForm({ configuration, sources = {} }: SaveAgentFormProps) {
-  const [name, setName] = useState(`Intervjuer for ${configuration.stilling}`);
+/** Shown under the chat once the configurator has finished: name the agent and save it. */
+export function SaveAgentForm({ definition, configuration, sources = {} }: SaveAgentFormProps) {
+  const [name, setName] = useState(() => definition.defaultName(configuration));
   const [settings, setSettings] = useState(DEFAULT_ADVANCED_SETTINGS);
   const [status, setStatus] = useState<SaveStatus>({ kind: 'idle' });
   const languageModels = useLanguageModels();
@@ -45,7 +44,13 @@ export function SaveAgentForm({ configuration, sources = {} }: SaveAgentFormProp
     try {
       // Untouched settings are not sent, and the server uses its defaults.
       const advanced = settings === DEFAULT_ADVANCED_SETTINGS ? undefined : settings;
-      const id = await saveConfiguredAgent(name.trim(), configuration, sources, advanced);
+      const id = await saveConfiguredAgent(
+        name.trim(),
+        definition,
+        configuration,
+        sources,
+        advanced,
+      );
       setStatus({ kind: 'saved', id });
     } catch (error) {
       // Only ChatError messages are written for users; anything else could be technical.
@@ -60,8 +65,8 @@ export function SaveAgentForm({ configuration, sources = {} }: SaveAgentFormProp
     return (
       <Alert severity="success">
         «{name.trim()}» er lagret.{' '}
-        <Link href={`/test-chat?agent=${encodeURIComponent(status.id)}`}>Test intervjueren</Link>{' '}
-        eller <Link href="/browse-agents">se agentene dine</Link>
+        <Link href={`/test-chat?agent=${encodeURIComponent(status.id)}`}>Test agenten</Link> eller{' '}
+        <Link href="/browse-agents">se agentene dine</Link>
       </Alert>
     );
   }
@@ -69,10 +74,10 @@ export function SaveAgentForm({ configuration, sources = {} }: SaveAgentFormProp
   const isSaving = status.kind === 'saving';
 
   return (
-    <form className={styles.form} onSubmit={handleSubmit} aria-label="Lagre intervjueren">
-      <p className={styles.lead}>Intervjueren er klar. Gi den et navn og lagre den.</p>
+    <form className={styles.form} onSubmit={handleSubmit} aria-label="Lagre agenten">
+      <p className={styles.lead}>Agenten er klar. Gi den et navn og lagre den.</p>
       <TextField
-        label="Navn på intervjueren"
+        label="Navn på agenten"
         value={name}
         onChange={(event) => setName(event.target.value)}
         size="small"
@@ -80,11 +85,10 @@ export function SaveAgentForm({ configuration, sources = {} }: SaveAgentFormProp
         disabled={isSaving}
         slotProps={{ htmlInput: { maxLength: MAX_NAME_LENGTH } }}
       />
-      {/* The configurator only makes interviewers until #56 lets the counsellor choose the type. */}
       <AdvancedSettingsFields
         value={settings}
         onChange={setSettings}
-        builtPrompt={interviewer.buildPrompt(configuration)}
+        builtPrompt={definition.buildPrompt(configuration)}
         languageModels={languageModels}
         errors={settingsErrors}
         disabled={isSaving}

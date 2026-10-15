@@ -1,18 +1,17 @@
 import { ChatError } from '@/components/chat/sendToAgent';
 import type { ChatMessage } from '@/components/chat/types';
-import type { InterviewerTemplate } from '@/data/interviewer-templates';
+import type { AgentTemplate } from '@/data/templates';
 import type { AdvancedSettings } from '@/domain/advancedSettings';
-import { interviewer } from '@/domain/agentTypes/interviewer';
+import { hasAllAnswers } from '@/domain/agentTypes/registry';
 import { cleanSources } from '@/domain/agentTypes/storedAnswers';
-import type { AnswerSources } from '@/domain/agentTypes/types';
-import { isConfiguration, type Configuration } from '@/domain/configuration';
+import type { AgentTypeDefinition, AnswerSources, Answers } from '@/domain/agentTypes/types';
 
 const GENERIC_ERROR = 'Noe gikk galt. Prøv igjen.';
 
 export type TurnResult = {
   reply: string;
-  /** Set only when this reply finished the configuration. */
-  configuration: Configuration | null;
+  /** The agent's answers. Set only when this reply finished the configuration. */
+  configuration: Answers | null;
   /** The template and profile the finished configuration's answers came from. */
   sources: AnswerSources;
 };
@@ -58,11 +57,12 @@ export type ConfigurationChoices = {
 };
 
 /**
- * Sends the conversation to the configurator through /api/configure/turn, with the ids of the
- * chosen templates and profile (left out when not chosen). Throws ChatError on failure. If
- * `signal` is aborted, the fetch's AbortError is rethrown as is.
+ * Sends the conversation to the configurator through /api/configure/turn, with the agent type and
+ * the ids of the chosen templates and profile (left out when not chosen). Throws ChatError on
+ * failure. If `signal` is aborted, the fetch's AbortError is rethrown as is.
  */
 export async function sendConfigurationTurn(
+  definition: AgentTypeDefinition,
   { templateId, profileId, industryTemplateId }: ConfigurationChoices,
   messages: ChatMessage[],
   signal?: AbortSignal,
@@ -72,6 +72,7 @@ export async function sendConfigurationTurn(
   const res = await postJson(
     '/api/configure/turn',
     {
+      agentType: definition.id,
       templateId: templateId ?? undefined,
       profileId: profileId ?? undefined,
       industryTemplateId: industryTemplateId ?? undefined,
@@ -83,26 +84,33 @@ export async function sendConfigurationTurn(
 
   const data = await res.json().catch(() => null);
   if (typeof data?.reply !== 'string') throw new ChatError(GENERIC_ERROR);
-  const configuration = isConfiguration(data.configuration) ? data.configuration : null;
+  const configuration = hasAllAnswers(definition, data.configuration) ? data.configuration : null;
   return {
     reply: data.reply,
     configuration,
-    sources: configuration ? cleanSources(interviewer, data.sources) : {},
+    sources: configuration ? cleanSources(definition, data.sources) : {},
   };
 }
 
 /**
- * Saves the finished configuration as a new agent owned by the logged-in counsellor, with the
- * template and profile the interviewer and job seeker came from. Without `advanced` the server
+ * Saves the finished configuration as a new agent of the given type, owned by the logged-in
+ * counsellor, with the template and profile its answers came from. Without `advanced` the server
  * uses the default model, temperature and built prompt.
  */
 export async function saveConfiguredAgent(
   name: string,
-  configuration: Configuration,
+  definition: AgentTypeDefinition,
+  configuration: Answers,
   sources: AnswerSources = {},
   advanced?: AdvancedSettings,
 ): Promise<string> {
-  const res = await postJson('/api/agents', { name, configuration, sources, advanced });
+  const res = await postJson('/api/agents', {
+    name,
+    type: definition.id,
+    configuration,
+    sources,
+    advanced,
+  });
   if (!res.ok) throw errorFor(res);
 
   const data = await res.json().catch(() => null);
@@ -110,11 +118,12 @@ export async function saveConfiguredAgent(
   return data.id;
 }
 
-function isTemplate(value: unknown): value is InterviewerTemplate {
+function isTemplate(value: unknown): value is AgentTemplate {
   if (typeof value !== 'object' || value === null) return false;
   const template = value as Record<string, unknown>;
   return (
     typeof template.id === 'string' &&
+    typeof template.agentType === 'string' &&
     typeof template.title === 'string' &&
     typeof template.description === 'string' &&
     typeof template.persona === 'string' &&
@@ -124,11 +133,15 @@ function isTemplate(value: unknown): value is InterviewerTemplate {
 }
 
 /**
- * The templates the counsellor has saved, newest first. Not the built-in ones.
+ * The templates the counsellor has saved for one agent type, newest first. Not the built-in ones.
  * Throws Error if they could not be loaded.
  */
-export async function fetchSavedTemplates(signal?: AbortSignal): Promise<InterviewerTemplate[]> {
-  const res = await fetch('/api/templates', { cache: 'no-store', signal });
+export async function fetchSavedTemplates(
+  agentType: string,
+  signal?: AbortSignal,
+): Promise<AgentTemplate[]> {
+  const url = `/api/templates?agentType=${encodeURIComponent(agentType)}`;
+  const res = await fetch(url, { cache: 'no-store', signal });
   if (!res.ok) throw new Error(`Could not load templates: ${res.status}`);
 
   const data = await res.json().catch(() => null);
