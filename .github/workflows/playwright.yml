@@ -39,8 +39,9 @@ jobs:
       - name: Install Playwright browsers
         run: npx playwright install --with-deps
 
+      # All three browsers here; locally, npm run test:e2e runs only Chromium to save time.
       - name: Run Playwright tests
-        run: npm run test:e2e
+        run: npm run test:e2e:all
 
       - name: Upload the report
         uses: actions/upload-artifact@v4

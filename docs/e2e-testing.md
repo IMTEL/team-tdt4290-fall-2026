@@ -38,8 +38,8 @@ separately, once per machine (and again after Playwright is upgraded):
 
 ```bash
 npm ci
-npx playwright install            # Chromium, Firefox and WebKit
-npx playwright install chromium   # or only Chromium, if that is all you run
+npx playwright install chromium   # enough for npm run test:e2e
+npx playwright install            # all three, for npm run test:e2e:all
 ```
 
 On Linux, add `--with-deps` to also install the system libraries the browsers need (CI does this).
@@ -47,15 +47,20 @@ On Linux, add `--with-deps` to also install the system libraries the browsers ne
 ## Running
 
 ```bash
-npm run test:e2e                              # every test, in all three browsers, headless
-npx playwright test --project=chromium        # one browser only: much faster while you work
-npx playwright test tests/profiles.spec.ts    # one file
-npx playwright test -g "log"                  # tests whose name matches
+npm run test:e2e                              # every test in Chromium, headless (about 30 s)
+npm run test:e2e:all                          # every test in Chromium, Firefox and WebKit, as CI does
+npm run test:e2e -- tests/profiles.spec.ts    # one file
+npm run test:e2e -- -g "log"                  # tests whose name matches
 npx playwright test --ui                      # UI mode: pick tests, watch them run, time-travel
 npx playwright test --headed                  # show the browser window
 npx playwright test --debug                   # step through with the Playwright Inspector
 npx playwright codegen localhost:3100         # record clicks into test code (start the servers first)
 ```
+
+`npm run test:e2e` runs only Chromium, so it takes a third of the time on any machine. CI runs
+all three browsers on every pull request, so a bug that only shows in Firefox or Safari is still
+caught before merge. Run `npm run test:e2e:all` yourself when you change something browsers may
+handle differently, such as CSS layout, forms or keyboard handling.
 
 `npm run check` does **not** run the e2e tests. Run `npm run test:e2e` yourself when you change a
 flow they cover.
@@ -217,7 +222,8 @@ npx playwright show-report   # click a test, then the trace
 
 1. `npm ci`
 2. `npx playwright install --with-deps`
-3. `npm run test:e2e`, which builds the app and starts it and the mock backend
+3. `npm run test:e2e:all`, which builds the app, starts it and the mock backend, and runs every
+   test in all three browsers
 4. Uploads `playwright-report/` as an artifact named `playwright-report`, kept for 30 days, also
    when tests fail.
 
@@ -241,4 +247,4 @@ the mock backend. Tests that log in run in CI just as they do locally.
 | The app shows an error and the mock logs `Mock backend has no ...` | The app calls a RAGdoll endpoint the mock doesn't have yet. Add it (see [The mock backend](#the-mock-backend)).                |
 | A test passes locally but fails in CI                              | Download the report artifact and open the trace. Usually a missing `await`, or an assertion that does not wait.                |
 | A test fails only in WebKit or Firefox                             | Run it with `--project=webkit --headed` to watch it. Do not just delete the browser from the config.                           |
-| Tests are slow while you work                                      | Use `--project=chromium` and run only the file you are working on.                                                             |
+| Tests are slow while you work                                      | Run only the file you are working on, or use UI mode (`--ui`).                                                                 |
