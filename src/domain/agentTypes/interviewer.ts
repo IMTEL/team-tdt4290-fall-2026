@@ -19,15 +19,22 @@ export const interviewer: AgentTypeDefinition = {
     {
       key: 'bransje',
       label: LABELS.bransje,
-      question: 'Hvilken bransje eller sektor er stillingen i?',
-      hint: 'Finn også ut om arbeidsgiveren er offentlig eller privat.',
+      question: 'Hvilken bransje er stillingen i?',
+      hint:
+        'To spørsmål, ett per melding. Først bransjen: gi ALLTID 3–4 ekte bransjer som passer ' +
+        'stillingen, med [ALTERNATIVER: flere], aldri «Annet». Så om arbeidsgiveren er offentlig ' +
+        'eller privat, med alternativene «1. Offentlig» og «2. Privat».',
       format: '… (offentlig/privat)',
     },
     {
       key: 'bedrift',
       label: LABELS.bedrift,
       question: 'Hvilken bedrift eller virksomhet skal intervjuet være hos?',
-      hint: 'Navn (valgfritt), visjon og verdier, og eventuelt nettside som kontekst.',
+      hint:
+        'To spørsmål, ett per melding. Først navnet: uten alternativer, men med [VALGFRITT], så ' +
+        'veilederen kan hoppe over det. Så visjon og verdier, og eventuelt nettside som kontekst: ' +
+        'et åpent spørsmål uten alternativer. Bedrift-linjen skal alltid være med i blokken; er ' +
+        'navnet hoppet over, skriv «ikke oppgitt» for det.',
     },
     {
       key: 'intervjutype',
@@ -40,7 +47,9 @@ export const interviewer: AgentTypeDefinition = {
       key: 'intervjuer',
       label: LABELS.intervjuer,
       question: 'Hvilken rolle og stil skal intervjueren ha?',
-      hint: 'For eksempel HR, leder eller kommende kollega; vennlig, nøytral eller krevende.',
+      hint:
+        'To spørsmål, ett per melding: rollen (for eksempel HR, leder eller kommende kollega), ' +
+        'så stilen (vennlig, nøytral eller krevende).',
       format: 'rolle, stil',
     },
     {
@@ -48,29 +57,35 @@ export const interviewer: AgentTypeDefinition = {
       label: LABELS.jobbsoker,
       question: 'Hvem er jobbsøkeren?',
       hint:
-        'Uten personopplysninger: aldersgruppe (under 25, 25–39, 40+), erfaring, språknivå i ' +
-        'norsk, og hva personen trenger å øve på (for eksempel nervøsitet, hull i CV-en, å ' +
-        'fortelle om egne styrker).',
+        'Fire spørsmål, ett per melding, uten personopplysninger: aldersgruppe (under 25, 25–39, ' +
+        '40+), erfaring, språknivå i norsk, og hva personen trenger å øve på (for eksempel ' +
+        'nervøsitet, hull i CV-en, å fortelle om egne styrker; med [ALTERNATIVER: flere]).',
       format: 'aldersgruppe, erfaring, norsknivå, øvingsmål',
     },
     {
       key: 'vanskelighetsgrad',
       label: LABELS.vanskelighetsgrad,
       question: 'Hvor vanskelig og hvor langt skal intervjuet være?',
-      hint: 'Antall spørsmål (standard 6–8), og om intervjueren skal stille oppfølgingsspørsmål.',
+      hint:
+        'Tre spørsmål, ett per melding: vanskelighetsgraden, antall spørsmål (standard 6–8), og ' +
+        'om intervjueren skal stille oppfølgingsspørsmål.',
       format: '… | Antall spørsmål: … | Oppfølgingsspørsmål: ja/nei',
     },
     {
       key: 'egneSporsmal',
       label: LABELS.egneSporsmal,
       question: 'Er det spørsmål som må være med?',
+      hint: 'Et åpent spørsmål uten alternativer.',
     },
     {
       key: 'tillegg',
       label: LABELS.tillegg,
       question: 'Er det noe mer du vil legge til?',
-      hint: 'Også det veilederen skriver underveis som ikke hører til et annet punkt. Kan være tomt.',
-      format: '… (utelat linjen hvis ingenting ble lagt til)',
+      hint:
+        'Still det med alternativene «1. Nei, jeg er ferdig» og «2. Ja, jeg vil legge til noe». ' +
+        'Vil veilederen legge til noe, be om det, bekreft kort, og still spørsmålet på nytt til ' +
+        'veilederen er ferdig. Her havner også det veilederen skriver underveis som ikke hører ' +
+        'til et annet punkt.',
       optional: true,
     },
   ],

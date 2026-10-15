@@ -134,6 +134,16 @@ describe('buildBriefing', () => {
     expect(buildBriefing(interviewer, { intervjuer: '' })).not.toContain('Allerede bestemt');
   });
 
+  it('marks optional fields, so the configurator offers to skip them and may leave the line out', () => {
+    const briefing = buildBriefing(interviewer);
+
+    expect(briefing).toContain('9. Tillegg (valgfritt): Er det noe mer du vil legge til?');
+    expect(briefing).toMatch(
+      /^Tillegg: … \(valgfritt: utelat linjen hvis ingenting ble lagt til\)$/m,
+    );
+    expect(briefing).not.toContain('Stilling (valgfritt)');
+  });
+
   it('has the interviewer’s own rules', () => {
     expect(buildBriefing(interviewer)).toContain('Ikke finn på fakta om ekte bedrifter.');
   });

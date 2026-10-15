@@ -78,13 +78,7 @@ export function buildBriefing(definition: AgentTypeDefinition, decided: Answers 
       ].join('\n'),
     );
   }
-  sections.push(
-    [
-      '## Blokken du avslutter med',
-      BLOCK_START,
-      ...open.map(({ label, format }) => `${label}: ${format ?? '…'}`),
-    ].join('\n'),
-  );
+  sections.push(['## Blokken du avslutter med', BLOCK_START, ...open.map(blockLine)].join('\n'));
   return sections.join('\n\n');
 }
 
@@ -126,6 +120,13 @@ function openFields(definition: AgentTypeDefinition, decided: string[]): AgentFi
   return definition.fields.filter(({ key }) => !decided.includes(key));
 }
 
-function describeField({ label, question, hint }: AgentField): string {
-  return [`${label}: ${question}`, hint].filter(Boolean).join(' ');
+// "(valgfritt)" tells the configurator to offer «Hopp over» and to leave the line out when empty,
+// whatever the hint says.
+function describeField({ label, question, hint, optional }: AgentField): string {
+  return [`${label}${optional ? ' (valgfritt)' : ''}: ${question}`, hint].filter(Boolean).join(' ');
+}
+
+function blockLine({ label, format, optional }: AgentField): string {
+  const line = `${label}: ${format ?? '…'}`;
+  return optional ? `${line} (valgfritt: utelat linjen hvis ingenting ble lagt til)` : line;
 }
