@@ -1,0 +1,8 @@
+/* The summary box at the top of the page. MUI's Paper gives it the border, radius and padding. */
+.summary {
+  background-color: var(--muted);
+}
+
+.summaryLabel {
+  color: var(--muted-foreground);
+}

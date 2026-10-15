@@ -1,5 +1,6 @@
 import { LABELS, type Configuration } from '../configuration';
 import { buildPrompt } from '../interviewerPrompt';
+import { buildInterviewerSummary } from '../interviewerSummary';
 import type { AgentTypeDefinition } from './types';
 
 /** An interviewer for a practice job interview in The Candidate. */
@@ -95,6 +96,7 @@ export const interviewer: AgentTypeDefinition = {
   },
   // Safe cast: answers are checked with hasAllAnswers before a prompt is built.
   buildPrompt: (answers) => buildPrompt(answers as Configuration),
+  buildSummary: buildInterviewerSummary,
   // The Candidate lists an agent's roles as the interviewers to choose from.
   buildRoles: (name, answers) => [{ name, description: answers.intervjuer }],
   // Only the job title: an industry template puts a whole job description after it, which would

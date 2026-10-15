@@ -1,5 +1,6 @@
 import type { Agent } from '@/lib/types';
 import { getAgentType, listAgentTypes } from './agentTypes/registry';
+import { difficultyLevel } from './difficulty';
 
 /** One section of the agent list: the agents of one type, or the ones we cannot read. */
 export type AgentSection = { key: string; title: string; agents: Agent[] };
@@ -10,7 +11,7 @@ const OTHER_SECTION = { key: 'other', title: 'Andre agenter' };
 
 /**
  * A short line about the agent for its card, e.g. "Butikkmedarbeider · Lett", or "" if there is
- * nothing to show. Placeholder until #60 gives agents a real summary.
+ * nothing to show. The longer summary in sentences is on the details page (`buildSummary`).
  */
 export function agentSummary(agent: Agent): string {
   const parts = [agent.stilling, difficultyLevel(agent.vanskelighetsgrad)];
@@ -43,15 +44,6 @@ export function groupAgentsByType(agents: Agent[]): AgentSection[] {
   return sections
     .filter((section) => section.agents.length > 0)
     .map((section) => ({ ...section, agents: newestFirst(section.agents) }));
-}
-
-/**
- * The level alone, capitalised. The configuration chat may add more after it, as in
- * "lett | Antall spørsmål: 6 | Oppfølgingsspørsmål: ja".
- */
-function difficultyLevel(answer: string | null | undefined): string {
-  const level = answer?.split('|')[0].trim() ?? '';
-  return level.charAt(0).toUpperCase() + level.slice(1);
 }
 
 /**

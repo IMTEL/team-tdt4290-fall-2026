@@ -11,6 +11,7 @@ import Alert from '@mui/material/Alert';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Chip from '@mui/material/Chip';
+import Paper from '@mui/material/Paper';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 
@@ -18,10 +19,12 @@ import { DEFAULT_TEMPERATURE, formatTemperature } from '@/domain/advancedSetting
 import { readStoredAnswers } from '@/domain/agentTypes/storedAnswers';
 
 import { useAgent } from '../useAgent';
+import styles from './AgentDetail.module.css';
 
 /**
- * One saved agent: the configuration as a list, and the advanced settings (model, temperature and
- * the system prompt RAGdoll has stored) closed until opened. They are changed on the edit page.
+ * One saved agent: a summary in sentences, the configuration as a list, and the advanced settings
+ * (model, temperature and the system prompt RAGdoll has stored) closed until opened. They are
+ * changed on the edit page.
  */
 export function AgentDetail({ agentId }: { agentId: string }) {
   const state = useAgent(agentId);
@@ -40,6 +43,8 @@ export function AgentDetail({ agentId }: { agentId: string }) {
 
   // Knows the old and the new way of storing answers, and works for every agent type.
   const stored = readStoredAnswers(state.agent.description);
+  // Empty if the answers say too little to write a sentence about.
+  const summary = stored ? stored.definition.buildSummary(stored.answers) : '';
 
   return (
     <Box sx={{ p: 3, maxWidth: 720 }}>
@@ -51,6 +56,27 @@ export function AgentDetail({ agentId }: { agentId: string }) {
         <Typography color="text.secondary" sx={{ mb: 2 }}>
           Agenttype: {stored.definition.label}
         </Typography>
+      )}
+
+      {summary && (
+        <Paper
+          component="section"
+          variant="outlined"
+          aria-labelledby="summary-heading"
+          className={styles.summary}
+          sx={{ p: 2, mb: 3 }}
+        >
+          {/* English translation: Summary */}
+          <Typography
+            id="summary-heading"
+            variant="overline"
+            component="h2"
+            className={styles.summaryLabel}
+          >
+            Oppsummering
+          </Typography>
+          <Typography variant="body1">{summary}</Typography>
+        </Paper>
       )}
 
       {stored ? (

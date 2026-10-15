@@ -86,6 +86,11 @@ export type AgentTypeDefinition = {
   configurator: ConfiguratorSetup;
   presets?: AgentPresets;
   buildPrompt: (answers: Answers) => string;
+  /**
+   * A few sentences in plain Norwegian about the agent, for the top of the details page. Built
+   * from the answers only. Returns "" if there is nothing to say.
+   */
+  buildSummary: (answers: Answers) => string;
   buildRoles: (name: string, answers: Answers) => AgentRole[];
   defaultName: (answers: Answers) => string;
 };

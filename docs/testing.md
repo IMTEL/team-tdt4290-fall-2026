@@ -187,6 +187,10 @@ Unit and component level only:
   interviewer or industry template winning). A made-up teacher type shows that a new type needs
   only its definition.
 - `src/domain/interviewerPrompt.test.ts`: filling the interviewer prompt from the answers.
+- `src/domain/interviewerSummary.test.ts` and `src/domain/difficulty.test.ts`: the summary in up to
+  three sentences; each sentence is left out when its answers are empty; the type and level of
+  difficulty (also when the chat added the number of questions); a long job seeker description is
+  cut after a whole part; nothing known gives "".
 - `src/domain/agentTypes/registry.test.ts`: looking up an agent type, every counsellor having
   every type for now, which types templates can be made for, the planned types (none has a
   definition), checking that every field has an answer, the interviewer's prompt and role, and for
@@ -200,7 +204,8 @@ Unit and component level only:
   401, 404, 504, other errors and network failures become Norwegian messages.
 - `src/app/browse-agents/[agentId]/AgentDetail.test.tsx`: shows the answers in the old and the
   new storage format, and the agent type (an interviewer for agents saved before types existed,
-  none for agents not made here), keeps the advanced settings (model, temperature, the stored
+  none for agents not made here), shows the summary above the answers (and leaves out its empty
+  sentences, and the whole summary for an agent we did not make), keeps the advanced settings (model, temperature, the stored
   prompt, a mark for a hand-written one, the default temperature for older agents) closed until
   opened, links to the edit page, and calls `notFound` for an unknown id.
 - `src/app/browse-agents/[agentId]/edit/EditAgentForm.test.tsx`: the form is filled in from the
