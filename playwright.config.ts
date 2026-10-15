@@ -14,6 +14,9 @@ export default defineConfig({
   // Fail CI if someone leaves test.only in the code.
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
+  // With one worker and two retries, a change that breaks many tests would otherwise keep CI busy
+  // until the job's 30-minute timeout. Stop early instead: ten failures say enough.
+  maxFailures: process.env.CI ? 10 : undefined,
   workers: process.env.CI ? 1 : undefined,
   reporter: 'html',
   use: {

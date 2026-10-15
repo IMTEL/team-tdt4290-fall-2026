@@ -202,7 +202,10 @@ export function AdvancedSettingsFields({
                 {/* English translation: The prompt is made from the answers. This is how it looks now: */}
                 Prompten lages fra svarene. Slik ser den ut nå:
               </FormHelperText>
-              <pre className={styles.prompt}>{builtPrompt}</pre>
+              {/* It scrolls, so it takes keyboard focus to be scrolled with the arrow keys. */}
+              <pre className={styles.prompt} tabIndex={0} role="region" aria-label="Systemprompt">
+                {builtPrompt}
+              </pre>
             </>
           ) : (
             <FormHelperText>

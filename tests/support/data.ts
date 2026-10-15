@@ -36,6 +36,7 @@ export async function createTemplate(
 ): Promise<string> {
   const res = await page.request.post('/api/templates', {
     data: {
+      agentType: 'interviewer',
       description: 'En rolig og grundig intervjuer.',
       focus: ['Service'],
       persona: 'Intervjueren er butikksjef og spør om service og samarbeid.',

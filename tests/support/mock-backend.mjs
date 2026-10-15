@@ -257,6 +257,12 @@ async function handle(req, res) {
   const data = userFromBearer(req);
   if (!data) return send(res, 401, { detail: 'Not signed in' });
 
+  // Language models: the default, which the app always offers, and one more to choose.
+
+  if (path === '/get_models' && method === 'POST') {
+    return send(res, 200, [{ name: 'openai/gpt-oss-120b' }, { name: 'mock/test-model' }]);
+  }
+
   // Agents
 
   if (path === '/agents/' && method === 'GET') return send(res, 200, data.agents);

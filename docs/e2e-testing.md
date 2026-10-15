@@ -118,19 +118,20 @@ the mock, copying the request and response shapes from `src/server/ragdoll.ts`.
 
 In `tests/`, named `*.spec.ts`, one file per flow or page:
 
-| File                    | Covers                                                            |
-| ----------------------- | ----------------------------------------------------------------- |
-| `home.spec.ts`          | Start page, navbar links, theme toggle                            |
-| `auth.spec.ts`          | Login, logout, protected pages, login errors                      |
-| `agents.spec.ts`        | Agent list, agent page, edit (with presets), clone, delete        |
-| `configure.spec.ts`     | Configurator: template and profile choice, chat, saving the agent |
-| `templates.spec.ts`     | Create, edit, delete and use interviewer templates                |
-| `profiles.spec.ts`      | Create, edit, delete job seeker profiles, form validation         |
-| `test-chat.spec.ts`     | Testing an agent in the chat: greeting, sending, starting over    |
-| `accessibility.spec.ts` | axe on every page, dialog, menu and error state, light and dark   |
+| File                    | Covers                                                               |
+| ----------------------- | -------------------------------------------------------------------- |
+| `home.spec.ts`          | Start page, navbar links, theme toggle                               |
+| `auth.spec.ts`          | Login, logout, protected pages, login errors                         |
+| `agents.spec.ts`        | Agent list, agent page, edit (with presets), clone, delete           |
+| `configure.spec.ts`     | Configurator: agent type, templates, profile, industry, chat, saving |
+| `templates.spec.ts`     | Create, edit, delete and use interviewer templates                   |
+| `profiles.spec.ts`      | Create, edit, delete job seeker profiles, form validation            |
+| `test-chat.spec.ts`     | Testing an agent in the chat: greeting, sending, starting over       |
+| `accessibility.spec.ts` | axe on every page, dialog, menu and error state, light and dark      |
 
 Helpers and the mock backend are in `tests/support/`: `auth.ts` logs in, `data.ts` creates test
-data through our API, `accessibility.ts` runs axe.
+data through our API, `configure.ts` clicks through the steps on `/configure` to the chat
+(`startInterviewerChat`), and `accessibility.ts` runs axe.
 
 Vitest only picks up `src/**/*.test.{ts,tsx}`, and Playwright only looks in `tests/`, so the two
 never run each other's files.
@@ -232,7 +233,13 @@ npx playwright show-report   # click a test, then the trace
    when tests fail.
 
 In CI, failed tests are retried twice, tests run one at a time (`workers: 1`), and `test.only`
-fails the run.
+fails the run. After 10 failed tests CI stops (`maxFailures`) and the rest are reported as not
+run: with retries and one worker, a change that breaks many tests would otherwise run until the
+job's 30-minute timeout. A healthy run takes about 5–8 minutes.
+
+**When a run fails right after merging `main`**, the app has usually changed under the tests: a
+new step, a renamed button. Run `npm run test:e2e` locally, see what the failures wait for, and
+update the tests (or a helper in `tests/support/`) to the new behaviour.
 
 To see why a CI run failed: open the run on GitHub, download the `playwright-report` artifact,
 unzip it and run `npx playwright show-report <unzipped folder>`. Failed tests that were retried

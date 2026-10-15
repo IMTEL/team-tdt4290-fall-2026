@@ -1,7 +1,13 @@
-import { test, expect, type Page } from '@playwright/test';
+import { test, expect } from '@playwright/test';
 
 import { expectNoAccessibilityViolations } from './support/accessibility';
 import { logIn } from './support/auth';
+import {
+  chooseInterviewer,
+  chooseProfile,
+  sendMessage,
+  startInterviewerChat,
+} from './support/configure';
 import { configurationBlock, createAgent, createProfile, createTemplate } from './support/data';
 
 // Every page, and the states a user can open on it (dialogs, menus, errors, chat), checked with
@@ -10,11 +16,6 @@ import { configurationBlock, createAgent, createProfile, createTemplate } from '
 test.skip(({ browserName }) => browserName !== 'chromium', 'axe gives the same result everywhere');
 
 const NO_AGENT = '000000000000000000000000';
-
-async function sendMessage(page: Page, text: string) {
-  await page.getByRole('textbox', { name: 'Melding', exact: true }).fill(text);
-  await page.getByRole('button', { name: 'Send', exact: true }).click();
-}
 
 for (const colorScheme of ['light', 'dark'] as const) {
   test.describe(`${colorScheme} theme`, () => {
@@ -59,12 +60,12 @@ for (const colorScheme of ['light', 'dark'] as const) {
         await expectNoAccessibilityViolations(page);
       });
 
-      test('agent page with the system prompt open', async ({ page }) => {
+      test('agent page with the advanced settings open', async ({ page }) => {
         await logIn(page);
         const id = await createAgent(page, 'Intervjuer for butikk');
         await page.goto(`/browse-agents/${id}`);
-        await page.getByRole('button', { name: 'Systemprompt', exact: true }).click();
-        await expect(page.getByRole('region')).toBeVisible();
+        await page.getByRole('button', { name: 'Avanserte innstillinger', exact: true }).click();
+        await expect(page.getByText('openai/gpt-oss-120b')).toBeVisible();
         await expectNoAccessibilityViolations(page);
       });
 
@@ -111,10 +112,17 @@ for (const colorScheme of ['light', 'dark'] as const) {
     });
 
     test.describe('configure', () => {
+      test('agent type picker', async ({ page }) => {
+        await logIn(page, '/configure');
+        await expect(page.getByText('Kommer snart').first()).toBeVisible();
+        await expectNoAccessibilityViolations(page);
+      });
+
       test('template picker with saved templates', async ({ page }) => {
         await logIn(page);
         await createTemplate(page, { title: 'Butikksjef' });
         await page.goto('/configure');
+        await chooseInterviewer(page);
         await expect(
           page.getByRole('heading', { level: 3, name: 'Butikksjef', exact: true }),
         ).toBeVisible();
@@ -125,24 +133,47 @@ for (const colorScheme of ['light', 'dark'] as const) {
         await logIn(page);
         await createProfile(page, { label: 'Profil A', ageRange: '18-24' });
         await page.goto('/configure');
+        await chooseInterviewer(page);
         await page.getByRole('combobox', { name: 'Jobbsøkerprofil', exact: true }).click();
         await expect(page.getByRole('listbox')).toBeVisible();
         await expectNoAccessibilityViolations(page);
       });
 
+      test('industry picker', async ({ page }) => {
+        await logIn(page);
+        await createProfile(page, { label: 'Profil A' });
+        await page.goto('/configure');
+        await chooseInterviewer(page);
+        await chooseProfile(page, 'Profil A');
+        await page.getByRole('button', { name: /^Daglig leder/ }).click();
+        await expect(
+          page.getByRole('heading', { name: 'Velg en bransjemal', exact: true }),
+        ).toBeVisible();
+        await expectNoAccessibilityViolations(page);
+      });
+
       test('chat with a finished configuration', async ({ page }) => {
         await logIn(page, '/configure');
-        await page.getByRole('button', { name: 'Fortsett uten mal', exact: true }).click();
+        await startInterviewerChat(page);
         await sendMessage(page, configurationBlock());
+        await expect(page.getByRole('form', { name: 'Lagre agenten', exact: true })).toBeVisible();
+        await expectNoAccessibilityViolations(page);
+      });
+
+      test('save form with the advanced settings open', async ({ page }) => {
+        await logIn(page, '/configure');
+        await startInterviewerChat(page);
+        await sendMessage(page, configurationBlock());
+        await page.getByRole('button', { name: /^Avanserte innstillinger/ }).click();
         await expect(
-          page.getByRole('form', { name: 'Lagre intervjueren', exact: true }),
+          page.getByRole('combobox', { name: 'Språkmodell', exact: true }),
         ).toBeVisible();
         await expectNoAccessibilityViolations(page);
       });
 
       test('saved agent message', async ({ page }) => {
         await logIn(page, '/configure');
-        await page.getByRole('button', { name: 'Fortsett uten mal', exact: true }).click();
+        await startInterviewerChat(page);
         await sendMessage(page, configurationBlock());
         await page.getByRole('button', { name: 'Lagre agent', exact: true }).click();
         await expect(page.getByText(/er lagret\./)).toBeVisible();
@@ -174,6 +205,7 @@ for (const colorScheme of ['light', 'dark'] as const) {
         await logIn(page);
         await createTemplate(page, { title: 'Butikksjef' });
         await page.goto('/configure');
+        await chooseInterviewer(page);
         await page.getByRole('button', { name: 'Slett Butikksjef', exact: true }).click();
         await expect(page.getByRole('dialog')).toBeVisible();
         await expectNoAccessibilityViolations(page);

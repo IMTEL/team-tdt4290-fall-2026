@@ -117,6 +117,22 @@ const themeOptions: ThemeOptions = {
       },
     },
   },
+  // MUI's defaults for these are a faded grey below 4.5:1 against our backgrounds.
+  components: {
+    MuiToggleButton: {
+      styleOverrides: {
+        root: ({ theme }) => ({ color: theme.vars.palette.text.secondary }),
+      },
+    },
+    // The helper text of a disabled field still says something, such as why it is locked.
+    MuiFormHelperText: {
+      styleOverrides: {
+        root: ({ theme }) => ({
+          '&.Mui-disabled': { color: theme.vars.palette.text.secondary },
+        }),
+      },
+    },
+  },
 };
 
 // nbNO translates MUI's own texts (pagination, menus, aria labels) into Norwegian bokmål.

@@ -1,15 +1,19 @@
 import { test, expect } from '@playwright/test';
 
 import { logIn } from './support/auth';
+import { chooseInterviewer, startInterviewerChat } from './support/configure';
 import { createTemplate } from './support/data';
 
 test('a counsellor can make a template and find it on the configure page', async ({ page }) => {
   await logIn(page, '/configure');
+  await chooseInterviewer(page);
 
   await page.getByRole('link', { name: 'Lag en ny mal', exact: true }).click();
   await expect(
     page.getByRole('heading', { name: 'Lag en mal til å konfigurere en AI-agent', exact: true }),
   ).toBeVisible();
+  // The link from the interviewer's templates starts the form as an interviewer template.
+  await expect(page.getByRole('combobox', { name: /^Type agent/ })).toHaveText('Intervjuer');
 
   const save = page.getByRole('button', { name: 'Lagre mal', exact: true });
   await expect(save).toBeDisabled();
@@ -23,9 +27,8 @@ test('a counsellor can make a template and find it on the configure page', async
   await save.click();
 
   await expect(page.getByText('Malen «Butikksjef» er lagret.')).toBeVisible();
-  await page
-    .getByRole('link', { name: 'Bruk den til å sette opp en intervjuer', exact: true })
-    .click();
+  await page.getByRole('link', { name: 'Bruk den til å sette opp en agent', exact: true }).click();
+  await chooseInterviewer(page);
 
   await expect(
     page.getByRole('heading', { level: 3, name: 'Butikksjef', exact: true }),
@@ -53,7 +56,7 @@ test('a saved template can be used to start the configurator', async ({ page }) 
   await createTemplate(page, { title: 'Butikksjef' });
   await page.goto('/configure');
 
-  await page.getByRole('button', { name: /^Butikksjef/ }).click();
+  await startInterviewerChat(page, { template: 'Butikksjef' });
 
   await expect(page.getByRole('log', { name: 'Samtale', exact: true })).toContainText(
     'Du har valgt malen «Butikksjef».',
@@ -64,6 +67,7 @@ test('a saved template can be edited', async ({ page }) => {
   await logIn(page);
   await createTemplate(page, { title: 'Butikksjef', description: 'Gammel beskrivelse.' });
   await page.goto('/configure');
+  await chooseInterviewer(page);
 
   await page.getByRole('link', { name: 'Rediger Butikksjef', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Rediger mal', exact: true })).toBeVisible();
@@ -75,6 +79,7 @@ test('a saved template can be edited', async ({ page }) => {
   await expect(page.getByText('Malen «Butikksjef» er lagret.')).toBeVisible();
 
   await page.goto('/configure');
+  await chooseInterviewer(page);
   await expect(page.getByText('Ny beskrivelse.')).toBeVisible();
   await expect(page.getByText('Gammel beskrivelse.')).toBeHidden();
 });
@@ -83,6 +88,7 @@ test('a saved template can be deleted after confirming', async ({ page }) => {
   await logIn(page);
   await createTemplate(page, { title: 'Butikksjef' });
   await page.goto('/configure');
+  await chooseInterviewer(page);
   const card = page.getByRole('heading', { level: 3, name: 'Butikksjef', exact: true });
   await expect(card).toBeVisible();
 
@@ -93,6 +99,7 @@ test('a saved template can be deleted after confirming', async ({ page }) => {
 
   await expect(card).toBeHidden();
   await page.reload();
+  await chooseInterviewer(page);
   await expect(
     page.getByRole('heading', { level: 2, name: 'Velg en mal', exact: true }),
   ).toBeVisible();

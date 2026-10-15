@@ -11,7 +11,7 @@ test('a new user has no agents', async ({ page }) => {
   await logIn(page, '/browse-agents');
 
   await expect(page.getByText('Du har ingen agenter ennå.')).toBeVisible();
-  await page.getByRole('link', { name: 'Sett opp en intervjuer', exact: true }).click();
+  await page.getByRole('link', { name: 'Sett opp en agent', exact: true }).click();
   await expect(page).toHaveURL(/\/configure$/);
 });
 
@@ -61,13 +61,23 @@ test('the agent page shows the configuration and the system prompt', async ({ pa
   ).toBeVisible();
   await expect(page.getByRole('definition').filter({ hasText: 'Butikkmedarbeider' })).toBeVisible();
   await expect(page.getByRole('definition').filter({ hasText: 'En matbutikk' })).toBeVisible();
+  await expect(page.getByText('Agenttype: Intervjuer')).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Oppsummering', exact: true })).toBeVisible();
 
-  // The system prompt is closed until the counsellor opens it.
-  const prompt = page.getByRole('button', { name: 'Systemprompt', exact: true });
-  await expect(prompt).toHaveAttribute('aria-expanded', 'false');
-  await prompt.click();
-  await expect(prompt).toHaveAttribute('aria-expanded', 'true');
-  await expect(page.getByRole('region')).toContainText('Butikkmedarbeider');
+  // The model, temperature and system prompt are closed until the counsellor opens them.
+  const advanced = page.getByRole('button', { name: 'Avanserte innstillinger', exact: true });
+  await expect(advanced).toHaveAttribute('aria-expanded', 'false');
+  await advanced.click();
+  await expect(advanced).toHaveAttribute('aria-expanded', 'true');
+  await expect(
+    page.getByRole('definition').filter({ hasText: 'openai/gpt-oss-120b' }),
+  ).toBeVisible();
+  await expect(
+    page
+      .getByRole('definition')
+      .filter({ hasText: /Butikkmedarbeider/ })
+      .last(),
+  ).toBeVisible();
 });
 
 test('an agent that does not exist shows the not found page', async ({ page }) => {
