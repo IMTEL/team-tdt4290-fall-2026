@@ -180,6 +180,7 @@ describe('ConfigurationChat', () => {
       configuration,
       sources,
       undefined,
+      null,
     );
   });
 });

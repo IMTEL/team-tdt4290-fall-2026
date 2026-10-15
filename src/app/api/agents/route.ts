@@ -8,6 +8,7 @@ import {
 import { DEFAULT_AGENT_TYPE, getAgentType, hasAllAnswers } from '@/domain/agentTypes/registry';
 import { cleanSources } from '@/domain/agentTypes/storedAnswers';
 import type { AgentTypeDefinition } from '@/domain/agentTypes/types';
+import { parseAvatarChoice } from '@/domain/avatars';
 
 import { getSessionToken } from '@/lib/session-tokens';
 import { toAgentListItem, toRagdollAgent } from '@/server/agentMapper';
@@ -20,6 +21,7 @@ import { cleanName } from '@/domain/agentName';
 /**
  * Saves a new agent of the chosen type, owned by the logged-in counsellor. Returns its id.
  * `advanced` (model, temperature, hand-written prompt) is optional: without it the defaults apply.
+ * So is `avatar`, the id of one of our avatars: without it the agent shows the default image.
  */
 export async function POST(req: NextRequest) {
   const sessionToken = await getSessionToken(req);
@@ -32,6 +34,7 @@ export async function POST(req: NextRequest) {
   let configuration;
   let advanced: unknown;
   let sources: unknown;
+  let avatar: ReturnType<typeof parseAvatarChoice>;
   try {
     const body = await req.json();
     name = cleanName(body?.name);
@@ -40,6 +43,7 @@ export async function POST(req: NextRequest) {
     configuration = body?.configuration;
     advanced = body?.advanced;
     sources = body?.sources;
+    avatar = parseAvatarChoice(body?.avatar);
   } catch {
     return Response.json({ error: 'Invalid JSON' }, { status: 400 });
   }
@@ -48,6 +52,9 @@ export async function POST(req: NextRequest) {
   }
   if (!definition) {
     return Response.json({ error: 'Unknown agent type' }, { status: 400 });
+  }
+  if (avatar === 'invalid') {
+    return Response.json({ error: 'Invalid avatar' }, { status: 400 });
   }
   if (!hasAllAnswers(definition, configuration)) {
     return Response.json({ error: 'Invalid configuration' }, { status: 400 });
@@ -80,6 +87,8 @@ export async function POST(req: NextRequest) {
       idunKey,
       cleanSources(definition, sources),
       settings,
+      undefined,
+      avatar ?? null,
     );
     const id = await saveAgent(sessionToken, agent);
     return Response.json({ id }, { status: 201 });

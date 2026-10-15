@@ -190,6 +190,68 @@ describe('PUT /api/agents/[agentId]', () => {
     expect(readStoredAnswers(saved.description)?.customPrompt).toBe(true);
   });
 
+  it('saves a new avatar', async () => {
+    const res = await PUT(putRequest({ name: 'Nytt navn', answers, avatar: 'rev' }), params);
+
+    expect(res.status).toBe(200);
+    const [, saved] = updateAgentMock.mock.calls[0];
+    expect(readStoredAnswers(saved.description)?.avatar).toBe('rev');
+  });
+
+  it('keeps the avatar when none is sent', async () => {
+    fetchFullAgentMock.mockResolvedValue({
+      ...existing,
+      ...toRagdollAgent(
+        'Gammelt navn',
+        interviewer,
+        answers,
+        'idun-key',
+        {},
+        undefined,
+        undefined,
+        'katt',
+      ),
+      id: 'agent-1',
+    });
+
+    await PUT(putRequest({ name: 'Nytt navn', answers: newAnswers }), params);
+
+    const [, saved] = updateAgentMock.mock.calls[0];
+    expect(readStoredAnswers(saved.description)?.avatar).toBe('katt');
+  });
+
+  it('goes back to the default image when null is sent', async () => {
+    fetchFullAgentMock.mockResolvedValue({
+      ...existing,
+      ...toRagdollAgent(
+        'Gammelt navn',
+        interviewer,
+        answers,
+        'idun-key',
+        {},
+        undefined,
+        undefined,
+        'katt',
+      ),
+      id: 'agent-1',
+    });
+
+    await PUT(putRequest({ name: 'Nytt navn', answers, avatar: null }), params);
+
+    const [, saved] = updateAgentMock.mock.calls[0];
+    expect(readStoredAnswers(saved.description)?.avatar).toBeNull();
+  });
+
+  it('answers 400 and writes nothing for an avatar that is not one of ours', async () => {
+    const res = await PUT(
+      putRequest({ name: 'Nytt navn', answers, avatar: 'fjernet-avatar' }),
+      params,
+    );
+
+    expect(res.status).toBe(400);
+    expect(updateAgentMock).not.toHaveBeenCalled();
+  });
+
   it('keeps the model and temperature when no advanced settings are sent', async () => {
     await PUT(putRequest({ name: 'Nytt navn', answers: newAnswers }), params);
 

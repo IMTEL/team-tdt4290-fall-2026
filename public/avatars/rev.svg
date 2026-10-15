@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <circle cx="32" cy="32" r="32" fill="#cfe3f5"/>
+  <polygon points="14,10 27,26 12,31" fill="#ee8a3a"/>
+  <polygon points="50,10 37,26 52,31" fill="#ee8a3a"/>
+  <polygon points="17,16 25,26 16,28" fill="#12304f"/>
+  <polygon points="47,16 39,26 48,28" fill="#12304f"/>
+  <ellipse cx="32" cy="38" rx="19" ry="16" fill="#ee8a3a"/>
+  <path d="M15 42 Q32 60 49 42 Q32 34 15 42 Z" fill="#faf5e6"/>
+  <circle cx="32" cy="46" r="2.8" fill="#12304f"/>
+  <circle cx="24" cy="36" r="2.6" fill="#12304f"/>
+  <circle cx="40" cy="36" r="2.6" fill="#12304f"/>
+</svg>

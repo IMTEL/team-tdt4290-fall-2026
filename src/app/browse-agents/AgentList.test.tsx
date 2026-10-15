@@ -83,6 +83,20 @@ describe('AgentList', () => {
     expect(screen.queryByRole('grid')).not.toBeInTheDocument();
   });
 
+  it('shows each agent’s own avatar, and the default image for one without', async () => {
+    fetchAgentsMock.mockResolvedValue([
+      makeAgent({ id: 'a', name: 'Med avatar', avatar: 'katt' }),
+      makeAgent({ id: 'b', name: 'Uten avatar', avatar: null }),
+    ]);
+
+    render(<AgentList />);
+
+    const sourceOf = async (name: string) =>
+      (await screen.findByRole('link', { name: new RegExp(name) })).querySelector('img');
+    expect(await sourceOf('Med avatar')).toHaveAttribute('src', '/avatars/katt.svg');
+    expect(await sourceOf('Uten avatar')).toHaveAttribute('src', '/avatars/default.svg');
+  });
+
   it('links each card to the agent’s page and its test button to the test chat', async () => {
     fetchAgentsMock.mockResolvedValue([makeAgent()]);
 

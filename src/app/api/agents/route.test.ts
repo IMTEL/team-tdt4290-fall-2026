@@ -160,6 +160,37 @@ describe('POST /api/agents', () => {
     expect(stored?.sources).toEqual({ jobbsoker: { kind: 'profile', id: 'profile-1' } });
   });
 
+  it('saves the chosen avatar with the agent', async () => {
+    saveAgentMock.mockResolvedValue('new-agent-1');
+
+    const res = await POST(postRequest({ name: 'Testintervjuer', configuration, avatar: 'ugle' }));
+
+    expect(res.status).toBe(201);
+    const [, saved] = saveAgentMock.mock.calls[0];
+    expect(readStoredAnswers(saved.description)?.avatar).toBe('ugle');
+  });
+
+  it('saves an agent without an avatar when none is sent, or the default image is chosen', async () => {
+    saveAgentMock.mockResolvedValue('new-agent-1');
+
+    await POST(postRequest({ name: 'Testintervjuer', configuration }));
+    await POST(postRequest({ name: 'Testintervjuer', configuration, avatar: null }));
+
+    for (const [, saved] of saveAgentMock.mock.calls) {
+      expect(readStoredAnswers(saved.description)?.avatar).toBeNull();
+    }
+  });
+
+  it.each([['fjernet-avatar'], [''], [7], [{ id: 'ugle' }]])(
+    'answers 400 and saves nothing for the avatar %j, which is not one of ours',
+    async (avatar) => {
+      const res = await POST(postRequest({ name: 'Testintervjuer', configuration, avatar }));
+
+      expect(res.status).toBe(400);
+      expect(saveAgentMock).not.toHaveBeenCalled();
+    },
+  );
+
   it('answers 401 and saves nothing when the user is not logged in', async () => {
     getSessionTokenMock.mockResolvedValue(null);
 
@@ -234,6 +265,7 @@ describe('GET /api/agents', () => {
       agents: [
         {
           ...agent,
+          avatar: null,
           type: 'interviewer',
           typeLabel: 'Intervjuer',
           stilling: 'Butikkmedarbeider',
@@ -252,5 +284,29 @@ describe('GET /api/agents', () => {
 
     expect(res.status).toBe(401);
     expect(listAgentsMock).not.toHaveBeenCalled();
+  });
+});
+
+describe('GET /api/agents avatar', () => {
+  it('gives each agent’s avatar, so the cards can show it', async () => {
+    const withAvatar = {
+      id: 'a1',
+      name: 'Testintervjuer',
+      description: JSON.stringify({
+        type: 'interviewer',
+        version: 1,
+        answers: configuration,
+        avatar: 'pingvin',
+      }),
+      lastUpdated: 'x',
+      llmModel: DEFAULT_MODEL,
+      temperature: 0.7,
+      prompt: 'Du er en intervjuer.',
+    };
+    listAgentsMock.mockResolvedValue([withAvatar]);
+
+    const res = await GET(getRequest());
+
+    expect((await res.json()).agents[0].avatar).toBe('pingvin');
   });
 });

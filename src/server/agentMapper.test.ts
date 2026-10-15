@@ -4,7 +4,13 @@ import { describe, expect, it } from 'vitest';
 import { DEFAULT_ADVANCED_SETTINGS, DEFAULT_MODEL } from '@/domain/advancedSettings';
 import { interviewer } from '@/domain/agentTypes/interviewer';
 import { readStoredAnswers, toStoredDescription } from '@/domain/agentTypes/storedAnswers';
-import { applyEdit, currentSettings, toAgentListItem, toRagdollAgent } from './agentMapper';
+import {
+  applyEdit,
+  currentAvatar,
+  currentSettings,
+  toAgentListItem,
+  toRagdollAgent,
+} from './agentMapper';
 import type { FullRagdollAgent } from './ragdoll';
 
 const answers = {
@@ -52,6 +58,7 @@ describe('toRagdollAgent', () => {
       answers,
       sources: {},
       customPrompt: false,
+      avatar: null,
     });
   });
 
@@ -251,12 +258,20 @@ describe('toAgentListItem', () => {
     expect(item).toEqual({
       ...summary,
       description,
+      avatar: null,
       type: 'interviewer',
       typeLabel: 'Intervjuer',
       stilling: 'Butikkmedarbeider',
       bransje: 'Varehandel (privat)',
       vanskelighetsgrad: 'lett | Antall spørsmål: 6 | Oppfølgingsspørsmål: ja',
     });
+  });
+
+  it('gives the avatar, or null for the default image', () => {
+    const withAvatar = toStoredDescription(interviewer, answers, {}, { avatar: 'katt' });
+
+    expect(toAgentListItem({ ...summary, description: withAvatar }).avatar).toBe('katt');
+    expect(toAgentListItem(summary).avatar).toBeNull();
   });
 
   it('reads agents saved before agent types existed as interviewers', () => {
@@ -279,11 +294,76 @@ describe('toAgentListItem', () => {
     expect(item).toEqual({
       ...summary,
       description: 'Laget i RAGdoll',
+      avatar: null,
       type: null,
       typeLabel: null,
       stilling: null,
       bransje: null,
       vanskelighetsgrad: null,
     });
+  });
+});
+
+describe('the avatar', () => {
+  const NOW = new Date('2026-10-06T12:00:00.000Z');
+  const withAvatar = (avatar: string | null) => ({
+    ...toRagdollAgent('Kari', interviewer, answers, 'idun-key', {}, undefined, NOW, avatar),
+    id: 'agent-1',
+  });
+
+  it('is saved with a new agent, and a new agent has none unless one is chosen', () => {
+    expect(currentAvatar(withAvatar('ugle'))).toBe('ugle');
+    expect(currentAvatar(withAvatar(null))).toBeNull();
+  });
+
+  it('is kept when an edit does not send one', () => {
+    const edited = applyEdit(withAvatar('ugle'), 'Nytt navn', interviewer, answers);
+
+    expect(currentAvatar(edited)).toBe('ugle');
+  });
+
+  it('is changed by an edit that sends one', () => {
+    const edited = applyEdit(
+      withAvatar('ugle'),
+      'Kari',
+      interviewer,
+      answers,
+      {},
+      undefined,
+      NOW,
+      'rev',
+    );
+
+    expect(currentAvatar(edited)).toBe('rev');
+  });
+
+  it('goes back to the default image when an edit sends null', () => {
+    const edited = applyEdit(
+      withAvatar('ugle'),
+      'Kari',
+      interviewer,
+      answers,
+      {},
+      undefined,
+      NOW,
+      null,
+    );
+
+    expect(currentAvatar(edited)).toBeNull();
+    expect(JSON.parse(edited.description)).not.toHaveProperty('avatar');
+  });
+
+  it('is kept next to a hand-written prompt', () => {
+    const settings = { ...DEFAULT_ADVANCED_SETTINGS, customPrompt: 'Du er Kari.' };
+    const edited = applyEdit(withAvatar('sol'), 'Kari', interviewer, answers, {}, settings);
+
+    expect(readStoredAnswers(edited.description)).toMatchObject({
+      customPrompt: true,
+      avatar: 'sol',
+    });
+  });
+
+  it('is null for an agent whose description is not ours', () => {
+    expect(currentAvatar({ ...withAvatar('sol'), description: 'Laget i RAGdoll' })).toBeNull();
   });
 });

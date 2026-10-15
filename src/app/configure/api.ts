@@ -93,9 +93,11 @@ export async function sendConfigurationTurn(
 }
 
 /**
- * Saves the finished configuration as a new agent of the given type, owned by the logged-in
- * counsellor, with the template and profile its answers came from. Without `advanced` the server
- * uses the default model, temperature and built prompt.
+/**
+ * Saves the finished configuration as a new agent owned by the logged-in counsellor, with the
+ * template and profile the interviewer and job seeker came from. Without `advanced` the server
+ * uses the default model, temperature and built prompt. Without `avatar` (or with null) the agent
+ * shows the default image.
  */
 export async function saveConfiguredAgent(
   name: string,
@@ -103,6 +105,7 @@ export async function saveConfiguredAgent(
   configuration: Answers,
   sources: AnswerSources = {},
   advanced?: AdvancedSettings,
+  avatar?: string | null,
 ): Promise<string> {
   const res = await postJson('/api/agents', {
     name,
@@ -110,6 +113,7 @@ export async function saveConfiguredAgent(
     configuration,
     sources,
     advanced,
+    avatar,
   });
   if (!res.ok) throw errorFor(res);
 

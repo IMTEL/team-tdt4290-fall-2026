@@ -74,9 +74,35 @@ describe('CloneAgent', () => {
       answers,
       {},
       undefined,
+      undefined,
     );
     expect(updateAgentMock).not.toHaveBeenCalled();
     expect(push).toHaveBeenCalledWith('/browse-agents/agent-2');
+  });
+
+  it('starts with the original’s avatar chosen, and sends only a different one', async () => {
+    const withAvatar = {
+      ...agent,
+      description: JSON.stringify({ type: 'interviewer', version: 1, answers, avatar: 'ugle' }),
+    };
+    fetchAgentsMock.mockResolvedValue([withAvatar]);
+    cloneAgentMock.mockResolvedValue('agent-2');
+    const user = userEvent.setup();
+
+    render(<CloneAgent agentId="agent-1" />);
+
+    expect(await screen.findByRole('radio', { name: 'Ugle' })).toBeChecked();
+    await user.click(screen.getByRole('radio', { name: 'Sol' }));
+    await user.click(screen.getByRole('button', { name: 'Lagre som ny agent' }));
+
+    expect(cloneAgentMock).toHaveBeenCalledWith(
+      'agent-1',
+      'Intervjuer for Barnehagelærer (kopi)',
+      answers,
+      {},
+      undefined,
+      'sol',
+    );
   });
 
   it('cancels back to the original agent', async () => {

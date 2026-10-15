@@ -107,6 +107,30 @@ describe('AgentDetail', () => {
     });
   });
 
+  it('shows the agent’s avatar next to its name', async () => {
+    fetchAgentsMock.mockResolvedValue([{ ...agent, avatar: 'ugle' }]);
+
+    const { container } = render(<AgentDetail agentId="agent-1" />);
+
+    const heading = await screen.findByRole('heading', { name: agent.name });
+    const image = container.querySelector('img');
+    expect(image).toHaveAttribute('src', '/avatars/ugle.svg');
+    expect(heading.parentElement).toContainElement(image);
+  });
+
+  it.each([
+    ['has no avatar', null],
+    ['was saved before avatars existed', undefined],
+    ['has an avatar we no longer have', 'fjernet-avatar'],
+  ])('shows the default image when the agent %s', async (_, avatar) => {
+    fetchAgentsMock.mockResolvedValue([{ ...agent, avatar }]);
+
+    const { container } = render(<AgentDetail agentId="agent-1" />);
+
+    await screen.findByRole('heading', { name: agent.name });
+    expect(container.querySelector('img')).toHaveAttribute('src', '/avatars/default.svg');
+  });
+
   it('shows an agent saved in the new format, with type and version', async () => {
     fetchAgentsMock.mockResolvedValue([
       {

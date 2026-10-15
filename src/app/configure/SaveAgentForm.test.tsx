@@ -61,6 +61,7 @@ describe('SaveAgentForm', () => {
       configuration,
       {},
       undefined,
+      null,
     );
     expect(await screen.findByText(/«Butikksjef Kari» er lagret/)).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Test agenten' })).toHaveAttribute(
@@ -91,6 +92,32 @@ describe('SaveAgentForm', () => {
         ...DEFAULT_ADVANCED_SETTINGS,
         model: 'meta/llama-3.3-70b',
       },
+      null,
+    );
+  });
+
+  it('offers the avatars, with the default image chosen from the start', () => {
+    setup();
+
+    expect(screen.getByRole('radiogroup', { name: 'Avatar' })).toBeVisible();
+    expect(screen.getByRole('radio', { name: 'Standard' })).toBeChecked();
+    expect(screen.getByRole('radio', { name: 'Robot' })).toBeInTheDocument();
+  });
+
+  it('saves the agent with the avatar that was chosen', async () => {
+    saveMock.mockResolvedValue('agent-1');
+    const { user, saveButton } = setup();
+
+    await user.click(screen.getByRole('radio', { name: 'Pingvin' }));
+    await user.click(saveButton());
+
+    expect(saveMock).toHaveBeenCalledWith(
+      'Intervjuer for Butikkmedarbeider',
+      interviewer,
+      configuration,
+      {},
+      undefined,
+      'pingvin',
     );
   });
 

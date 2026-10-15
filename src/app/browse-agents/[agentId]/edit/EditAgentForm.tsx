@@ -14,6 +14,7 @@ import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 
 import { AdvancedSettingsFields } from '@/components/agents/AdvancedSettingsFields';
+import { AvatarPicker } from '@/components/agents/AvatarPicker';
 import { useLanguageModels } from '@/components/agents/useLanguageModels';
 import { type AdvancedSettings, advancedSettingsErrors } from '@/domain/advancedSettings';
 import { MAX_NAME_LENGTH } from '@/domain/agentName';
@@ -86,19 +87,22 @@ type EditAgentFormProps = {
   /** Where the saved answers came from. */
   initialSources?: AnswerSources;
   initialSettings: AdvancedSettings;
+  /** The id of the agent's avatar. Null, the default, for an agent without one. */
+  initialAvatar?: string | null;
   /** The form's name for screen readers. */
   label: string;
   submitLabel: string;
   /**
-   * Saves the name, answers, sources and (only the changed) advanced settings, and returns the id
-   * of the agent to go to afterwards. `settings` is undefined when the advanced settings were not
-   * changed.
+   * Saves the name, answers, sources and (only the changed) advanced settings and avatar, and
+   * returns the id of the agent to go to afterwards. `settings` and `avatar` are undefined when
+   * they were not changed. `avatar` is null when the default image was chosen.
    */
   onSave: (
     name: string,
     answers: Answers,
     sources: AnswerSources,
     settings?: AdvancedSettings,
+    avatar?: string | null,
   ) => Promise<string>;
   /** True when saving is allowed without changes, as for a clone. */
   allowUnchanged?: boolean;
@@ -117,6 +121,7 @@ export function EditAgentForm({
   initialAnswers,
   initialSources = {},
   initialSettings,
+  initialAvatar = null,
   label,
   submitLabel,
   onSave,
@@ -128,6 +133,7 @@ export function EditAgentForm({
   const [answers, setAnswers] = useState(initialAnswers);
   const [sources, setSources] = useState(initialSources);
   const [settings, setSettings] = useState(initialSettings);
+  const [avatar, setAvatar] = useState(initialAvatar);
   const [status, setStatus] = useState<SaveStatus>({ kind: 'idle' });
   const languageModels = useLanguageModels(initialSettings.model);
 
@@ -160,12 +166,14 @@ export function EditAgentForm({
     event.preventDefault();
     setStatus({ kind: 'saving' });
     try {
-      // Only changed settings are sent; otherwise the agent keeps the ones it has.
+      // Only changed settings and a changed avatar are sent; otherwise the agent keeps the ones it
+      // has.
       const savedId = await onSave(
         name.trim(),
         answers,
         sources,
         settingsChanges > 0 ? settings : undefined,
+        avatar !== initialAvatar ? avatar : undefined,
       );
       router.push(`/browse-agents/${savedId}`);
     } catch (error) {
@@ -194,7 +202,8 @@ export function EditAgentForm({
       ({ key }) =>
         answers[key] !== initialAnswers[key] || !sameSource(sources[key], initialSources[key]),
     ).length +
-    settingsChanges;
+    settingsChanges +
+    (avatar !== initialAvatar ? 1 : 0);
 
   return (
     <Box
@@ -214,6 +223,13 @@ export function EditAgentForm({
           helperText={`${name.length}/${MAX_NAME_LENGTH} tegn`}
           slotProps={{ htmlInput: { maxLength: MAX_NAME_LENGTH } }}
         />
+      </Section>
+
+      <Section
+        title="Avatar"
+        description="Bildet agenten vises med i agentlisten og på agentens side."
+      >
+        <AvatarPicker value={avatar} onChange={setAvatar} disabled={isSaving} />
       </Section>
 
       <Section

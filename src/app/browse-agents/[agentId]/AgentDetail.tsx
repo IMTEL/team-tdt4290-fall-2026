@@ -15,6 +15,7 @@ import Paper from '@mui/material/Paper';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 
+import { AgentAvatar } from '@/components/agents/AgentAvatar';
 import { DEFAULT_TEMPERATURE, formatTemperature } from '@/domain/advancedSettings';
 import { readStoredAnswers } from '@/domain/agentTypes/storedAnswers';
 
@@ -48,9 +49,12 @@ export function AgentDetail({ agentId }: { agentId: string }) {
 
   return (
     <Box sx={{ p: 3, maxWidth: 720 }}>
-      <Typography variant="h4" component="h1" sx={{ mb: stored ? 0.5 : 2 }}>
-        {state.agent.name}
-      </Typography>
+      <Stack direction="row" spacing={2} sx={{ mb: 2, alignItems: 'center' }}>
+        <AgentAvatar avatar={state.agent.avatar} size={72} />
+        <Typography variant="h4" component="h1">
+          {state.agent.name}
+        </Typography>
+      </Stack>
       {/* Agents saved before types could be chosen are read as interviewers. */}
       {stored && (
         <Typography color="text.secondary" sx={{ mb: 2 }}>
