@@ -29,6 +29,9 @@ const agent = {
   name: 'Intervjuer for Barnehagelærer',
   description: JSON.stringify(configuration),
   lastUpdated: '2026-10-02T12:00:00.000Z',
+  llmModel: 'openai/gpt-oss-120b',
+  temperature: 0.3,
+  prompt: 'Du er en intervjuer for en barnehage.',
 };
 
 describe('AgentDetail', () => {
@@ -37,7 +40,7 @@ describe('AgentDetail', () => {
     notFound.mockClear();
   });
 
-  it('lists the configuration and keeps the system prompt closed', async () => {
+  it('lists the configuration and keeps the advanced settings closed', async () => {
     fetchAgentsMock.mockResolvedValue([agent]);
     const user = userEvent.setup();
 
@@ -50,13 +53,83 @@ describe('AgentDetail', () => {
     );
     expect(screen.queryByText(/Du er en intervjuer/)).not.toBeVisible();
 
-    await user.click(screen.getByRole('button', { name: 'Systemprompt' }));
+    await user.click(screen.getByRole('button', { name: 'Avanserte innstillinger' }));
 
-    expect(screen.getByText(/Du er en intervjuer/)).toBeVisible();
+    expect(screen.getByText('Språkmodell').nextElementSibling).toHaveTextContent(
+      'openai/gpt-oss-120b',
+    );
+    expect(screen.getByText('Temperatur').nextElementSibling).toHaveTextContent('0,3');
+    // The prompt RAGdoll has stored, not one built again from the answers.
+    expect(screen.getByText('Du er en intervjuer for en barnehage.')).toBeVisible();
+    expect(screen.queryByText('Skrevet for hånd')).not.toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Test agenten' })).toHaveAttribute(
       'href',
       '/test-chat?agent=agent-1',
     );
+  });
+
+  describe('the summary', () => {
+    it('is shown above the configuration', async () => {
+      fetchAgentsMock.mockResolvedValue([agent]);
+
+      render(<AgentDetail agentId="agent-1" />);
+
+      const summary = await screen.findByRole('region', { name: 'Oppsummering' });
+      expect(summary).toHaveTextContent(
+        'Dette er en intervjuer for stillingen barnehagelærer i bransjen barnehage (offentlig). ' +
+          'Det er et første intervju med vanskelighetsgrad lett. ' +
+          'Jobbsøkeren er beskrevet slik: under 25, lite erfaring.',
+      );
+      // The summary comes before the first field of the list.
+      expect(
+        summary.compareDocumentPosition(screen.getByText('Stilling')) &
+          Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+    });
+
+    it('leaves out the sentences that have no answers', async () => {
+      const description = JSON.stringify({ ...configuration, jobbsoker: '', intervjutype: '' });
+      fetchAgentsMock.mockResolvedValue([{ ...agent, description }]);
+
+      render(<AgentDetail agentId="agent-1" />);
+
+      const summary = await screen.findByRole('region', { name: 'Oppsummering' });
+      expect(summary).toHaveTextContent(/barnehage \(offentlig\)\. Vanskelighetsgraden er lett\.$/);
+      expect(summary).not.toHaveTextContent('Jobbsøkeren');
+    });
+
+    it('is left out for an agent that was not made in this app', async () => {
+      fetchAgentsMock.mockResolvedValue([{ ...agent, description: 'En vanlig beskrivelse' }]);
+
+      render(<AgentDetail agentId="agent-1" />);
+
+      expect(await screen.findByText('En vanlig beskrivelse')).toBeVisible();
+      expect(screen.queryByRole('region', { name: 'Oppsummering' })).not.toBeInTheDocument();
+    });
+  });
+
+  it('shows the agent’s avatar next to its name', async () => {
+    fetchAgentsMock.mockResolvedValue([{ ...agent, avatar: 'ugle' }]);
+
+    const { container } = render(<AgentDetail agentId="agent-1" />);
+
+    const heading = await screen.findByRole('heading', { name: agent.name });
+    const image = container.querySelector('img');
+    expect(image).toHaveAttribute('src', '/avatars/ugle.svg');
+    expect(heading.parentElement).toContainElement(image);
+  });
+
+  it.each([
+    ['has no avatar', null],
+    ['was saved before avatars existed', undefined],
+    ['has an avatar we no longer have', 'fjernet-avatar'],
+  ])('shows the default image when the agent %s', async (_, avatar) => {
+    fetchAgentsMock.mockResolvedValue([{ ...agent, avatar }]);
+
+    const { container } = render(<AgentDetail agentId="agent-1" />);
+
+    await screen.findByRole('heading', { name: agent.name });
+    expect(container.querySelector('img')).toHaveAttribute('src', '/avatars/default.svg');
   });
 
   it('shows an agent saved in the new format, with type and version', async () => {
@@ -72,6 +145,63 @@ describe('AgentDetail', () => {
     expect(await screen.findByText('Stilling')).toBeVisible();
     expect(screen.getByText('Stilling').nextElementSibling).toHaveTextContent('Barnehagelærer');
     expect(screen.queryByText(/"type":"interviewer"/)).not.toBeInTheDocument();
+  });
+
+  it('shows the agent type', async () => {
+    fetchAgentsMock.mockResolvedValue([
+      {
+        ...agent,
+        description: JSON.stringify({ type: 'interviewer', version: 1, answers: configuration }),
+      },
+    ]);
+
+    render(<AgentDetail agentId="agent-1" />);
+
+    expect(await screen.findByText('Agenttype: Intervjuer')).toBeVisible();
+  });
+
+  it('shows an agent saved before agent types existed as an interviewer', async () => {
+    // `agent` has only the answers in its description, the way agents were saved then.
+    fetchAgentsMock.mockResolvedValue([agent]);
+
+    render(<AgentDetail agentId="agent-1" />);
+
+    expect(await screen.findByText('Agenttype: Intervjuer')).toBeVisible();
+  });
+
+  it('shows no type for an agent that was not made in this app', async () => {
+    fetchAgentsMock.mockResolvedValue([{ ...agent, description: 'En vanlig beskrivelse' }]);
+
+    render(<AgentDetail agentId="agent-1" />);
+
+    expect(await screen.findByText('En vanlig beskrivelse')).toBeVisible();
+    expect(screen.queryByText(/Agenttype/)).not.toBeInTheDocument();
+  });
+
+  it('marks a hand-written system prompt', async () => {
+    fetchAgentsMock.mockResolvedValue([
+      {
+        ...agent,
+        description: JSON.stringify({
+          type: 'interviewer',
+          version: 1,
+          answers: configuration,
+          customPrompt: true,
+        }),
+      },
+    ]);
+
+    render(<AgentDetail agentId="agent-1" />);
+
+    expect(await screen.findByText('Skrevet for hånd')).toBeInTheDocument();
+  });
+
+  it('shows the default temperature for an agent saved without one', async () => {
+    fetchAgentsMock.mockResolvedValue([{ ...agent, temperature: null }]);
+
+    render(<AgentDetail agentId="agent-1" />);
+
+    expect((await screen.findByText('Temperatur')).nextElementSibling).toHaveTextContent('0,7');
   });
 
   it('links to the edit page', async () => {

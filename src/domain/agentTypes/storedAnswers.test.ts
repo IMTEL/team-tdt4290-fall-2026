@@ -27,6 +27,8 @@ describe('toStoredDescription and readStoredAnswers', () => {
       definition: interviewer,
       answers,
       sources: {},
+      customPrompt: false,
+      avatar: null,
     });
   });
 });
@@ -69,6 +71,8 @@ describe('readStoredAnswers', () => {
       definition: interviewer,
       answers,
       sources: {},
+      customPrompt: false,
+      avatar: null,
     });
   });
 
@@ -97,5 +101,58 @@ describe('readStoredAnswers', () => {
     expect(readStoredAnswers('En vanlig beskrivelse')).toBeNull();
     expect(readStoredAnswers('"bare tekst"')).toBeNull();
     expect(readStoredAnswers('{"tittel":"Noe helt annet"}')).toBeNull();
+  });
+
+  it('reads back that the prompt was written by hand', () => {
+    const description = toStoredDescription(interviewer, answers, {}, { customPrompt: true });
+    expect(readStoredAnswers(description)?.customPrompt).toBe(true);
+  });
+
+  it('does not write the flag when the prompt is built from the answers', () => {
+    expect(JSON.parse(toStoredDescription(interviewer, answers))).not.toHaveProperty(
+      'customPrompt',
+    );
+  });
+});
+
+describe('avatar', () => {
+  it('reads back the avatar that was saved', () => {
+    const description = toStoredDescription(interviewer, answers, {}, { avatar: 'ugle' });
+
+    expect(JSON.parse(description)).toMatchObject({ avatar: 'ugle' });
+    expect(readStoredAnswers(description)?.avatar).toBe('ugle');
+  });
+
+  it('keeps the avatar next to the hand-written prompt flag', () => {
+    const description = toStoredDescription(
+      interviewer,
+      answers,
+      {},
+      { customPrompt: true, avatar: 'rev' },
+    );
+
+    expect(readStoredAnswers(description)).toMatchObject({ customPrompt: true, avatar: 'rev' });
+  });
+
+  it('does not write an avatar when there is none, so old and new agents look the same', () => {
+    expect(JSON.parse(toStoredDescription(interviewer, answers))).not.toHaveProperty('avatar');
+    expect(
+      JSON.parse(toStoredDescription(interviewer, answers, {}, { avatar: null })),
+    ).not.toHaveProperty('avatar');
+  });
+
+  it('reads an agent saved before avatars existed as having none', () => {
+    const description = JSON.stringify({ type: 'interviewer', version: 1, answers, sources: {} });
+
+    expect(readStoredAnswers(description)?.avatar).toBeNull();
+  });
+
+  it('reads an avatar we no longer have as none, and does not write it', () => {
+    const removed = JSON.stringify({ type: 'interviewer', version: 1, answers, avatar: 'drage' });
+
+    expect(readStoredAnswers(removed)?.avatar).toBeNull();
+    expect(
+      JSON.parse(toStoredDescription(interviewer, answers, {}, { avatar: 'drage' })),
+    ).not.toHaveProperty('avatar');
   });
 });

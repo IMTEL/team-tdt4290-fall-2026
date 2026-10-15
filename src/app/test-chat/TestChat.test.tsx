@@ -16,6 +16,9 @@ const myAgents = ['agent-1', 'agent-2'].map((id) => ({
   name: `Intervjuer ${id}`,
   description: '',
   lastUpdated: '2026-10-09T10:00:00Z',
+  llmModel: 'openai/gpt-oss-120b',
+  temperature: 0.7,
+  prompt: 'Du er en intervjuer.',
 }));
 
 vi.mock('@/components/chat/sendToAgent', async (importOriginal) => ({

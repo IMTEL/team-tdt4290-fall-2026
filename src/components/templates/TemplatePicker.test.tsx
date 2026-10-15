@@ -46,9 +46,27 @@ describe('TemplatePicker', () => {
     );
   });
 
+  it('starts a new template with the agent type, and shows the type’s lead', () => {
+    render(
+      <TemplatePicker
+        templates={interviewerTemplates}
+        onSelect={vi.fn()}
+        agentType="interviewer"
+        lead="Malen bestemmer intervjueren."
+      />,
+    );
+
+    expect(screen.getByRole('link', { name: 'Lag en ny mal' })).toHaveAttribute(
+      'href',
+      '/create-template?agentType=interviewer',
+    );
+    expect(screen.getByText('Malen bestemmer intervjueren.')).toBeVisible();
+  });
+
   it('shows saved templates after the built-in ones, with edit and delete only on them', () => {
     const saved = {
       id: 'saved-1',
+      agentType: 'interviewer',
       title: 'Min mal',
       description: 'Lagret av meg.',
       focus: [],

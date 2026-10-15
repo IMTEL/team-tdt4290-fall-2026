@@ -1,10 +1,18 @@
-import type { Agent } from '@/lib/types';
+import type { AdvancedSettings } from '@/domain/advancedSettings';
 import type { AnswerSources, Answers } from '@/domain/agentTypes/types';
+import type { Agent } from '@/lib/types';
 
 const GENERIC_ERROR = 'Noe gikk galt. Prøv igjen.';
 
 // Only the list sends these, so an agent may come without them. The update answer does not.
-const LIST_FIELDS = ['type', 'typeLabel', 'stilling', 'bransje', 'vanskelighetsgrad'] as const;
+const LIST_FIELDS = [
+  'avatar',
+  'type',
+  'typeLabel',
+  'stilling',
+  'bransje',
+  'vanskelighetsgrad',
+] as const;
 
 function isAgent(value: unknown): value is Agent {
   if (typeof value !== 'object' || value === null) return false;
@@ -14,6 +22,9 @@ function isAgent(value: unknown): value is Agent {
     typeof agent.name === 'string' &&
     typeof agent.description === 'string' &&
     typeof agent.lastUpdated === 'string' &&
+    typeof agent.llmModel === 'string' &&
+    (typeof agent.temperature === 'number' || agent.temperature === null) &&
+    typeof agent.prompt === 'string' &&
     LIST_FIELDS.every((field) => isOptionalText(agent[field]))
   );
 }
@@ -46,6 +57,7 @@ export async function fetchAgents(): Promise<Agent[]> {
 /** The Norwegian message for a failed save. Never the server's own text. */
 function saveErrorMessage(status: number): string {
   if (status === 401) return 'Du er logget ut. Logg inn på nytt og prøv igjen.';
+  if (status === 400) return 'Endringene ble ikke godtatt. Sjekk feltene og prøv igjen.';
   if (status === 404) return 'Fant ikke agenten. Den kan ha blitt slettet.';
   if (status === 504) return 'Det tok for lang tid å få svar. Prøv igjen.';
   if (status === 403) return 'Bare eieren kan slette agenten.';
@@ -53,7 +65,9 @@ function saveErrorMessage(status: number): string {
 }
 
 /**
- * Saves a new name, new answers and their sources for an agent, and returns the updated agent.
+ * Saves a new name, new answers, their sources, new advanced settings and a new avatar for an
+ * agent, and returns the updated agent. Without `advanced` the agent keeps the settings it has,
+ * and without `avatar` it keeps its avatar. `null` gives it the default image.
  * Throws Error with a Norwegian message that can be shown as it is.
  */
 export async function updateAgent(
@@ -61,13 +75,15 @@ export async function updateAgent(
   name: string,
   answers: Answers,
   sources: AnswerSources = {},
+  advanced?: AdvancedSettings,
+  avatar?: string | null,
 ): Promise<Agent> {
   let res: Response;
   try {
     res = await fetch(`/api/agents/${encodeURIComponent(id)}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, answers, sources }),
+      body: JSON.stringify({ name, answers, sources, advanced, avatar }),
     });
   } catch (cause) {
     throw new Error('Fikk ikke kontakt med serveren. Sjekk nettverket og prøv igjen.', { cause });
@@ -80,8 +96,9 @@ export async function updateAgent(
 }
 
 /**
- * Saves a new agent made from another agent, with the name and answers from the clone form, and
- * returns the new agent's id. The original is not changed.
+ * Saves a new agent made from another agent, with the name, answers, advanced settings and avatar
+ * from the clone form, and returns the new agent's id. Without `advanced` the clone gets the
+ * original's settings, and without `avatar` the original's avatar. The original is not changed.
  * Throws Error with a Norwegian message that can be shown as it is.
  */
 export async function cloneAgent(
@@ -89,13 +106,15 @@ export async function cloneAgent(
   name: string,
   answers: Answers,
   sources: AnswerSources = {},
+  advanced?: AdvancedSettings,
+  avatar?: string | null,
 ): Promise<string> {
   let res: Response;
   try {
     res = await fetch(`/api/agents/${encodeURIComponent(id)}/clone`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, answers, sources }),
+      body: JSON.stringify({ name, answers, sources, advanced, avatar }),
     });
   } catch (cause) {
     throw new Error('Fikk ikke kontakt med serveren. Sjekk nettverket og prøv igjen.', { cause });

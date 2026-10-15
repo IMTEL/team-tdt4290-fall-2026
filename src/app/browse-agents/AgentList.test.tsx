@@ -15,6 +15,9 @@ function makeAgent(fields: Partial<Agent> = {}): Agent {
     name: 'Intervjuer for Barnehagelærer',
     description: '{"stilling":"Barnehagelærer"}',
     lastUpdated: '2026-10-02T12:00:00.000Z',
+    llmModel: 'openai/gpt-oss-120b',
+    temperature: 0.7,
+    prompt: 'Du er en intervjuer.',
     type: 'interviewer',
     typeLabel: 'Intervjuer',
     stilling: 'Barnehagelærer',
@@ -51,7 +54,7 @@ describe('AgentList', () => {
     render(<AgentList />);
 
     expect(await screen.findByText(/Du har ingen agenter ennå/)).toBeVisible();
-    expect(screen.getByRole('link', { name: 'Sett opp en intervjuer' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Sett opp en agent' })).toHaveAttribute(
       'href',
       '/configure',
     );
@@ -78,6 +81,20 @@ describe('AgentList', () => {
     expect(screen.getByText('Barnehagelærer · Lett')).toBeVisible();
     // No table any more.
     expect(screen.queryByRole('grid')).not.toBeInTheDocument();
+  });
+
+  it('shows each agent’s own avatar, and the default image for one without', async () => {
+    fetchAgentsMock.mockResolvedValue([
+      makeAgent({ id: 'a', name: 'Med avatar', avatar: 'katt' }),
+      makeAgent({ id: 'b', name: 'Uten avatar', avatar: null }),
+    ]);
+
+    render(<AgentList />);
+
+    const sourceOf = async (name: string) =>
+      (await screen.findByRole('link', { name: new RegExp(name) })).querySelector('img');
+    expect(await sourceOf('Med avatar')).toHaveAttribute('src', '/avatars/katt.svg');
+    expect(await sourceOf('Uten avatar')).toHaveAttribute('src', '/avatars/default.svg');
   });
 
   it('links each card to the agent’s page and its test button to the test chat', async () => {

@@ -5,14 +5,13 @@ import Dialog from '@mui/material/Dialog';
 import DialogTitle from '@mui/material/DialogTitle';
 
 import { AnswerList } from '@/components/agents/AnswerList';
-import type { AgentField, AnswerSources } from '@/domain/agentTypes/types';
-import type { Configuration } from '@/domain/configuration';
+import type { AgentTypeDefinition, AnswerSources, Answers } from '@/domain/agentTypes/types';
 import { SaveAgentForm } from './SaveAgentForm';
 
 type ConfirmConfigurationProps = {
-  /** The fields of the agent type, in the order to show them. */
-  fields: AgentField[];
-  configuration: Configuration;
+  /** The type of agent being saved: its fields, in the order to show them, and how to save it. */
+  definition: AgentTypeDefinition;
+  configuration: Answers;
   sources: AnswerSources;
   open: boolean;
   /** The counsellor wants to change something: close this and go back to the chat. */
@@ -24,7 +23,7 @@ type ConfirmConfigurationProps = {
  * way back to the chat to change something. The counsellor confirms here instead of in the chat.
  */
 export function ConfirmConfiguration({
-  fields,
+  definition,
   configuration,
   sources,
   open,
@@ -33,7 +32,7 @@ export function ConfirmConfiguration({
   const headingId = useId();
 
   return (
-    // keepMounted keeps the save form's state, so a saved interviewer stays saved when the
+    // keepMounted keeps the save form's state, so a saved agent stays saved when the
     // pop-up is closed and opened again.
     <Dialog
       open={open}
@@ -44,9 +43,14 @@ export function ConfirmConfiguration({
       keepMounted
     >
       <DialogTitle id={headingId}>Stemmer dette?</DialogTitle>
-      <SaveAgentForm configuration={configuration} sources={sources} onClose={onClose}>
+      <SaveAgentForm
+        definition={definition}
+        configuration={configuration}
+        sources={sources}
+        onClose={onClose}
+      >
         {/* What will be saved, including anything the counsellor added under Tillegg. */}
-        <AnswerList fields={fields} answers={configuration} />
+        <AnswerList fields={definition.fields} answers={configuration} />
       </SaveAgentForm>
     </Dialog>
   );

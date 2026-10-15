@@ -2,11 +2,18 @@
 import { NextRequest } from 'next/server';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { DEFAULT_MODEL } from '@/domain/advancedSettings';
 import { interviewer } from '@/domain/agentTypes/interviewer';
 import { readStoredAnswers } from '@/domain/agentTypes/storedAnswers';
 import { getSessionToken } from '@/lib/session-tokens';
 import { toRagdollAgent } from '@/server/agentMapper';
-import { fetchFullAgent, RagdollError, saveAgent, updateAgent } from '@/server/ragdoll';
+import {
+  fetchFullAgent,
+  listLanguageModels,
+  RagdollError,
+  saveAgent,
+  updateAgent,
+} from '@/server/ragdoll';
 import { POST } from './route';
 
 // The adapter and the mapper have their own tests. Here we only check what the route adds:
@@ -19,6 +26,7 @@ vi.mock('@/server/ragdoll', async (importOriginal) => {
     fetchFullAgent: vi.fn(),
     saveAgent: vi.fn(),
     updateAgent: vi.fn(),
+    listLanguageModels: vi.fn(),
   };
 });
 
@@ -26,6 +34,7 @@ const getSessionTokenMock = vi.mocked(getSessionToken);
 const fetchFullAgentMock = vi.mocked(fetchFullAgent);
 const saveAgentMock = vi.mocked(saveAgent);
 const updateAgentMock = vi.mocked(updateAgent);
+const listLanguageModelsMock = vi.mocked(listLanguageModels);
 
 const answers = {
   stilling: 'Butikkmedarbeider',
@@ -45,6 +54,23 @@ const original = {
   id: 'agent-1',
 };
 
+// An original with its own model, temperature and hand-written prompt.
+const tunedOriginal = {
+  ...toRagdollAgent(
+    'Butikkintervju',
+    interviewer,
+    answers,
+    'idun-key',
+    {},
+    {
+      model: 'old/model',
+      temperature: 0.2,
+      customPrompt: 'Du er Kari.',
+    },
+  ),
+  id: 'agent-1',
+};
+
 function postRequest(body: unknown) {
   return new NextRequest('http://localhost/api/agents/agent-1/clone', {
     method: 'POST',
@@ -61,6 +87,7 @@ beforeEach(() => {
   vi.stubEnv('IDUN_API_KEY', 'idun-key');
   fetchFullAgentMock.mockResolvedValue(original);
   saveAgentMock.mockResolvedValue('agent-2');
+  listLanguageModelsMock.mockResolvedValue([DEFAULT_MODEL, 'meta/llama-3.3-70b']);
   // The route logs problems on purpose; keep the test output clean.
   vi.spyOn(console, 'error').mockImplementation(() => {});
 });
@@ -72,6 +99,7 @@ afterEach(() => {
   fetchFullAgentMock.mockReset();
   saveAgentMock.mockReset();
   updateAgentMock.mockReset();
+  listLanguageModelsMock.mockReset();
 });
 
 describe('POST /api/agents/[agentId]/clone', () => {
@@ -98,6 +126,57 @@ describe('POST /api/agents/[agentId]/clone', () => {
     const [, saved] = saveAgentMock.mock.calls[0];
     const stored = readStoredAnswers(saved.description);
     expect(stored?.sources).toEqual({ jobbsoker: { kind: 'profile', id: 'profile-1' } });
+  });
+
+  it('gives the clone the original’s avatar when none is sent', async () => {
+    fetchFullAgentMock.mockResolvedValue({
+      ...toRagdollAgent(
+        'Butikkintervju',
+        interviewer,
+        answers,
+        'idun-key',
+        {},
+        undefined,
+        undefined,
+        'bjorn',
+      ),
+      id: 'agent-1',
+    });
+
+    await POST(postRequest(validBody), params);
+
+    const [, saved] = saveAgentMock.mock.calls[0];
+    expect(readStoredAnswers(saved.description)?.avatar).toBe('bjorn');
+  });
+
+  it('gives the clone the avatar that was chosen, or the default image for null', async () => {
+    fetchFullAgentMock.mockResolvedValue({
+      ...toRagdollAgent(
+        'Butikkintervju',
+        interviewer,
+        answers,
+        'idun-key',
+        {},
+        undefined,
+        undefined,
+        'bjorn',
+      ),
+      id: 'agent-1',
+    });
+
+    await POST(postRequest({ ...validBody, avatar: 'sol' }), params);
+    await POST(postRequest({ ...validBody, avatar: null }), params);
+
+    const [first, second] = saveAgentMock.mock.calls.map(([, saved]) => saved);
+    expect(readStoredAnswers(first.description)?.avatar).toBe('sol');
+    expect(readStoredAnswers(second.description)?.avatar).toBeNull();
+  });
+
+  it('answers 400 and saves nothing for an avatar that is not one of ours', async () => {
+    const res = await POST(postRequest({ ...validBody, avatar: 'fjernet-avatar' }), params);
+
+    expect(res.status).toBe(400);
+    expect(saveAgentMock).not.toHaveBeenCalled();
   });
 
   it('leaves the original agent unchanged', async () => {
@@ -162,5 +241,64 @@ describe('POST /api/agents/[agentId]/clone', () => {
     const res = await POST(postRequest(validBody), params);
 
     expect(res.status).toBe(502);
+  });
+
+  it("gives the clone the original's model, temperature and hand-written prompt", async () => {
+    fetchFullAgentMock.mockResolvedValue(tunedOriginal);
+
+    const res = await POST(postRequest(validBody), params);
+
+    expect(res.status).toBe(201);
+    const [, saved] = saveAgentMock.mock.calls[0];
+    expect(saved.llm_model).toBe('old/model');
+    expect(saved.llm_temperature).toBe(0.2);
+    expect(saved.prompt).toBe('Du er Kari.');
+    expect(readStoredAnswers(saved.description)?.customPrompt).toBe(true);
+    expect(listLanguageModelsMock).not.toHaveBeenCalled();
+  });
+
+  it('saves the advanced settings from the clone form', async () => {
+    const advanced = { model: 'meta/llama-3.3-70b', temperature: 1.1, customPrompt: null };
+
+    const res = await POST(postRequest({ ...validBody, advanced }), params);
+
+    expect(res.status).toBe(201);
+    const [, saved] = saveAgentMock.mock.calls[0];
+    expect(saved.llm_model).toBe('meta/llama-3.3-70b');
+    expect(saved.llm_temperature).toBe(1.1);
+    expect(saved.prompt).toContain('vanskelig');
+    expect(readStoredAnswers(saved.description)?.customPrompt).toBe(false);
+  });
+
+  it("accepts the original's model without asking RAGdoll", async () => {
+    fetchFullAgentMock.mockResolvedValue(tunedOriginal);
+    const advanced = { model: 'old/model', temperature: 0.5, customPrompt: null };
+
+    const res = await POST(postRequest({ ...validBody, advanced }), params);
+
+    expect(res.status).toBe(201);
+    expect(listLanguageModelsMock).not.toHaveBeenCalled();
+  });
+
+  it('answers 502 and saves nothing when a new model cannot be checked', async () => {
+    listLanguageModelsMock.mockRejectedValue(new RagdollError('unreachable', 'IDUN is down'));
+    const advanced = { model: 'meta/llama-3.3-70b', temperature: 0.7, customPrompt: null };
+
+    const res = await POST(postRequest({ ...validBody, advanced }), params);
+
+    expect(res.status).toBe(502);
+    expect(saveAgentMock).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['a model that is not offered', { model: 'gpt-5', temperature: 0.7, customPrompt: null }],
+    ['a temperature above 2', { model: DEFAULT_MODEL, temperature: 3, customPrompt: null }],
+    ['an empty hand-written prompt', { model: DEFAULT_MODEL, temperature: 0.7, customPrompt: ' ' }],
+    ['settings that are not an object', 'fast'],
+  ])('answers 400 and saves nothing for %s', async (_, advanced) => {
+    const res = await POST(postRequest({ ...validBody, advanced }), params);
+
+    expect(res.status).toBe(400);
+    expect(saveAgentMock).not.toHaveBeenCalled();
   });
 });

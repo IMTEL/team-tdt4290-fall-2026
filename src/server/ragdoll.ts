@@ -4,7 +4,7 @@ export type RagdollAgent = { id: string; accessKey: string; roleName?: string };
 export type RagdollMessage = { role: 'user' | 'assistant'; content: string };
 
 export type RagdollErrorKind =
-  'config' | 'timeout' | 'unreachable' | 'bad-response' | 'unauthorized' | 'not-found';
+  'config' | 'timeout' | 'unreachable' | 'bad-response' | 'unauthorized' | 'not-found' | 'rejected';
 
 /** A failure talking to RAGdoll. `message` is technical and only meant for the server log. */
 export class RagdollError extends Error {
@@ -105,6 +105,7 @@ export type NewRagdollAgent = {
   roles: RagdollRole[];
   llm_provider: string;
   llm_model: string;
+  llm_temperature: number;
   llm_api_key: string;
   embedding_model: string;
   embedding_api_key: string;
@@ -124,6 +125,11 @@ export type RagdollAgentSummary = {
   name: string;
   description: string;
   lastUpdated: string;
+  /** The advanced settings. Safe: the owner may see the model, temperature and prompt. */
+  llmModel: string;
+  /** Null for agents that RAGdoll returns without one. */
+  temperature: number | null;
+  prompt: string;
 };
 
 /** Creates an agent owned by the logged-in user and returns its new id. */
@@ -190,6 +196,25 @@ export async function updateAgent(
     throw new RagdollError('bad-response', 'RAGdoll did not return the updated agent');
   }
   return toSummary(data as Record<string, unknown>);
+}
+
+/**
+ * The names of the language models RAGdoll offers through IDUN. Asked with the project's IDUN key,
+ * which stays on the server. Throws RagdollError.
+ */
+export async function listLanguageModels(sessionToken: string, idunKey: string): Promise<string[]> {
+  const data = await requestAsUser(sessionToken, '/get_models', {
+    method: 'POST',
+    body: JSON.stringify({ provider: 'idun', api_key: idunKey }),
+  });
+  if (!Array.isArray(data)) {
+    throw new RagdollError('bad-response', 'RAGdoll did not return a list of models');
+  }
+
+  // Only the names: the descriptions and GDPR flags are not shown.
+  return data
+    .map((model) => (isObject(model) ? model.name : undefined))
+    .filter((name): name is string => typeof name === 'string' && name !== '');
 }
 
 /**
@@ -456,9 +481,16 @@ async function requestAsUser(
     throw new RagdollError('unreachable', 'Could not reach RAGdoll', { cause });
   }
 
-  // RAGdoll answers 401 for an expired token and 422 for a missing or broken one.
-  if (res.status === 401 || res.status === 422) {
-    throw new RagdollError('unauthorized', `RAGdoll answered ${res.status}: ${await res.text()}`);
+  // RAGdoll answers 401 for an expired or missing token, and 422 for a broken one.
+  if (res.status === 401) {
+    throw new RagdollError('unauthorized', `RAGdoll answered 401: ${await res.text()}`);
+  }
+  // 422 is also how RAGdoll rejects a body it doesn't accept, with a list of field errors. That
+  // means our request and RAGdoll's model disagree, so it must not look like being logged out.
+  if (res.status === 422) {
+    const text = await res.text();
+    const kind = isFieldErrorList(text) ? 'rejected' : 'unauthorized';
+    throw new RagdollError(kind, `RAGdoll answered 422: ${text}`);
   }
   if (res.status === 404) {
     throw new RagdollError('not-found', `RAGdoll answered 404: ${await res.text()}`);
@@ -474,6 +506,18 @@ async function requestAsUser(
   return data;
 }
 
+/**
+ * True if the body is FastAPI's answer to a request that didn't match its model:
+ * `{detail: [{loc, msg, ...}, ...]}`. A broken token gives `{detail: "<message>"}` instead.
+ */
+function isFieldErrorList(text: string): boolean {
+  try {
+    return Array.isArray(JSON.parse(text)?.detail);
+  } catch {
+    return false;
+  }
+}
+
 /** Only the fields we pass on. This also leaves the agent's API keys behind. */
 function toSummary(agent: Record<string, unknown>): RagdollAgentSummary {
   return {
@@ -481,6 +525,9 @@ function toSummary(agent: Record<string, unknown>): RagdollAgentSummary {
     name: String(agent.name),
     description: String(agent.description),
     lastUpdated: String(agent.last_updated),
+    llmModel: typeof agent.llm_model === 'string' ? agent.llm_model : '',
+    temperature: typeof agent.llm_temperature === 'number' ? agent.llm_temperature : null,
+    prompt: typeof agent.prompt === 'string' ? agent.prompt : '',
   };
 }
 

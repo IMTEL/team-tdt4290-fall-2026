@@ -2,7 +2,9 @@ import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { findTemplate } from '@/data/interviewer-templates';
+import { findIndustryTemplate } from '@/data/industry-templates';
+import { findBuiltInTemplate } from '@/data/templates';
+import { interviewer } from '@/domain/agentTypes/interviewer';
 import { saveConfiguredAgent, sendConfigurationTurn } from './api';
 import { ConfigurationChat, FINISHED_REPLY } from './ConfigurationChat';
 
@@ -16,7 +18,7 @@ vi.mock('./api', async (importOriginal) => ({
 }));
 const sendMock = vi.mocked(sendConfigurationTurn);
 const saveMock = vi.mocked(saveConfiguredAgent);
-const template = findTemplate('teamleder')!;
+const template = findBuiltInTemplate('teamleder')!;
 const profile = {
   id: 'profile-1',
   label: 'Profil A',
@@ -53,7 +55,7 @@ describe('ConfigurationChat', () => {
   });
 
   it('opens with the assistant naming the template and asking about the job', () => {
-    render(<ConfigurationChat template={template} profile={null} />);
+    render(<ConfigurationChat definition={interviewer} template={template} profile={null} />);
 
     expect(screen.getByText(/malen «Teamleder»/)).toBeInTheDocument();
     expect(screen.getByText(/Hvilken stilling skal jobbsøkeren øve til\?/)).toBeInTheDocument();
@@ -61,13 +63,14 @@ describe('ConfigurationChat', () => {
 
   it('sends the template and the conversation, greeting included, to the configurator', async () => {
     sendMock.mockResolvedValue({ reply: 'Neste spørsmål', configuration: null, sources: {} });
-    render(<ConfigurationChat template={template} profile={null} />);
+    render(<ConfigurationChat definition={interviewer} template={template} profile={null} />);
 
     await sendMessage('Butikkmedarbeider');
     await screen.findByText('Neste spørsmål');
 
-    const [choices, history] = sendMock.mock.calls[0];
-    expect(choices).toEqual({ templateId: 'teamleder', profileId: null });
+    const [definition, choices, history] = sendMock.mock.calls[0];
+    expect(definition).toBe(interviewer);
+    expect(choices).toEqual({ templateId: 'teamleder', profileId: null, industryTemplateId: null });
     expect(history.map(({ role, content }) => ({ role, content }))).toEqual([
       { role: 'assistant', content: expect.stringContaining('Hei!') },
       { role: 'user', content: 'Butikkmedarbeider' },
@@ -85,32 +88,63 @@ describe('ConfigurationChat', () => {
         sources: {},
       })
       .mockResolvedValueOnce({ reply: 'Hvilken bedrift?', configuration: null, sources: {} });
-    render(<ConfigurationChat template={template} profile={null} />);
+    render(<ConfigurationChat definition={interviewer} template={template} profile={null} />);
 
     await sendMessage('Butikkmedarbeider');
     const user = userEvent.setup();
     await user.click(await screen.findByRole('button', { name: '2. Privat' }));
     await screen.findByText('Hvilken bedrift?');
 
-    const history = sendMock.mock.calls[1][1];
+    const history = sendMock.mock.calls[1][2];
     expect(history.at(-1)).toMatchObject({ role: 'user', content: '2. Privat' });
+  });
+
+  it('with an industry template, names it and asks about the company instead of the job', async () => {
+    sendMock.mockResolvedValue({ reply: 'Neste spørsmål', configuration: null, sources: {} });
+    render(
+      <ConfigurationChat
+        definition={interviewer}
+        template={template}
+        profile={null}
+        industry={findIndustryTemplate('helsefagarbeider')!}
+      />,
+    );
+
+    expect(
+      screen.getByText(/bransjemalen «Helsefagarbeider» \(Helse og omsorg, offentlig sektor\)/),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/Hvilken bedrift eller virksomhet/)).toBeInTheDocument();
+    expect(screen.queryByText(/Hvilken stilling/)).not.toBeInTheDocument();
+
+    await sendMessage('Byåsen sykehjem');
+    await screen.findByText('Neste spørsmål');
+
+    expect(sendMock.mock.calls[0][1]).toEqual({
+      templateId: 'teamleder',
+      profileId: null,
+      industryTemplateId: 'helsefagarbeider',
+    });
   });
 
   it('without a template, names none and sends null as the template', async () => {
     sendMock.mockResolvedValue({ reply: 'Neste spørsmål', configuration: null, sources: {} });
-    render(<ConfigurationChat template={null} profile={null} />);
+    render(<ConfigurationChat definition={interviewer} template={null} profile={null} />);
 
     expect(screen.queryByText(/malen/)).not.toBeInTheDocument();
 
     await sendMessage('Butikkmedarbeider');
     await screen.findByText('Neste spørsmål');
 
-    expect(sendMock.mock.calls[0][0]).toEqual({ templateId: null, profileId: null });
+    expect(sendMock.mock.calls[0][1]).toEqual({
+      templateId: null,
+      profileId: null,
+      industryTemplateId: null,
+    });
   });
 
   it('names the profile in the greeting and sends its id along with the template', async () => {
     sendMock.mockResolvedValue({ reply: 'Neste spørsmål', configuration: null, sources: {} });
-    render(<ConfigurationChat template={template} profile={profile} />);
+    render(<ConfigurationChat definition={interviewer} template={template} profile={profile} />);
 
     expect(screen.getByText(/malen «Teamleder»/)).toBeInTheDocument();
     expect(screen.getByText(/jobbsøkerprofilen «Profil A»/)).toBeInTheDocument();
@@ -118,11 +152,15 @@ describe('ConfigurationChat', () => {
     await sendMessage('Butikkmedarbeider');
     await screen.findByText('Neste spørsmål');
 
-    expect(sendMock.mock.calls[0][0]).toEqual({ templateId: 'teamleder', profileId: 'profile-1' });
+    expect(sendMock.mock.calls[0][1]).toEqual({
+      templateId: 'teamleder',
+      profileId: 'profile-1',
+      industryTemplateId: null,
+    });
   });
 
   it('can use a profile without a template', () => {
-    render(<ConfigurationChat template={null} profile={profile} />);
+    render(<ConfigurationChat definition={interviewer} template={null} profile={profile} />);
 
     expect(screen.queryByText(/malen/)).not.toBeInTheDocument();
     expect(screen.getByText(/jobbsøkerprofilen «Profil A»/)).toBeInTheDocument();
@@ -130,7 +168,7 @@ describe('ConfigurationChat', () => {
 
   it('does not offer to save before the configuration is finished', async () => {
     sendMock.mockResolvedValue({ reply: 'Neste spørsmål', configuration: null, sources: {} });
-    render(<ConfigurationChat template={template} profile={null} />);
+    render(<ConfigurationChat definition={interviewer} template={template} profile={null} />);
 
     await sendMessage('Butikkmedarbeider');
     await screen.findByText('Neste spørsmål');
@@ -140,12 +178,12 @@ describe('ConfigurationChat', () => {
 
   it('offers to save once the configurator has finished', async () => {
     sendMock.mockResolvedValue({ reply: 'Ferdig!', configuration, sources: {} });
-    render(<ConfigurationChat template={template} profile={null} />);
+    render(<ConfigurationChat definition={interviewer} template={template} profile={null} />);
 
     await sendMessage('Ja, det stemmer');
 
     expect(await screen.findByRole('button', { name: 'Lagre agent' })).toBeInTheDocument();
-    expect(screen.getByRole('textbox', { name: /Navn på intervjueren/ })).toHaveValue(
+    expect(screen.getByRole('textbox', { name: /Navn på agenten/ })).toHaveValue(
       'Intervjuer for Butikkmedarbeider',
     );
   });
@@ -153,7 +191,7 @@ describe('ConfigurationChat', () => {
   it('shows the finished configuration, with what the counsellor added, before saving', async () => {
     const withAdditions = { ...configuration, tillegg: 'Snakk sakte og tydelig.' };
     sendMock.mockResolvedValue({ reply: 'Ferdig!', configuration: withAdditions, sources: {} });
-    render(<ConfigurationChat template={template} profile={null} />);
+    render(<ConfigurationChat definition={interviewer} template={template} profile={null} />);
 
     await sendMessage('Ja, det stemmer');
 
@@ -168,7 +206,7 @@ describe('ConfigurationChat', () => {
 
   it('closes the confirmation to change something, and shows it again for a new configuration', async () => {
     sendMock.mockResolvedValue({ reply: 'Ferdig!', configuration, sources: {} });
-    render(<ConfigurationChat template={template} profile={null} />);
+    render(<ConfigurationChat definition={interviewer} template={template} profile={null} />);
 
     await sendMessage('Ja, det stemmer');
     await userEvent
@@ -190,7 +228,7 @@ describe('ConfigurationChat', () => {
       configuration,
       sources: {},
     });
-    render(<ConfigurationChat template={template} profile={null} />);
+    render(<ConfigurationChat definition={interviewer} template={template} profile={null} />);
 
     await sendMessage('Nei, jeg er ferdig');
 
@@ -200,7 +238,7 @@ describe('ConfigurationChat', () => {
 
   it('opens the summary again after it was closed', async () => {
     sendMock.mockResolvedValue({ reply: 'Ferdig!', configuration, sources: {} });
-    render(<ConfigurationChat template={template} profile={null} />);
+    render(<ConfigurationChat definition={interviewer} template={template} profile={null} />);
     const user = userEvent.setup();
 
     await sendMessage('Nei, jeg er ferdig');
@@ -214,15 +252,18 @@ describe('ConfigurationChat', () => {
     const sources = { intervjuer: { kind: 'template' as const, id: 'teamleder' } };
     sendMock.mockResolvedValue({ reply: 'Ferdig!', configuration, sources });
     saveMock.mockResolvedValue('agent-1');
-    render(<ConfigurationChat template={template} profile={profile} />);
+    render(<ConfigurationChat definition={interviewer} template={template} profile={profile} />);
 
     await sendMessage('Ja, det stemmer');
     await userEvent.setup().click(await screen.findByRole('button', { name: 'Lagre agent' }));
 
     expect(saveMock).toHaveBeenCalledWith(
       'Intervjuer for Butikkmedarbeider',
+      interviewer,
       configuration,
       sources,
+      undefined,
+      null,
     );
   });
 });

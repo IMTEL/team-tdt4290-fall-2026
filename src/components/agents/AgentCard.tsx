@@ -1,15 +1,14 @@
 import Link from 'next/link';
-import Avatar from '@mui/material/Avatar';
 import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
 import CardActionArea from '@mui/material/CardActionArea';
 import CardActions from '@mui/material/CardActions';
 import CardContent from '@mui/material/CardContent';
 import Typography from '@mui/material/Typography';
-import SmartToyOutlined from '@mui/icons-material/SmartToyOutlined';
 
 import { agentRole, agentSummary } from '@/domain/agentList';
 import type { Agent } from '@/lib/types';
+import { AgentAvatar } from './AgentAvatar';
 import styles from './AgentCard.module.css';
 
 /**
@@ -25,10 +24,7 @@ export function AgentCard({ agent }: { agent: Agent }) {
     <Card variant="outlined" className={styles.card}>
       <CardActionArea component={Link} href={`/browse-agents/${id}`} className={styles.action}>
         <CardContent className={styles.content}>
-          {/* Placeholder until #63 gives agents an avatar. */}
-          <Avatar className={styles.avatar}>
-            <SmartToyOutlined />
-          </Avatar>
+          <AgentAvatar avatar={agent.avatar} size={56} className={styles.avatar} />
           <Typography variant="h6" component="h3">
             {agent.name}
           </Typography>

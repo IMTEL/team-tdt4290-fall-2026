@@ -45,6 +45,11 @@
   font-weight: 600;
 }
 
+.meta {
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
 .description {
   color: var(--muted-foreground);
   text-wrap: pretty;

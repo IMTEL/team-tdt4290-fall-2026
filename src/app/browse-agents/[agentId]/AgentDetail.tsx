@@ -10,15 +10,24 @@ import AccordionSummary from '@mui/material/AccordionSummary';
 import Alert from '@mui/material/Alert';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
+import Chip from '@mui/material/Chip';
+import Paper from '@mui/material/Paper';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 
+import { AgentAvatar } from '@/components/agents/AgentAvatar';
 import { AnswerList } from '@/components/agents/AnswerList';
+import { DEFAULT_TEMPERATURE, formatTemperature } from '@/domain/advancedSettings';
 import { readStoredAnswers } from '@/domain/agentTypes/storedAnswers';
 
 import { useAgent } from '../useAgent';
+import styles from './AgentDetail.module.css';
 
-/** One saved agent: the configuration as a list, and the system prompt closed until opened. */
+/**
+ * One saved agent: a summary in sentences, the configuration as a list, and the advanced settings
+ * (model, temperature and the system prompt RAGdoll has stored) closed until opened. They are
+ * changed on the edit page.
+ */
 export function AgentDetail({ agentId }: { agentId: string }) {
   const state = useAgent(agentId);
 
@@ -36,12 +45,44 @@ export function AgentDetail({ agentId }: { agentId: string }) {
 
   // Knows the old and the new way of storing answers, and works for every agent type.
   const stored = readStoredAnswers(state.agent.description);
+  // Empty if the answers say too little to write a sentence about.
+  const summary = stored ? stored.definition.buildSummary(stored.answers) : '';
 
   return (
     <Box sx={{ p: 3, maxWidth: 720 }}>
-      <Typography variant="h4" component="h1" sx={{ mb: 2 }}>
-        {state.agent.name}
-      </Typography>
+      <Stack direction="row" spacing={2} sx={{ mb: 2, alignItems: 'center' }}>
+        <AgentAvatar avatar={state.agent.avatar} size={72} />
+        <Typography variant="h4" component="h1">
+          {state.agent.name}
+        </Typography>
+      </Stack>
+      {/* Agents saved before types could be chosen are read as interviewers. */}
+      {stored && (
+        <Typography color="text.secondary" sx={{ mb: 2 }}>
+          Agenttype: {stored.definition.label}
+        </Typography>
+      )}
+
+      {summary && (
+        <Paper
+          component="section"
+          variant="outlined"
+          aria-labelledby="summary-heading"
+          className={styles.summary}
+          sx={{ p: 2, mb: 3 }}
+        >
+          {/* English translation: Summary */}
+          <Typography
+            id="summary-heading"
+            variant="overline"
+            component="h2"
+            className={styles.summaryLabel}
+          >
+            Oppsummering
+          </Typography>
+          <Typography variant="body1">{summary}</Typography>
+        </Paper>
+      )}
 
       {stored ? (
         <AnswerList fields={stored.definition.fields} answers={stored.answers} />
@@ -49,18 +90,51 @@ export function AgentDetail({ agentId }: { agentId: string }) {
         <Typography variant="body1">{state.agent.description}</Typography>
       )}
 
-      {stored && (
-        <Accordion sx={{ mt: 3 }}>
-          <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-            <Typography component="span">Systemprompt</Typography>
-          </AccordionSummary>
-          <AccordionDetails>
-            <Typography component="pre" variant="body2" sx={{ whiteSpace: 'pre-wrap', m: 0 }}>
-              {stored.definition.buildPrompt(stored.answers)}
-            </Typography>
-          </AccordionDetails>
-        </Accordion>
-      )}
+      <Accordion sx={{ mt: 3 }}>
+        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+          {/* English translation: Advanced settings */}
+          <Typography component="span">Avanserte innstillinger</Typography>
+        </AccordionSummary>
+        <AccordionDetails>
+          <Box component="dl" sx={{ m: 0 }}>
+            <Box sx={{ mb: 1.5 }}>
+              <Typography component="dt" variant="subtitle2">
+                {/* English translation: Language model */}
+                Språkmodell
+              </Typography>
+              <Typography component="dd" sx={{ m: 0 }}>
+                {state.agent.llmModel || '–'}
+              </Typography>
+            </Box>
+            <Box sx={{ mb: 1.5 }}>
+              <Typography component="dt" variant="subtitle2">
+                {/* English translation: Temperature */}
+                Temperatur
+              </Typography>
+              <Typography component="dd" sx={{ m: 0 }}>
+                {formatTemperature(state.agent.temperature ?? DEFAULT_TEMPERATURE)}
+              </Typography>
+            </Box>
+            <Box>
+              <Stack component="dt" direction="row" spacing={1} sx={{ alignItems: 'center' }}>
+                {/* English translation: System prompt */}
+                <Typography variant="subtitle2">Systemprompt</Typography>
+                {stored?.customPrompt && (
+                  // English translation: Written by hand
+                  <Chip label="Skrevet for hånd" size="small" variant="outlined" />
+                )}
+              </Stack>
+              <Typography
+                component="dd"
+                variant="body2"
+                sx={{ m: 0, mt: 0.5, whiteSpace: 'pre-wrap', fontFamily: 'monospace' }}
+              >
+                {state.agent.prompt || '–'}
+              </Typography>
+            </Box>
+          </Box>
+        </AccordionDetails>
+      </Accordion>
 
       <Stack direction="row" spacing={1} sx={{ mt: 3 }}>
         <Button

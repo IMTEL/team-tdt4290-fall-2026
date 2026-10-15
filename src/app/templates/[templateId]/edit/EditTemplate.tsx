@@ -6,12 +6,12 @@ import Alert from '@mui/material/Alert';
 
 import { fetchTemplate, updateTemplate } from '@/components/templates/api';
 import { TemplateForm } from '@/components/templates/TemplateForm';
-import type { InterviewerTemplate } from '@/data/interviewer-templates';
+import type { AgentTemplate } from '@/data/templates';
 import styles from '@/app/create-template/page.module.css';
 
 type LoadState =
   | { kind: 'loading' }
-  | { kind: 'ready'; template: InterviewerTemplate }
+  | { kind: 'ready'; template: AgentTemplate }
   | { kind: 'missing' }
   | { kind: 'error'; message: string };
 

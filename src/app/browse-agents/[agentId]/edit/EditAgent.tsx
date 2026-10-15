@@ -10,6 +10,7 @@ import Chip from '@mui/material/Chip';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 
+import { settingsOf } from '@/domain/advancedSettings';
 import { readStoredAnswers } from '@/domain/agentTypes/storedAnswers';
 import { updateAgent } from '../../api';
 import { useAnswerPresets } from '../../useAnswerPresets';
@@ -56,11 +57,16 @@ export function EditAgent({ agentId }: { agentId: string }) {
           definition={stored.definition}
           initialAnswers={stored.answers}
           initialSources={stored.sources}
+          initialSettings={settingsOf(
+            { model: agent.llmModel, temperature: agent.temperature, prompt: agent.prompt },
+            stored.customPrompt,
+          )}
+          initialAvatar={stored.avatar}
           label="Rediger agent"
           presets={presets}
           submitLabel="Lagre endringer"
-          onSave={async (newName, newAnswers, newSources) => {
-            await updateAgent(agent.id, newName, newAnswers, newSources);
+          onSave={async (newName, newAnswers, newSources, newSettings, newAvatar) => {
+            await updateAgent(agent.id, newName, newAnswers, newSources, newSettings, newAvatar);
             return agent.id;
           }}
         />

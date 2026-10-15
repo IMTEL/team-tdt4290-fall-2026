@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ChatError } from '@/components/chat/sendToAgent';
 import type { ChatMessage } from '@/components/chat/types';
+import { interviewer } from '@/domain/agentTypes/interviewer';
 import { fetchSavedTemplates, saveConfiguredAgent, sendConfigurationTurn } from './api';
 
 const configuration = {
@@ -40,7 +41,11 @@ describe('sendConfigurationTurn', () => {
     );
 
     await expect(
-      sendConfigurationTurn({ templateId: 'teamleder', profileId: null }, messages),
+      sendConfigurationTurn(
+        interviewer,
+        { templateId: 'teamleder', profileId: null, industryTemplateId: null },
+        messages,
+      ),
     ).resolves.toEqual({
       reply: 'Neste?',
       configuration: null,
@@ -50,6 +55,7 @@ describe('sendConfigurationTurn', () => {
     const [url, init] = fetchMock.mock.calls[0];
     expect(url).toBe('/api/configure/turn');
     expect(JSON.parse(init?.body as string)).toEqual({
+      agentType: 'interviewer',
       templateId: 'teamleder',
       messages: [
         { role: 'assistant', content: 'Hei!' },
@@ -63,11 +69,16 @@ describe('sendConfigurationTurn', () => {
       Response.json({ reply: 'Neste?', configuration: null, done: false }),
     );
 
-    await sendConfigurationTurn({ templateId: null, profileId: null }, messages);
+    await sendConfigurationTurn(
+      interviewer,
+      { templateId: null, profileId: null, industryTemplateId: null },
+      messages,
+    );
 
     const [, init] = fetchMock.mock.calls[0];
     expect(JSON.parse(init?.body as string)).not.toHaveProperty('templateId');
     expect(JSON.parse(init?.body as string)).not.toHaveProperty('profileId');
+    expect(JSON.parse(init?.body as string)).not.toHaveProperty('industryTemplateId');
   });
 
   it('sends the profile id when the counsellor chose a profile', async () => {
@@ -75,17 +86,37 @@ describe('sendConfigurationTurn', () => {
       Response.json({ reply: 'Neste?', configuration: null, done: false }),
     );
 
-    await sendConfigurationTurn({ templateId: null, profileId: 'profile-1' }, messages);
+    await sendConfigurationTurn(
+      interviewer,
+      { templateId: null, profileId: 'profile-1', industryTemplateId: null },
+      messages,
+    );
 
     const [, init] = fetchMock.mock.calls[0];
     expect(JSON.parse(init?.body as string)).toMatchObject({ profileId: 'profile-1' });
+  });
+
+  it('sends the industry template id when one was chosen', async () => {
+    fetchMock.mockResolvedValue(
+      Response.json({ reply: 'Neste?', configuration: null, done: false }),
+    );
+
+    await sendConfigurationTurn(
+      interviewer,
+      { templateId: null, profileId: null, industryTemplateId: 'servitor' },
+      messages,
+    );
+
+    const [, init] = fetchMock.mock.calls[0];
+    expect(JSON.parse(init?.body as string)).toMatchObject({ industryTemplateId: 'servitor' });
   });
 
   it('returns the configuration when the server says it is done', async () => {
     fetchMock.mockResolvedValue(Response.json({ reply: 'Ferdig', configuration, done: true }));
 
     const result = await sendConfigurationTurn(
-      { templateId: 'teamleder', profileId: null },
+      interviewer,
+      { templateId: 'teamleder', profileId: null, industryTemplateId: null },
       messages,
     );
 
@@ -106,7 +137,8 @@ describe('sendConfigurationTurn', () => {
     );
 
     const result = await sendConfigurationTurn(
-      { templateId: 'teamleder', profileId: null },
+      interviewer,
+      { templateId: 'teamleder', profileId: null, industryTemplateId: null },
       messages,
     );
 
@@ -119,7 +151,11 @@ describe('sendConfigurationTurn', () => {
     fetchMock.mockResolvedValue(Response.json({ error: 'Not signed in' }, { status: 401 }));
 
     await expect(
-      sendConfigurationTurn({ templateId: 'teamleder', profileId: null }, messages),
+      sendConfigurationTurn(
+        interviewer,
+        { templateId: 'teamleder', profileId: null, industryTemplateId: null },
+        messages,
+      ),
     ).rejects.toMatchObject({
       userMessage: expect.stringContaining('Logg inn'),
     });
@@ -129,7 +165,11 @@ describe('sendConfigurationTurn', () => {
     fetchMock.mockRejectedValue(new TypeError('Failed to fetch'));
 
     await expect(
-      sendConfigurationTurn({ templateId: 'teamleder', profileId: null }, messages),
+      sendConfigurationTurn(
+        interviewer,
+        { templateId: 'teamleder', profileId: null, industryTemplateId: null },
+        messages,
+      ),
     ).rejects.toBeInstanceOf(ChatError);
   });
 });
@@ -139,11 +179,42 @@ describe('saveConfiguredAgent', () => {
     fetchMock.mockResolvedValue(Response.json({ id: 'agent-1' }, { status: 201 }));
     const sources = { intervjuer: { kind: 'template' as const, id: 'daglig-leder' } };
 
-    await expect(saveConfiguredAgent('Kari', configuration, sources)).resolves.toBe('agent-1');
+    await expect(saveConfiguredAgent('Kari', interviewer, configuration, sources)).resolves.toBe(
+      'agent-1',
+    );
 
     const [url, init] = fetchMock.mock.calls[0];
     expect(url).toBe('/api/agents');
-    expect(JSON.parse(init?.body as string)).toEqual({ name: 'Kari', configuration, sources });
+    expect(JSON.parse(init?.body as string)).toEqual({
+      name: 'Kari',
+      type: 'interviewer',
+      configuration,
+      sources,
+    });
+  });
+
+  it('posts the advanced settings when there are any', async () => {
+    fetchMock.mockResolvedValue(Response.json({ id: 'agent-1' }, { status: 201 }));
+    const advanced = { model: 'meta/llama-3.3-70b', temperature: 0.2, customPrompt: 'Du er Kari.' };
+
+    await saveConfiguredAgent('Kari', interviewer, configuration, {}, advanced);
+
+    const [, init] = fetchMock.mock.calls[0];
+    expect(JSON.parse(init?.body as string)).toEqual({
+      name: 'Kari',
+      type: 'interviewer',
+      configuration,
+      sources: {},
+      advanced,
+    });
+  });
+
+  it('says what to check when the server does not accept the agent', async () => {
+    fetchMock.mockResolvedValue(Response.json({ error: 'Invalid name' }, { status: 400 }));
+
+    await expect(saveConfiguredAgent('Kari', interviewer, configuration)).rejects.toMatchObject({
+      userMessage: 'Agenten ble ikke godtatt. Sjekk navnet og de avanserte innstillingene.',
+    });
   });
 
   it('throws a ChatError with a safe message when saving fails', async () => {
@@ -151,7 +222,7 @@ describe('saveConfiguredAgent', () => {
       Response.json({ error: 'Error from RAGdoll API' }, { status: 502 }),
     );
 
-    await expect(saveConfiguredAgent('Kari', configuration)).rejects.toMatchObject({
+    await expect(saveConfiguredAgent('Kari', interviewer, configuration)).rejects.toMatchObject({
       userMessage: 'Noe gikk galt. Prøv igjen.',
     });
   });
@@ -160,6 +231,7 @@ describe('saveConfiguredAgent', () => {
 describe('fetchSavedTemplates', () => {
   const saved = {
     id: 'saved-1',
+    agentType: 'interviewer',
     title: 'Butikksjef',
     description: 'Vennlig.',
     focus: ['Service'],
@@ -169,19 +241,19 @@ describe('fetchSavedTemplates', () => {
   it('returns the saved templates', async () => {
     fetchMock.mockResolvedValue(Response.json({ templates: [saved] }));
 
-    await expect(fetchSavedTemplates()).resolves.toEqual([saved]);
-    expect(fetchMock.mock.calls[0][0]).toBe('/api/templates');
+    await expect(fetchSavedTemplates('interviewer')).resolves.toEqual([saved]);
+    expect(fetchMock.mock.calls[0][0]).toBe('/api/templates?agentType=interviewer');
   });
 
   it('throws when the server fails', async () => {
     fetchMock.mockResolvedValue(Response.json({ error: 'Not signed in' }, { status: 401 }));
 
-    await expect(fetchSavedTemplates()).rejects.toThrow();
+    await expect(fetchSavedTemplates('interviewer')).rejects.toThrow();
   });
 
   it('throws when a template has the wrong shape', async () => {
     fetchMock.mockResolvedValue(Response.json({ templates: [{ ...saved, focus: 'Service' }] }));
 
-    await expect(fetchSavedTemplates()).rejects.toThrow();
+    await expect(fetchSavedTemplates('interviewer')).rejects.toThrow();
   });
 });

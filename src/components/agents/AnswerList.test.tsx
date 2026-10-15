@@ -4,8 +4,8 @@ import { describe, expect, it } from 'vitest';
 import { AnswerList } from './AnswerList';
 
 const fields = [
-  { key: 'stilling', label: 'Stilling' },
-  { key: 'tillegg', label: 'Tillegg', optional: true },
+  { key: 'stilling', label: 'Stilling', question: 'Hvilken stilling?' },
+  { key: 'tillegg', label: 'Tillegg', question: 'Noe mer?', optional: true },
 ];
 
 describe('AnswerList', () => {

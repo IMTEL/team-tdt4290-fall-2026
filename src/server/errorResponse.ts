@@ -8,6 +8,8 @@ const errorResponses: Record<RagdollErrorKind, { status: number; error: string }
   'bad-response': { status: 502, error: 'Invalid response from RAGdoll API' },
   unauthorized: { status: 401, error: 'Not signed in' },
   'not-found': { status: 404, error: 'Not found' },
+  // We check what the browser sends ourselves, so RAGdoll rejecting it is our problem, not theirs.
+  rejected: { status: 502, error: 'RAGdoll rejected the request' },
 };
 
 /** Turns an error from talking to RAGdoll into a safe response for the browser, and logs it. */

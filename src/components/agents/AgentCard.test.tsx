@@ -9,6 +9,9 @@ const agent: Agent = {
   name: 'Butikksjef Kari',
   description: '',
   lastUpdated: '2026-10-02T12:00:00.000Z',
+  llmModel: 'openai/gpt-oss-120b',
+  temperature: 0.7,
+  prompt: 'Du er en intervjuer.',
   type: 'interviewer',
   typeLabel: 'Intervjuer',
   stilling: 'Butikkmedarbeider',
@@ -32,6 +35,24 @@ describe('AgentCard', () => {
 
     const card = screen.getByRole('link', { name: /Butikksjef Kari/ });
     expect(card).toHaveTextContent(/^Butikksjef Kari$/);
+  });
+
+  it('shows the agent’s avatar inside the link to the agent’s page', () => {
+    const { container } = render(<AgentCard agent={{ ...agent, avatar: 'rev' }} />);
+
+    const image = container.querySelector('img');
+    expect(image).toHaveAttribute('src', '/avatars/rev.svg');
+    expect(screen.getByRole('link', { name: /Butikksjef Kari/ })).toContainElement(image);
+  });
+
+  it.each([
+    ['has no avatar', null],
+    ['was saved before avatars existed', undefined],
+    ['has an avatar we no longer have', 'fjernet-avatar'],
+  ])('shows the default image when the agent %s', (_, avatar) => {
+    const { container } = render(<AgentCard agent={{ ...agent, avatar }} />);
+
+    expect(container.querySelector('img')).toHaveAttribute('src', '/avatars/default.svg');
   });
 
   it('keeps the test button outside the link to the agent’s page', () => {

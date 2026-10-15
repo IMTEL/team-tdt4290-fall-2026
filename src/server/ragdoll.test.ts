@@ -19,6 +19,7 @@ import {
   getUserSettings,
   isAgentOwner,
   listAgents,
+  listLanguageModels,
   listTemplates,
   RagdollError,
   saveAgent,
@@ -200,6 +201,7 @@ const newAgent: NewRagdollAgent = {
   ],
   llm_provider: 'idun',
   llm_model: 'openai/gpt-oss-120b',
+  llm_temperature: 0.7,
   llm_api_key: 'idun-key',
   embedding_model: 'idun:Qwen/Qwen3-Embedding-8B',
   embedding_api_key: 'idun-key',
@@ -291,6 +293,9 @@ describe('listAgents', () => {
         name: 'Butikksjef',
         description: '{}',
         lastUpdated: '2026-10-01T08:00:00.000Z',
+        llmModel: 'openai/gpt-oss-120b',
+        temperature: 0.7,
+        prompt: 'Du er en intervjuer.',
       },
     ]);
     expect(JSON.stringify(agents)).not.toContain('idun-key');
@@ -300,6 +305,67 @@ describe('listAgents', () => {
     fetchMock.mockResolvedValue(Response.json({ detail: 'oops' }));
 
     await expect(listAgents(SESSION_TOKEN)).rejects.toMatchObject({ kind: 'bad-response' });
+  });
+
+  it('gives null as the temperature when RAGdoll returns an agent without one', async () => {
+    const withoutTemperature: Record<string, unknown> = { ...newAgent, id: 'agent-1' };
+    delete withoutTemperature.llm_temperature;
+    fetchMock.mockResolvedValue(Response.json([withoutTemperature]));
+
+    const [summary] = await listAgents(SESSION_TOKEN);
+
+    expect(summary.temperature).toBeNull();
+  });
+});
+
+describe('listLanguageModels', () => {
+  const fetchMock = vi.fn<typeof fetch>();
+
+  beforeEach(() => {
+    vi.stubEnv('BACKEND_API_URL', BACKEND_URL);
+    vi.stubGlobal('fetch', fetchMock);
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.unstubAllGlobals();
+    fetchMock.mockReset();
+  });
+
+  it('asks RAGdoll for the IDUN models as the user, with the IDUN key in the body', async () => {
+    fetchMock.mockResolvedValue(Response.json([]));
+
+    await listLanguageModels(SESSION_TOKEN, 'idun-key');
+
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toBe(`${BACKEND_URL}/get_models`);
+    expect(init?.method).toBe('POST');
+    expect(JSON.parse(init?.body as string)).toEqual({ provider: 'idun', api_key: 'idun-key' });
+    expect((init?.headers as Record<string, string>).Authorization).toBe(`Bearer ${SESSION_TOKEN}`);
+  });
+
+  it('returns only the names, skipping entries without one', async () => {
+    fetchMock.mockResolvedValue(
+      Response.json([
+        { provider: 'idun', name: 'openai/gpt-oss-120b', GDPR_compliant: true, description: null },
+        { provider: 'idun', name: 'meta/llama-3.3-70b', GDPR_compliant: true, description: 'x' },
+        { provider: 'idun' },
+        'garbage',
+      ]),
+    );
+
+    expect(await listLanguageModels(SESSION_TOKEN, 'idun-key')).toEqual([
+      'openai/gpt-oss-120b',
+      'meta/llama-3.3-70b',
+    ]);
+  });
+
+  it('throws a bad-response error when RAGdoll does not return a list', async () => {
+    fetchMock.mockResolvedValue(Response.json({ detail: 'oops' }));
+
+    await expect(listLanguageModels(SESSION_TOKEN, 'idun-key')).rejects.toMatchObject({
+      kind: 'bad-response',
+    });
   });
 });
 
@@ -385,6 +451,9 @@ describe('updateAgent', () => {
       name: 'Butikksjef',
       description: '{}',
       lastUpdated: '2026-10-01T08:00:00.000Z',
+      llmModel: 'openai/gpt-oss-120b',
+      temperature: 0.2,
+      prompt: 'Du er en intervjuer.',
     });
     expect(JSON.stringify(saved)).not.toContain('idun-key');
   });
@@ -764,6 +833,38 @@ describe('profiles', () => {
     await expect(listProfiles(SESSION_TOKEN)).resolves.toMatchObject([
       { experience_level: null, practice_areas: [] },
     ]);
+  });
+
+  // RAGdoll's real answers: a broken token gives a message, a body it doesn't accept a list.
+  it('throws unauthorized for a 422 about the token', async () => {
+    fetchMock.mockResolvedValue(Response.json({ detail: 'Not enough segments' }, { status: 422 }));
+
+    await expect(createProfile(SESSION_TOKEN, newProfile)).rejects.toMatchObject({
+      kind: 'unauthorized',
+    });
+  });
+
+  it('throws rejected, not unauthorized, for a 422 listing fields RAGdoll does not accept', async () => {
+    fetchMock.mockResolvedValue(
+      Response.json(
+        {
+          detail: [
+            {
+              type: 'extra_forbidden',
+              loc: ['body', 'experience_level'],
+              msg: 'Extra inputs are not permitted',
+              input: 'none',
+            },
+          ],
+        },
+        { status: 422 },
+      ),
+    );
+
+    await expect(createProfile(SESSION_TOKEN, newProfile)).rejects.toMatchObject({
+      kind: 'rejected',
+      message: expect.stringContaining('experience_level'),
+    });
   });
 
   it('throws a bad-response error when the list has something that is not a profile', async () => {

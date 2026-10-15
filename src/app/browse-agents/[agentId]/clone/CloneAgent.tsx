@@ -10,6 +10,7 @@ import Chip from '@mui/material/Chip';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 
+import { settingsOf } from '@/domain/advancedSettings';
 import { cloneName } from '@/domain/agentName';
 import { readStoredAnswers } from '@/domain/agentTypes/storedAnswers';
 import { cloneAgent } from '../../api';
@@ -60,9 +61,16 @@ export function CloneAgent({ agentId }: { agentId: string }) {
           definition={stored.definition}
           initialAnswers={stored.answers}
           initialSources={stored.sources}
+          initialSettings={settingsOf(
+            { model: agent.llmModel, temperature: agent.temperature, prompt: agent.prompt },
+            stored.customPrompt,
+          )}
+          initialAvatar={stored.avatar}
           label="Klon agent"
           submitLabel="Lagre som ny agent"
-          onSave={(name, answers, sources) => cloneAgent(agent.id, name, answers, sources)}
+          onSave={(name, answers, sources, settings, avatar) =>
+            cloneAgent(agent.id, name, answers, sources, settings, avatar)
+          }
           allowUnchanged
           presets={presets}
         />

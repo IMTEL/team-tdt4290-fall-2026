@@ -8,6 +8,9 @@ const agent = {
   name: 'Intervjuer for Barnehagelærer',
   description: '{"stilling":"Barnehagelærer"}',
   lastUpdated: '2026-10-02T12:00:00.000Z',
+  llmModel: 'openai/gpt-oss-120b',
+  temperature: 0.7,
+  prompt: 'Du er en intervjuer.',
 };
 
 const fetchMock = vi.fn<typeof fetch>();
@@ -43,6 +46,28 @@ describe('fetchAgents', () => {
 
   it('fails when the body is not a list of agents', async () => {
     fetchMock.mockResolvedValue(Response.json({ agents: [{ id: 'agent-1' }] }));
+
+    await expect(fetchAgents()).rejects.toThrow('Noe gikk galt. Prøv igjen.');
+  });
+
+  it('accepts an agent with an avatar, and one without', async () => {
+    fetchMock.mockResolvedValue(
+      Response.json({ agents: [{ ...agent, avatar: 'ugle' }, { ...agent, avatar: null }, agent] }),
+    );
+
+    await expect(fetchAgents()).resolves.toHaveLength(3);
+  });
+
+  it('fails when an agent’s avatar is not text', async () => {
+    fetchMock.mockResolvedValue(Response.json({ agents: [{ ...agent, avatar: 7 }] }));
+
+    await expect(fetchAgents()).rejects.toThrow('Noe gikk galt. Prøv igjen.');
+  });
+
+  it('fails when an agent has no advanced settings', async () => {
+    const withoutModel: Record<string, unknown> = { ...agent };
+    delete withoutModel.llmModel;
+    fetchMock.mockResolvedValue(Response.json({ agents: [withoutModel] }));
 
     await expect(fetchAgents()).rejects.toThrow('Noe gikk galt. Prøv igjen.');
   });
@@ -83,8 +108,38 @@ describe('updateAgent', () => {
     expect(JSON.parse(init?.body as string)).toEqual({ name: 'Nytt navn', answers, sources });
   });
 
+  it('sends the advanced settings when there are any', async () => {
+    fetchMock.mockResolvedValue(Response.json({ agent }));
+    const advanced = { model: 'meta/llama-3.3-70b', temperature: 0.2, customPrompt: null };
+
+    await updateAgent('agent-1', 'Nytt navn', answers, {}, advanced);
+
+    const [, init] = fetchMock.mock.calls[0];
+    expect(JSON.parse(init?.body as string)).toEqual({
+      name: 'Nytt navn',
+      answers,
+      sources: {},
+      advanced,
+    });
+  });
+
+  it('sends the avatar, and null for the default image, but nothing when it is not changed', async () => {
+    // A new response for each call: the body of a response can only be read once.
+    fetchMock.mockImplementation(async () => Response.json({ agent }));
+
+    await updateAgent('agent-1', 'Nytt navn', answers, {}, undefined, 'ugle');
+    await updateAgent('agent-1', 'Nytt navn', answers, {}, undefined, null);
+    await updateAgent('agent-1', 'Nytt navn', answers);
+
+    const bodies = fetchMock.mock.calls.map(([, init]) => JSON.parse(init?.body as string));
+    expect(bodies[0]).toHaveProperty('avatar', 'ugle');
+    expect(bodies[1]).toHaveProperty('avatar', null);
+    expect(bodies[2]).not.toHaveProperty('avatar');
+  });
+
   it.each([
     [401, 'Du er logget ut. Logg inn på nytt og prøv igjen.'],
+    [400, 'Endringene ble ikke godtatt. Sjekk feltene og prøv igjen.'],
     [404, 'Fant ikke agenten. Den kan ha blitt slettet.'],
     [504, 'Det tok for lang tid å få svar. Prøv igjen.'],
     [502, 'Noe gikk galt. Prøv igjen.'],
@@ -123,6 +178,35 @@ describe('cloneAgent', () => {
     expect(url).toBe('/api/agents/agent-1/clone');
     expect(init?.method).toBe('POST');
     expect(JSON.parse(init?.body as string)).toEqual({ name: 'Kopi', answers, sources: {} });
+  });
+
+  it('sends the advanced settings when there are any', async () => {
+    fetchMock.mockResolvedValue(Response.json({ id: 'agent-2' }, { status: 201 }));
+    const advanced = { model: 'meta/llama-3.3-70b', temperature: 1.1, customPrompt: null };
+
+    await cloneAgent('agent-1', 'Kopi', answers, {}, advanced);
+
+    const [, init] = fetchMock.mock.calls[0];
+    expect(JSON.parse(init?.body as string)).toEqual({
+      name: 'Kopi',
+      answers,
+      sources: {},
+      advanced,
+    });
+  });
+
+  it('sends the avatar, and null for the default image, but nothing when it is not changed', async () => {
+    // A new response for each call: the body of a response can only be read once.
+    fetchMock.mockImplementation(async () => Response.json({ id: 'agent-2' }, { status: 201 }));
+
+    await cloneAgent('agent-1', 'Kopi', answers, {}, undefined, 'sol');
+    await cloneAgent('agent-1', 'Kopi', answers, {}, undefined, null);
+    await cloneAgent('agent-1', 'Kopi', answers);
+
+    const bodies = fetchMock.mock.calls.map(([, init]) => JSON.parse(init?.body as string));
+    expect(bodies[0]).toHaveProperty('avatar', 'sol');
+    expect(bodies[1]).toHaveProperty('avatar', null);
+    expect(bodies[2]).not.toHaveProperty('avatar');
   });
 
   it.each([
