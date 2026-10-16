@@ -17,6 +17,7 @@ import Tabs from '@mui/material/Tabs';
 import Typography from '@mui/material/Typography';
 
 import { AgentAvatar } from '@/components/agents/AgentAvatar';
+import { AnswerList } from '@/components/agents/AnswerList';
 import { DEFAULT_TEMPERATURE, formatTemperature } from '@/domain/advancedSettings';
 import { readStoredAnswers } from '@/domain/agentTypes/storedAnswers';
 import { formatDate } from '@/lib/format';
@@ -172,12 +173,7 @@ export function AgentDetail({ agentId }: { agentId: string }) {
       {tab === 'config' && (
         <TabPanel id="config">
           {stored ? (
-            <dl className={styles.fields}>
-              {stored.definition.fields.map(({ key, label }) => (
-                // Empty when the agent type got this field after the agent was saved.
-                <Field key={key} label={label} value={stored.answers[key]} />
-              ))}
-            </dl>
+            <AnswerList fields={stored.definition.fields} answers={stored.answers} />
           ) : (
             <Typography variant="body1">{agent.description}</Typography>
           )}

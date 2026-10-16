@@ -126,12 +126,22 @@ describe('buildBriefing', () => {
         `- Intervjuer: ${persona}`,
     );
     expect(briefing).toContain('1. Bedrift: Hvilken bedrift eller virksomhet');
-    expect(briefing).toMatch(/KONFIGURASJON\nBedrift: …\n/);
+    expect(briefing).toMatch(/KONFIGURASJON\nBedrift: navn \| Visjon og verdier: …\n/);
   });
 
   it('has no decided section when nothing is decided', () => {
     expect(buildBriefing(interviewer)).not.toContain('Allerede bestemt');
     expect(buildBriefing(interviewer, { intervjuer: '' })).not.toContain('Allerede bestemt');
+  });
+
+  it('marks optional fields, so the configurator offers to skip them and may leave the line out', () => {
+    const briefing = buildBriefing(interviewer);
+
+    expect(briefing).toContain('9. Tillegg (valgfritt): Er det noe mer du vil legge til?');
+    expect(briefing).toMatch(
+      /^Tillegg: … \(valgfritt: utelat linjen hvis ingenting ble lagt til\)$/m,
+    );
+    expect(briefing).not.toContain('Stilling (valgfritt)');
   });
 
   it('has the interviewer’s own rules', () => {
@@ -150,7 +160,17 @@ describe('parseAnswers', () => {
       jobbsoker: 'under 25, lite erfaring, godt norsknivå, øve på å fortelle om egne styrker',
       vanskelighetsgrad: 'lett | Antall spørsmål: 6 | Oppfølgingsspørsmål: ja',
       egneSporsmal: 'ingen',
+      tillegg: '',
     });
+  });
+
+  it('reads what the counsellor added, and leaves it empty when the line is missing', () => {
+    const withAdditions = `${completeReply}
+Tillegg: Snakk sakte og tydelig.`;
+    expect(parseAnswers(withAdditions, interviewer, { intervjuer: persona })?.tillegg).toBe(
+      'Snakk sakte og tydelig.',
+    );
+    expect(parseAnswers(completeReply, interviewer, { intervjuer: persona })?.tillegg).toBe('');
   });
 
   it('reads the fields of any type', () => {

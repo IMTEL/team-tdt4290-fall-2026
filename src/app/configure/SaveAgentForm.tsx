@@ -1,9 +1,11 @@
 'use client';
 
-import { useState, type FormEvent } from 'react';
+import { useState, type FormEvent, type ReactNode } from 'react';
 import Link from 'next/link';
 import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
+import DialogActions from '@mui/material/DialogActions';
+import DialogContent from '@mui/material/DialogContent';
 import TextField from '@mui/material/TextField';
 
 import { AdvancedSettingsFields } from '@/components/agents/AdvancedSettingsFields';
@@ -29,10 +31,23 @@ type SaveAgentFormProps = {
   configuration: Answers;
   /** The template and profile the answers came from, so the edit form can show them later. */
   sources?: AnswerSources;
+  /** Shown below the name field, e.g. the configuration that will be saved. */
+  children?: ReactNode;
+  /** The counsellor wants to change something, or is done after saving: close the pop-up. */
+  onClose: () => void;
 };
 
-/** Shown under the chat once the configurator has finished: name the agent and save it. */
-export function SaveAgentForm({ definition, configuration, sources = {} }: SaveAgentFormProps) {
+/**
+ * The body and buttons of the pop-up shown once the configurator has finished: name the agent
+ * and save it. Goes inside a MUI Dialog, so the buttons sit at the bottom of it.
+ */
+export function SaveAgentForm({
+  definition,
+  configuration,
+  sources = {},
+  children,
+  onClose,
+}: SaveAgentFormProps) {
   const [name, setName] = useState(() => definition.defaultName(configuration));
   const [settings, setSettings] = useState(DEFAULT_ADVANCED_SETTINGS);
   const [avatar, setAvatar] = useState<string | null>(null);
@@ -64,53 +79,73 @@ export function SaveAgentForm({ definition, configuration, sources = {} }: SaveA
     }
   }
 
-  if (status.kind === 'saved') {
-    return (
-      <Alert severity="success">
-        «{name.trim()}» er lagret.{' '}
-        <Link href={`/test-chat?agent=${encodeURIComponent(status.id)}`}>Test agenten</Link> eller{' '}
-        <Link href="/browse-agents">se agentene dine</Link>
-      </Alert>
-    );
-  }
-
+  const isSaved = status.kind === 'saved';
   const isSaving = status.kind === 'saving';
 
   return (
     <form className={styles.form} onSubmit={handleSubmit} aria-label="Lagre agenten">
-      <p className={styles.lead}>Agenten er klar. Gi den et navn og lagre den.</p>
-      <TextField
-        label="Navn på agenten"
-        value={name}
-        onChange={(event) => setName(event.target.value)}
-        size="small"
-        required
-        disabled={isSaving}
-        slotProps={{ htmlInput: { maxLength: MAX_NAME_LENGTH } }}
-      />
-      <div className={styles.avatar}>
-        {/* English translation: Choose an avatar for the interviewer */}
-        <p className={styles.avatarLabel}>Velg en avatar for intervjueren</p>
-        <AvatarPicker value={avatar} onChange={setAvatar} disabled={isSaving} />
-      </div>
-      {/* The configurator only makes interviewers until #56 lets the counsellor choose the type. */}
-      <AdvancedSettingsFields
-        value={settings}
-        onChange={setSettings}
-        builtPrompt={definition.buildPrompt(configuration)}
-        languageModels={languageModels}
-        errors={settingsErrors}
-        disabled={isSaving}
-      />
-      {status.kind === 'error' && <Alert severity="error">{status.message}</Alert>}
-      <Button
-        type="submit"
-        variant="contained"
-        className={styles.button}
-        disabled={isSaving || name.trim() === '' || Object.keys(settingsErrors).length > 0}
-      >
-        {isSaving ? 'Lagrer …' : 'Lagre agent'}
-      </Button>
+      <DialogContent dividers className={styles.content}>
+        {isSaved ? (
+          <Alert severity="success">
+            «{name.trim()}» er lagret.{' '}
+            <Link href={`/test-chat?agent=${encodeURIComponent(status.id)}`}>Test agenten</Link>{' '}
+            eller <Link href="/browse-agents">se agentene dine</Link>
+          </Alert>
+        ) : (
+          <>
+            <p className={styles.lead}>Agenten er klar. Gi den et navn og lagre den.</p>
+            <TextField
+              label="Navn på agenten"
+              value={name}
+              onChange={(event) => setName(event.target.value)}
+              size="small"
+              required
+              disabled={isSaving}
+              slotProps={{ htmlInput: { maxLength: MAX_NAME_LENGTH } }}
+            />
+          </>
+        )}
+        {children}
+        {!isSaved && (
+          <>
+            <div className={styles.avatar}>
+              {/* English translation: Choose an avatar for the interviewer */}
+              <p className={styles.avatarLabel}>Velg en avatar for intervjueren</p>
+              <AvatarPicker value={avatar} onChange={setAvatar} disabled={isSaving} />
+            </div>
+            <AdvancedSettingsFields
+              value={settings}
+              onChange={setSettings}
+              builtPrompt={definition.buildPrompt(configuration)}
+              languageModels={languageModels}
+              errors={settingsErrors}
+              disabled={isSaving}
+            />
+          </>
+        )}
+        {/* Last, so it shows next to the save button that was just clicked. */}
+        {status.kind === 'error' && <Alert severity="error">{status.message}</Alert>}
+      </DialogContent>
+      <DialogActions>
+        {isSaved ? (
+          <Button variant="contained" onClick={onClose}>
+            Lukk
+          </Button>
+        ) : (
+          <>
+            <Button variant="outlined" onClick={onClose} disabled={isSaving}>
+              Nei, jeg vil endre noe
+            </Button>
+            <Button
+              type="submit"
+              variant="contained"
+              disabled={isSaving || name.trim() === '' || Object.keys(settingsErrors).length > 0}
+            >
+              {isSaving ? 'Lagrer …' : 'Lagre agent'}
+            </Button>
+          </>
+        )}
+      </DialogActions>
     </form>
   );
 }

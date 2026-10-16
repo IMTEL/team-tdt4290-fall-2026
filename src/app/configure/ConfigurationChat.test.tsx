@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -6,7 +6,7 @@ import { findIndustryTemplate } from '@/data/industry-templates';
 import { findBuiltInTemplate } from '@/data/templates';
 import { interviewer } from '@/domain/agentTypes/interviewer';
 import { saveConfiguredAgent, sendConfigurationTurn } from './api';
-import { ConfigurationChat } from './ConfigurationChat';
+import { ConfigurationChat, FINISHED_REPLY } from './ConfigurationChat';
 
 // The chat itself is tested in AgentChat.test.tsx and the save form in SaveAgentForm.test.tsx.
 // Here we only check what this page adds: the greeting, which route answers, and showing the
@@ -40,6 +40,7 @@ const configuration = {
   jobbsoker: 'under 25, lite erfaring',
   vanskelighetsgrad: 'lett | Antall spørsmål: 6 | Oppfølgingsspørsmål: ja',
   egneSporsmal: 'ingen',
+  tillegg: '',
 };
 
 async function sendMessage(text: string) {
@@ -74,6 +75,28 @@ describe('ConfigurationChat', () => {
       { role: 'assistant', content: expect.stringContaining('Hei!') },
       { role: 'user', content: 'Butikkmedarbeider' },
     ]);
+  });
+
+  it('sends a clicked option as a chat message and goes on with the conversation', async () => {
+    sendMock
+      .mockResolvedValueOnce({
+        reply: `Offentlig eller privat?
+[ALTERNATIVER: ett]
+1. Offentlig
+2. Privat`,
+        configuration: null,
+        sources: {},
+      })
+      .mockResolvedValueOnce({ reply: 'Hvilken bedrift?', configuration: null, sources: {} });
+    render(<ConfigurationChat definition={interviewer} template={template} profile={null} />);
+
+    await sendMessage('Butikkmedarbeider');
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole('button', { name: '2. Privat' }));
+    await screen.findByText('Hvilken bedrift?');
+
+    const history = sendMock.mock.calls[1][2];
+    expect(history.at(-1)).toMatchObject({ role: 'user', content: '2. Privat' });
   });
 
   it('with an industry template, names it and asks about the company instead of the job', async () => {
@@ -163,6 +186,66 @@ describe('ConfigurationChat', () => {
     expect(screen.getByRole('textbox', { name: /Navn på agenten/ })).toHaveValue(
       'Intervjuer for Butikkmedarbeider',
     );
+  });
+
+  it('shows the finished configuration, with what the counsellor added, before saving', async () => {
+    const withAdditions = { ...configuration, tillegg: 'Snakk sakte og tydelig.' };
+    sendMock.mockResolvedValue({ reply: 'Ferdig!', configuration: withAdditions, sources: {} });
+    render(<ConfigurationChat definition={interviewer} template={template} profile={null} />);
+
+    await sendMessage('Ja, det stemmer');
+
+    const summary = await screen.findByRole('dialog', { name: 'Stemmer dette?' });
+    expect(within(summary).getByText('Stilling').nextElementSibling).toHaveTextContent(
+      'Butikkmedarbeider',
+    );
+    expect(within(summary).getByText('Tillegg').nextElementSibling).toHaveTextContent(
+      'Snakk sakte og tydelig.',
+    );
+  });
+
+  it('closes the confirmation to change something, and shows it again for a new configuration', async () => {
+    sendMock.mockResolvedValue({ reply: 'Ferdig!', configuration, sources: {} });
+    render(<ConfigurationChat definition={interviewer} template={template} profile={null} />);
+
+    await sendMessage('Ja, det stemmer');
+    await userEvent
+      .setup()
+      .click(await screen.findByRole('button', { name: 'Nei, jeg vil endre noe' }));
+
+    // The pop-up fades out before it is gone.
+    await waitFor(() =>
+      expect(screen.queryByRole('dialog', { name: 'Stemmer dette?' })).not.toBeInTheDocument(),
+    );
+
+    await sendMessage('Bytt til andre intervju');
+    expect(await screen.findByRole('dialog', { name: 'Stemmer dette?' })).toBeInTheDocument();
+  });
+
+  it('shows a short message in the chat instead of the KONFIGURASJON block', async () => {
+    sendMock.mockResolvedValue({
+      reply: 'KONFIGURASJON\nStilling: Butikkmedarbeider',
+      configuration,
+      sources: {},
+    });
+    render(<ConfigurationChat definition={interviewer} template={template} profile={null} />);
+
+    await sendMessage('Nei, jeg er ferdig');
+
+    expect(await screen.findByText(FINISHED_REPLY)).toBeInTheDocument();
+    expect(screen.queryByText(/KONFIGURASJON/)).not.toBeInTheDocument();
+  });
+
+  it('opens the summary again after it was closed', async () => {
+    sendMock.mockResolvedValue({ reply: 'Ferdig!', configuration, sources: {} });
+    render(<ConfigurationChat definition={interviewer} template={template} profile={null} />);
+    const user = userEvent.setup();
+
+    await sendMessage('Nei, jeg er ferdig');
+    await user.click(await screen.findByRole('button', { name: 'Nei, jeg vil endre noe' }));
+    await user.click(await screen.findByRole('button', { name: 'Se oppsummeringen' }));
+
+    expect(await screen.findByRole('dialog', { name: 'Stemmer dette?' })).toBeInTheDocument();
   });
 
   it('saves the agent with the sources the server sent with the configuration', async () => {

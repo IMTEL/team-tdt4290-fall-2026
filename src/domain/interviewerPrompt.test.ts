@@ -13,6 +13,7 @@ const configuration: Configuration = {
   jobbsoker: 'under 25, lite erfaring, godt norsknivå, øve på å fortelle om egne styrker',
   vanskelighetsgrad: 'lett | Antall spørsmål: 6 | Oppfølgingsspørsmål: ja',
   egneSporsmal: 'ingen',
+  tillegg: '',
 };
 
 describe('buildPrompt', () => {
@@ -23,6 +24,13 @@ describe('buildPrompt', () => {
     expect(prompt).toContain(
       'Vanskelighetsgrad: lett | Antall spørsmål: 6 | Oppfølgingsspørsmål: ja',
     );
+  });
+
+  it('adds what the counsellor added, and leaves the line out when nothing was added', () => {
+    expect(buildPrompt({ ...configuration, tillegg: 'Snakk sakte.' })).toContain(
+      'Tillegg: Snakk sakte.',
+    );
+    expect(buildPrompt(configuration)).not.toContain('Tillegg:');
   });
 
   it('does not contain the hand-written example', () => {

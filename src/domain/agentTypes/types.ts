@@ -22,6 +22,8 @@ export type AgentField = {
   hint?: string;
   /** How the configurator writes the answer in the block, e.g. "første/andre intervju". */
   format?: string;
+  /** The counsellor may leave it empty, e.g. Tillegg. Its line in the block may be missing. */
+  optional?: boolean;
 };
 
 /** A role. The mapper turns it into a RAGdoll role. */

@@ -58,12 +58,19 @@ export function listPlannedAgentTypes(): PlannedAgentType[] {
   return PLANNED_AGENT_TYPES.filter((planned) => !AGENT_TYPES[planned.id]);
 }
 
-/** True if `value` has an answer for every field of the agent type. */
+/**
+ * True if `value` has an answer for every required field of the agent type. Optional fields may
+ * be empty or missing, e.g. in agents saved before the field existed.
+ */
 export function hasAllAnswers(definition: AgentTypeDefinition, value: unknown): value is Answers {
   if (typeof value !== 'object' || value === null) return false;
   const answers = value as Record<string, unknown>;
 
-  return definition.fields.every((field) => isFilledIn(answers[field.key]));
+  return definition.fields.every((field) => {
+    const answer = answers[field.key];
+    if (field.optional) return answer === undefined || typeof answer === 'string';
+    return isFilledIn(answer);
+  });
 }
 
 /** True if the answer is text with something other than spaces in it. */

@@ -123,6 +123,12 @@ describe('hasAllAnswers', () => {
     expect(hasAllAnswers(interviewer, { ...answers, stilling: undefined })).toBe(false);
   });
 
+  it('lets the optional Tillegg be empty or missing, as in agents saved before it existed', () => {
+    expect(hasAllAnswers(interviewer, { ...answers, tillegg: '' })).toBe(true);
+    expect(hasAllAnswers(interviewer, answers)).toBe(true);
+    expect(hasAllAnswers(interviewer, { ...answers, tillegg: 42 })).toBe(false);
+  });
+
   it('rejects things that are not objects', () => {
     expect(hasAllAnswers(interviewer, null)).toBe(false);
     expect(hasAllAnswers(interviewer, 'tekst')).toBe(false);
