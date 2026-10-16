@@ -18,6 +18,9 @@ const tokens = {
   ringSecondaryDarkChart3: '#457B9D',
   // A shade darker than #457B9D, so light text on it reaches 4.5:1 (it was 4.3:1).
   secondaryDark: '#3F7293',
+  // Hover on the dark theme's primary. MUI's own darker shade of #A8DADC gives 3.95:1 with the
+  // dark text on contained buttons; this gives 6.4:1.
+  primaryHoverDark: '#8CC4C6',
 
   // approximated from oklch, no hex comment in source
   muted: '#C8E9E8',
@@ -64,6 +67,20 @@ const themeOptions: ThemeOptions = {
         },
       ],
     },
+    // MUI's defaults for these are a faded grey below 4.5:1 against our backgrounds.
+    MuiToggleButton: {
+      styleOverrides: {
+        root: ({ theme }) => ({ color: theme.vars.palette.text.secondary }),
+      },
+    },
+    // The helper text of a disabled field still says something, such as why it is locked.
+    MuiFormHelperText: {
+      styleOverrides: {
+        root: ({ theme }) => ({
+          '&.Mui-disabled': { color: theme.vars.palette.text.secondary },
+        }),
+      },
+    },
   },
   colorSchemes: {
     light: {
@@ -95,6 +112,7 @@ const themeOptions: ThemeOptions = {
       palette: {
         primary: {
           main: tokens.secondaryAccent, // #A8DADC, swaps role in dark mode
+          dark: tokens.primaryHoverDark,
           contrastText: tokens.foreground,
         },
         secondary: {
@@ -114,22 +132,6 @@ const themeOptions: ThemeOptions = {
           secondary: tokens.border,
         },
         divider: tokens.ringSecondaryDarkChart3,
-      },
-    },
-  },
-  // MUI's defaults for these are a faded grey below 4.5:1 against our backgrounds.
-  components: {
-    MuiToggleButton: {
-      styleOverrides: {
-        root: ({ theme }) => ({ color: theme.vars.palette.text.secondary }),
-      },
-    },
-    // The helper text of a disabled field still says something, such as why it is locked.
-    MuiFormHelperText: {
-      styleOverrides: {
-        root: ({ theme }) => ({
-          '&.Mui-disabled': { color: theme.vars.palette.text.secondary },
-        }),
       },
     },
   },
