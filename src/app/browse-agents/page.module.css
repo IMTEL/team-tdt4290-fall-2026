@@ -1,0 +1,16 @@
+/* A centred column, wide enough for four cards in a row. */
+.page {
+  max-width: 1280px;
+  margin-inline: auto;
+  padding: 1rem;
+}
+
+@media (min-width: 900px) {
+  .page {
+    padding: 2rem;
+  }
+}
+
+.header {
+  margin-bottom: 1rem;
+}

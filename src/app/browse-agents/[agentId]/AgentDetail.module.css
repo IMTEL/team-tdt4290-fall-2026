@@ -1,8 +1,131 @@
-/* The summary box at the top of the page. MUI's Paper gives it the border, radius and padding. */
+/* A centred column, the same while loading and when the agent is shown. */
+.page {
+  max-width: 720px;
+  margin-inline: auto;
+  padding: 1rem;
+}
+
+@media (min-width: 900px) {
+  .page {
+    padding: 2rem;
+  }
+}
+
+/* The summary box at the top of the page. MUI's Paper gives it the border and radius. */
 .summary {
   background-color: var(--muted);
+  padding: 1rem;
+  margin-bottom: 1.5rem;
 }
 
 .summaryLabel {
   color: var(--muted-foreground);
+}
+
+/* Hidden visually but still read by screen readers. */
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+.backLink {
+  margin-bottom: 1rem;
+}
+
+/* The avatar, with the name and below it the agent type and the date. */
+.header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.titleBlock {
+  min-width: 0;
+}
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+/* Test, edit, clone and delete. They wrap to a new line on narrow screens. */
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.tabs {
+  border-bottom: 1px solid var(--border);
+}
+
+.panel {
+  padding-top: 1rem;
+}
+
+/* The answers, and the model and temperature: a label with its value below. */
+.fields {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.fieldValue {
+  margin: 0;
+}
+
+/* The "written by hand" chip and the copy button above the prompt. */
+.panelActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.spacer {
+  flex: 1;
+}
+
+/*
+ * The border and the rounded corners are on an outer box that clips, and the prompt scrolls
+ * inside it, so the scrollbar stays within the corners.
+ */
+.promptBox {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+/* About 20 lines, then the prompt scrolls inside its box. */
+.prompt {
+  margin: 0;
+  max-height: 30em;
+  overflow-y: auto;
+  padding: 0.75rem;
+  font-family: monospace;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.skeletonTitle {
+  flex: 1;
+}
+
+.skeletonBlock {
+  margin-top: 1.5rem;
 }
