@@ -223,25 +223,26 @@ npx playwright show-report   # click a test, then the trace
 
 ## CI
 
-`.github/workflows/playwright.yml` runs on every push and pull request to `main`:
+`.github/workflows/playwright.yml` runs on every push and pull request to `main`. It has one job
+per browser (Chromium, Firefox and WebKit), and the three run side by side. Each job:
 
 1. `npm ci`
-2. `npx playwright install --with-deps`
-3. `npm run test:e2e:all`, which builds the app, starts it and the mock backend, and runs every
-   test in all three browsers
-4. Uploads `playwright-report/` as an artifact named `playwright-report`, kept for 30 days, also
-   when tests fail.
+2. `npx playwright install --with-deps <browser>`, only the browser that job runs
+3. `npx playwright test --project=<browser>`, which builds the app, starts it and the mock backend,
+   and runs every test in that browser
+4. Uploads `playwright-report/` as an artifact named `playwright-report-<browser>`, kept for 30
+   days, also when tests fail.
 
-In CI, failed tests are retried twice, tests run one at a time (`workers: 1`), and `test.only`
-fails the run. After 10 failed tests CI stops (`maxFailures`) and the rest are reported as not
-run: with retries and one worker, a change that breaks many tests would otherwise run until the
-job's 30-minute timeout. A healthy run takes about 5–8 minutes.
+In CI, failed tests are retried twice, tests run on two workers, and `test.only` fails the run.
+After 10 failed tests a job stops (`maxFailures`) and the rest are reported as not run: with
+retries, a change that breaks many tests would otherwise run until the job's 20-minute timeout.
+A failure in one browser does not cancel the others.
 
 **When a run fails right after merging `main`**, the app has usually changed under the tests: a
 new step, a renamed button. Run `npm run test:e2e` locally, see what the failures wait for, and
 update the tests (or a helper in `tests/support/`) to the new behaviour.
 
-To see why a CI run failed: open the run on GitHub, download the `playwright-report` artifact,
+To see why a CI run failed: open the run on GitHub, download the `playwright-report-<browser>` artifact for the browser that failed,
 unzip it and run `npx playwright show-report <unzipped folder>`. Failed tests that were retried
 have a trace.
 

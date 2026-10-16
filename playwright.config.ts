@@ -14,10 +14,12 @@ export default defineConfig({
   // Fail CI if someone leaves test.only in the code.
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
-  // With one worker and two retries, a change that breaks many tests would otherwise keep CI busy
-  // until the job's 30-minute timeout. Stop early instead: ten failures say enough.
+  // With two retries, a change that breaks many tests would otherwise keep CI busy until the
+  // job's timeout. Stop early instead: ten failures say enough.
   maxFailures: process.env.CI ? 10 : undefined,
-  workers: process.env.CI ? 1 : undefined,
+  // Each test has its own user in the mock backend, so tests can run side by side. The GitHub
+  // runner has few cores, and the app server and browsers share them, so two is enough there.
+  workers: process.env.CI ? 2 : undefined,
   reporter: 'html',
   use: {
     baseURL: appUrl,
