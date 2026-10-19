@@ -28,6 +28,15 @@ export default async function TestChatPage({ searchParams }: Props) {
           oppfører seg slik du ønsker.
         </p>
       </header>
+
+      {agentId ? (
+        <TestChat agentId={agentId} />
+      ) : (
+        <p className={styles.empty}>
+          {/* English translation: Choose which interviewer to test from your agents. */}
+          Velg hvilken intervjuer du vil teste fra <Link href="/browse-agents">agentene dine</Link>.
+        </p>
+      )}
     </div>
   );
 }
