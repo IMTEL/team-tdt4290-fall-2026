@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -32,5 +32,22 @@ describe('NewAgentCard', () => {
     await user.click(screen.getByRole('button', { name: /^Intervjuer/ }));
 
     expect(push).toHaveBeenCalledWith('/configure?type=interviewer');
+  });
+
+  it('closes from the cross and from a click outside the dialog', async () => {
+    const user = userEvent.setup();
+    render(<NewAgentCard />);
+
+    await user.click(screen.getByRole('button', { name: /Ny agent/ }));
+    await user.click(screen.getByRole('button', { name: 'Lukk' }));
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole('button', { name: /Ny agent/ }));
+    await user.click(document.querySelector('.MuiBackdrop-root')!);
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    });
   });
 });

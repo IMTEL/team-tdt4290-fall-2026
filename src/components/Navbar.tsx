@@ -15,8 +15,8 @@ import LogInPageButton from './login/LogInPageButton';
 const NAV_LINKS: { href: string; label: string }[] = [
   { href: '/', label: 'Hjem' },
   { href: '/browse-agents', label: 'Agenter' },
-  { href: '/configure', label: 'Konfigurer' },
-  { href: '/profiles', label: 'Jobbsøkere' },
+  { href: '/templates', label: 'Maler' },
+  { href: '/profiles', label: 'Jobbsøkerprofiler' },
 ];
 
 function isActive(pathname: string, href: string) {

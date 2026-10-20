@@ -1,0 +1,112 @@
+'use client';
+
+import { useEffect, useState, type ReactNode } from 'react';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import Accordion from '@mui/material/Accordion';
+import AccordionDetails from '@mui/material/AccordionDetails';
+import AccordionSummary from '@mui/material/AccordionSummary';
+import Alert from '@mui/material/Alert';
+import Typography from '@mui/material/Typography';
+
+import { AddCatalogCard } from '@/components/templates/AddCatalogCard';
+import { CatalogGrid } from '@/components/templates/CatalogGrid';
+import { fetchProfiles } from '@/components/profiles/api';
+import { industryTemplates } from '@/data/industry-templates';
+import type { JobSeekerProfile } from '@/domain/jobSeekerProfile';
+import {
+  industryCatalog,
+  jobCatalog,
+  profileCatalog,
+  type CatalogItem,
+} from '@/domain/templateCatalog';
+import styles from './TemplateLibrary.module.css';
+
+type ProfileState =
+  | { kind: 'loading' }
+  | { kind: 'ready'; profiles: JobSeekerProfile[] }
+  | { kind: 'error'; message: string };
+
+function Section({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <Accordion
+      defaultExpanded
+      disableGutters
+      className={styles.section}
+      slotProps={{ heading: { component: 'h2' } }}
+    >
+      <AccordionSummary expandIcon={<ExpandMoreIcon />} className={styles.summary}>
+        <Typography variant="h5" component="span">
+          {title}
+        </Typography>
+      </AccordionSummary>
+      <AccordionDetails className={styles.details}>{children}</AccordionDetails>
+    </Accordion>
+  );
+}
+
+function BuiltInSection({
+  title,
+  items,
+  leading,
+}: {
+  title: string;
+  items: CatalogItem[];
+  leading?: ReactNode;
+}) {
+  return (
+    <Section title={title}>
+      <CatalogGrid items={items} leading={leading} />
+    </Section>
+  );
+}
+
+/**
+ * Templates and job seeker profiles, in the same card layout as the agents page. Each group folds
+ * shut, so a long list does not have to stay open.
+ */
+export function TemplateLibrary() {
+  const [profiles, setProfiles] = useState<ProfileState>({ kind: 'loading' });
+
+  useEffect(() => {
+    const controller = new AbortController();
+    fetchProfiles(controller.signal)
+      .then((loaded) => setProfiles({ kind: 'ready', profiles: loaded }))
+      .catch((error: Error) => {
+        if (!controller.signal.aborted) setProfiles({ kind: 'error', message: error.message });
+      });
+    return () => controller.abort();
+  }, []);
+
+  return (
+    <>
+      <BuiltInSection
+        title="Bransjemaler"
+        items={industryCatalog(industryTemplates)}
+        leading={<AddCatalogCard title="Ny bransjemal" subtitle="Kommer snart" />}
+      />
+
+      <Section title="Jobbsøkerprofiler">
+        {profiles.kind === 'loading' && <Typography>Laster profiler …</Typography>}
+        {profiles.kind === 'error' && <Alert severity="error">{profiles.message}</Alert>}
+        {profiles.kind === 'ready' && (
+          <CatalogGrid
+            items={profileCatalog(profiles.profiles)}
+            leading={
+              <AddCatalogCard
+                href="/profiles/new"
+                title="Ny profil"
+                subtitle="Legg til en jobbsøkerprofil"
+              />
+            }
+          />
+        )}
+      </Section>
+
+      <BuiltInSection
+        title="Stillingsmaler"
+        items={jobCatalog(industryTemplates)}
+        leading={<AddCatalogCard title="Ny stillingsmal" subtitle="Kommer snart" />}
+      />
+    </>
+  );
+}
