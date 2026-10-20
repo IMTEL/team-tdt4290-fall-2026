@@ -31,6 +31,7 @@ function section(name: string): HTMLElement {
 
 afterEach(() => {
   fetchProfilesMock.mockReset();
+  localStorage.clear();
 });
 
 describe('TemplateLibrary', () => {
@@ -56,6 +57,25 @@ describe('TemplateLibrary', () => {
     expect(
       within(industries).queryByRole('heading', { level: 3, name: 'Helse og omsorg' }),
     ).toBeNull();
+  });
+
+  it('keeps a closed group closed after the page is opened again', async () => {
+    fetchProfilesMock.mockResolvedValue([]);
+    const user = userEvent.setup();
+    const view = render(<TemplateLibrary />);
+
+    await user.click(screen.getByRole('button', { name: 'Stillingsmaler' }));
+    view.unmount();
+    render(<TemplateLibrary />);
+
+    expect(screen.getByRole('button', { name: 'Stillingsmaler' })).toHaveAttribute(
+      'aria-expanded',
+      'false',
+    );
+    expect(screen.getByRole('button', { name: 'Bransjemaler' })).toHaveAttribute(
+      'aria-expanded',
+      'true',
+    );
   });
 
   it('shows each profile as a card that opens it, and a card for a new one', async () => {

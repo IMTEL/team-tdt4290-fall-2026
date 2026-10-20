@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useState, useSyncExternalStore, type ReactNode } from 'react';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import Accordion from '@mui/material/Accordion';
 import AccordionDetails from '@mui/material/AccordionDetails';
@@ -19,6 +19,12 @@ import {
   profileCatalog,
   type CatalogItem,
 } from '@/domain/templateCatalog';
+import {
+  sectionOpen,
+  setSectionOpen,
+  subscribeSections,
+  type TemplateSectionId,
+} from './sectionOpen';
 import styles from './TemplateLibrary.module.css';
 
 type ProfileState =
@@ -26,10 +32,25 @@ type ProfileState =
   | { kind: 'ready'; profiles: JobSeekerProfile[] }
   | { kind: 'error'; message: string };
 
-function Section({ title, children }: { title: string; children: ReactNode }) {
+function Section({
+  id,
+  title,
+  children,
+}: {
+  id: TemplateSectionId;
+  title: string;
+  children: ReactNode;
+}) {
+  const open = useSyncExternalStore(
+    subscribeSections,
+    () => sectionOpen(id),
+    () => true,
+  );
+
   return (
     <Accordion
-      defaultExpanded
+      expanded={open}
+      onChange={(_event, next) => setSectionOpen(id, next)}
       disableGutters
       className={styles.section}
       slotProps={{ heading: { component: 'h2' } }}
@@ -45,16 +66,18 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
 }
 
 function BuiltInSection({
+  id,
   title,
   items,
   leading,
 }: {
+  id: TemplateSectionId;
   title: string;
   items: CatalogItem[];
   leading?: ReactNode;
 }) {
   return (
-    <Section title={title}>
+    <Section id={id} title={title}>
       <CatalogGrid items={items} leading={leading} />
     </Section>
   );
@@ -80,12 +103,13 @@ export function TemplateLibrary() {
   return (
     <>
       <BuiltInSection
+        id="bransjemaler"
         title="Bransjemaler"
         items={industryCatalog(industryTemplates)}
         leading={<AddCatalogCard title="Ny bransjemal" subtitle="Kommer snart" />}
       />
 
-      <Section title="Jobbsøkerprofiler">
+      <Section id="jobbsokerprofiler" title="Jobbsøkerprofiler">
         {profiles.kind === 'loading' && <Typography>Laster profiler …</Typography>}
         {profiles.kind === 'error' && <Alert severity="error">{profiles.message}</Alert>}
         {profiles.kind === 'ready' && (
@@ -103,6 +127,7 @@ export function TemplateLibrary() {
       </Section>
 
       <BuiltInSection
+        id="stillingsmaler"
         title="Stillingsmaler"
         items={jobCatalog(industryTemplates)}
         leading={<AddCatalogCard title="Ny stillingsmal" subtitle="Kommer snart" />}
