@@ -46,6 +46,7 @@ const answers = {
   vanskelighetsgrad: 'lett',
   egneSporsmal: 'ingen',
   tillegg: '',
+  lovverk: '',
 };
 const cloneAnswers = { ...answers, vanskelighetsgrad: 'vanskelig' };
 

@@ -24,6 +24,12 @@ export type AgentField = {
   format?: string;
   /** The counsellor may leave it empty, e.g. Tillegg. Its line in the block may be missing. */
   optional?: boolean;
+  /**
+   * Only filled in from a preset before the chat, never by the configurator, e.g. Lovverk: legal
+   * text must come from the counsellor's templates, not from a language model. Empty when no
+   * preset fills it in. Must also be optional.
+   */
+  presetOnly?: boolean;
 };
 
 /** A role. The mapper turns it into a RAGdoll role. */
@@ -71,6 +77,8 @@ export type AgentPresets = {
   jobSeekerProfile?: string;
   /** The fields an industry template fills in: the job, and the industry with its sector. */
   industryTemplate?: { job: string; industry: string };
+  /** The field the chosen legal templates fill in, together. The field should be presetOnly. */
+  legalTemplates?: string;
 };
 
 /**

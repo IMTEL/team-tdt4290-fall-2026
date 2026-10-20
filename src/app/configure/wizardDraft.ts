@@ -41,6 +41,8 @@ export type WizardDraft = {
   template: AgentTemplate | null;
   profileId: string;
   practiceAreas: string[];
+  /** The chosen legal templates' ids. Missing in drafts from before legal templates. */
+  legalIds?: string[];
   otherOpen: boolean;
   otherPractice: string;
   settings: InterviewSettings;
@@ -109,6 +111,9 @@ function isDraft(value: unknown): value is WizardDraft {
     typeof value.profileId === 'string' &&
     Array.isArray(value.practiceAreas) &&
     value.practiceAreas.every((item) => typeof item === 'string') &&
+    (value.legalIds === undefined ||
+      (Array.isArray(value.legalIds) &&
+        value.legalIds.every((item) => typeof item === 'string'))) &&
     typeof value.otherOpen === 'boolean' &&
     typeof value.otherPractice === 'string' &&
     isSettings(value.settings) &&

@@ -17,6 +17,7 @@ const answers = {
   vanskelighetsgrad: 'lett',
   egneSporsmal: 'ingen',
   tillegg: '',
+  lovverk: '',
 };
 
 describe('toStoredDescription and readStoredAnswers', () => {

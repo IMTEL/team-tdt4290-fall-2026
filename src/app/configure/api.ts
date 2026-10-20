@@ -47,13 +47,14 @@ function errorFor(res: Response): ChatError {
 }
 
 /**
- * What the counsellor chose before the chat: an interviewer template, a job seeker profile and an
- * industry template. null for one they didn't choose.
+ * What the counsellor chose before the chat: an interviewer template, a job seeker profile, an
+ * industry template and legal templates. null (or none) for one they didn't choose.
  */
 export type ConfigurationChoices = {
   templateId: string | null;
   profileId: string | null;
   industryTemplateId: string | null;
+  legalTemplateIds?: string[];
 };
 
 /**
@@ -63,7 +64,7 @@ export type ConfigurationChoices = {
  */
 export async function sendConfigurationTurn(
   definition: AgentTypeDefinition,
-  { templateId, profileId, industryTemplateId }: ConfigurationChoices,
+  { templateId, profileId, industryTemplateId, legalTemplateIds = [] }: ConfigurationChoices,
   messages: ChatMessage[],
   signal?: AbortSignal,
 ): Promise<TurnResult> {
@@ -76,6 +77,7 @@ export async function sendConfigurationTurn(
       templateId: templateId ?? undefined,
       profileId: profileId ?? undefined,
       industryTemplateId: industryTemplateId ?? undefined,
+      legalTemplateIds: legalTemplateIds.length > 0 ? legalTemplateIds : undefined,
       messages: history,
     },
     signal,

@@ -9,12 +9,15 @@ import StepLabel from '@mui/material/StepLabel';
 import Stepper from '@mui/material/Stepper';
 
 import { AgentTypePicker } from '@/components/agents/AgentTypePicker';
+import { fetchLegalTemplates } from '@/components/legalTemplates/api';
+import { LegalTemplateSelect } from '@/components/legalTemplates/LegalTemplateSelect';
 import { fetchProfiles } from '@/components/profiles/api';
 import { ProfileSelect } from '@/components/profiles/ProfileSelect';
 import { IndustryPicker } from '@/components/templates/IndustryPicker';
 import { IndustryPreview } from '@/components/templates/IndustryPreview';
 import { TemplatePicker } from '@/components/templates/TemplatePicker';
 import { industryTemplates, type IndustryTemplate } from '@/data/industry-templates';
+import { builtInLegalTemplates } from '@/data/legal-templates';
 import { builtInTemplates, type AgentTemplate } from '@/data/templates';
 import {
   getAgentType,
@@ -29,6 +32,7 @@ import {
   PRACTICE_CHOICES,
   type JobSeekerProfile,
 } from '@/domain/jobSeekerProfile';
+import type { LegalTemplate } from '@/domain/legalTemplate';
 import { updateAgent } from '../browse-agents/api';
 import { AGENT_SAVED_FLASH, DRAFT_SAVED_FLASH, setAgentsFlash } from '../browse-agents/flash';
 import { fetchSavedTemplates, saveConfiguredAgent } from './api';
@@ -68,8 +72,8 @@ function Steps({ steps, active }: { steps: string[]; active: number }) {
 
 /**
  * First the counsellor picks the type of agent. Then, for each kind of preset the type has, what
- * fills it in: a job seeker profile and an interviewer template in one step, then an industry
- * template in the next. All are optional. The built-in interviewer templates come first, then the
+ * fills it in: a job seeker profile, legal templates and an interviewer template in one step, then
+ * an industry template in the next. All are optional. The built-in interviewer templates come first, then the
  * ones the counsellor has saved. Then the chat starts. Everything type-specific comes from the
  * type's definition, so a new type needs no change here.
  */
@@ -91,6 +95,8 @@ export function ConfigureAgent({
   /** Profile id, '' for «Fortsett uten mal», or null until they choose. */
   const [profileId, setProfileId] = useState<string | null>(null);
   const [practiceAreas, setPracticeAreas] = useState<string[]>([]);
+  const [savedLegal, setSavedLegal] = useState<LegalTemplate[]>([]);
+  const [legalIds, setLegalIds] = useState<string[]>([]);
   const [otherOpen, setOtherOpen] = useState(false);
   const [otherPractice, setOtherPractice] = useState('');
   const [settings, setSettings] = useState<InterviewSettings>(EMPTY_INTERVIEW_SETTINGS);
@@ -128,6 +134,7 @@ export function ConfigureAgent({
   const agentType = definition?.id;
   const usesProfiles = Boolean(presets.jobSeekerProfile);
   const usesIndustries = Boolean(presets.industryTemplate);
+  const usesLegal = Boolean(presets.legalTemplates);
 
   // Restore once after hydration (setState during render when the client flag flips).
   if (isClient && !draftReady) {
@@ -144,6 +151,7 @@ export function ConfigureAgent({
         setChoice(draft.hasTemplateChoice ? draft.template : undefined);
         setProfileId(draft.profileId || (draft.furthestStep >= 2 ? '' : null));
         setPracticeAreas(draft.practiceAreas);
+        setLegalIds(draft.legalIds ?? []);
         setOtherOpen(draft.otherOpen);
         setOtherPractice(draft.otherPractice);
         setSettings(draft.settings);
@@ -176,6 +184,7 @@ export function ConfigureAgent({
       template: choice ?? null,
       profileId: profileId ?? '',
       practiceAreas,
+      legalIds,
       otherOpen,
       otherPractice,
       settings,
@@ -193,6 +202,7 @@ export function ConfigureAgent({
     choice,
     profileId,
     practiceAreas,
+    legalIds,
     otherOpen,
     otherPractice,
     settings,
@@ -214,6 +224,7 @@ export function ConfigureAgent({
       template: choice ?? null,
       profileId: profileId ?? '',
       practiceAreas,
+      legalIds,
       otherOpen,
       otherPractice,
       settings,
@@ -232,7 +243,7 @@ export function ConfigureAgent({
   }
 
   useEffect(() => {
-    if (!agentType || (!usesTemplates && !usesProfiles)) return;
+    if (!agentType || (!usesTemplates && !usesProfiles && !usesLegal)) return;
     const controller = new AbortController();
     // Without the saved templates or profiles, the counsellor can still go on without them.
     const logError = (error: unknown) => {
@@ -253,8 +264,9 @@ export function ConfigureAgent({
           if (!controller.signal.aborted) setProfilesLoaded(true);
         });
     }
+    if (usesLegal) fetchLegalTemplates(controller.signal).then(setSavedLegal).catch(logError);
     return () => controller.abort();
-  }, [agentType, usesTemplates, usesProfiles]);
+  }, [agentType, usesTemplates, usesProfiles, usesLegal]);
 
   function chooseType(next: AgentTypeDefinition | undefined) {
     if (!next) clearWizardDraft();
@@ -263,6 +275,7 @@ export function ConfigureAgent({
     setIndustry(undefined);
     setProfileId(null);
     setPracticeAreas([]);
+    setLegalIds([]);
     setOtherOpen(false);
     setOtherPractice('');
     setProfilesLoaded(false);
@@ -321,6 +334,12 @@ export function ConfigureAgent({
 
   const name = nameEdited ? agentName : suggestedAgentName(workplace.jobTitle);
 
+  const legalOptions = [...builtInLegalTemplates, ...savedLegal];
+  // In the order they were chosen. One that is no longer offered is left out.
+  const legalTemplates = usesLegal
+    ? legalIds.flatMap((id) => legalOptions.filter((item) => item.id === id))
+    : [];
+
   /** Creates the agent, or updates it when this wizard has already saved one. */
   async function persist(): Promise<string | null> {
     if (!definition || savingLock.current) return savedAgent?.id ?? null;
@@ -334,6 +353,7 @@ export function ConfigureAgent({
       interviewer: choice ?? null,
       profile: (profileId && profiles.find((item) => item.id === profileId)) || null,
       practiceAreas: chosenPractice,
+      legalTemplates,
       settings,
     });
     if (!built) {
@@ -405,14 +425,15 @@ export function ConfigureAgent({
   const fieldLabel = (key: string | undefined) =>
     definition.fields.find((field) => field.key === key)?.label ?? '';
 
-  // The steps this type has, e.g. "Velg intervjuer og profil", then "Velg bransje".
-  const usesPresetStep = usesTemplates || usesProfiles;
-  const presetStep = `Velg ${[
-    usesTemplates && fieldLabel(presets.template?.field).toLowerCase(),
-    usesProfiles && 'jobbsøkermal',
-  ]
-    .filter(Boolean)
-    .join(' og ')}`;
+  // The steps this type has, e.g. "Velg intervjuer, jobbsøkermal og lovverk", then "Velg bransje".
+  const usesPresetStep = usesTemplates || usesProfiles || usesLegal;
+  const presetStep = `Velg ${listInNorwegian(
+    [
+      usesTemplates && fieldLabel(presets.template?.field).toLowerCase(),
+      usesProfiles && 'jobbsøkermal',
+      usesLegal && 'lovverk',
+    ].filter((item): item is string => Boolean(item)),
+  )}`;
   const steps = [
     'Velg agenttype',
     ...(usesPresetStep ? [presetStep] : []),
@@ -446,7 +467,9 @@ export function ConfigureAgent({
   const profile =
     (usesProfiles && profileId && profiles.find((item) => item.id === profileId)) || null;
   const template = usesTemplates ? (choice ?? null) : null;
-  const choosingPresets = usesTemplates ? choice === undefined : usesProfiles && !presetsDone;
+  const choosingPresets = usesTemplates
+    ? choice === undefined
+    : (usesProfiles || usesLegal) && !presetsDone;
 
   if (definition.id === 'interviewer' && wizardStep <= 0) {
     return (
@@ -479,6 +502,9 @@ export function ConfigureAgent({
             onSelect={setChoice}
             onDeleted={(id) => setSaved((current) => current.filter((item) => item.id !== id))}
           />
+          {usesLegal && (
+            <LegalTemplateSelect templates={legalOptions} value={legalIds} onChange={setLegalIds} />
+          )}
           <div className={styles.presetActions}>
             <Button
               variant={choice === null ? 'contained' : 'outlined'}
@@ -544,6 +570,7 @@ export function ConfigureAgent({
           interviewerTitle: choice ? choice.title : null,
           profileLabel:
             (profileId && profiles.find((item) => item.id === profileId)?.label) || null,
+          legalTitles: legalTemplates.map(({ title }) => title),
           practiceAreas: chosenPractice,
           settings,
         }}
@@ -586,6 +613,9 @@ export function ConfigureAgent({
         {usesProfiles && (
           <ProfileSelect profiles={profiles} value={profileId ?? ''} onChange={setProfileId} />
         )}
+        {usesLegal && (
+          <LegalTemplateSelect templates={legalOptions} value={legalIds} onChange={setLegalIds} />
+        )}
         {usesTemplates ? (
           <TemplatePicker
             templates={builtInTemplates(definition.id)}
@@ -624,6 +654,17 @@ export function ConfigureAgent({
             <strong>{profile ? profile.label : 'Ingen mal valgt'}</strong>
           </>
         )}
+        {(usesTemplates || usesProfiles) && usesLegal && <br />}
+        {usesLegal && (
+          <>
+            {fieldLabel(presets.legalTemplates)}:{' '}
+            <strong>
+              {legalTemplates.length > 0
+                ? legalTemplates.map(({ title }) => title).join(', ')
+                : 'Ikke valgt'}
+            </strong>
+          </>
+        )}
       </p>
       {/* Changing the choices starts the conversation over, since the chat was set up for them. */}
       <Button
@@ -634,7 +675,9 @@ export function ConfigureAgent({
           setPresetsDone(false);
         }}
       >
-        {usesTemplates && usesProfiles ? 'Bytt maler' : 'Bytt mal'}
+        {[usesTemplates, usesProfiles, usesLegal].filter(Boolean).length > 1
+          ? 'Bytt maler'
+          : 'Bytt mal'}
       </Button>
     </div>
   );
@@ -659,12 +702,25 @@ export function ConfigureAgent({
       {chosenPresets}
       {usesIndustries && chosenIndustry}
       <ConfigurationChat
-        key={[definition.id, template?.id, profile?.id, chosenIndustryTemplate?.id].join(':')}
+        key={JSON.stringify([
+          definition.id,
+          template?.id,
+          profile?.id,
+          chosenIndustryTemplate?.id,
+          legalIds,
+        ])}
         definition={definition}
         template={template}
         profile={profile}
         industry={chosenIndustryTemplate}
+        legalTemplates={legalTemplates}
       />
     </>
   );
+}
+
+/** «a», «a og b», «a, b og c». */
+function listInNorwegian(items: string[]): string {
+  if (items.length <= 1) return items.join('');
+  return `${items.slice(0, -1).join(', ')} og ${items[items.length - 1]}`;
 }

@@ -9,6 +9,7 @@ export const config = {
     '/create-template/:path*',
     '/browse-agents/:path*',
     '/profiles/:path*',
+    '/legal-templates/:path*',
     '/templates/:path*',
     '/test-chat/:path*',
   ],

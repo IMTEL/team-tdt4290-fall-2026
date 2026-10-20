@@ -41,6 +41,7 @@ function draft(overrides: Partial<WizardDraft> = {}): WizardDraft {
     interviewer: null,
     profile: null,
     practiceAreas: [],
+    legalTemplates: [],
     settings,
     ...overrides,
   };
@@ -75,6 +76,7 @@ describe('wizardConfiguration', () => {
       vanskelighetsgrad: 'lett | Antall spørsmål: 5–6 | Oppfølgingsspørsmål: ja',
       egneSporsmal: 'ingen',
       tillegg: '',
+      lovverk: '',
     });
     expect(saved?.sources).toEqual({
       intervjuer: { kind: 'template', id: 'teamleder' },
@@ -129,6 +131,28 @@ describe('wizardConfiguration', () => {
     );
 
     expect(saved?.answers.jobbsoker).toBe('vil øve på: mestre nervøsitet, turnus, lønn og vilkår');
+  });
+
+  it('writes the chosen legal templates into Lovverk, in the order they were chosen', () => {
+    const legal = (id: string, title: string, text: string) => ({
+      id,
+      title,
+      description: '',
+      text,
+      builtIn: false,
+    });
+    const saved = wizardConfiguration(
+      draft({
+        legalTemplates: [
+          legal('legal-2', 'Arbeidsmiljøloven § 9-3', 'Ikke spør om helse.'),
+          legal('legal-1', 'Likestillingsloven § 30', 'Ikke spør om graviditet.'),
+        ],
+      }),
+    );
+
+    expect(saved?.answers.lovverk).toBe(
+      'Arbeidsmiljøloven § 9-3:\nIkke spør om helse.\n\nLikestillingsloven § 30:\nIkke spør om graviditet.',
+    );
   });
 
   it('refuses to build answers while a required choice is missing', () => {
