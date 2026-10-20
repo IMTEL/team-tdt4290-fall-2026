@@ -13,7 +13,7 @@ import Typography from '@mui/material/Typography';
 import { settingsOf } from '@/domain/advancedSettings';
 import { readStoredAnswers } from '@/domain/agentTypes/storedAnswers';
 import { updateAgent } from '../../api';
-import { useAnswerPresets } from '../../useAnswerPresets';
+import { useAnswerPresets, useLegalPreset } from '../../useAnswerPresets';
 import { useAgent } from '../../useAgent';
 import { EditAgentForm } from './EditAgentForm';
 
@@ -22,6 +22,7 @@ export function EditAgent({ agentId }: { agentId: string }) {
   const state = useAgent(agentId);
   const stored = state.kind === 'ready' ? readStoredAnswers(state.agent.description) : null;
   const presets = useAnswerPresets(stored?.definition);
+  const legalPreset = useLegalPreset(stored?.definition);
 
   if (state.kind === 'missing') notFound();
   if (state.kind === 'loading') return <Typography>Laster agent …</Typography>;
@@ -64,6 +65,7 @@ export function EditAgent({ agentId }: { agentId: string }) {
           initialAvatar={stored.avatar}
           label="Rediger agent"
           presets={presets}
+          legalPreset={legalPreset}
           submitLabel="Lagre endringer"
           onSave={async (newName, newAnswers, newSources, newSettings, newAvatar) => {
             await updateAgent(agent.id, newName, newAnswers, newSources, newSettings, newAvatar);

@@ -374,7 +374,8 @@ no longer have, shows `public/avatars/default.svg`. An update without `avatar` k
 avatar, `null` goes back to the default image, and a clone without `avatar` gets the original's.
 
 `sources` remembers which template or job seeker profile an answer came from, as
-`{ <field>: { kind: 'template' | 'profile', id } }`. The text stays in `answers`, since the prompt
+`{ <field>: { kind: 'template' | 'profile', id } }`, or which legal templates, as
+`{ kind: 'legal', ids }` (see [Legal templates](#legal-templates)). The text stays in `answers`, since the prompt
 is built from it; the source only lets the edit and clone form show the template or profile. On
 `/configure`, `/api/configure/turn` returns the sources with the finished configuration, since it
 is what puts the template's and profile's text in the answers. A source is dropped when the
@@ -404,9 +405,12 @@ rights, it answers briefly from the template text only.
   "Allerede bestemt", with a rule not to suggest own questions that break it.
 - **In the prompt**, a non-empty `lovverk` adds the section "Lovverk og jobbsøkerens rettigheter"
   (`interviewerPrompt.ts`). Agents without it get the same prompt as before.
-- **No source.** An answer remembers only one source, and `lovverk` can come from several
-  templates, so it has none. The text names each template. The edit form shows `lovverk` as an
-  ordinary text field.
+- **A list as its source.** `lovverk` is made from several templates, so its source is
+  `{ kind: 'legal', ids }`, in the order they were ticked. The edit and clone forms show the same
+  checkboxes as `/configure`: ticking rebuilds the text, typing in the field unticks them, and
+  unticking all gives back the counsellor's own saved text (or none, if the saved text came from
+  templates). If a template has been changed or deleted since, nothing is ticked and the form
+  says so.
 
 Code: [`src/domain/legalTemplate.ts`](../src/domain/legalTemplate.ts),
 [`src/server/legalTemplateMapper.ts`](../src/server/legalTemplateMapper.ts),

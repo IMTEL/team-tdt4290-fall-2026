@@ -260,7 +260,10 @@ describe('POST /api/configure/turn', () => {
     const { configuration, sources } = await res.json();
     expect(configuration.lovverk).toMatch(/^Rettigheter i ansettelsesprosessen:\n/);
     expect(configuration.lovverk).toContain('Arbeidsmiljøloven § 9-3:\nIkke spør om helse.');
-    expect(sources.lovverk).toBeUndefined();
+    expect(sources.lovverk).toEqual({
+      kind: 'legal',
+      ids: ['builtin-legal-hiring-rights', 'legal-1'],
+    });
     const [, [briefing]] = askAgentMock.mock.calls[0];
     expect(briefing.content).toContain('- Lovverk: Rettigheter i ansettelsesprosessen:');
   });

@@ -35,8 +35,8 @@ import { fromRagdollTemplate } from '@/server/templateMapper';
  * after a briefing built from the agent type's definition, and checks whether its reply finishes
  * the configuration. A template, industry template or profile the counsellor chose decides the
  * fields the type's presets name, so the configurator doesn't ask about them, but gets their text
- * to fit the rest to. Legal templates fill in a field the configurator never asks about. A finished configuration comes with the sources of the interviewer template
- * and profile answers.
+ * to fit the rest to. Legal templates fill in a field the configurator never asks about. A finished
+ * configuration comes with the sources of the template, profile and legal template answers.
  */
 export async function POST(req: NextRequest) {
   // The configurator is shared, but only logged-in counsellors may use it (it spends IDUN quota).
@@ -194,9 +194,9 @@ export async function POST(req: NextRequest) {
     decided[industryTemplate.job] = stilling;
     decided[industryTemplate.industry] = bransje;
   }
-  // No source either: one answer can only remember one, and the text says which laws it is.
   if (legalField && legalTemplates.length > 0) {
     decided[legalField] = describeLegalFrameworks(legalTemplates);
+    sources[legalField] = { kind: 'legal', ids: legalTemplates.map(({ id }) => id) };
   }
 
   // The briefing goes first, so the configurator knows what to ask before it reads the chat.

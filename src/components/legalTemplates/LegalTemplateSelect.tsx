@@ -14,10 +14,19 @@ type LegalTemplateSelectProps = {
   /** The chosen templates' ids, in the order they were chosen. */
   value: string[];
   onChange: (ids: string[]) => void;
+  /** Replaces the help under the checkboxes. The limit is added when it is reached. */
+  helperText?: string;
+  disabled?: boolean;
 };
 
-/** Lets the counsellor choose the legal templates the interviewer must follow, before the chat. */
-export function LegalTemplateSelect({ templates, value, onChange }: LegalTemplateSelectProps) {
+/** Lets the counsellor choose the legal templates the interviewer must follow. */
+export function LegalTemplateSelect({
+  templates,
+  value,
+  onChange,
+  helperText,
+  disabled = false,
+}: LegalTemplateSelectProps) {
   const full = value.length >= LEGAL_TEMPLATE_LIMITS.perAgent;
 
   function toggle(id: string, checked: boolean) {
@@ -25,7 +34,7 @@ export function LegalTemplateSelect({ templates, value, onChange }: LegalTemplat
   }
 
   return (
-    <fieldset className={styles.fieldset}>
+    <fieldset className={styles.fieldset} disabled={disabled}>
       <legend className={styles.legend}>Lovverk</legend>
       <div className={styles.options}>
         {templates.map((template) => {
@@ -37,7 +46,7 @@ export function LegalTemplateSelect({ templates, value, onChange }: LegalTemplat
               control={
                 <Checkbox
                   checked={checked}
-                  disabled={!checked && full}
+                  disabled={disabled || (!checked && full)}
                   onChange={(event) => toggle(template.id, event.target.checked)}
                 />
               }
@@ -46,10 +55,14 @@ export function LegalTemplateSelect({ templates, value, onChange }: LegalTemplat
         })}
       </div>
       <FormHelperText>
-        {full
-          ? `Du kan velge høyst ${LEGAL_TEMPLATE_LIMITS.perAgent}.`
-          : 'Intervjueren følger lovverket du velger, og kan svare jobbsøkeren om rettighetene ' +
-            'sine. Valgfritt.'}
+        {[
+          helperText ??
+            'Intervjueren følger lovverket du velger, og kan svare jobbsøkeren om rettighetene ' +
+              'sine. Valgfritt.',
+          full && `Du kan velge høyst ${LEGAL_TEMPLATE_LIMITS.perAgent}.`,
+        ]
+          .filter(Boolean)
+          .join(' ')}
       </FormHelperText>
       <Link href="/legal-templates" className={styles.link}>
         Administrer lovverk
