@@ -14,7 +14,11 @@ import { IndustryPreview } from '@/components/templates/IndustryPreview';
 import { TemplatePicker } from '@/components/templates/TemplatePicker';
 import { industryTemplates, type IndustryTemplate } from '@/data/industry-templates';
 import { builtInTemplates, type AgentTemplate } from '@/data/templates';
-import { listAccessibleAgentTypes, listPlannedAgentTypes } from '@/domain/agentTypes/registry';
+import {
+  getAgentType,
+  listAccessibleAgentTypes,
+  listPlannedAgentTypes,
+} from '@/domain/agentTypes/registry';
 import type { AgentTypeDefinition } from '@/domain/agentTypes/types';
 import type { JobSeekerProfile } from '@/domain/jobSeekerProfile';
 import { fetchSavedTemplates } from './api';
@@ -44,8 +48,10 @@ function Steps({ steps, active }: { steps: string[]; active: number }) {
  * ones the counsellor has saved. Then the chat starts. Everything type-specific comes from the
  * type's definition, so a new type needs no change here.
  */
-export function ConfigureAgent() {
-  const [definition, setDefinition] = useState<AgentTypeDefinition | undefined>(undefined);
+export function ConfigureAgent({ initialTypeId = null }: { initialTypeId?: string | null }) {
+  const [definition, setDefinition] = useState<AgentTypeDefinition | undefined>(() =>
+    initialTypeId ? getAgentType(initialTypeId) : undefined,
+  );
   const [choice, setChoice] = useState<Choice<AgentTemplate>>(undefined);
   const [industry, setIndustry] = useState<Choice<IndustryTemplate>>(undefined);
   const [saved, setSaved] = useState<AgentTemplate[]>([]);

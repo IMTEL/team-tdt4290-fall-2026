@@ -6,6 +6,7 @@ import { fetchAgents } from './api';
 import { AgentList } from './AgentList';
 
 vi.mock('./api', () => ({ fetchAgents: vi.fn() }));
+vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn() }) }));
 
 const fetchAgentsMock = vi.mocked(fetchAgents);
 
@@ -23,6 +24,8 @@ function makeAgent(fields: Partial<Agent> = {}): Agent {
     stilling: 'Barnehagelærer',
     bransje: 'Oppvekst',
     vanskelighetsgrad: 'lett',
+    intervjuer: 'styrer, vennlig',
+    intervjutype: 'første intervju',
     ...fields,
   };
 }
@@ -45,20 +48,18 @@ describe('AgentList', () => {
     render(<AgentList />);
 
     expect(screen.getByText('Laster agenter …')).toBeVisible();
-    expect(await screen.findByText(/Du har ingen agenter ennå/)).toBeVisible();
+    expect(await screen.findByRole('button', { name: /Ny agent/ })).toBeVisible();
   });
 
-  it('shows an empty state with a link to the configurator', async () => {
+  it('shows Ny agent as the first interviewer card when there are no agents', async () => {
     fetchAgentsMock.mockResolvedValue([]);
 
     render(<AgentList />);
 
-    expect(await screen.findByText(/Du har ingen agenter ennå/)).toBeVisible();
-    expect(screen.getByRole('link', { name: 'Sett opp en agent' })).toHaveAttribute(
-      'href',
-      '/configure',
-    );
-    expect(screen.queryByRole('heading', { level: 2 })).not.toBeInTheDocument();
+    const heading = await screen.findByRole('heading', { level: 2, name: 'Intervjuer' });
+    expect(cardNames(heading.closest('section')!)).toEqual(['Ny agent']);
+    expect(screen.getByText('Sett opp en ny intervjuer')).toBeVisible();
+    expect(screen.queryByRole('link', { name: 'Sett opp en agent' })).not.toBeInTheDocument();
   });
 
   it('shows an error instead of the empty state when the list cannot be loaded', async () => {
@@ -67,10 +68,10 @@ describe('AgentList', () => {
     render(<AgentList />);
 
     expect(await screen.findByText('Noe gikk galt. Prøv igjen.')).toBeVisible();
-    expect(screen.queryByText(/Du har ingen agenter ennå/)).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Ny agent/ })).not.toBeInTheDocument();
   });
 
-  it('shows each agent as a card with its role and summary', async () => {
+  it('shows each agent as a card with the interviewer and one sentence', async () => {
     fetchAgentsMock.mockResolvedValue([makeAgent()]);
 
     render(<AgentList />);
@@ -78,7 +79,8 @@ describe('AgentList', () => {
     expect(
       await screen.findByRole('heading', { name: 'Intervjuer for Barnehagelærer' }),
     ).toBeVisible();
-    expect(screen.getByText('Barnehagelærer · Lett')).toBeVisible();
+    expect(screen.getByText('Styrer, vennlig')).toBeVisible();
+    expect(screen.getByText('Første intervju.')).toBeVisible();
     // No table any more.
     expect(screen.queryByRole('grid')).not.toBeInTheDocument();
   });
@@ -123,7 +125,7 @@ describe('AgentList', () => {
     expect(headings.map((heading) => heading.textContent)).toEqual(['Intervjuer', 'Andre agenter']);
 
     const [interviewers, others] = headings.map((heading) => heading.closest('section')!);
-    expect(cardNames(interviewers)).toEqual(['Butikksjef Kari']);
+    expect(cardNames(interviewers)).toEqual(['Ny agent', 'Butikksjef Kari']);
     expect(cardNames(others)).toEqual(['Fra RAGdoll']);
   });
 
@@ -136,6 +138,6 @@ describe('AgentList', () => {
     render(<AgentList />);
 
     const heading = await screen.findByRole('heading', { level: 2, name: 'Intervjuer' });
-    expect(cardNames(heading.closest('section')!)).toEqual(['Ny', 'Gammel']);
+    expect(cardNames(heading.closest('section')!)).toEqual(['Ny agent', 'Ny', 'Gammel']);
   });
 });

@@ -14,14 +14,36 @@
 .content {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: 0.125rem;
   width: 100%;
+  padding: var(--space-3);
 }
 
 .avatar {
-  margin-bottom: 0.5rem;
+  margin-bottom: var(--space-2);
 }
 
-.summary {
-  margin-top: 0.25rem;
+.titleRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.title {
+  flex: 1 1 8rem;
+  font-weight: 600;
+}
+
+.interviewer {
+  font-size: 0.95rem;
+}
+
+.detail {
+  margin-top: var(--space-2);
+}
+
+.actions {
+  padding: 0 var(--space-2) var(--space-2);
 }

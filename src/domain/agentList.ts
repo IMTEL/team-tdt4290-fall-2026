@@ -14,7 +14,10 @@ const OTHER_SECTION = { key: 'other', title: 'Andre agenter' };
  * nothing to show. The longer summary in sentences is on the details page (`buildSummary`).
  */
 export function agentSummary(agent: Agent): string {
-  const parts = [agent.stilling, difficultyLevel(agent.vanskelighetsgrad)];
+  // An industry template stores the whole job description after the title ("Kokk. Kokk på …").
+  // The card only needs the title. The full text is on the agent's page.
+  const title = agent.stilling?.split('. ')[0];
+  const parts = [title, difficultyLevel(agent.vanskelighetsgrad)];
   return parts
     .map((part) => part?.trim() ?? '')
     .filter((part) => part !== '')
@@ -24,6 +27,39 @@ export function agentSummary(agent: Agent): string {
 /** The agent's role for its card: the name of its agent type, or "" if it is not ours. */
 export function agentRole(agent: Agent): string {
   return agent.typeLabel ?? '';
+}
+
+/**
+ * The interviewer line on a card, e.g. "Butikksjef, vennlig". A template stores a whole persona
+ * in that answer, so the card uses the template's name instead, e.g. "Daglig leder".
+ */
+export function agentInterviewer(agent: Agent): string {
+  const text = agent.intervjuer?.trim() ?? '';
+  if (text && isShortRole(text)) return capitalize(text);
+  return agent.intervjuerMal?.trim() ?? '';
+}
+
+/** The interview type as one sentence, e.g. "Første intervju.", or "" if it is missing. */
+export function agentCardDetail(agent: Agent): string {
+  return sentence(capitalize(agent.intervjutype));
+}
+
+/** A role line is short and has no sentence in it, e.g. "Rektor, vennlig". */
+function isShortRole(text: string): boolean {
+  return text.length <= 48 && !text.includes('.');
+}
+
+/** The text as one sentence, or "" if it is empty. */
+function sentence(text: string): string {
+  if (!text) return '';
+  return text.endsWith('.') ? text : `${text}.`;
+}
+
+/** The text with its first letter in upper case, or "" if it is empty. */
+function capitalize(text: string | null | undefined): string {
+  const trimmed = text?.trim() ?? '';
+  if (!trimmed) return '';
+  return trimmed.charAt(0).toUpperCase() + trimmed.slice(1);
 }
 
 /**

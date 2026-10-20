@@ -1,17 +1,33 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import Link from 'next/link';
 import Alert from '@mui/material/Alert';
 import Typography from '@mui/material/Typography';
 
 import { AgentCardGrid } from '@/components/agents/AgentCardGrid';
-import { groupAgentsByType } from '@/domain/agentList';
+import { NewAgentCard } from '@/components/agents/NewAgentCard';
+import { groupAgentsByType, type AgentSection } from '@/domain/agentList';
+import { getAgentType } from '@/domain/agentTypes/registry';
 import type { Agent } from '@/lib/types';
 import { fetchAgents } from './api';
 import styles from './AgentList.module.css';
 
 type ListState = { kind: 'loading' } | { kind: 'ready'; agents: Agent[] } | { kind: 'error' };
+
+/**
+ * «Ny agent» is the first card in the interviewer section, in the same row as those agents. An
+ * empty list still shows that section, so the card has somewhere to sit.
+ */
+function sectionsWithNewAgent(agents: Agent[]): AgentSection[] {
+  const sections = groupAgentsByType(agents);
+  if (sections.some((section) => section.key === 'interviewer')) return sections;
+
+  const interviewer = getAgentType('interviewer');
+  return [
+    { key: 'interviewer', title: interviewer?.label ?? 'Intervjuer', agents: [] },
+    ...sections,
+  ];
+}
 
 /**
  * The counsellor's agents as cards, in one section per agent type. An empty list and a failed
@@ -42,20 +58,15 @@ export function AgentList() {
     return <Alert severity="error">Noe gikk galt. Prøv igjen.</Alert>;
   }
 
-  if (state.agents.length === 0) {
-    return (
-      <Typography>
-        Du har ingen agenter ennå. <Link href="/configure">Sett opp en agent</Link>
-      </Typography>
-    );
-  }
-
-  return groupAgentsByType(state.agents).map((section) => (
+  return sectionsWithNewAgent(state.agents).map((section) => (
     <section key={section.key} className={styles.section}>
       <Typography variant="h5" component="h2" gutterBottom>
         {section.title}
       </Typography>
-      <AgentCardGrid agents={section.agents} />
+      <AgentCardGrid
+        agents={section.agents}
+        leading={section.key === 'interviewer' ? <NewAgentCard /> : undefined}
+      />
     </section>
   ));
 }

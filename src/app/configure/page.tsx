@@ -8,7 +8,11 @@ export const metadata: Metadata = {
   description: 'Sett opp en AI-agent, for eksempel en intervjuer, som jobbsøkere kan øve med.',
 };
 
-export default function ConfigurePage() {
+type ConfigurePageProps = { searchParams: Promise<{ type?: string | string[] }> };
+
+/** `?type=<id>` skips the type step, as the «Ny agent» dialog on the agents page does. */
+export default async function ConfigurePage({ searchParams }: ConfigurePageProps) {
+  const { type } = await searchParams;
   return (
     <div className={styles.page}>
       <header className={styles.header}>
@@ -24,7 +28,7 @@ export default function ConfigurePage() {
         </p>
       </header>
 
-      <ConfigureAgent />
+      <ConfigureAgent initialTypeId={typeof type === 'string' ? type : null} />
     </div>
   );
 }

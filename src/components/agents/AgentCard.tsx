@@ -6,9 +6,11 @@ import CardActions from '@mui/material/CardActions';
 import CardContent from '@mui/material/CardContent';
 import Typography from '@mui/material/Typography';
 
-import { agentRole, agentSummary } from '@/domain/agentList';
+import { agentCardDetail, agentInterviewer } from '@/domain/agentList';
+import { agentStatus } from '@/domain/agentStatus';
 import type { Agent } from '@/lib/types';
 import { AgentAvatar } from './AgentAvatar';
+import { AgentStatusChip } from './AgentStatusChip';
 import styles from './AgentCard.module.css';
 
 /**
@@ -17,26 +19,25 @@ import styles from './AgentCard.module.css';
  */
 export function AgentCard({ agent }: { agent: Agent }) {
   const id = encodeURIComponent(agent.id);
-  const role = agentRole(agent);
-  const summary = agentSummary(agent);
+  const interviewer = agentInterviewer(agent);
+  const detail = agentCardDetail(agent);
 
   return (
     <Card variant="outlined" className={styles.card}>
       <CardActionArea component={Link} href={`/browse-agents/${id}`} className={styles.action}>
         <CardContent className={styles.content}>
-          <AgentAvatar avatar={agent.avatar} size={56} className={styles.avatar} />
-          <Typography variant="h6" component="h3">
-            {agent.name}
-          </Typography>
-          {role && <Typography color="text.secondary">{role}</Typography>}
-          {summary && (
-            <Typography variant="body2" className={styles.summary}>
-              {summary}
+          <AgentAvatar avatar={agent.avatar} size={44} className={styles.avatar} />
+          <div className={styles.titleRow}>
+            <Typography variant="subtitle1" component="h3" className={styles.title}>
+              {agent.name}
             </Typography>
-          )}
+            <AgentStatusChip status={agentStatus(agent)} />
+          </div>
+          {interviewer && <Typography className={styles.interviewer}>{interviewer}</Typography>}
+          {detail && <Typography className={styles.detail}>{detail}</Typography>}
         </CardContent>
       </CardActionArea>
-      <CardActions>
+      <CardActions className={styles.actions}>
         <Button component={Link} href={`/test-chat?agent=${id}`} size="small">
           {/* English translation: Test the agent */}
           Test agenten

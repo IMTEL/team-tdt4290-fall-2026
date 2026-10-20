@@ -43,17 +43,25 @@ afterEach(() => {
   fetchMock.mockReset();
 });
 
+async function renderPage(type?: string) {
+  render(
+    await ConfigurePage({
+      searchParams: Promise.resolve(type === undefined ? {} : { type }),
+    }),
+  );
+}
+
 /** Opens the page and chooses the interviewer, the step the interviewer tests start after. */
 async function openAsInterviewer() {
   const user = userEvent.setup();
-  render(<ConfigurePage />);
+  await renderPage();
   await user.click(screen.getByRole('button', { name: /^Intervjuer/ }));
   return user;
 }
 
 describe('/configure', () => {
-  it('starts by asking what kind of agent to set up, not with templates or the chat', () => {
-    render(<ConfigurePage />);
+  it('starts by asking what kind of agent to set up, not with templates or the chat', async () => {
+    await renderPage();
 
     expect(screen.getByRole('heading', { level: 1, name: 'Sett opp en agent' })).toBeVisible();
     expect(
@@ -64,12 +72,29 @@ describe('/configure', () => {
     expect(screen.queryByRole('log', { name: 'Samtale' })).not.toBeInTheDocument();
   });
 
-  it('shows planned agent types as coming soon, without letting them be chosen', () => {
-    render(<ConfigurePage />);
+  it('shows planned agent types as coming soon, without letting them be chosen', async () => {
+    await renderPage();
 
     const teacher = screen.getByRole('heading', { level: 3, name: 'Lærer' }).closest('li')!;
     expect(teacher).toHaveTextContent('Kommer snart');
     expect(teacher.querySelector('button')).toBeNull();
+  });
+
+  it('skips the type step when the agents page already chose one', async () => {
+    await renderPage('interviewer');
+
+    expect(screen.getByRole('heading', { level: 2, name: 'Velg en mal' })).toBeVisible();
+    expect(
+      screen.queryByRole('heading', { name: 'Hva slags agent vil du sette opp?' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('asks for the type when the link names a type that does not exist', async () => {
+    await renderPage('finnes-ikke');
+
+    expect(
+      screen.getByRole('heading', { level: 2, name: 'Hva slags agent vil du sette opp?' }),
+    ).toBeVisible();
   });
 
   it('shows the templates once the interviewer is chosen, and can go back to the types', async () => {

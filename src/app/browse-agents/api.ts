@@ -12,6 +12,9 @@ const LIST_FIELDS = [
   'stilling',
   'bransje',
   'vanskelighetsgrad',
+  'intervjuer',
+  'intervjutype',
+  'intervjuerMal',
 ] as const;
 
 function isAgent(value: unknown): value is Agent {

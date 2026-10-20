@@ -17,24 +17,29 @@ const agent: Agent = {
   stilling: 'Butikkmedarbeider',
   bransje: 'Varehandel (privat)',
   vanskelighetsgrad: 'middels',
+  intervjuer: 'butikksjef, vennlig',
+  intervjutype: 'første intervju',
 };
 
 describe('AgentCard', () => {
-  it('shows the name, the role and the summary', () => {
+  it('shows the name, the interviewer and one sentence', () => {
     render(<AgentCard agent={agent} />);
 
     expect(screen.getByRole('heading', { name: 'Butikksjef Kari' })).toBeVisible();
-    expect(screen.getByText('Intervjuer')).toBeVisible();
-    expect(screen.getByText('Butikkmedarbeider · Middels')).toBeVisible();
+    expect(screen.getByText('Butikksjef, vennlig')).toBeVisible();
+    expect(screen.getByText('Første intervju.')).toBeVisible();
+    expect(screen.getByText('Privat')).toBeVisible();
   });
 
-  it('shows only the name when there is no role or summary', () => {
-    const unknown = { ...agent, typeLabel: null, stilling: null, vanskelighetsgrad: null };
+  it('shows only the name and the status when there is no interviewer line or sentence', () => {
+    const unknown = { ...agent, intervjuer: null, intervjutype: null };
 
     render(<AgentCard agent={unknown} />);
 
     const card = screen.getByRole('link', { name: /Butikksjef Kari/ });
-    expect(card).toHaveTextContent(/^Butikksjef Kari$/);
+    expect(card).toHaveTextContent('Butikksjef Kari');
+    expect(card).toHaveTextContent('Privat');
+    expect(card).not.toHaveTextContent('Butikksjef, vennlig');
   });
 
   it('shows the agent’s avatar inside the link to the agent’s page', () => {
