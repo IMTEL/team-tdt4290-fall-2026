@@ -25,15 +25,19 @@
 
 .titleRow {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: var(--space-2);
 }
 
 .title {
-  flex: 1 1 8rem;
+  flex: 1 1 auto;
+  min-width: 0;
   font-weight: 600;
+}
+
+.status {
+  flex-shrink: 0;
 }
 
 .interviewer {

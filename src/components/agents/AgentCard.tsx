@@ -31,7 +31,9 @@ export function AgentCard({ agent }: { agent: Agent }) {
             <Typography variant="subtitle1" component="h3" className={styles.title}>
               {agent.name}
             </Typography>
-            <AgentStatusChip status={agentStatus(agent)} />
+            <span className={styles.status}>
+              <AgentStatusChip status={agentStatus(agent)} />
+            </span>
           </div>
           {interviewer && <Typography className={styles.interviewer}>{interviewer}</Typography>}
           {detail && <Typography className={styles.detail}>{detail}</Typography>}
