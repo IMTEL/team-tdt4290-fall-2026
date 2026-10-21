@@ -18,10 +18,7 @@ import { profileImageUrl, type CounsellorProfile } from '@/domain/counsellorProf
 import type { AgentTemplate } from '@/data/templates';
 import { formatDate } from '@/lib/format';
 import { handleSignOut } from '@/lib/auth';
-import {
-  saveCounsellorProfile,
-  useCounsellorProfile,
-} from '@/lib/counsellorProfileClient';
+import { saveCounsellorProfile, useCounsellorProfile } from '@/lib/counsellorProfileClient';
 import type { Agent } from '@/lib/types';
 import styles from './ProfileHome.module.css';
 
@@ -108,7 +105,9 @@ export function ProfileHome() {
       await saveCounsellorProfile(next);
       setEditing(false);
     } catch (error) {
-      setSaveError(error instanceof Error ? error.message : 'Profilen ble ikke lagret. Prøv igjen.');
+      setSaveError(
+        error instanceof Error ? error.message : 'Profilen ble ikke lagret. Prøv igjen.',
+      );
     } finally {
       setSaving(false);
     }
@@ -118,7 +117,9 @@ export function ProfileHome() {
     <div className={styles.page}>
       <header className={styles.intro}>
         <h1 className={styles.title}>Min profil</h1>
-        <p className={styles.lead}>Agentene dine, malene du har laget og kontoen din på ett sted.</p>
+        <p className={styles.lead}>
+          Agentene dine, malene du har laget og kontoen din på ett sted.
+        </p>
       </header>
 
       <div className={styles.layout}>
@@ -269,7 +270,9 @@ export function ProfileHome() {
                 <tr key={agent.id}>
                   <th scope="row">
                     <Mark letter={initial(agent.name)} />
-                    <Link href={`/browse-agents/${encodeURIComponent(agent.id)}`}>{agent.name}</Link>
+                    <Link href={`/browse-agents/${encodeURIComponent(agent.id)}`}>
+                      {agent.name}
+                    </Link>
                   </th>
                   <td>
                     <AgentStatusChip status={agentStatus(agent)} />

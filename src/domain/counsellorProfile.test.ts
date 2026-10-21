@@ -16,7 +16,9 @@ describe('profileFromSettings', () => {
   it('reads a saved name, email and picture', () => {
     expect(
       profileFromSettings(
-        { profile: { name: 'Kari N.', email: 'ny@example.no', image: 'data:image/jpeg;base64,abc' } },
+        {
+          profile: { name: 'Kari N.', email: 'ny@example.no', image: 'data:image/jpeg;base64,abc' },
+        },
         fallback,
       ),
     ).toEqual({ name: 'Kari N.', email: 'ny@example.no', image: 'data:image/jpeg;base64,abc' });
@@ -27,9 +29,9 @@ describe('profileFromSettings', () => {
   });
 
   it('ignores a picture that is not an image', () => {
-    expect(profileFromSettings({ profile: { image: 'https://example.no/a.png' } }, fallback).image).toBe(
-      null,
-    );
+    expect(
+      profileFromSettings({ profile: { image: 'https://example.no/a.png' } }, fallback).image,
+    ).toBe(null);
   });
 });
 

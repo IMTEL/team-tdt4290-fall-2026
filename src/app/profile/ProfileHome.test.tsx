@@ -60,10 +60,9 @@ describe('ProfileHome', () => {
     expect(screen.getByText('kari.veileder@example.no')).toBeVisible();
     expect(screen.queryByText('publisert')).not.toBeInTheDocument();
 
-    expect(await screen.findByRole('link', { name: 'Intervjuer for lagerarbeider' })).toHaveAttribute(
-      'href',
-      '/browse-agents/agent-1',
-    );
+    expect(
+      await screen.findByRole('link', { name: 'Intervjuer for lagerarbeider' }),
+    ).toHaveAttribute('href', '/browse-agents/agent-1');
     expect(screen.getByRole('link', { name: 'Test' })).toHaveAttribute(
       'href',
       '/test-chat?agent=agent-1',
@@ -104,7 +103,9 @@ describe('ProfileHome', () => {
       const init = call[1] as RequestInit | undefined;
       return init?.method === 'PUT';
     });
-    expect(JSON.parse(String(put?.[1] && (put[1] as RequestInit).body)).settings.profile).toMatchObject({
+    expect(
+      JSON.parse(String(put?.[1] && (put[1] as RequestInit).body)).settings.profile,
+    ).toMatchObject({
       name: 'Kari N.',
       email: 'kari.veileder@example.no',
       image: 'ugle',
