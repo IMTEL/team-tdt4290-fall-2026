@@ -3,7 +3,12 @@ import type { AgentTemplate } from '@/data/templates';
 import { MAX_NAME_LENGTH } from '@/domain/agentName';
 import type { Configuration } from '@/domain/configuration';
 import type { AnswerSources } from '@/domain/agentTypes/types';
-import { describeJobSeeker, type JobSeekerProfile } from '@/domain/jobSeekerProfile';
+import {
+  describeJobSeeker,
+  isPracticeChoice,
+  PRACTICE_CHOICES,
+  type JobSeekerProfile,
+} from '@/domain/jobSeekerProfile';
 import type { InterviewSettings } from './SettingsStep';
 import { NO_TEMPLATE, type Workplace } from './StillingStep';
 
@@ -14,6 +19,8 @@ export type WizardDraft = {
   interviewer: AgentTemplate | null;
   /** The job seeker profile, or null when the counsellor continued without one. */
   profile: JobSeekerProfile | null;
+  /** Practice areas for this agent. Ids are the texts stored on a profile. */
+  practiceAreas: string[];
   settings: InterviewSettings;
 };
 
@@ -55,15 +62,25 @@ export function wizardConfiguration(draft: WizardDraft): WizardConfiguration | n
       bedrift: workplace.company.trim() || 'ikke oppgitt',
       intervjutype: settings.interviewType,
       intervjuer: draft.interviewer?.persona ?? 'Ingen mal',
-      jobbsoker: draft.profile
-        ? describeJobSeeker(draft.profile)
-        : 'ingen opplysninger om jobbsøkeren',
+      jobbsoker: jobSeekerOf(draft.profile, draft.practiceAreas),
       vanskelighetsgrad: `${settings.difficulty} | Antall spørsmål: ${count} | Oppfølgingsspørsmål: ${settings.followUp}`,
       egneSporsmal: settings.ownQuestions.trim() || 'ingen',
       tillegg: settings.extra.trim(),
     },
     sources,
   };
+}
+
+/** The profile's description, with the areas chosen for this agent instead of the profile's own. */
+function jobSeekerOf(profile: JobSeekerProfile | null, practiceAreas: string[]): string {
+  const chosen = PRACTICE_CHOICES.map((choice) => choice.id).filter((id) =>
+    practiceAreas.includes(id),
+  );
+  const custom = practiceAreas.filter((area) => !isPracticeChoice(area));
+  const areas = [...chosen, ...custom];
+  if (profile) return describeJobSeeker({ ...profile, practiceAreas: areas });
+  if (areas.length === 0) return 'ingen opplysninger om jobbsøkeren';
+  return `vil øve på: ${areas.map((area) => area.toLowerCase()).join(', ')}`;
 }
 
 /** The job title, with the stillingsmal's description after it when one was chosen. */

@@ -91,6 +91,12 @@
   color: var(--muted-foreground);
 }
 
+.commaHint {
+  color: var(--foreground) !important;
+  font-size: 1rem !important;
+  line-height: 1.4;
+}
+
 .required {
   color: var(--foreground);
 }
@@ -107,6 +113,28 @@
   flex-wrap: wrap;
   align-items: center;
   gap: var(--space-2);
+}
+
+.practiceHeading {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  font-weight: 650;
+}
+
+.countBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.4rem;
+  height: 1.4rem;
+  padding: 0 0.35rem;
+  border-radius: var(--radius-full);
+  background: var(--primary);
+  color: var(--primary-foreground);
+  font-size: 0.8rem;
+  line-height: 1;
 }
 
 .more {

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { describeJobSeeker, summarizeProfile, type JobSeekerProfile } from './jobSeekerProfile';
+import { describeJobSeeker, parseOtherPractice, summarizeProfile, type JobSeekerProfile } from './jobSeekerProfile';
 
 const profile: JobSeekerProfile = {
   id: 'profile-1',
@@ -62,5 +62,18 @@ describe('summarizeProfile', () => {
   it('shows the age range and the experience level', () => {
     expect(summarizeProfile(profile)).toBe('18–24 år · Litt (under 1 år)');
     expect(summarizeProfile({ ...profile, ageRange: null, experienceLevel: null })).toBe('');
+  });
+});
+
+describe('parseOtherPractice', () => {
+  it('splits on commas and drops blanks and repeats', () => {
+    expect(parseOtherPractice(' turnus, lønn og vilkår, , turnus ')).toEqual([
+      'turnus',
+      'lønn og vilkår',
+    ]);
+  });
+
+  it('leaves out an area that is already chosen as a pill', () => {
+    expect(parseOtherPractice('Nervøsitet, turnus', ['Mestre nervøsitet'])).toEqual(['turnus']);
   });
 });

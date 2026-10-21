@@ -9,8 +9,8 @@ import TextField from '@mui/material/TextField';
 import { AvatarPicker } from '@/components/agents/AvatarPicker';
 import { formatTemperature } from '@/domain/advancedSettings';
 import { MAX_NAME_LENGTH } from '@/domain/agentName';
-import { SECTOR_LABELS } from '@/data/industry-templates';
-import type { IndustryTemplate } from '@/data/industry-templates';
+import { practiceChoiceLabel } from '@/domain/jobSeekerProfile';
+import { SECTOR_LABELS, type IndustryTemplate } from '@/data/industry-templates';
 import stepStyles from './StillingStep.module.css';
 import type { Employer, Workplace } from './StillingStep';
 import { NO_TEMPLATE } from './StillingStep';
@@ -21,6 +21,8 @@ export type FinishOverview = {
   jobTemplates: IndustryTemplate[];
   interviewerTitle: string | null;
   profileLabel: string | null;
+  /** Practice area ids chosen for this agent. */
+  practiceAreas: string[];
   settings: InterviewSettings;
 };
 
@@ -69,7 +71,16 @@ export function configurationLines(overview: FinishOverview): { label: string; v
       { label: 'Bedrift', value: text(overview.workplace.company) },
     ],
     [{ label: 'Mal', value: overview.interviewerTitle ?? 'Ingen mal' }],
-    [{ label: 'Profil', value: overview.profileLabel ?? 'Ingen profil' }],
+    [
+      { label: 'Profil', value: overview.profileLabel ?? 'Ingen profil' },
+      {
+        label: 'Øve på',
+        value:
+          overview.practiceAreas.length > 0
+            ? overview.practiceAreas.map(practiceChoiceLabel).join(', ')
+            : NONE,
+      },
+    ],
     [
       {
         label: 'Intervjutype',

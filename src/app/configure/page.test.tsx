@@ -417,15 +417,34 @@ describe('/configure', () => {
 
     await pickTemplate(user, /Teamleder/);
     await user.click(await screen.findByRole('radio', { name: /Profil A/ }));
+    expect(screen.getByRole('button', { name: 'Nervøsitet' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    await user.click(screen.getByRole('button', { name: 'Hull i CV-en' }));
+    await user.click(screen.getByRole('button', { name: 'Andre' }));
+    await user.type(screen.getByRole('textbox', { name: 'Andre områder' }), 'turnus, lønn');
+    expect(screen.getByText('Skriv komma mellom hver ting.')).toBeVisible();
     await user.click(screen.getByRole('button', { name: 'Neste' }));
     await skipSettings(user);
 
     expect(screen.getByRole('heading', { level: 2, name: 'Fullføre' })).toBeVisible();
+    expect(screen.getByText('Nervøsitet, Hull i CV-en, turnus, lønn')).toBeVisible();
 
     await user.click(screen.getByRole('button', { name: 'Gå tilbake' }));
     await user.click(screen.getByRole('button', { name: 'Tilbake' }));
 
     expect(screen.getByRole('radio', { name: /Profil A/ })).toBeChecked();
+    expect(screen.getByRole('button', { name: 'Nervøsitet' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    expect(screen.getByRole('button', { name: 'Hull i CV-en' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    expect(screen.getByRole('button', { name: 'Andre' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('textbox', { name: 'Andre områder' })).toHaveValue('turnus, lønn');
   });
 
   it('links to a new profile from the profile step', async () => {

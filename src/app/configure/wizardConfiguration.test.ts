@@ -36,7 +36,14 @@ const profile: JobSeekerProfile = {
 };
 
 function draft(overrides: Partial<WizardDraft> = {}): WizardDraft {
-  return { workplace, interviewer: null, profile: null, settings, ...overrides };
+  return {
+    workplace,
+    interviewer: null,
+    profile: null,
+    practiceAreas: [],
+    settings,
+    ...overrides,
+  };
 }
 
 describe('suggestedAgentName', () => {
@@ -52,7 +59,9 @@ describe('suggestedAgentName', () => {
 describe('wizardConfiguration', () => {
   it('writes the nine answers, with sentences for what was skipped', () => {
     const interviewer = findBuiltInTemplate('teamleder');
-    const saved = wizardConfiguration(draft({ interviewer, profile }));
+    const saved = wizardConfiguration(
+      draft({ interviewer, profile, practiceAreas: ['Mestre nervøsitet'] }),
+    );
     const job = findIndustryTemplate('helsefagarbeider');
 
     expect(saved?.answers).toEqual({
@@ -104,6 +113,24 @@ describe('wizardConfiguration', () => {
     expect(saved?.answers.egneSporsmal).toBe('Hvorfor oss?');
     expect(saved?.answers.tillegg).toBe('Rolig tempo');
     expect(saved?.sources).toEqual({});
+  });
+
+  it('uses the chosen practice areas when there is no profile', () => {
+    const saved = wizardConfiguration(
+      draft({ practiceAreas: ['Mestre nervøsitet', 'Forklare hull i CV-en'] }),
+    );
+
+    expect(saved?.answers.jobbsoker).toBe('vil øve på: mestre nervøsitet, forklare hull i cv-en');
+  });
+
+  it('keeps areas written after Andre', () => {
+    const saved = wizardConfiguration(
+      draft({ practiceAreas: ['Mestre nervøsitet', 'turnus', 'lønn og vilkår'] }),
+    );
+
+    expect(saved?.answers.jobbsoker).toBe(
+      'vil øve på: mestre nervøsitet, turnus, lønn og vilkår',
+    );
   });
 
   it('refuses to build answers while a required choice is missing', () => {

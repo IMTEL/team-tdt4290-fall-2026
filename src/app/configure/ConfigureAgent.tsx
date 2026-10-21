@@ -23,7 +23,12 @@ import {
 } from '@/domain/agentTypes/registry';
 import type { AdvancedSettings } from '@/domain/advancedSettings';
 import type { AgentTypeDefinition } from '@/domain/agentTypes/types';
-import type { JobSeekerProfile } from '@/domain/jobSeekerProfile';
+import {
+  isPracticeChoice,
+  parseOtherPractice,
+  PRACTICE_CHOICES,
+  type JobSeekerProfile,
+} from '@/domain/jobSeekerProfile';
 import { updateAgent } from '../browse-agents/api';
 import { fetchSavedTemplates, saveConfiguredAgent } from './api';
 import { ConfigurationChat } from './ConfigurationChat';
@@ -73,6 +78,9 @@ export function ConfigureAgent({
   const [profiles, setProfiles] = useState<JobSeekerProfile[]>([]);
   const [profilesLoaded, setProfilesLoaded] = useState(false);
   const [profileId, setProfileId] = useState('');
+  const [practiceAreas, setPracticeAreas] = useState<string[]>([]);
+  const [otherOpen, setOtherOpen] = useState(false);
+  const [otherPractice, setOtherPractice] = useState('');
   const [settings, setSettings] = useState<InterviewSettings>(EMPTY_INTERVIEW_SETTINGS);
   // Null is the default image, chosen until the counsellor picks another.
   const [avatar, setAvatar] = useState<string | null>(null);
@@ -136,6 +144,9 @@ export function ConfigureAgent({
     setChoice(undefined);
     setIndustry(undefined);
     setProfileId('');
+    setPracticeAreas([]);
+    setOtherOpen(false);
+    setOtherPractice('');
     setProfilesLoaded(false);
     setSettings(EMPTY_INTERVIEW_SETTINGS);
     setAvatar(null);
@@ -156,6 +167,35 @@ export function ConfigureAgent({
     setFurthestStep((reached) => Math.max(reached, index));
   }
 
+  /** Picks a profile and starts the practice areas from what that profile already has. */
+  function chooseProfile(id: string) {
+    if (id !== profileId) {
+      const next = profiles.find((item) => item.id === id);
+      if (next) {
+        const custom = next.practiceAreas.filter((area) => !isPracticeChoice(area));
+        setPracticeAreas(next.practiceAreas.filter(isPracticeChoice));
+        setOtherPractice(custom.join(', '));
+        setOtherOpen(custom.length > 0);
+      }
+    }
+    setProfileId(id);
+  }
+
+  function changePractice(areas: string[]) {
+    const order = PRACTICE_CHOICES.map((choice) => choice.id);
+    setPracticeAreas(order.filter((id) => areas.includes(id)));
+  }
+
+  function changeOtherOpen(open: boolean) {
+    setOtherOpen(open);
+    if (!open) setOtherPractice('');
+  }
+
+  const chosenPractice = [
+    ...practiceAreas,
+    ...(otherOpen ? parseOtherPractice(otherPractice, practiceAreas) : []),
+  ];
+
   const name = nameEdited ? agentName : suggestedAgentName(workplace.jobTitle);
 
   /** Creates the agent, or updates it when this wizard has already saved one. */
@@ -170,6 +210,7 @@ export function ConfigureAgent({
       workplace,
       interviewer: choice ?? null,
       profile: profiles.find((item) => item.id === profileId) ?? null,
+      practiceAreas: chosenPractice,
       settings,
     });
     if (!built) {
@@ -343,8 +384,14 @@ export function ConfigureAgent({
         intro={chosenType}
         onGoTo={goTo}
         reached={furthestStep}
-        onSelect={setProfileId}
+        onSelect={chooseProfile}
         selectedId={profileId}
+        practiceAreas={practiceAreas}
+        onPracticeChange={changePractice}
+        otherOpen={otherOpen}
+        onOtherOpenChange={changeOtherOpen}
+        otherPractice={otherPractice}
+        onOtherPracticeChange={setOtherPractice}
         onNext={() => goTo(3)}
         onBack={() => goTo(1)}
       />
@@ -365,6 +412,7 @@ export function ConfigureAgent({
           jobTemplates: industryTemplates,
           interviewerTitle: choice ? choice.title : null,
           profileLabel: profiles.find((item) => item.id === profileId)?.label ?? null,
+          practiceAreas: chosenPractice,
           settings,
         }}
         avatar={avatar}
