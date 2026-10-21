@@ -108,14 +108,16 @@ export function SettingsStep({
         className={stepStyles.form}
         onSubmit={(event) => {
           event.preventDefault();
+          if (!settingsComplete(value)) return;
           onNext();
         }}
       >
         {intro}
         <h2 className={stepStyles.question}>Hvordan skal intervjuet være?</h2>
-        <p className={stepStyles.hint}>Du kan hoppe over det du ikke vil velge nå.</p>
+        <p className={stepStyles.hint}>Feltene med stjerne må fylles ut før du kan gå videre.</p>
 
         <Pills
+          required
           label="Intervjutype"
           value={value.interviewType}
           options={INTERVIEW_TYPES}
@@ -127,6 +129,7 @@ export function SettingsStep({
           }
         />
         <Pills
+          required
           label="Vanskelighetsgrad"
           value={value.difficulty}
           options={DIFFICULTIES}
@@ -135,6 +138,7 @@ export function SettingsStep({
           }
         />
         <Pills
+          required
           label="Antall spørsmål"
           value={value.questionCount}
           options={QUESTION_COUNTS.map((count) => ({ id: count, label: count }))}
@@ -151,6 +155,7 @@ export function SettingsStep({
               value={value.questionCountDetail}
               onChange={(event) => onChange({ ...value, questionCountDetail: event.target.value })}
               helperText="Skriv hvor mange spørsmål, for eksempel 12."
+              required
               fullWidth
             />
           )}
@@ -159,6 +164,7 @@ export function SettingsStep({
         <div className={stepStyles.employer}>
           <span className={stepStyles.suggestionLabel} id="follow-up-label">
             Oppfølgingsspørsmål
+            <RequiredMark />
           </span>
           <ToggleButtonGroup
             exclusive
@@ -166,9 +172,9 @@ export function SettingsStep({
             className={stepStyles.sector}
             value={value.followUp}
             aria-labelledby="follow-up-label"
-            onChange={(_event, followUp: InterviewSettings['followUp']) =>
-              onChange({ ...value, followUp })
-            }
+            onChange={(_event, followUp: InterviewSettings['followUp']) => {
+              if (followUp) onChange({ ...value, followUp });
+            }}
           >
             <ToggleButton value="ja">Ja</ToggleButton>
             <ToggleButton value="nei">Nei</ToggleButton>
@@ -207,7 +213,7 @@ export function SettingsStep({
             <Button type="button" onClick={onBack}>
               Tilbake
             </Button>
-            <Button type="submit" variant="contained">
+            <Button type="submit" variant="contained" disabled={!settingsComplete(value)}>
               Neste
             </Button>
           </div>
@@ -217,22 +223,48 @@ export function SettingsStep({
   );
 }
 
+function settingsComplete(value: InterviewSettings): boolean {
+  const countReady =
+    value.questionCount !== null &&
+    (value.questionCount !== '10+' || value.questionCountDetail.trim() !== '');
+  return (
+    value.interviewType !== null &&
+    value.difficulty !== null &&
+    countReady &&
+    value.followUp !== null
+  );
+}
+
+function RequiredMark() {
+  return (
+    <span className={stepStyles.required} aria-hidden="true">
+      {' '}
+      *
+    </span>
+  );
+}
+
 function Pills({
   label,
   options,
   value,
   onChange,
   children,
+  required = false,
 }: {
   label: string;
   options: readonly { id: string; label: string }[];
   value: string | null;
   onChange: (id: string) => void;
   children?: ReactNode;
+  required?: boolean;
 }) {
   return (
     <div className={stepStyles.suggestions}>
-      <p className={stepStyles.suggestionLabel}>{label}</p>
+      <p className={stepStyles.suggestionLabel}>
+        {label}
+        {required && <RequiredMark />}
+      </p>
       <div className={stepStyles.pills}>
         {options.map((option) => {
           const selected = value === option.id;

@@ -85,6 +85,10 @@ async function skipTemplate(user: ReturnType<typeof userEvent.setup>) {
 
 /** Leaves the settings step, which comes after the job seeker step. */
 async function skipSettings(user: ReturnType<typeof userEvent.setup>) {
+  await user.click(screen.getByRole('button', { name: 'Første intervju' }));
+  await user.click(screen.getByRole('button', { name: 'Lett' }));
+  await user.click(screen.getByRole('button', { name: '5–6' }));
+  await user.click(screen.getByRole('button', { name: 'Ja' }));
   await user.click(screen.getByRole('button', { name: 'Neste' }));
 }
 
