@@ -8,7 +8,9 @@ export const metadata: Metadata = {
   description: 'Sett opp en AI-agent, for eksempel en intervjuer, som jobbsøkere kan øve med.',
 };
 
-type ConfigurePageProps = { searchParams: Promise<{ type?: string | string[]; step?: string | string[] }> };
+type ConfigurePageProps = {
+  searchParams: Promise<{ type?: string | string[]; step?: string | string[] }>;
+};
 
 /** `?type=<id>` skips the type step, as the «Ny agent» dialog on the agents page does. */
 export default async function ConfigurePage({ searchParams }: ConfigurePageProps) {

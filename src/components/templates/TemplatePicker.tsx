@@ -56,7 +56,10 @@ export function TemplatePicker({
     const selected = asRadios && selectedId === template.id;
     return (
       <li key={template.id}>
-        <Card variant="outlined" className={selected ? `${styles.card} ${styles.chosen}` : styles.card}>
+        <Card
+          variant="outlined"
+          className={selected ? `${styles.card} ${styles.chosen}` : styles.card}
+        >
           <CardActionArea
             onClick={() => onSelect(template)}
             className={styles.action}
@@ -115,7 +118,11 @@ export function TemplatePicker({
       </h2>
       <p className={styles.lead}>{lead}</p>
 
-      <ul className={styles.grid} role={asRadios ? 'radiogroup' : undefined} aria-labelledby="template-picker-heading">
+      <ul
+        className={styles.grid}
+        role={asRadios ? 'radiogroup' : undefined}
+        aria-labelledby="template-picker-heading"
+      >
         {templates.map((template) => card(template, false))}
         {savedTemplates.map((template) => card(template, true))}
       </ul>

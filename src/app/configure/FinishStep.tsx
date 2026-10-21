@@ -56,10 +56,19 @@ export function configurationLines(overview: FinishOverview): { label: string; v
     [{ label: 'Mal', value: overview.interviewerTitle ?? 'Ingen mal' }],
     [{ label: 'Profil', value: overview.profileLabel ?? 'Ingen profil' }],
     [
-      { label: 'Intervjutype', value: settings.interviewType ? capitalize(settings.interviewType) : NONE },
-      { label: 'Vanskelighetsgrad', value: settings.difficulty ? capitalize(settings.difficulty) : NONE },
+      {
+        label: 'Intervjutype',
+        value: settings.interviewType ? capitalize(settings.interviewType) : NONE,
+      },
+      {
+        label: 'Vanskelighetsgrad',
+        value: settings.difficulty ? capitalize(settings.difficulty) : NONE,
+      },
       { label: 'Antall spørsmål', value: questionCount(settings) },
-      { label: 'Oppfølgingsspørsmål', value: settings.followUp ? capitalize(settings.followUp) : NONE },
+      {
+        label: 'Oppfølgingsspørsmål',
+        value: settings.followUp ? capitalize(settings.followUp) : NONE,
+      },
       { label: 'Egne spørsmål', value: text(settings.ownQuestions) },
       { label: 'Tillegg', value: text(settings.extra) },
       { label: 'Språkmodell', value: settings.model },

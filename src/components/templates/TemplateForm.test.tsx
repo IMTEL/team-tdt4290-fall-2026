@@ -125,10 +125,7 @@ describe('TemplateForm for a new template', () => {
 
   it('cancels back to the page the form was opened from', () => {
     render(
-      <TemplateForm
-        onSave={vi.fn()}
-        cancelHref="/configure?type=interviewer&step=intervjuer"
-      />,
+      <TemplateForm onSave={vi.fn()} cancelHref="/configure?type=interviewer&step=intervjuer" />,
     );
 
     expect(screen.getByRole('link', { name: 'Avbryt' })).toHaveAttribute(

@@ -56,7 +56,11 @@ export function JobSeekerStep({
           ) : profiles.length === 0 ? (
             <p className={cardStyles.lead}>Du har ingen profiler ennå.</p>
           ) : (
-            <ul className={cardStyles.grid} role="radiogroup" aria-labelledby="profile-picker-heading">
+            <ul
+              className={cardStyles.grid}
+              role="radiogroup"
+              aria-labelledby="profile-picker-heading"
+            >
               {profiles.map((profile) => {
                 const summary = summarizeProfile(profile);
                 const selected = selectedId === profile.id;
@@ -64,7 +68,9 @@ export function JobSeekerStep({
                   <li key={profile.id}>
                     <Card
                       variant="outlined"
-                      className={selected ? `${cardStyles.card} ${cardStyles.chosen}` : cardStyles.card}
+                      className={
+                        selected ? `${cardStyles.card} ${cardStyles.chosen}` : cardStyles.card
+                      }
                     >
                       <CardActionArea
                         onClick={() => onSelect(profile.id)}

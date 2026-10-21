@@ -46,9 +46,7 @@ afterEach(() => {
 async function renderPage(type?: string, step?: string) {
   render(
     await ConfigurePage({
-      searchParams: Promise.resolve(
-        type === undefined ? {} : { type, ...(step ? { step } : {}) },
-      ),
+      searchParams: Promise.resolve(type === undefined ? {} : { type, ...(step ? { step } : {}) }),
     }),
   );
 }
@@ -158,7 +156,9 @@ describe('/configure', () => {
     expect(screen.queryByRole('button', { name: 'Jobbsøker' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Fullføre' })).not.toBeInTheDocument();
     expect(screen.queryByText('Velg agenttype')).not.toBeInTheDocument();
-    expect(screen.queryByRole('region', { name: 'Bransjer du kan velge i neste steg' })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('region', { name: 'Bransjer du kan velge i neste steg' }),
+    ).not.toBeInTheDocument();
   });
 
   it('opens the last step after the settings', async () => {
@@ -166,13 +166,17 @@ describe('/configure', () => {
 
     await pickTemplate(user, /Teamleder/);
 
-    expect(screen.getByRole('heading', { level: 2, name: 'Velg en jobbsøkerprofil' })).toBeVisible();
+    expect(
+      screen.getByRole('heading', { level: 2, name: 'Velg en jobbsøkerprofil' }),
+    ).toBeVisible();
     expect(screen.getByRole('listitem', { current: 'step' })).toHaveTextContent('Jobbsøker');
     expect(screen.queryByRole('heading', { name: 'Velg en bransjemal' })).not.toBeInTheDocument();
 
     await skipProfile(user);
 
-    expect(screen.getByRole('heading', { level: 2, name: 'Hvordan skal intervjuet være?' })).toBeVisible();
+    expect(
+      screen.getByRole('heading', { level: 2, name: 'Hvordan skal intervjuet være?' }),
+    ).toBeVisible();
     expect(screen.getByRole('listitem', { current: 'step' })).toHaveTextContent('Innstillinger');
     expect(screen.queryByRole('heading', { name: 'Velg en bransjemal' })).not.toBeInTheDocument();
 
@@ -212,12 +216,16 @@ describe('/configure', () => {
     await skipSettings(user);
     await user.click(screen.getByRole('button', { name: 'Gå tilbake' }));
 
-    expect(screen.getByRole('heading', { level: 2, name: 'Hvordan skal intervjuet være?' })).toBeVisible();
+    expect(
+      screen.getByRole('heading', { level: 2, name: 'Hvordan skal intervjuet være?' }),
+    ).toBeVisible();
 
     await user.click(screen.getByRole('button', { name: 'Neste' }));
     await user.click(screen.getByRole('button', { name: 'Innstillinger' }));
 
-    expect(screen.getByRole('heading', { level: 2, name: 'Hvordan skal intervjuet være?' })).toBeVisible();
+    expect(
+      screen.getByRole('heading', { level: 2, name: 'Hvordan skal intervjuet være?' }),
+    ).toBeVisible();
 
     await user.click(screen.getByRole('button', { name: 'Stilling og arbeidsplass' }));
 

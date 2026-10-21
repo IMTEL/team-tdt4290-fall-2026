@@ -84,13 +84,21 @@ export function WizardFrame({
       </p>
 
       <div className={expanded ? `${styles.layout} ${styles.layoutExpanded}` : styles.layout}>
-        <div className={styles.formSlot} inert={expanded || undefined} aria-hidden={expanded || undefined}>
+        <div
+          className={styles.formSlot}
+          inert={expanded || undefined}
+          aria-hidden={expanded || undefined}
+        >
           {children}
         </div>
         <aside className={styles.side} aria-label="Seksjoner">
           <p className={styles.sideLabel}>Seksjoner</p>
           <SectionMenu current={current} onGoTo={onGoTo} reached={reached} details={details} />
-          <div className={styles.draft} inert={expanded || undefined} aria-hidden={expanded || undefined}>
+          <div
+            className={styles.draft}
+            inert={expanded || undefined}
+            aria-hidden={expanded || undefined}
+          >
             <div className={styles.clip}>
               <Button type="button" variant="outlined" fullWidth>
                 Lagre utkast
@@ -107,7 +115,11 @@ export function WizardFrame({
             />
           </div>
           <div className={expanded ? `${styles.extra} ${styles.extraOpen}` : styles.extra}>
-            <div className={styles.clip} inert={expanded ? undefined : true} aria-hidden={expanded ? undefined : true}>
+            <div
+              className={styles.clip}
+              inert={expanded ? undefined : true}
+              aria-hidden={expanded ? undefined : true}
+            >
               {more}
             </div>
           </div>
@@ -179,7 +191,14 @@ export function SectionMenu({
  * The first screen of a new interviewer, laid out like draft A without the stepper across the
  * top. The section list is the slim one from draft C.
  */
-export function StillingStep({ value, templates, onChange, onNext, onGoTo, reached }: StillingStepProps) {
+export function StillingStep({
+  value,
+  templates,
+  onChange,
+  onNext,
+  onGoTo,
+  reached,
+}: StillingStepProps) {
   const [showAllJobs, setShowAllJobs] = useState(false);
   const [showAllIndustries, setShowAllIndustries] = useState(false);
   const industries = industriesOf(templates);
