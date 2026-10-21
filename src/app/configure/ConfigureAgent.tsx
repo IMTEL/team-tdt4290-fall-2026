@@ -25,6 +25,7 @@ import type { JobSeekerProfile } from '@/domain/jobSeekerProfile';
 import { fetchSavedTemplates } from './api';
 import { ConfigurationChat } from './ConfigurationChat';
 import { JobSeekerStep } from './JobSeekerStep';
+import { EMPTY_INTERVIEW_SETTINGS, SettingsStep, type InterviewSettings } from './SettingsStep';
 import { StillingStep, WizardFrame, type Workplace } from './StillingStep';
 import styles from './page.module.css';
 import stepStyles from './StillingStep.module.css';
@@ -69,6 +70,8 @@ export function ConfigureAgent({
   const [profilesLoaded, setProfilesLoaded] = useState(false);
   const [profileId, setProfileId] = useState('');
   const [profileDone, setProfileDone] = useState(false);
+  const [settings, setSettings] = useState<InterviewSettings>(EMPTY_INTERVIEW_SETTINGS);
+  const [settingsDone, setSettingsDone] = useState(false);
   // For a type with a profile but no template, where no template card moves the counsellor on.
   const [presetsDone, setPresetsDone] = useState(false);
   const [workplaceDone, setWorkplaceDone] = useState(
@@ -120,6 +123,8 @@ export function ConfigureAgent({
     setProfileId('');
     setProfilesLoaded(false);
     setProfileDone(false);
+    setSettings(EMPTY_INTERVIEW_SETTINGS);
+    setSettingsDone(false);
     setPresetsDone(false);
     setWorkplaceDone(false);
     setWorkplace({ jobTitle: '', templateId: null, industry: '', sector: null, company: '' });
@@ -316,6 +321,18 @@ export function ConfigureAgent({
           setProfileDone(true);
         }}
         onBack={() => setChoice(undefined)}
+      />
+    );
+  }
+
+  if (definition.id === 'interviewer' && !settingsDone) {
+    return (
+      <SettingsStep
+        value={settings}
+        onChange={setSettings}
+        intro={chosenType}
+        onBack={() => setProfileDone(false)}
+        onNext={() => setSettingsDone(true)}
       />
     );
   }

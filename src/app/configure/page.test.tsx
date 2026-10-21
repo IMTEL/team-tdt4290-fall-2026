@@ -67,6 +67,11 @@ async function skipProfile(user: ReturnType<typeof userEvent.setup>) {
   await user.click(screen.getByRole('button', { name: 'Fortsett uten profil' }));
 }
 
+/** Leaves the settings step, which comes after the job seeker step. */
+async function skipSettings(user: ReturnType<typeof userEvent.setup>) {
+  await user.click(screen.getByRole('button', { name: 'Neste' }));
+}
+
 describe('/configure', () => {
   it('starts by asking what kind of agent to set up, not with templates or the chat', async () => {
     await renderPage();
@@ -152,6 +157,12 @@ describe('/configure', () => {
 
     await skipProfile(user);
 
+    expect(screen.getByRole('heading', { level: 2, name: 'Hvordan skal intervjuet være?' })).toBeVisible();
+    expect(screen.getByRole('listitem', { current: 'step' })).toHaveTextContent('Innstillinger');
+    expect(screen.queryByRole('heading', { name: 'Velg en bransjemal' })).not.toBeInTheDocument();
+
+    await skipSettings(user);
+
     expect(screen.getByRole('heading', { level: 2, name: 'Velg en bransjemal' })).toBeVisible();
     expect(screen.getByText('Velg bransje').closest('[aria-current="step"]')).not.toBeNull();
     expect(screen.queryByRole('log', { name: 'Samtale' })).not.toBeInTheDocument();
@@ -171,6 +182,7 @@ describe('/configure', () => {
 
     await user.click(screen.getByRole('button', { name: 'Fortsett uten mal' }));
     await skipProfile(user);
+    await skipSettings(user);
     await user.click(screen.getByRole('button', { name: 'Fortsett uten bransjemal' }));
 
     expect(screen.getByText(/Hvilken stilling skal jobbsøkeren øve til\?/)).toBeInTheDocument();
@@ -181,6 +193,7 @@ describe('/configure', () => {
 
     await user.click(screen.getByRole('button', { name: /Teamleder/ }));
     await skipProfile(user);
+    await skipSettings(user);
     await user.click(screen.getByRole('button', { name: /Helsefagarbeider/ }));
     await user.click(screen.getByRole('button', { name: 'Bytt mal eller profil' }));
 
@@ -199,6 +212,7 @@ describe('/configure', () => {
 
     await user.click(screen.getByRole('button', { name: /Teamleder/ }));
     await skipProfile(user);
+    await skipSettings(user);
     await user.click(screen.getByRole('button', { name: /Helsefagarbeider/ }));
     await user.click(screen.getByRole('button', { name: 'Bytt bransjemal' }));
 
@@ -210,6 +224,7 @@ describe('/configure', () => {
 
     await user.click(screen.getByRole('button', { name: 'Fortsett uten mal' }));
     await skipProfile(user);
+    await skipSettings(user);
     await user.click(screen.getByRole('button', { name: 'Fortsett uten bransjemal' }));
 
     expect(screen.getByRole('log', { name: 'Samtale' })).toBeInTheDocument();
@@ -230,6 +245,7 @@ describe('/configure', () => {
 
     await user.click(screen.getByRole('button', { name: /Teamleder/ }));
     await skipProfile(user);
+    await skipSettings(user);
     await user.click(screen.getByRole('button', { name: /Helsefagarbeider/ }));
     await user.click(screen.getByRole('button', { name: 'Bytt agenttype' }));
     await user.click(screen.getByRole('button', { name: /^Intervjuer/ }));
@@ -304,6 +320,7 @@ describe('/configure', () => {
 
     await user.click(screen.getByRole('button', { name: /Teamleder/ }));
     await user.click(await screen.findByRole('button', { name: /Profil A/ }));
+    await skipSettings(user);
     await user.click(screen.getByRole('button', { name: 'Fortsett uten bransjemal' }));
 
     expect(screen.getByText(/jobbsøkerprofilen «Profil A»/)).toBeInTheDocument();
