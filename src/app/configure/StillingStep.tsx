@@ -187,6 +187,27 @@ export function SectionMenu({
   );
 }
 
+/** Chosen when the counsellor explicitly skips a template or an industry. */
+export const NO_TEMPLATE = 'ingen';
+
+function stillingComplete(value: Workplace): boolean {
+  return (
+    value.jobTitle.trim() !== '' &&
+    value.templateId !== null &&
+    value.industry !== '' &&
+    value.sector !== null
+  );
+}
+
+function RequiredMark() {
+  return (
+    <span className={styles.required} aria-hidden="true">
+      {' '}
+      *
+    </span>
+  );
+}
+
 /**
  * The first screen of a new interviewer, laid out like draft A without the stepper across the
  * top. The section list is the slim one from draft C.
@@ -215,22 +236,36 @@ export function StillingStep({
         className={styles.form}
         onSubmit={(event) => {
           event.preventDefault();
+          if (!stillingComplete(value)) return;
           onNext();
         }}
       >
         <h2 className={styles.question}>Hvilken stilling skal jobbsøkeren øve til?</h2>
-        <p className={styles.hint}>Velg en stilling fra en mal, eller skriv inn din egen.</p>
+        <p className={styles.hint}>Feltene med stjerne må fylles ut før du kan gå videre.</p>
 
         <TextField
           label="Stilling"
           value={value.jobTitle}
           onChange={(event) => onChange({ ...value, jobTitle: event.target.value })}
+          required
           fullWidth
         />
 
         <div className={styles.suggestions}>
-          <p className={styles.suggestionLabel}>Stillingsmaler</p>
-          <div className={styles.pills}>
+          <p className={styles.suggestionLabel} id="job-templates-label">
+            Stillingsmaler
+            <RequiredMark />
+          </p>
+          <div className={styles.pills} role="group" aria-labelledby="job-templates-label">
+            <Button
+              type="button"
+              size="small"
+              variant={value.templateId === NO_TEMPLATE ? 'contained' : 'outlined'}
+              aria-pressed={value.templateId === NO_TEMPLATE}
+              onClick={() => onChange({ ...value, templateId: NO_TEMPLATE })}
+            >
+              Ingen mal
+            </Button>
             {suggestions.map((template) => {
               const selected = value.templateId === template.id;
               return (
@@ -262,8 +297,20 @@ export function StillingStep({
         </div>
 
         <div className={styles.suggestions}>
-          <p className={styles.suggestionLabel}>Bransje</p>
-          <div className={styles.pills}>
+          <p className={styles.suggestionLabel} id="industry-label">
+            Bransje
+            <RequiredMark />
+          </p>
+          <div className={styles.pills} role="group" aria-labelledby="industry-label">
+            <Button
+              type="button"
+              size="small"
+              variant={value.industry === NO_TEMPLATE ? 'contained' : 'outlined'}
+              aria-pressed={value.industry === NO_TEMPLATE}
+              onClick={() => onChange({ ...value, industry: NO_TEMPLATE })}
+            >
+              Ingen bransje
+            </Button>
             {shownIndustries.map((industry) => {
               const selected = value.industry === industry;
               return (
@@ -297,6 +344,7 @@ export function StillingStep({
         <div className={styles.employer}>
           <span className={styles.suggestionLabel} id="employer-label">
             Arbeidsgiver
+            <RequiredMark />
           </span>
           <ToggleButtonGroup
             exclusive
@@ -304,7 +352,9 @@ export function StillingStep({
             className={styles.sector}
             value={value.sector}
             aria-labelledby="employer-label"
-            onChange={(_event, sector: Employer | null) => onChange({ ...value, sector })}
+            onChange={(_event, sector: Employer | null) => {
+              if (sector) onChange({ ...value, sector });
+            }}
           >
             <ToggleButton value="offentlig">{SECTOR_LABELS.offentlig}</ToggleButton>
             <ToggleButton value="privat">{SECTOR_LABELS.privat}</ToggleButton>
@@ -325,7 +375,7 @@ export function StillingStep({
             <Button component={Link} href="/browse-agents">
               Tilbake
             </Button>
-            <Button type="submit" variant="contained">
+            <Button type="submit" variant="contained" disabled={!stillingComplete(value)}>
               Neste
             </Button>
           </div>

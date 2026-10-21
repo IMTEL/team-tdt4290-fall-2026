@@ -8,6 +8,7 @@ import { SECTOR_LABELS } from '@/data/industry-templates';
 import type { IndustryTemplate } from '@/data/industry-templates';
 import stepStyles from './StillingStep.module.css';
 import type { Employer, Workplace } from './StillingStep';
+import { NO_TEMPLATE } from './StillingStep';
 import type { InterviewSettings } from './SettingsStep';
 
 export type FinishOverview = {
@@ -43,13 +44,22 @@ function questionCount(settings: InterviewSettings): string {
 /** One line per section, in the same order as the section list. Fullføre has none. */
 export function configurationLines(overview: FinishOverview): { label: string; value: string }[][] {
   const jobTemplate =
-    overview.jobTemplates.find((item) => item.id === overview.workplace.templateId)?.title ?? '';
+    overview.workplace.templateId === NO_TEMPLATE
+      ? 'Ingen mal'
+      : (overview.jobTemplates.find((item) => item.id === overview.workplace.templateId)?.title ??
+        '');
   const { settings } = overview;
   return [
     [
       { label: 'Stilling', value: text(overview.workplace.jobTitle) },
       { label: 'Stillingsmal', value: text(jobTemplate) },
-      { label: 'Bransje', value: text(overview.workplace.industry) },
+      {
+        label: 'Bransje',
+        value:
+          overview.workplace.industry === NO_TEMPLATE
+            ? 'Ingen bransje'
+            : text(overview.workplace.industry),
+      },
       { label: 'Arbeidsgiver', value: sector(overview.workplace.sector) },
       { label: 'Bedrift', value: text(overview.workplace.company) },
     ],

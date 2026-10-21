@@ -51,11 +51,16 @@ async function renderPage(type?: string, step?: string) {
   );
 }
 
-/** Opens the page, chooses the interviewer, and leaves the stilling screen. */
+/** Opens the page, chooses the interviewer, fills the required stilling fields, and leaves that screen. */
 async function openAsInterviewer() {
   const user = userEvent.setup();
   await renderPage();
   await user.click(screen.getByRole('button', { name: /^Intervjuer/ }));
+  await user.click(screen.getByRole('textbox', { name: /Stilling/ }));
+  await user.paste('Barnehageassistent');
+  await user.click(screen.getByRole('button', { name: 'Helsefagarbeider' }));
+  await user.click(screen.getByRole('button', { name: 'Helse og omsorg' }));
+  await user.click(screen.getByRole('button', { name: 'Offentlig' }));
   await user.click(screen.getByRole('button', { name: 'Neste' }));
   return user;
 }
@@ -113,6 +118,14 @@ describe('/configure', () => {
     ).toBeVisible();
     expect(screen.queryByText('Velg agenttype')).not.toBeInTheDocument();
     expect(screen.getByRole('list')).toBeVisible();
+    const jobs = screen.getByRole('group', { name: /Stillingsmaler/ });
+    const industries = screen.getByRole('group', { name: /^Bransje/ });
+    expect(within(jobs).getAllByRole('button')[0]).toHaveAccessibleName('Ingen mal');
+    expect(within(industries).getAllByRole('button')[0]).toHaveAccessibleName('Ingen bransje');
+    expect(screen.getByRole('button', { name: 'Neste' })).toBeDisabled();
+    expect(screen.getByText(/Stillingsmaler/)).toHaveTextContent('*');
+    expect(screen.getByText(/^Bransje/)).toHaveTextContent('*');
+    expect(screen.getByText(/Arbeidsgiver/)).toHaveTextContent('*');
     expect(
       screen.queryByRole('heading', { name: 'Hva slags agent vil du sette opp?' }),
     ).not.toBeInTheDocument();

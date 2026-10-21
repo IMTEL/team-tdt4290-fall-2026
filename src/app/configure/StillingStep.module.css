@@ -91,6 +91,10 @@
   color: var(--muted-foreground);
 }
 
+.required {
+  color: var(--foreground);
+}
+
 .suggestions,
 .employer {
   display: flex;
