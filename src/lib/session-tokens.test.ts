@@ -26,9 +26,9 @@ describe('getSessionJwt', () => {
 
   it('decodes the NextAuth cookie with NEXTAUTH_SECRET', async () => {
     vi.stubEnv('NEXTAUTH_SECRET', 'top-secret');
-    getTokenMock.mockResolvedValue({ sessionToken: 'session-1' });
+    getTokenMock.mockResolvedValue({ idToken: 'id-1' });
 
-    expect(await getSessionJwt(req)).toEqual({ sessionToken: 'session-1' });
+    expect(await getSessionJwt(req)).toEqual({ idToken: 'id-1' });
     expect(getTokenMock).toHaveBeenCalledWith({ req, secret: 'top-secret' });
   });
 });
@@ -50,40 +50,40 @@ describe('getSessionToken', () => {
     expect(await getSessionToken(req)).toBeNull();
   });
 
-  it('returns null when the cookie has no RAGdoll session token', async () => {
+  it('returns null when the cookie has no ID token', async () => {
     getTokenMock.mockResolvedValue({ name: 'Kari' });
 
     expect(await getSessionToken(req)).toBeNull();
   });
 
-  it('returns the session token while it is still valid', async () => {
+  it('returns the ID token while it is still valid', async () => {
     getTokenMock.mockResolvedValue({
-      sessionToken: 'session-1',
-      sessionTokenExpiry: NOW + 10 * MINUTE,
+      idToken: 'id-1',
+      idTokenExpiry: NOW + 10 * MINUTE,
     });
 
-    expect(await getSessionToken(req)).toBe('session-1');
+    expect(await getSessionToken(req)).toBe('id-1');
     expect(refreshSessionMock).not.toHaveBeenCalled();
   });
 
-  it('refreshes an expired session token for this request', async () => {
+  it('refreshes an expired ID token for this request', async () => {
     const token = {
-      sessionToken: 'session-1',
+      idToken: 'id-1',
       refreshToken: 'refresh-1',
-      sessionTokenExpiry: NOW - 1,
+      idTokenExpiry: NOW - 1,
       refreshTokenExpiry: NOW + 60 * MINUTE,
     };
     getTokenMock.mockResolvedValue(token);
-    refreshSessionMock.mockResolvedValue({ ...token, sessionToken: 'session-2' });
+    refreshSessionMock.mockResolvedValue({ ...token, idToken: 'id-2' });
 
-    expect(await getSessionToken(req)).toBe('session-2');
+    expect(await getSessionToken(req)).toBe('id-2');
     expect(refreshSessionMock).toHaveBeenCalledWith(token);
   });
 
-  it('returns null without calling RAGdoll when the refresh token has expired too', async () => {
+  it('returns null without calling Keycloak when the refresh token has expired too', async () => {
     getTokenMock.mockResolvedValue({
-      sessionToken: 'session-1',
-      sessionTokenExpiry: NOW - 1,
+      idToken: 'id-1',
+      idTokenExpiry: NOW - 1,
       refreshTokenExpiry: NOW - 1,
     });
 
@@ -93,11 +93,11 @@ describe('getSessionToken', () => {
 
   it('returns null when the refresh fails', async () => {
     getTokenMock.mockResolvedValue({
-      sessionToken: 'session-1',
-      sessionTokenExpiry: NOW - 1,
+      idToken: 'id-1',
+      idTokenExpiry: NOW - 1,
       refreshTokenExpiry: NOW + 60 * MINUTE,
     });
-    refreshSessionMock.mockRejectedValue(new Error('RAGdoll refresh failed: 401'));
+    refreshSessionMock.mockRejectedValue(new Error('Keycloak refresh failed: 400'));
 
     expect(await getSessionToken(req)).toBeNull();
   });

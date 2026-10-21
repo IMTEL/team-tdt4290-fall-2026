@@ -134,8 +134,7 @@ export type RagdollAgentSummary = {
 
 /** Creates an agent owned by the logged-in user and returns its new id. */
 export async function saveAgent(sessionToken: string, agent: NewRagdollAgent): Promise<string> {
-  // No `id` in the body: that is how RAGdoll knows to create, not update.
-  const data = await requestAsUser(sessionToken, '/update-agent/', {
+  const data = await requestAsUser(sessionToken, '/agents', {
     method: 'POST',
     body: JSON.stringify(agent),
   });
@@ -149,7 +148,7 @@ export async function saveAgent(sessionToken: string, agent: NewRagdollAgent): P
 
 /** Lists the agents the logged-in user owns or collaborates on. Throws RagdollError. */
 export async function listAgents(sessionToken: string): Promise<RagdollAgentSummary[]> {
-  const data = await requestAsUser(sessionToken, '/agents/');
+  const data = await requestAsUser(sessionToken, '/agents');
   if (!Array.isArray(data)) {
     throw new RagdollError('bad-response', 'RAGdoll did not return a list of agents');
   }
@@ -166,9 +165,8 @@ export async function fetchFullAgent(
   sessionToken: string,
   agentId: string,
 ): Promise<FullRagdollAgent> {
-  // Not /fetch-agent: it answers 401 both when the session has expired and when the agent is not
-  // the user's, or does not exist. The list only has the user's own agents, so we look there.
-  const data = await requestAsUser(sessionToken, '/agents/');
+  // The list only has the user's own agents, so an agent missing from it is not theirs.
+  const data = await requestAsUser(sessionToken, '/agents');
   if (!Array.isArray(data)) {
     throw new RagdollError('bad-response', 'RAGdoll did not return a list of agents');
   }
@@ -185,11 +183,14 @@ export async function updateAgent(
   sessionToken: string,
   agent: FullRagdollAgent,
 ): Promise<RagdollAgentSummary> {
-  // The `id` in the body tells RAGdoll to update that agent instead of creating a new one.
-  // Empty keys tell RAGdoll to keep the stored ones, so the keys never travel back.
-  const data = await requestAsUser(sessionToken, '/update-agent/', {
+  // Empty keys tell RAGdoll to keep the stored ones, so the keys never travel back. RAGdoll keeps
+  // the agent's access keys itself, and the list only gives us their metadata, so leave them out.
+  const fields: Record<string, unknown> = { ...agent };
+  delete fields.access_key;
+  const path = `/agents/${encodeURIComponent(agent.id)}`;
+  const data = await requestAsUser(sessionToken, path, {
     method: 'POST',
-    body: JSON.stringify({ ...agent, llm_api_key: '', embedding_api_key: '' }),
+    body: JSON.stringify({ ...fields, llm_api_key: '', embedding_api_key: '' }),
   });
 
   if (typeof (data as { id?: unknown }).id !== 'string') {
@@ -218,13 +219,14 @@ export async function listLanguageModels(sessionToken: string, idunKey: string):
 }
 
 /**
- * Gets a key to chat with one of the user's agents. RAGdoll reuses it while it is valid.
+ * Gets a key to chat with one of the user's agents. RAGdoll makes a new 24-hour key on every call.
  * Throws RagdollError.
  */
 export async function getChatAccessKey(sessionToken: string, agentId: string): Promise<string> {
   const data = await requestAsUser(
     sessionToken,
-    `/chat-access-key?agent_id=${encodeURIComponent(agentId)}`,
+    `/agents/${encodeURIComponent(agentId)}/accesskeys`,
+    { method: 'POST' },
   );
   const key = (data as { key?: unknown }).key;
   if (typeof key !== 'string') {
@@ -238,10 +240,7 @@ export async function getChatAccessKey(sessionToken: string, agentId: string): P
  * agent with its API keys, so only the role name is picked out. Throws RagdollError.
  */
 export async function getAgentRole(sessionToken: string, agentId: string): Promise<string | null> {
-  const data = await requestAsUser(
-    sessionToken,
-    `/fetch-agent?agent_id=${encodeURIComponent(agentId)}`,
-  );
+  const data = await requestAsUser(sessionToken, `/agents/${encodeURIComponent(agentId)}`);
   const roles = (data as { roles?: unknown }).roles;
   if (!Array.isArray(roles)) {
     throw new RagdollError('bad-response', 'RAGdoll did not return an agent with roles');
@@ -271,8 +270,8 @@ export async function isAgentOwner(sessionToken: string, agentId: string): Promi
 
 /** Deletes one of the logged-in user's own agents */
 export async function deleteAgent(sessionToken: string, agentId: string): Promise<void> {
-  const path = `/delete-agent?agent_id=${encodeURIComponent(agentId)}`;
-  await requestAsUser(sessionToken, path, {}, { allowEmpty: true });
+  const path = `/agents/${encodeURIComponent(agentId)}`;
+  await requestAsUser(sessionToken, path, { method: 'DELETE' }, { allowEmpty: true });
 }
 
 /** A template as RAGdoll stores it. RAGdoll does not read `content`; we decide its shape. */

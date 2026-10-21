@@ -11,7 +11,7 @@ export const keycloakRegister = (callbackUrl = '/') =>
 export async function handleSignOut() {
   let keycloakLogoutUrl: string | null = null;
   try {
-    // Revokes RAGdoll's session token and gives us the URL that ends the Keycloak session.
+    // Gives us the URL that ends the Keycloak session.
     const res = await fetch('/api/logout', { method: 'POST' });
     if (res.ok) ({ keycloakLogoutUrl } = await res.json());
   } catch (error) {

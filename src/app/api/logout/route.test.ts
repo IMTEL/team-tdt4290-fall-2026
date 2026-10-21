@@ -2,13 +2,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { NextRequest } from 'next/server';
 
-import { getSessionJwt, getSessionToken } from '@/lib/session-tokens';
+import { getSessionJwt } from '@/lib/session-tokens';
 import { POST } from './route';
 
 // Reading and refreshing the cookie has its own tests (src/lib/session-tokens.test.ts).
-vi.mock('@/lib/session-tokens', () => ({ getSessionJwt: vi.fn(), getSessionToken: vi.fn() }));
+vi.mock('@/lib/session-tokens', () => ({ getSessionJwt: vi.fn() }));
 
-const getSessionTokenMock = vi.mocked(getSessionToken);
 const getSessionJwtMock = vi.mocked(getSessionJwt);
 
 const logoutRequest = () => new NextRequest('http://localhost:3000/api/logout', { method: 'POST' });
@@ -23,35 +22,27 @@ describe('POST /api/logout', () => {
 
   beforeEach(() => {
     vi.stubGlobal('fetch', fetchMock);
-    vi.stubEnv('BACKEND_API_URL', 'https://ragdoll.example/');
     vi.stubEnv('KEYCLOAK_ISSUER', 'https://keycloak.example/realms/iac/');
     vi.stubEnv('KEYCLOAK_CLIENT_ID', 'iac-frontend');
     vi.stubEnv('NEXTAUTH_URL', 'https://iac.example');
-    fetchMock.mockResolvedValue(new Response(null, { status: 204 }));
   });
 
   afterEach(() => {
     vi.unstubAllGlobals();
     vi.unstubAllEnvs();
-    vi.restoreAllMocks();
     fetchMock.mockReset();
-    getSessionTokenMock.mockReset();
     getSessionJwtMock.mockReset();
   });
 
-  it("revokes RAGdoll's session token", async () => {
-    getSessionTokenMock.mockResolvedValue('session-1');
+  it('does not call RAGdoll, which keeps no session of its own', async () => {
+    getSessionJwtMock.mockResolvedValue({ idToken: 'keycloak-id-token' });
 
     await POST(logoutRequest());
 
-    expect(fetchMock).toHaveBeenCalledWith('https://ragdoll.example/api/logout', {
-      headers: { Authorization: 'Bearer session-1' },
-      cache: 'no-store',
-    });
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it('returns the Keycloak logout URL with the ID token hint and a way back to /login', async () => {
-    getSessionTokenMock.mockResolvedValue('session-1');
     getSessionJwtMock.mockResolvedValue({ idToken: 'keycloak-id-token' });
 
     const res = await POST(logoutRequest());
@@ -67,7 +58,6 @@ describe('POST /api/logout', () => {
   });
 
   it('sends the client id instead when there is no ID token', async () => {
-    getSessionTokenMock.mockResolvedValue(null);
     getSessionJwtMock.mockResolvedValue(null);
 
     const url = await keycloakLogoutUrl(await POST(logoutRequest()));
@@ -85,29 +75,8 @@ describe('POST /api/logout', () => {
     expect(url?.searchParams.get('post_logout_redirect_uri')).toBe('http://localhost:3000/login');
   });
 
-  it('does not call RAGdoll when the user has no session token', async () => {
-    getSessionTokenMock.mockResolvedValue(null);
-
-    await POST(logoutRequest());
-
-    expect(fetchMock).not.toHaveBeenCalled();
-  });
-
-  it('still ends the Keycloak session when RAGdoll cannot be reached', async () => {
-    vi.spyOn(console, 'warn').mockImplementation(() => {});
-    getSessionTokenMock.mockResolvedValue('session-1');
-    getSessionJwtMock.mockResolvedValue({ idToken: 'keycloak-id-token' });
-    fetchMock.mockRejectedValue(new TypeError('fetch failed'));
-
-    const res = await POST(logoutRequest());
-
-    expect(res.status).toBe(200);
-    expect(await keycloakLogoutUrl(res)).not.toBeNull();
-  });
-
   it('returns no Keycloak URL when KEYCLOAK_ISSUER is not set', async () => {
     vi.stubEnv('KEYCLOAK_ISSUER', undefined);
-    getSessionTokenMock.mockResolvedValue(null);
 
     const res = await POST(logoutRequest());
 
