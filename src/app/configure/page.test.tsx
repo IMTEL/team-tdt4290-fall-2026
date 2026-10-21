@@ -4,6 +4,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import ConfigurePage, { metadata } from './page';
 
+const { push } = vi.hoisted(() => ({ push: vi.fn() }));
+
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ push }),
+}));
+
 const fetchMock = vi.fn<typeof fetch>();
 
 const profile = {
@@ -41,6 +47,7 @@ afterEach(() => {
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
   fetchMock.mockReset();
+  push.mockReset();
 });
 
 async function renderPage(type?: string, step?: string) {
@@ -224,6 +231,70 @@ describe('/configure', () => {
 
     expect(screen.getByRole('heading', { level: 2, name: 'Fullføre' })).toBeVisible();
     expect(screen.getByRole('button', { name: 'Publiser' })).toBeVisible();
+  });
+
+  it('saves the interviewer from the last step and opens the test with that agent', async () => {
+    const savedAgent = {
+      id: 'agent-1',
+      name: 'Intervjuer for Barnehageassistent',
+      description: '{}',
+      lastUpdated: '2026-10-21T00:00:00.000Z',
+      llmModel: 'openai/gpt-oss-120b',
+      temperature: 0.7,
+      prompt: 'Du er en intervjuer',
+    };
+    fetchMock.mockImplementation(async (url, init) => {
+      const path = String(url);
+      const method = init?.method ?? 'GET';
+      if (path === '/api/agents' && method === 'POST') return Response.json({ id: 'agent-1' });
+      if (path === '/api/agents/agent-1' && method === 'PUT') {
+        return Response.json({ agent: savedAgent });
+      }
+      if (path === '/api/profiles') return Response.json({ profiles: [] });
+      return Response.json({ templates: [] });
+    });
+
+    const user = await openAsInterviewer();
+    await pickTemplate(user, /Teamleder/);
+    await skipProfile(user);
+    await skipSettings(user);
+
+    expect(screen.getByRole('textbox', { name: 'Navn på agenten' })).toHaveValue(
+      'Intervjuer for Barnehageassistent',
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Publiser' }));
+
+    expect(await screen.findByText(/er lagret/)).toBeVisible();
+    const post = fetchMock.mock.calls.find(
+      ([url, init]) => String(url) === '/api/agents' && init?.method === 'POST',
+    );
+    const body = JSON.parse(String(post?.[1]?.body));
+    expect(body).toMatchObject({
+      name: 'Intervjuer for Barnehageassistent',
+      type: 'interviewer',
+      avatar: null,
+      sources: { intervjuer: { kind: 'template', id: 'teamleder' } },
+      configuration: {
+        intervjutype: 'første intervju',
+        bedrift: 'ikke oppgitt',
+        egneSporsmal: 'ingen',
+        bransje: 'Helse og omsorg (offentlig)',
+        vanskelighetsgrad: 'lett | Antall spørsmål: 5–6 | Oppfølgingsspørsmål: ja',
+        jobbsoker: 'ingen opplysninger om jobbsøkeren',
+      },
+    });
+    expect(body.configuration.stilling).toContain('Barnehageassistent.');
+    expect(body.configuration.intervjuer).toContain('teamleder');
+
+    await user.click(screen.getByRole('button', { name: 'Test agenten' }));
+
+    await waitFor(() => expect(push).toHaveBeenCalledWith('/test-chat?agent=agent-1'));
+    expect(
+      fetchMock.mock.calls.some(
+        ([url, init]) => String(url) === '/api/agents/agent-1' && init?.method === 'PUT',
+      ),
+    ).toBe(true);
   });
 
   it('goes back from the last step to the settings', async () => {

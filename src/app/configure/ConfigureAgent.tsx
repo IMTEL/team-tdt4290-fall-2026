@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import Button from '@mui/material/Button';
 import Step from '@mui/material/Step';
 import StepLabel from '@mui/material/StepLabel';
@@ -20,13 +21,16 @@ import {
   listAccessibleAgentTypes,
   listPlannedAgentTypes,
 } from '@/domain/agentTypes/registry';
+import type { AdvancedSettings } from '@/domain/advancedSettings';
 import type { AgentTypeDefinition } from '@/domain/agentTypes/types';
 import type { JobSeekerProfile } from '@/domain/jobSeekerProfile';
-import { fetchSavedTemplates } from './api';
+import { updateAgent } from '../browse-agents/api';
+import { fetchSavedTemplates, saveConfiguredAgent } from './api';
 import { ConfigurationChat } from './ConfigurationChat';
 import { JobSeekerStep } from './JobSeekerStep';
 import { EMPTY_INTERVIEW_SETTINGS, SettingsStep, type InterviewSettings } from './SettingsStep';
 import { StillingStep, WizardFrame, type Workplace } from './StillingStep';
+import { suggestedAgentName, wizardConfiguration } from './wizardConfiguration';
 import styles from './page.module.css';
 import stepStyles from './StillingStep.module.css';
 
@@ -72,6 +76,13 @@ export function ConfigureAgent({
   const [settings, setSettings] = useState<InterviewSettings>(EMPTY_INTERVIEW_SETTINGS);
   // Null is the default image, chosen until the counsellor picks another.
   const [avatar, setAvatar] = useState<string | null>(null);
+  const [nameEdited, setNameEdited] = useState(false);
+  const [agentName, setAgentName] = useState('');
+  const [savedAgent, setSavedAgent] = useState<{ id: string; name: string } | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const savingLock = useRef(false);
+  const router = useRouter();
   // For a type with a profile but no template, where no template card moves the counsellor on.
   const [presetsDone, setPresetsDone] = useState(false);
   // Which interviewer screen is open. 0 stilling, 1 intervjuer, 2 jobbsøker, 3 innstillinger, 4 fullføre.
@@ -128,6 +139,11 @@ export function ConfigureAgent({
     setProfilesLoaded(false);
     setSettings(EMPTY_INTERVIEW_SETTINGS);
     setAvatar(null);
+    setNameEdited(false);
+    setAgentName('');
+    setSavedAgent(null);
+    setSaving(false);
+    setSaveError(null);
     setPresetsDone(false);
     setWizardStep(0);
     setFurthestStep(0);
@@ -138,6 +154,66 @@ export function ConfigureAgent({
   function goTo(index: number) {
     setWizardStep(index);
     setFurthestStep((reached) => Math.max(reached, index));
+  }
+
+  const name = nameEdited ? agentName : suggestedAgentName(workplace.jobTitle);
+
+  /** Creates the agent, or updates it when this wizard has already saved one. */
+  async function persist(): Promise<string | null> {
+    if (!definition || savingLock.current) return savedAgent?.id ?? null;
+    const trimmed = name.trim();
+    if (!trimmed) {
+      setSaveError('Agenten trenger et navn.');
+      return null;
+    }
+    const built = wizardConfiguration({
+      workplace,
+      interviewer: choice ?? null,
+      profile: profiles.find((item) => item.id === profileId) ?? null,
+      settings,
+    });
+    if (!built) {
+      setSaveError('Noen obligatoriske felt mangler. Gå tilbake og fyll dem ut.');
+      return null;
+    }
+
+    savingLock.current = true;
+    setSaving(true);
+    setSaveError(null);
+    const advanced: AdvancedSettings = {
+      model: settings.model,
+      temperature: settings.temperature,
+      customPrompt: settings.customPrompt?.trim() ? settings.customPrompt : null,
+    };
+    try {
+      const id = savedAgent
+        ? (
+            await updateAgent(
+              savedAgent.id,
+              trimmed,
+              built.answers,
+              built.sources,
+              advanced,
+              avatar,
+            )
+          ).id
+        : await saveConfiguredAgent(
+            trimmed,
+            definition,
+            built.answers,
+            built.sources,
+            advanced,
+            avatar,
+          );
+      setSavedAgent({ id, name: trimmed });
+      return id;
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : 'Noe gikk galt. Prøv igjen.');
+      return null;
+    } finally {
+      savingLock.current = false;
+      setSaving(false);
+    }
   }
 
   if (!definition) {
@@ -293,6 +369,22 @@ export function ConfigureAgent({
         }}
         avatar={avatar}
         onAvatarChange={setAvatar}
+        name={name}
+        onNameChange={(next) => {
+          setNameEdited(true);
+          setAgentName(next);
+        }}
+        saving={saving}
+        saved={savedAgent}
+        saveError={saveError}
+        onSave={() => {
+          void persist();
+        }}
+        onTest={() => {
+          void persist().then((id) => {
+            if (id) router.push(`/test-chat?agent=${encodeURIComponent(id)}`);
+          });
+        }}
         onBack={() => goTo(2)}
         onFinishBack={() => goTo(3)}
         onNext={() => goTo(4)}

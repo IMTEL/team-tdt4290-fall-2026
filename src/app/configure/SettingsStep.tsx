@@ -73,6 +73,13 @@ type SettingsStepProps = {
   /** Null is the default image. */
   avatar: string | null;
   onAvatarChange: (avatar: string | null) => void;
+  name: string;
+  onNameChange: (name: string) => void;
+  saving: boolean;
+  saved: { id: string; name: string } | null;
+  saveError: string | null;
+  onSave: () => void;
+  onTest: () => void;
   /** Opens an earlier section from the list on the side. */
   onGoTo?: (index: number) => void;
   reached?: number;
@@ -91,6 +98,13 @@ export function SettingsStep({
   overview,
   avatar,
   onAvatarChange,
+  name,
+  onNameChange,
+  saving,
+  saved,
+  saveError,
+  onSave,
+  onTest,
   reached,
 }: SettingsStepProps) {
   const languageModels = useLanguageModels(value.model);
@@ -112,6 +126,13 @@ export function SettingsStep({
           onBack={onFinishBack}
           avatar={avatar}
           onAvatarChange={onAvatarChange}
+          name={name}
+          onNameChange={onNameChange}
+          saving={saving}
+          saved={saved}
+          error={saveError}
+          onSave={onSave}
+          onTest={onTest}
         />
       }
       details={expanded ? configurationLines(overview) : undefined}

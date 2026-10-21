@@ -1,10 +1,14 @@
 'use client';
 
 import type { ReactNode } from 'react';
+import Link from 'next/link';
+import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
+import TextField from '@mui/material/TextField';
 
 import { AvatarPicker } from '@/components/agents/AvatarPicker';
 import { formatTemperature } from '@/domain/advancedSettings';
+import { MAX_NAME_LENGTH } from '@/domain/agentName';
 import { SECTOR_LABELS } from '@/data/industry-templates';
 import type { IndustryTemplate } from '@/data/industry-templates';
 import stepStyles from './StillingStep.module.css';
@@ -95,13 +99,30 @@ export function FinishActions({
   onBack,
   avatar,
   onAvatarChange,
+  name,
+  onNameChange,
+  saving,
+  saved,
+  error,
+  onSave,
+  onTest,
 }: {
   intro: ReactNode;
   onBack: () => void;
   /** Null is the default image, which starts out chosen. */
   avatar: string | null;
   onAvatarChange: (avatar: string | null) => void;
+  name: string;
+  onNameChange: (name: string) => void;
+  saving: boolean;
+  /** Set once the agent exists, so a later save updates that agent. */
+  saved: { id: string; name: string } | null;
+  error: string | null;
+  onSave: () => void;
+  onTest: () => void;
 }) {
+  const canSave = name.trim() !== '' && !saving;
+
   return (
     <div className={stepStyles.finishActions}>
       {intro}
@@ -109,20 +130,37 @@ export function FinishActions({
       <p className={stepStyles.hint}>Trykk på et steg over for å endre det som står der.</p>
       <div className={stepStyles.avatars}>
         <p className={stepStyles.avatarLabel}>Velg en avatar for intervjueren</p>
-        <AvatarPicker value={avatar} onChange={onAvatarChange} />
+        <AvatarPicker value={avatar} onChange={onAvatarChange} disabled={saving} />
       </div>
+      <TextField
+        label="Navn på agenten"
+        value={name}
+        onChange={(event) => onNameChange(event.target.value)}
+        required
+        fullWidth
+        disabled={saving}
+        helperText={`${name.length}/${MAX_NAME_LENGTH} tegn`}
+        slotProps={{ htmlInput: { maxLength: MAX_NAME_LENGTH } }}
+      />
+      {saved && (
+        <Alert severity="success">
+          «{saved.name}» er lagret.{' '}
+          <Link href={`/browse-agents/${saved.id}`}>Se agenten</Link>
+        </Alert>
+      )}
+      {error && <Alert severity="error">{error}</Alert>}
       <div className={stepStyles.finishButtons}>
-        <Button type="button" variant="contained">
-          Publiser
+        <Button type="button" variant="contained" onClick={onSave} disabled={!canSave}>
+          {saving ? 'Lagrer …' : 'Publiser'}
         </Button>
-        <Button type="button" variant="outlined">
-          Lagre som utkast
+        <Button type="button" variant="outlined" onClick={onSave} disabled={!canSave}>
+          {saving ? 'Lagrer …' : 'Lagre som utkast'}
         </Button>
-        <Button type="button" variant="outlined">
-          Test agenten
+        <Button type="button" variant="outlined" onClick={onTest} disabled={!canSave}>
+          {saving ? 'Lagrer …' : 'Test agenten'}
         </Button>
         <div className={stepStyles.back}>
-          <Button type="button" onClick={onBack}>
+          <Button type="button" onClick={onBack} disabled={saving}>
             Gå tilbake
           </Button>
         </div>
