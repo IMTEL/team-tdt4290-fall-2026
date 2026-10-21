@@ -3,6 +3,7 @@
 import type { ReactNode } from 'react';
 import Button from '@mui/material/Button';
 
+import { AvatarPicker } from '@/components/agents/AvatarPicker';
 import { formatTemperature } from '@/domain/advancedSettings';
 import { SECTOR_LABELS } from '@/data/industry-templates';
 import type { IndustryTemplate } from '@/data/industry-templates';
@@ -89,12 +90,27 @@ export function configurationLines(overview: FinishOverview): { label: string; v
 }
 
 /** The controls that appear under the section card when it opens into the last step. */
-export function FinishActions({ intro, onBack }: { intro: ReactNode; onBack: () => void }) {
+export function FinishActions({
+  intro,
+  onBack,
+  avatar,
+  onAvatarChange,
+}: {
+  intro: ReactNode;
+  onBack: () => void;
+  /** Null is the default image, which starts out chosen. */
+  avatar: string | null;
+  onAvatarChange: (avatar: string | null) => void;
+}) {
   return (
     <div className={stepStyles.finishActions}>
       {intro}
       <h2 className={stepStyles.question}>Fullføre</h2>
       <p className={stepStyles.hint}>Trykk på et steg over for å endre det som står der.</p>
+      <div className={stepStyles.avatars}>
+        <p className={stepStyles.avatarLabel}>Velg en avatar for intervjueren</p>
+        <AvatarPicker value={avatar} onChange={onAvatarChange} />
+      </div>
       <div className={stepStyles.finishButtons}>
         <Button type="button" variant="contained">
           Publiser

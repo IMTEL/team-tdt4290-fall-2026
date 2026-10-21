@@ -70,6 +70,9 @@ type SettingsStepProps = {
   /** Closes the last step and shows the settings form again. */
   onFinishBack?: () => void;
   overview: FinishOverview;
+  /** Null is the default image. */
+  avatar: string | null;
+  onAvatarChange: (avatar: string | null) => void;
   /** Opens an earlier section from the list on the side. */
   onGoTo?: (index: number) => void;
   reached?: number;
@@ -86,6 +89,8 @@ export function SettingsStep({
   expanded = false,
   onFinishBack = () => {},
   overview,
+  avatar,
+  onAvatarChange,
   reached,
 }: SettingsStepProps) {
   const languageModels = useLanguageModels(value.model);
@@ -101,7 +106,14 @@ export function SettingsStep({
       onGoTo={onGoTo}
       reached={reached}
       expanded={expanded}
-      more={<FinishActions intro={intro} onBack={onFinishBack} />}
+      more={
+        <FinishActions
+          intro={intro}
+          onBack={onFinishBack}
+          avatar={avatar}
+          onAvatarChange={onAvatarChange}
+        />
+      }
       details={expanded ? configurationLines(overview) : undefined}
     >
       <form

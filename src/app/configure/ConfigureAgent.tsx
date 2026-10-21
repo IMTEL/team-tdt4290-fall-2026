@@ -70,6 +70,8 @@ export function ConfigureAgent({
   const [profilesLoaded, setProfilesLoaded] = useState(false);
   const [profileId, setProfileId] = useState('');
   const [settings, setSettings] = useState<InterviewSettings>(EMPTY_INTERVIEW_SETTINGS);
+  // Null is the default image, chosen until the counsellor picks another.
+  const [avatar, setAvatar] = useState<string | null>(null);
   // For a type with a profile but no template, where no template card moves the counsellor on.
   const [presetsDone, setPresetsDone] = useState(false);
   // Which interviewer screen is open. 0 stilling, 1 intervjuer, 2 jobbsøker, 3 innstillinger, 4 fullføre.
@@ -125,6 +127,7 @@ export function ConfigureAgent({
     setProfileId('');
     setProfilesLoaded(false);
     setSettings(EMPTY_INTERVIEW_SETTINGS);
+    setAvatar(null);
     setPresetsDone(false);
     setWizardStep(0);
     setFurthestStep(0);
@@ -288,6 +291,8 @@ export function ConfigureAgent({
           profileLabel: profiles.find((item) => item.id === profileId)?.label ?? null,
           settings,
         }}
+        avatar={avatar}
+        onAvatarChange={setAvatar}
         onBack={() => goTo(2)}
         onFinishBack={() => goTo(3)}
         onNext={() => goTo(4)}

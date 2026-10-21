@@ -205,6 +205,7 @@ describe('/configure', () => {
     expect(screen.getByRole('button', { name: 'Publiser' })).toBeVisible();
     expect(screen.getByRole('button', { name: 'Lagre som utkast' })).toBeVisible();
     expect(screen.getByRole('button', { name: 'Test agenten' })).toBeVisible();
+    expect(screen.getByRole('radio', { name: 'Standard' })).toBeChecked();
     expect(screen.getByText('Teamleder')).toBeVisible();
     expect(screen.queryByRole('heading', { name: 'Velg en bransjemal' })).not.toBeInTheDocument();
 
@@ -253,6 +254,13 @@ describe('/configure', () => {
     await user.click(screen.getByRole('button', { name: 'Fullføre' }));
 
     expect(screen.getByRole('heading', { level: 2, name: 'Fullføre' })).toBeVisible();
+    await user.click(screen.getByRole('radio', { name: 'Rev' }));
+    expect(screen.getByRole('radio', { name: 'Rev' })).toBeChecked();
+
+    await user.click(screen.getByRole('button', { name: 'Stilling og arbeidsplass' }));
+    await user.click(screen.getByRole('button', { name: 'Fullføre' }));
+
+    expect(screen.getByRole('radio', { name: 'Rev' })).toBeChecked();
 
     await user.click(screen.getByRole('button', { name: 'Intervjuer' }));
 
