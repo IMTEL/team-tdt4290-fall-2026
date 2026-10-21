@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
-import { describeJobSeeker, parseOtherPractice, summarizeProfile, type JobSeekerProfile } from './jobSeekerProfile';
+import {
+  describeJobSeeker,
+  parseOtherPractice,
+  summarizeProfile,
+  type JobSeekerProfile,
+} from './jobSeekerProfile';
 
 const profile: JobSeekerProfile = {
   id: 'profile-1',

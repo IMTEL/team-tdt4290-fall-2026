@@ -128,9 +128,7 @@ describe('wizardConfiguration', () => {
       draft({ practiceAreas: ['Mestre nervøsitet', 'turnus', 'lønn og vilkår'] }),
     );
 
-    expect(saved?.answers.jobbsoker).toBe(
-      'vil øve på: mestre nervøsitet, turnus, lønn og vilkår',
-    );
+    expect(saved?.answers.jobbsoker).toBe('vil øve på: mestre nervøsitet, turnus, lønn og vilkår');
   });
 
   it('refuses to build answers while a required choice is missing', () => {
