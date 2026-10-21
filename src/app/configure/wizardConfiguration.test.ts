@@ -41,9 +41,7 @@ function draft(overrides: Partial<WizardDraft> = {}): WizardDraft {
 
 describe('suggestedAgentName', () => {
   it('uses the job title', () => {
-    expect(suggestedAgentName('  Barnehageassistent  ')).toBe(
-      'Intervjuer for Barnehageassistent',
-    );
+    expect(suggestedAgentName('  Barnehageassistent  ')).toBe('Intervjuer for Barnehageassistent');
   });
 
   it('has a name even before a job title is written', () => {
@@ -63,7 +61,8 @@ describe('wizardConfiguration', () => {
       bedrift: 'ikke oppgitt',
       intervjutype: 'første intervju',
       intervjuer: interviewer?.persona,
-      jobbsoker: 'aldersgruppe 18–24 år; arbeidserfaring: litt (under 1 år); vil øve på: mestre nervøsitet',
+      jobbsoker:
+        'aldersgruppe 18–24 år; arbeidserfaring: litt (under 1 år); vil øve på: mestre nervøsitet',
       vanskelighetsgrad: 'lett | Antall spørsmål: 5–6 | Oppfølgingsspørsmål: ja',
       egneSporsmal: 'ingen',
       tillegg: '',
@@ -77,7 +76,13 @@ describe('wizardConfiguration', () => {
   it('keeps a written company, questions and the number after 10+', () => {
     const saved = wizardConfiguration(
       draft({
-        workplace: { ...workplace, templateId: NO_TEMPLATE, industry: NO_TEMPLATE, sector: 'ikke-oppgitt', company: '  Solsiden  ' },
+        workplace: {
+          ...workplace,
+          templateId: NO_TEMPLATE,
+          industry: NO_TEMPLATE,
+          sector: 'ikke-oppgitt',
+          company: '  Solsiden  ',
+        },
         settings: {
           ...settings,
           questionCount: '10+',
@@ -104,7 +109,9 @@ describe('wizardConfiguration', () => {
   it('refuses to build answers while a required choice is missing', () => {
     expect(wizardConfiguration(draft({ workplace: { ...workplace, jobTitle: '  ' } }))).toBeNull();
     expect(
-      wizardConfiguration(draft({ settings: { ...settings, questionCount: '10+', questionCountDetail: '' } })),
+      wizardConfiguration(
+        draft({ settings: { ...settings, questionCount: '10+', questionCountDetail: '' } }),
+      ),
     ).toBeNull();
     expect(wizardConfiguration(draft({ settings: { ...settings, followUp: null } }))).toBeNull();
   });

@@ -144,8 +144,7 @@ export function FinishActions({
       />
       {saved && (
         <Alert severity="success">
-          «{saved.name}» er lagret.{' '}
-          <Link href={`/browse-agents/${saved.id}`}>Se agenten</Link>
+          «{saved.name}» er lagret. <Link href={`/browse-agents/${saved.id}`}>Se agenten</Link>
         </Alert>
       )}
       {error && <Alert severity="error">{error}</Alert>}
