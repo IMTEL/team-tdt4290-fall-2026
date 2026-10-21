@@ -45,6 +45,27 @@
   font-weight: 600;
 }
 
+.chosen,
+.chosen .action {
+  background: var(--primary) !important;
+  color: var(--primary-foreground) !important;
+  border-color: var(--primary) !important;
+}
+
+.chosen .description,
+.chosen .title {
+  color: var(--primary-foreground);
+}
+
+.chosen :global(.MuiChip-root) {
+  background: color-mix(in oklch, var(--primary-foreground) 18%, transparent) !important;
+  color: var(--primary-foreground) !important;
+}
+
+.chosen .edit {
+  color: var(--primary-foreground) !important;
+}
+
 .meta {
   font-size: 0.875rem;
   font-weight: 500;

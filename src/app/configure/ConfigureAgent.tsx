@@ -69,13 +69,15 @@ export function ConfigureAgent({
   const [profiles, setProfiles] = useState<JobSeekerProfile[]>([]);
   const [profilesLoaded, setProfilesLoaded] = useState(false);
   const [profileId, setProfileId] = useState('');
-  const [profileDone, setProfileDone] = useState(false);
   const [settings, setSettings] = useState<InterviewSettings>(EMPTY_INTERVIEW_SETTINGS);
-  const [settingsDone, setSettingsDone] = useState(false);
   // For a type with a profile but no template, where no template card moves the counsellor on.
   const [presetsDone, setPresetsDone] = useState(false);
-  const [workplaceDone, setWorkplaceDone] = useState(
-    initialTypeId === 'interviewer' && initialStep === 'intervjuer',
+  // Which interviewer screen is open. 0 stilling, 1 intervjuer, 2 jobbsøker, 3 innstillinger, 4 fullføre.
+  const [wizardStep, setWizardStep] = useState(
+    initialTypeId === 'interviewer' && initialStep === 'intervjuer' ? 1 : 0,
+  );
+  const [furthestStep, setFurthestStep] = useState(
+    initialTypeId === 'interviewer' && initialStep === 'intervjuer' ? 1 : 0,
   );
   const [workplace, setWorkplace] = useState<Workplace>({
     jobTitle: '',
@@ -122,12 +124,17 @@ export function ConfigureAgent({
     setIndustry(undefined);
     setProfileId('');
     setProfilesLoaded(false);
-    setProfileDone(false);
     setSettings(EMPTY_INTERVIEW_SETTINGS);
-    setSettingsDone(false);
     setPresetsDone(false);
-    setWorkplaceDone(false);
+    setWizardStep(0);
+    setFurthestStep(0);
     setWorkplace({ jobTitle: '', templateId: null, industry: '', sector: null, company: '' });
+  }
+
+  /** Moves to a section and remembers the furthest one, so it can be opened again. */
+  function goTo(index: number) {
+    setWizardStep(index);
+    setFurthestStep((reached) => Math.max(reached, index));
   }
 
   if (!definition) {
@@ -196,25 +203,29 @@ export function ConfigureAgent({
   const template = usesTemplates ? (choice ?? null) : null;
   const choosingPresets = usesTemplates ? choice === undefined : usesProfiles && !presetsDone;
 
-  if (definition.id === 'interviewer' && !workplaceDone) {
+  if (definition.id === 'interviewer' && wizardStep <= 0) {
     return (
       <StillingStep
         value={workplace}
         templates={industryTemplates}
         onChange={setWorkplace}
-        onNext={() => setWorkplaceDone(true)}
+        onNext={() => goTo(1)}
+        onGoTo={goTo}
+        reached={furthestStep}
       />
     );
   }
 
-  if (choosingPresets && definition.id === 'interviewer') {
+  if (definition.id === 'interviewer' && wizardStep === 1) {
     return (
-      <WizardFrame current={1}>
+      <WizardFrame current={1} onGoTo={goTo} reached={furthestStep}>
         <div className={stepStyles.form}>
           {chosenType}
           {usesIndustries && industry !== undefined && chosenIndustry}
           <TemplatePicker
             embedded
+            asRadios
+            selectedId={choice ? choice.id : null}
             templates={builtInTemplates(definition.id)}
             savedTemplates={saved}
             agentType={definition.id}
@@ -234,11 +245,53 @@ export function ConfigureAgent({
               Lag en ny mal
             </Button>
             <div className={stepStyles.nav}>
-              <Button onClick={() => setWorkplaceDone(false)}>Tilbake</Button>
+              <Button onClick={() => goTo(0)}>Tilbake</Button>
+              <Button variant="contained" onClick={() => goTo(2)}>
+                Neste
+              </Button>
             </div>
           </div>
         </div>
       </WizardFrame>
+    );
+  }
+
+  if (definition.id === 'interviewer' && wizardStep === 2) {
+    return (
+      <JobSeekerStep
+        profiles={profiles}
+        loading={!profilesLoaded}
+        intro={chosenType}
+        onGoTo={goTo}
+        reached={furthestStep}
+        onSelect={setProfileId}
+        selectedId={profileId}
+        onNext={() => goTo(3)}
+        onBack={() => goTo(1)}
+      />
+    );
+  }
+
+  if (definition.id === 'interviewer' && (wizardStep === 3 || wizardStep === 4)) {
+    return (
+      <SettingsStep
+        value={settings}
+        onChange={setSettings}
+        intro={chosenType}
+        onGoTo={goTo}
+        reached={furthestStep}
+        expanded={wizardStep === 4}
+        overview={{
+          workplace,
+          jobTemplates: industryTemplates,
+          interviewerTitle: choice ? choice.title : null,
+          profileLabel: profiles.find((item) => item.id === profileId)?.label ?? null,
+          settings,
+        }}
+        onBack={() => goTo(2)}
+        onFinishBack={() => goTo(3)}
+        onNext={() => goTo(4)}
+      />
     );
   }
 
@@ -298,7 +351,6 @@ export function ConfigureAgent({
         onClick={() => {
           setChoice(undefined);
           setPresetsDone(false);
-          setProfileDone(false);
         }}
       >
         {usesTemplates && usesProfiles
@@ -309,33 +361,6 @@ export function ConfigureAgent({
       </Button>
     </div>
   );
-
-  if (definition.id === 'interviewer' && usesProfiles && !profileDone) {
-    return (
-      <JobSeekerStep
-        profiles={profiles}
-        loading={!profilesLoaded}
-        intro={chosenType}
-        onSelect={(id) => {
-          setProfileId(id);
-          setProfileDone(true);
-        }}
-        onBack={() => setChoice(undefined)}
-      />
-    );
-  }
-
-  if (definition.id === 'interviewer' && !settingsDone) {
-    return (
-      <SettingsStep
-        value={settings}
-        onChange={setSettings}
-        intro={chosenType}
-        onBack={() => setProfileDone(false)}
-        onNext={() => setSettingsDone(true)}
-      />
-    );
-  }
 
   if (usesIndustries && industry === undefined) {
     return (

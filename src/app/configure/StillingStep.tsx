@@ -13,7 +13,7 @@ import styles from './StillingStep.module.css';
 /** How many job suggestions sit next to «Se alle maler». */
 const SUGGESTION_COUNT = 5;
 
-const SECTIONS = [
+export const SECTIONS = [
   'Stilling og arbeidsplass',
   'Intervjuer',
   'Jobbsøker',
@@ -36,6 +36,9 @@ type StillingStepProps = {
   templates: IndustryTemplate[];
   onChange: (value: Workplace) => void;
   onNext: () => void;
+  /** Opens a section the counsellor has already been to. */
+  onGoTo?: (index: number) => void;
+  reached?: number;
 };
 
 function industriesOf(templates: IndustryTemplate[]): string[] {
@@ -45,7 +48,27 @@ function industriesOf(templates: IndustryTemplate[]): string[] {
 }
 
 /** The shared frame: title, and the section list down the side. `current` is the open section. */
-export function WizardFrame({ current, children }: { current: number; children: ReactNode }) {
+export function WizardFrame({
+  current,
+  onGoTo,
+  reached,
+  details,
+  expanded = false,
+  more,
+  children,
+}: {
+  current: number;
+  /** Opens a section the counsellor has already been to. */
+  onGoTo?: (index: number) => void;
+  /** The furthest section opened, so it can be jumped back to. */
+  reached?: number;
+  /** Values shown under each section dot on the last step. */
+  details?: { label: string; value: string }[][];
+  /** The same side card, a little wider, with `more` shown under the progress. */
+  expanded?: boolean;
+  more?: ReactNode;
+  children: ReactNode;
+}) {
   const done = Math.min(current, SECTIONS.length);
 
   return (
@@ -60,29 +83,19 @@ export function WizardFrame({ current, children }: { current: number; children: 
         Svar på noen få spørsmål. Du ser agenten ta form til høyre mens du går.
       </p>
 
-      <div className={styles.layout}>
-        {children}
+      <div className={expanded ? `${styles.layout} ${styles.layoutExpanded}` : styles.layout}>
+        <div className={styles.formSlot} inert={expanded || undefined} aria-hidden={expanded || undefined}>
+          {children}
+        </div>
         <aside className={styles.side} aria-label="Seksjoner">
           <p className={styles.sideLabel}>Seksjoner</p>
-          <ol className={styles.sections}>
-            {SECTIONS.map((section, index) => (
-              <li
-                key={section}
-                className={index === current ? styles.current : undefined}
-                aria-current={index === current ? 'step' : undefined}
-              >
-                <span
-                  className={index < current ? styles.doneMark : styles.mark}
-                  aria-hidden="true"
-                />
-                {section}
-              </li>
-            ))}
-          </ol>
-          <div className={styles.draft}>
-            <Button type="button" variant="outlined" fullWidth>
-              Lagre utkast
-            </Button>
+          <SectionMenu current={current} onGoTo={onGoTo} reached={reached} details={details} />
+          <div className={styles.draft} inert={expanded || undefined} aria-hidden={expanded || undefined}>
+            <div className={styles.clip}>
+              <Button type="button" variant="outlined" fullWidth>
+                Lagre utkast
+              </Button>
+            </div>
           </div>
           <p className={styles.count}>
             {done} av {SECTIONS.length} seksjoner
@@ -93,9 +106,72 @@ export function WizardFrame({ current, children }: { current: number; children: 
               style={{ width: done === 0 ? '0.6rem' : `${(done / SECTIONS.length) * 100}%` }}
             />
           </div>
+          <div className={expanded ? `${styles.extra} ${styles.extraOpen}` : styles.extra}>
+            <div className={styles.clip} inert={expanded ? undefined : true} aria-hidden={expanded ? undefined : true}>
+              {more}
+            </div>
+          </div>
         </aside>
       </div>
     </div>
+  );
+}
+
+/** The section list. A check means the step is behind you. Steps already opened can be jumped to. */
+export function SectionMenu({
+  current,
+  onGoTo,
+  reached,
+  details,
+  className,
+}: {
+  current: number;
+  onGoTo?: (index: number) => void;
+  /** The furthest section the counsellor has opened. Later ones stay locked. */
+  reached?: number;
+  /** Values shown under each section dot. Only used on the last step. */
+  details?: { label: string; value: string }[][];
+  className?: string;
+}) {
+  const furthest = reached ?? current;
+  return (
+    <ol className={className ? `${styles.sections} ${className}` : styles.sections}>
+      {SECTIONS.map((section, index) => {
+        const open = Boolean(onGoTo) && index !== current && index <= furthest;
+        const done = index < current;
+        const mark = done ? styles.doneMark : styles.mark;
+        const lines = details?.[index] ?? [];
+        return (
+          <li
+            key={section}
+            className={index === current ? styles.current : undefined}
+            aria-current={index === current ? 'step' : undefined}
+          >
+            {open && onGoTo ? (
+              <button type="button" className={styles.jump} onClick={() => onGoTo(index)}>
+                <span className={mark} aria-hidden="true" />
+                {section}
+              </button>
+            ) : (
+              <span className={styles.sectionLine}>
+                <span className={mark} aria-hidden="true" />
+                {section}
+              </span>
+            )}
+            {lines.length > 0 && (
+              <dl className={styles.under}>
+                {lines.map((line) => (
+                  <div key={line.label} className={styles.underRow}>
+                    <dt>{line.label}</dt>
+                    <dd>{line.value}</dd>
+                  </div>
+                ))}
+              </dl>
+            )}
+          </li>
+        );
+      })}
+    </ol>
   );
 }
 
@@ -103,7 +179,7 @@ export function WizardFrame({ current, children }: { current: number; children: 
  * The first screen of a new interviewer, laid out like draft A without the stepper across the
  * top. The section list is the slim one from draft C.
  */
-export function StillingStep({ value, templates, onChange, onNext }: StillingStepProps) {
+export function StillingStep({ value, templates, onChange, onNext, onGoTo, reached }: StillingStepProps) {
   const [showAllJobs, setShowAllJobs] = useState(false);
   const [showAllIndustries, setShowAllIndustries] = useState(false);
   const industries = industriesOf(templates);
@@ -115,7 +191,7 @@ export function StillingStep({ value, templates, onChange, onNext }: StillingSte
   }
 
   return (
-    <WizardFrame current={0}>
+    <WizardFrame current={0} onGoTo={onGoTo} reached={reached}>
       <form
         className={styles.form}
         onSubmit={(event) => {

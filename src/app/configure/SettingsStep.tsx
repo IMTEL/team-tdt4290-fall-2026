@@ -14,8 +14,9 @@ import {
   DEFAULT_MODEL,
   DEFAULT_TEMPERATURE,
 } from '@/domain/advancedSettings';
-import { WizardFrame } from './StillingStep';
 import stepStyles from './StillingStep.module.css';
+import { WizardFrame } from './StillingStep';
+import { FinishActions, configurationLines, type FinishOverview } from './FinishStep';
 
 const INTERVIEW_TYPES = [
   { id: 'første intervju', label: 'Første intervju' },
@@ -64,10 +65,29 @@ type SettingsStepProps = {
   intro: ReactNode;
   onBack: () => void;
   onNext: () => void;
+  /** The side card has grown into the last step. */
+  expanded?: boolean;
+  /** Closes the last step and shows the settings form again. */
+  onFinishBack?: () => void;
+  overview: FinishOverview;
+  /** Opens an earlier section from the list on the side. */
+  onGoTo?: (index: number) => void;
+  reached?: number;
 };
 
 /** The settings step, in the same frame as stilling, intervjuer and jobbsøker. */
-export function SettingsStep({ value, onChange, intro, onBack, onNext }: SettingsStepProps) {
+export function SettingsStep({
+  value,
+  onChange,
+  intro,
+  onBack,
+  onNext,
+  onGoTo,
+  expanded = false,
+  onFinishBack = () => {},
+  overview,
+  reached,
+}: SettingsStepProps) {
   const languageModels = useLanguageModels(value.model);
   const advanced: AdvancedSettings = {
     model: value.model,
@@ -76,7 +96,14 @@ export function SettingsStep({ value, onChange, intro, onBack, onNext }: Setting
   };
 
   return (
-    <WizardFrame current={3}>
+    <WizardFrame
+      current={expanded ? 4 : 3}
+      onGoTo={onGoTo}
+      reached={reached}
+      expanded={expanded}
+      more={<FinishActions intro={intro} onBack={onFinishBack} />}
+      details={expanded ? configurationLines(overview) : undefined}
+    >
       <form
         className={stepStyles.form}
         onSubmit={(event) => {

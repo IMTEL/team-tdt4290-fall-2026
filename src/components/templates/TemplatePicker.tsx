@@ -26,6 +26,10 @@ type TemplatePickerProps = {
   lead?: string;
   /** The list only. The surrounding screen draws the heading and the buttons. */
   embedded?: boolean;
+  /** Cards stay put when chosen. The screen around them moves on with its own Neste. */
+  asRadios?: boolean;
+  /** The chosen template's id, when `asRadios` is set. */
+  selectedId?: string | null;
 };
 
 // For an agent type without its own lead.
@@ -41,16 +45,24 @@ export function TemplatePicker({
   agentType,
   lead = DEFAULT_LEAD,
   embedded = false,
+  asRadios = false,
+  selectedId = null,
 }: TemplatePickerProps) {
   const newTemplateHref = agentType
     ? `/create-template?agentType=${encodeURIComponent(agentType)}`
     : '/create-template';
 
   function card(template: AgentTemplate, saved: boolean) {
+    const selected = asRadios && selectedId === template.id;
     return (
       <li key={template.id}>
-        <Card variant="outlined" className={styles.card}>
-          <CardActionArea onClick={() => onSelect(template)} className={styles.action}>
+        <Card variant="outlined" className={selected ? `${styles.card} ${styles.chosen}` : styles.card}>
+          <CardActionArea
+            onClick={() => onSelect(template)}
+            className={styles.action}
+            role={asRadios ? 'radio' : undefined}
+            aria-checked={asRadios ? selected : undefined}
+          >
             <h3 className={styles.title}>{template.title}</h3>
             <p className={styles.description}>{template.description}</p>
             <div className={styles.focus}>
@@ -66,6 +78,7 @@ export function TemplatePicker({
                 component={Link}
                 href={`/templates/${encodeURIComponent(template.id)}/edit`}
                 size="small"
+                className={styles.edit}
                 aria-label={`Rediger ${template.title}`}
               >
                 Rediger
@@ -102,7 +115,7 @@ export function TemplatePicker({
       </h2>
       <p className={styles.lead}>{lead}</p>
 
-      <ul className={styles.grid}>
+      <ul className={styles.grid} role={asRadios ? 'radiogroup' : undefined} aria-labelledby="template-picker-heading">
         {templates.map((template) => card(template, false))}
         {savedTemplates.map((template) => card(template, true))}
       </ul>
