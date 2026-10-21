@@ -24,6 +24,8 @@ type TemplatePickerProps = {
   agentType?: string;
   /** What a template decides for this agent type. */
   lead?: string;
+  /** The list only. The surrounding screen draws the heading and the buttons. */
+  embedded?: boolean;
 };
 
 // For an agent type without its own lead.
@@ -38,6 +40,7 @@ export function TemplatePicker({
   onDeleted = () => {},
   agentType,
   lead = DEFAULT_LEAD,
+  embedded = false,
 }: TemplatePickerProps) {
   const newTemplateHref = agentType
     ? `/create-template?agentType=${encodeURIComponent(agentType)}`
@@ -77,13 +80,22 @@ export function TemplatePicker({
 
   return (
     <section aria-labelledby="template-picker-heading" className={styles.picker}>
-      <Button variant="contained" onClick={() => onSelect(null)} className={styles.scratch}>
-        Fortsett uten mal
-      </Button>
+      {!embedded && (
+        <>
+          <Button variant="contained" onClick={() => onSelect(null)} className={styles.scratch}>
+            Fortsett uten mal
+          </Button>
 
-      <Button component={Link} href={newTemplateHref} variant="outlined" className={styles.scratch}>
-        Lag en ny mal
-      </Button>
+          <Button
+            component={Link}
+            href={newTemplateHref}
+            variant="outlined"
+            className={styles.scratch}
+          >
+            Lag en ny mal
+          </Button>
+        </>
+      )}
 
       <h2 id="template-picker-heading" className={styles.heading}>
         Velg en mal

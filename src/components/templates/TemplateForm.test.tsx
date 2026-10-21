@@ -122,6 +122,20 @@ describe('TemplateForm for a new template', () => {
 
     expect(screen.getByRole('link', { name: 'Avbryt' })).toHaveAttribute('href', '/configure');
   });
+
+  it('cancels back to the page the form was opened from', () => {
+    render(
+      <TemplateForm
+        onSave={vi.fn()}
+        cancelHref="/configure?type=interviewer&step=intervjuer"
+      />,
+    );
+
+    expect(screen.getByRole('link', { name: 'Avbryt' })).toHaveAttribute(
+      'href',
+      '/configure?type=interviewer&step=intervjuer',
+    );
+  });
 });
 
 describe('TemplateForm for a saved template', () => {

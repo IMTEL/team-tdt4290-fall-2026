@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import Button from '@mui/material/Button';
 import Step from '@mui/material/Step';
 import StepLabel from '@mui/material/StepLabel';
@@ -23,7 +24,10 @@ import type { AgentTypeDefinition } from '@/domain/agentTypes/types';
 import type { JobSeekerProfile } from '@/domain/jobSeekerProfile';
 import { fetchSavedTemplates } from './api';
 import { ConfigurationChat } from './ConfigurationChat';
+import { JobSeekerStep } from './JobSeekerStep';
+import { StillingStep, WizardFrame, type Workplace } from './StillingStep';
 import styles from './page.module.css';
+import stepStyles from './StillingStep.module.css';
 
 // undefined: the counsellor hasn't chosen yet. null: they chose to continue without one.
 type Choice<T> = T | null | undefined;
@@ -48,7 +52,13 @@ function Steps({ steps, active }: { steps: string[]; active: number }) {
  * ones the counsellor has saved. Then the chat starts. Everything type-specific comes from the
  * type's definition, so a new type needs no change here.
  */
-export function ConfigureAgent({ initialTypeId = null }: { initialTypeId?: string | null }) {
+export function ConfigureAgent({
+  initialTypeId = null,
+  initialStep = null,
+}: {
+  initialTypeId?: string | null;
+  initialStep?: string | null;
+}) {
   const [definition, setDefinition] = useState<AgentTypeDefinition | undefined>(() =>
     initialTypeId ? getAgentType(initialTypeId) : undefined,
   );
@@ -56,9 +66,21 @@ export function ConfigureAgent({ initialTypeId = null }: { initialTypeId?: strin
   const [industry, setIndustry] = useState<Choice<IndustryTemplate>>(undefined);
   const [saved, setSaved] = useState<AgentTemplate[]>([]);
   const [profiles, setProfiles] = useState<JobSeekerProfile[]>([]);
+  const [profilesLoaded, setProfilesLoaded] = useState(false);
   const [profileId, setProfileId] = useState('');
+  const [profileDone, setProfileDone] = useState(false);
   // For a type with a profile but no template, where no template card moves the counsellor on.
   const [presetsDone, setPresetsDone] = useState(false);
+  const [workplaceDone, setWorkplaceDone] = useState(
+    initialTypeId === 'interviewer' && initialStep === 'intervjuer',
+  );
+  const [workplace, setWorkplace] = useState<Workplace>({
+    jobTitle: '',
+    templateId: null,
+    industry: '',
+    sector: null,
+    company: '',
+  });
 
   const presets = definition?.presets ?? {};
   const usesTemplates = Boolean(presets.template);
@@ -76,7 +98,18 @@ export function ConfigureAgent({ initialTypeId = null }: { initialTypeId?: strin
     if (usesTemplates) {
       fetchSavedTemplates(agentType, controller.signal).then(setSaved).catch(logError);
     }
-    if (usesProfiles) fetchProfiles(controller.signal).then(setProfiles).catch(logError);
+    if (usesProfiles) {
+      fetchProfiles(controller.signal)
+        .then((list) => {
+          if (controller.signal.aborted) return;
+          setProfiles(list);
+          setProfilesLoaded(true);
+        })
+        .catch((error: unknown) => {
+          logError(error);
+          if (!controller.signal.aborted) setProfilesLoaded(true);
+        });
+    }
     return () => controller.abort();
   }, [agentType, usesTemplates, usesProfiles]);
 
@@ -85,16 +118,31 @@ export function ConfigureAgent({ initialTypeId = null }: { initialTypeId?: strin
     setChoice(undefined);
     setIndustry(undefined);
     setProfileId('');
+    setProfilesLoaded(false);
+    setProfileDone(false);
     setPresetsDone(false);
+    setWorkplaceDone(false);
+    setWorkplace({ jobTitle: '', templateId: null, industry: '', sector: null, company: '' });
   }
 
   if (!definition) {
     return (
-      <AgentTypePicker
-        types={listAccessibleAgentTypes()}
-        planned={listPlannedAgentTypes()}
-        onSelect={chooseType}
-      />
+      <>
+        <header className={styles.header}>
+          <h1 className={styles.title}>Sett opp en agent</h1>
+          <p className={styles.lead}>
+            Velg hva slags agent du vil sette opp, og svar så på spørsmålene fra assistenten. Da
+            lager vi en AI-agent som jobbsøkeren kan øve med. For en intervjuer kan du også velge
+            maler for intervjueren og bransjen og en jobbsøkerprofil, eller la assistenten spørre
+            deg om alt.
+          </p>
+        </header>
+        <AgentTypePicker
+          types={listAccessibleAgentTypes()}
+          planned={listPlannedAgentTypes()}
+          onSelect={chooseType}
+        />
+      </>
     );
   }
 
@@ -142,6 +190,52 @@ export function ConfigureAgent({ initialTypeId = null }: { initialTypeId?: strin
   const profile = (usesProfiles && profiles.find((item) => item.id === profileId)) || null;
   const template = usesTemplates ? (choice ?? null) : null;
   const choosingPresets = usesTemplates ? choice === undefined : usesProfiles && !presetsDone;
+
+  if (definition.id === 'interviewer' && !workplaceDone) {
+    return (
+      <StillingStep
+        value={workplace}
+        templates={industryTemplates}
+        onChange={setWorkplace}
+        onNext={() => setWorkplaceDone(true)}
+      />
+    );
+  }
+
+  if (choosingPresets && definition.id === 'interviewer') {
+    return (
+      <WizardFrame current={1}>
+        <div className={stepStyles.form}>
+          {chosenType}
+          {usesIndustries && industry !== undefined && chosenIndustry}
+          <TemplatePicker
+            embedded
+            templates={builtInTemplates(definition.id)}
+            savedTemplates={saved}
+            agentType={definition.id}
+            lead={presets.template?.text.pickerLead}
+            onSelect={setChoice}
+            onDeleted={(id) => setSaved((current) => current.filter((item) => item.id !== id))}
+          />
+          <div className={styles.presetActions}>
+            <Button variant="outlined" onClick={() => setChoice(null)}>
+              Fortsett uten mal
+            </Button>
+            <Button
+              component={Link}
+              href={`/create-template?agentType=${encodeURIComponent(definition.id)}&returnTo=${encodeURIComponent(`/configure?type=${definition.id}&step=intervjuer`)}`}
+              variant="outlined"
+            >
+              Lag en ny mal
+            </Button>
+            <div className={stepStyles.nav}>
+              <Button onClick={() => setWorkplaceDone(false)}>Tilbake</Button>
+            </div>
+          </div>
+        </div>
+      </WizardFrame>
+    );
+  }
 
   if (choosingPresets) {
     return (
@@ -199,6 +293,7 @@ export function ConfigureAgent({ initialTypeId = null }: { initialTypeId?: strin
         onClick={() => {
           setChoice(undefined);
           setPresetsDone(false);
+          setProfileDone(false);
         }}
       >
         {usesTemplates && usesProfiles
@@ -209,6 +304,21 @@ export function ConfigureAgent({ initialTypeId = null }: { initialTypeId?: strin
       </Button>
     </div>
   );
+
+  if (definition.id === 'interviewer' && usesProfiles && !profileDone) {
+    return (
+      <JobSeekerStep
+        profiles={profiles}
+        loading={!profilesLoaded}
+        intro={chosenType}
+        onSelect={(id) => {
+          setProfileId(id);
+          setProfileDone(true);
+        }}
+        onBack={() => setChoice(undefined)}
+      />
+    );
+  }
 
   if (usesIndustries && industry === undefined) {
     return (
