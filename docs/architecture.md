@@ -166,7 +166,7 @@ sequenceDiagram
     B->>N: POST /api/agents {name, configuration}<br/>(session cookie sent automatically)
     N->>N: Decrypt cookie, take out the Keycloak ID token
     alt Signed in and the body is valid
-        N->>R: POST /update-agent/<br/>Authorization: Bearer + ID token
+        N->>R: POST /agents<br/>Authorization: Bearer + ID token
         R-->>N: 200 {id}
         N-->>B: 201 {id}
     else No valid session
@@ -198,11 +198,11 @@ sequenceDiagram
     participant R as RAGdoll
 
     B->>N: PUT {name, answers}
-    N->>R: GET /agents/ (read)
+    N->>R: GET /agents (read)
     R-->>N: The user's agents, with every field
     alt The id is one of the user's agents and the answers are complete
         N->>N: applyEdit: new name, description, prompt and roles (modify)
-        N->>R: POST /update-agent/ with the id and empty keys (write)
+        N->>R: POST /agents/[agentId] with empty keys (write)
         R-->>N: The saved agent
         N-->>B: 200 {agent} without keys
     else The id is not in the list
@@ -211,13 +211,14 @@ sequenceDiagram
 ```
 
 The route reads, modifies and writes the whole agent, because of how RAGdoll's
-`POST /update-agent/` behaves:
+`POST /agents/[agentId]` behaves:
 
 - **It replaces the whole agent.** Every field left out of the body is reset to its default
   (`context_aware_retrieval`, for example), so we send back every field we read.
-- **An unknown id creates a new agent.** So we write only after finding the id among the user's
-  agents. We read from `GET /agents/`, not `/fetch-agent`, because `/fetch-agent` answers 401 both
-  for an expired session and for an agent that is someone else's or does not exist.
+- **We write only after finding the id among the user's agents** (`GET /agents`), so an agent that
+  is someone else's or does not exist gives a clear 404 before anything is sent. The list gives
+  access keys only as metadata, so `access_key` is left out of the body; RAGdoll keeps the stored
+  ones.
 - **Empty keys keep the stored keys.** The decrypted keys we read are never sent back, and an
   update needs no `IDUN_API_KEY`.
 
@@ -278,7 +279,7 @@ sequenceDiagram
     participant R as RAGdoll
 
     B->>N: DELETE
-    N->>R: GET /agents/
+    N->>R: GET /agents
     R-->>N: The user's agents
     alt The id is not in the list
         N-->>B: 404, nothing is deleted
@@ -288,17 +289,16 @@ sequenceDiagram
         alt The user only collaborates on the agent
             N-->>B: 403, nothing is deleted
         else The user owns the agent
-            N->>R: GET /delete-agent?agent_id=[agentId]
+            N->>R: DELETE /agents/[agentId]
             R-->>N: 200 null
             N-->>B: 204
         end
     end
 ```
 
-Two things about RAGdoll's `GET /delete-agent` shape the route:
+Two things about RAGdoll's `DELETE /agents/[agentId]` shape the route:
 
-- **It answers 401 to a collaborator.** Our adapter reads 401 as an expired session, so the user
-  would be told they are logged out. We ask `/agents/[agentId]/collaborators` for `is_owner` first
+- **It refuses a collaborator with a bare error.** That would not tell the user why. We ask `/agents/[agentId]/collaborators` for `is_owner` first
   and answer 403 ourselves. This app has no way to add collaborators yet, but RAGdollConfig does.
 - **It answers `null` when it succeeds.** `requestAsUser` normally treats that as a broken answer,
   so `deleteAgent` passes `allowEmpty`.
@@ -419,10 +419,10 @@ sequenceDiagram
     B->>N: POST {messages}
     N->>N: Require a session, check the id looks like a MongoDB id
     par as the user (Bearer ID token)
-        N->>R: GET /chat-access-key?agent_id=<id>
-        R-->>N: AccessKey (valid 2 days, reused)
+        N->>R: POST /agents/<id>/accesskeys
+        R-->>N: AccessKey (new on every call, valid 24 hours)
     and
-        N->>R: GET /fetch-agent?agent_id=<id>
+        N->>R: GET /agents/<id>
         R-->>N: Agent (only the role name is kept)
     end
     N->>R: POST /api/chat/ask {agent_id, access_key, active_role_id, chat_log}
