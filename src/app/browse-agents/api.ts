@@ -25,6 +25,9 @@ function isAgent(value: unknown): value is Agent {
     typeof agent.llmModel === 'string' &&
     (typeof agent.temperature === 'number' || agent.temperature === null) &&
     typeof agent.prompt === 'string' &&
+    (agent.isPublished === undefined || typeof agent.isPublished === 'boolean') &&
+    isOptionalText(agent.publicName) &&
+    isOptionalText(agent.publicDescription) &&
     LIST_FIELDS.every((field) => isOptionalText(agent[field]))
   );
 }
@@ -124,6 +127,58 @@ export async function cloneAgent(
   const data = await res.json().catch(() => null);
   if (typeof data?.id !== 'string') throw new Error(GENERIC_ERROR);
   return data.id;
+}
+
+export type Publication = { isPublished: boolean; publicName: string; publicDescription: string };
+
+/** The Norwegian message for a failed publish or hide. Never the server's own text. */
+function publishErrorMessage(status: number): string {
+  if (status === 403) return 'Bare eieren kan publisere eller gjemme agenten.';
+  if (status === 400)
+    return 'Navnet eller beskrivelsen ble ikke godtatt. Sjekk feltene og prøv igjen.';
+  return saveErrorMessage(status);
+}
+
+async function sendPublication(id: string, init: RequestInit): Promise<Publication> {
+  let res: Response;
+  try {
+    res = await fetch(`/api/agents/${encodeURIComponent(id)}/publish`, init);
+  } catch (cause) {
+    throw new Error('Fikk ikke kontakt med serveren. Sjekk nettverket og prøv igjen.', { cause });
+  }
+  if (!res.ok) throw new Error(publishErrorMessage(res.status));
+
+  const data = await res.json().catch(() => null);
+  const publication = data?.publication;
+  if (
+    typeof publication?.isPublished !== 'boolean' ||
+    typeof publication.publicName !== 'string' ||
+    typeof publication.publicDescription !== 'string'
+  ) {
+    throw new Error(GENERIC_ERROR);
+  }
+  return publication;
+}
+
+/**
+ * Makes an agent available in The Candidate, with the name and short description its users see.
+ * Throws Error with a Norwegian message that can be shown as it is.
+ */
+export async function publishAgent(
+  id: string,
+  publicName: string,
+  publicDescription: string,
+): Promise<Publication> {
+  return sendPublication(id, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ publicName, publicDescription }),
+  });
+}
+
+/** Hides an agent from The Candidate. Throws Error with a Norwegian message. */
+export async function unpublishAgent(id: string): Promise<Publication> {
+  return sendPublication(id, { method: 'DELETE' });
 }
 
 /** Deletes an agent */

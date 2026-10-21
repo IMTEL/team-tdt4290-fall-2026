@@ -1,6 +1,7 @@
 'use client';
 
 import { DeleteAgentButton } from './DeleteAgentButton';
+import { PublishAgentButton } from './PublishAgentButton';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { useState, type ReactNode } from 'react';
@@ -22,6 +23,7 @@ import { DEFAULT_TEMPERATURE, formatTemperature } from '@/domain/advancedSetting
 import { readStoredAnswers } from '@/domain/agentTypes/storedAnswers';
 import { formatDate } from '@/lib/format';
 
+import type { Publication } from '../api';
 import { useAgent } from '../useAgent';
 import styles from './AgentDetail.module.css';
 
@@ -38,6 +40,8 @@ export function AgentDetail({ agentId }: { agentId: string }) {
   const [tab, setTab] = useState<TabId>('config');
   const [copyMessage, setCopyMessage] = useState('');
   const [copyMessageOpen, setCopyMessageOpen] = useState(false);
+  // Set after publishing or hiding, so the page shows the change without loading the agent again.
+  const [changedPublication, setChangedPublication] = useState<Publication | null>(null);
 
   if (state.kind === 'missing') notFound();
 
@@ -60,6 +64,11 @@ export function AgentDetail({ agentId }: { agentId: string }) {
   // RAGdoll can send a value that is not a date; then the date is left out.
   const hasLastUpdated = !Number.isNaN(new Date(agent.lastUpdated).getTime());
   const prompt = agent.prompt;
+  const publication: Publication = changedPublication ?? {
+    isPublished: agent.isPublished ?? false,
+    publicName: agent.publicName ?? '',
+    publicDescription: agent.publicDescription ?? '',
+  };
 
   async function copyPrompt() {
     try {
@@ -98,6 +107,10 @@ export function AgentDetail({ agentId }: { agentId: string }) {
                 <span className={styles.srOnly}>Agenttype:</span>
                 <Chip label={stored.definition.label} size="small" color="secondary" />
               </>
+            )}
+            {publication.isPublished && (
+              // English translation: Published in The Candidate
+              <Chip label="Publisert i The Candidate" size="small" color="success" />
             )}
             {hasLastUpdated && (
               <Typography variant="body2" color="text.secondary">
@@ -148,6 +161,14 @@ export function AgentDetail({ agentId }: { agentId: string }) {
           <Button component={Link} href={`${agentPath}/clone`} variant="outlined">
             Klon
           </Button>
+        )}
+        {/* The Candidate needs an interviewer made in this app. */}
+        {stored && (
+          <PublishAgentButton
+            agent={agent}
+            publication={publication}
+            onChange={setChangedPublication}
+          />
         )}
         <DeleteAgentButton agent={agent} />
       </div>

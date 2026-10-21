@@ -123,7 +123,7 @@ export const interviewer: AgentTypeDefinition = {
   // Safe cast: answers are checked with hasAllAnswers before a prompt is built.
   buildPrompt: (answers) => buildPrompt(answers as Configuration),
   buildSummary: buildInterviewerSummary,
-  // The Candidate lists an agent's roles as the interviewers to choose from.
+  // One role: The Candidate chats with a published agent as its first role.
   buildRoles: (name, answers) => [{ name, description: answers.intervjuer }],
   // Only the job title: an industry template puts a whole job description after it, which would
   // go past the name's length limit.
