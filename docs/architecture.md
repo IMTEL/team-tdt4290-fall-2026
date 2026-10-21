@@ -77,7 +77,7 @@ Three rules hold the design together:
 | Part                 | What it does                                                                                                         | Owned by                  | Status                          |
 | -------------------- | -------------------------------------------------------------------------------------------------------------------- | ------------------------- | ------------------------------- |
 | Frontend (this repo) | Web app for counsellors: log in, configure an agent in a chat, test it, browse agents. Next.js server + React pages. | Us                        | Built, in progress              |
-| RAGdoll backend      | Stores agents, runs the chat pipeline (prompt + history → LLM), issues session tokens. Python, FastAPI.              | IMTEL (we may contribute) | Running, used as is             |
+| RAGdoll backend      | Stores agents, runs the chat pipeline (prompt + history → LLM), checks Keycloak tokens. Python, FastAPI.             | IMTEL (we may contribute) | Running, used as is             |
 | Keycloak             | Login and registration. Ships with RAGdoll's Docker Compose (realm `ragdoll`, client `ragdoll-config`).              | IMTEL                     | Running                         |
 | MongoDB              | RAGdoll's database: users, agents, documents.                                                                        | IMTEL                     | Running                         |
 | IDUN                 | NTNU's HPC cluster that hosts the LLMs. Reached only through RAGdoll.                                                | NTNU                      | Running                         |
@@ -101,7 +101,7 @@ anything interactive is a client component. Code that holds secrets runs only on
 | Browser helpers  | `src/app/configure/api.ts`, `src/app/browse-agents/api.ts`, `src/lib/auth.ts`                                                                      | Sends the configuration chat, the save, edit and delete requests, and loads the agent list; sign-in, register and sign-out helpers                                                                                                                                                                                                                                                                                                                                                                        |
 | Route handlers   | `src/app/api/`                                                                                                                                     | `auth/` (NextAuth), `configure/turn/` (configurator), `agents/` (save and list), `agents/[agentId]/` (edit and delete), `agents/[agentId]/clone/` (save a clone as a new agent), `agents/[agentId]/chat/` (test chat), `templates/` (list and save templates), `templates/[templateId]/` (read, edit and delete one), `profiles/` and `profiles/[profileId]/` (the same for job seeker profiles), `user-settings/`, `logout/`                                                                             |
 | Integration      | `src/server/ragdoll.ts`, `src/server/agentMapper.ts`, `src/server/templateMapper.ts`, `src/server/profileMapper.ts`, `src/server/errorResponse.ts` | The only code that calls RAGdoll: chat, agents, templates, job seeker profiles and user settings. Maps answers and templates onto RAGdoll's models and turns failures into HTTP statuses                                                                                                                                                                                                                                                                                                                  |
-| Server-only code | `src/lib/auth-options.ts`, `src/lib/session-tokens.ts`                                                                                             | NextAuth config and token exchange; reading and refreshing the session token                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| Server-only code | `src/lib/auth-options.ts`, `src/lib/session-tokens.ts`                                                                                             | NextAuth config; reading and refreshing Keycloak's ID token, which RAGdoll takes as Bearer                                                                                                                                                                                                                                                                                                                                                                                                                |
 
 The chat UI is our own (see [ADR 0001](decisions/0001-own-chat-component.md)). One component,
 `AgentChat`, serves both chats; each page passes it a `send` function and a fixed greeting:
@@ -120,9 +120,10 @@ when the user leaves the page or clicks **Start på nytt**.
 
 ### Logging in
 
-We use NextAuth v4 with the Keycloak provider, against RAGdoll's Keycloak. RAGdoll does not accept
-Keycloak tokens on its other endpoints, so after login our server trades the Keycloak token for
-RAGdoll's own session token.
+We use NextAuth v4 with the Keycloak provider, against RAGdoll's Keycloak. RAGdoll has no login
+endpoint or session of its own: it checks the Keycloak **ID token** on every request (signature
+against Keycloak's keys, audience = our client id, which is why the access token does not work). It
+creates the user record the first time it sees a token.
 
 ```mermaid
 sequenceDiagram
@@ -137,24 +138,22 @@ sequenceDiagram
     C->>K: Username + password
     K->>N: Redirect back with code
     N->>K: Exchange code for tokens
-    K-->>N: ID token + access token
-    N->>R: POST /api/login {token, provider: keycloak}
-    R-->>N: session_token, refresh_token, TTLs, name, picture
+    K-->>N: ID token + access token + refresh token
     N-->>B: Encrypted session cookie (tokens stay inside)
     B->>C: Back on the page they came from
 ```
 
 - The tokens live in NextAuth's **encrypted JWT cookie**, encrypted with `NEXTAUTH_SECRET`. The
   browser's `useSession()` only sees the user's name and picture.
-- RAGdoll's session token lasts 15 minutes. NextAuth's `jwt` callback refreshes it with
-  `POST /api/refresh` when it is about to expire, and ends the session when the refresh token has
-  expired too.
+- The ID token lasts as long as Keycloak's access token lifespan. NextAuth's `jwt` callback
+  refreshes it at Keycloak's token endpoint (`grant_type=refresh_token`) when it is about to expire,
+  and ends the session when the refresh token has expired too.
 - Code: [`src/lib/auth-options.ts`](../src/lib/auth-options.ts).
 
 ### Calling RAGdoll as the user
 
 Saving and listing the counsellor's agents goes through `/api/agents`. The browser never calls
-RAGdoll. The route handler reads the session token from the cookie and sends it as
+RAGdoll. The route handler reads the ID token from the cookie and sends it as
 `Authorization: Bearer ...`. There is no generic proxy: each route checks its own body and strips
 keys before the answer goes back. See [ADR 0002](decisions/0002-stateless-backend-for-frontend.md).
 
@@ -165,9 +164,9 @@ sequenceDiagram
     participant R as RAGdoll
 
     B->>N: POST /api/agents {name, configuration}<br/>(session cookie sent automatically)
-    N->>N: Decrypt cookie, take out RAGdoll session token
+    N->>N: Decrypt cookie, take out the Keycloak ID token
     alt Signed in and the body is valid
-        N->>R: POST /update-agent/<br/>Authorization: Bearer + session token
+        N->>R: POST /update-agent/<br/>Authorization: Bearer + ID token
         R-->>N: 200 {id}
         N-->>B: 201 {id}
     else No valid session
@@ -419,7 +418,7 @@ sequenceDiagram
 
     B->>N: POST {messages}
     N->>N: Require a session, check the id looks like a MongoDB id
-    par as the user (Bearer session token)
+    par as the user (Bearer ID token)
         N->>R: GET /chat-access-key?agent_id=<id>
         R-->>N: AccessKey (valid 2 days, reused)
     and
@@ -451,10 +450,10 @@ sequenceDiagram
 ### Logging out
 
 Clearing our cookie alone would leave the Keycloak session alive, and the next **Logg inn** would
-sign the user straight back in. So logout has three steps:
+sign the user straight back in. RAGdoll keeps no session, so there is nothing to revoke there.
+Logout has three steps:
 
-1. The browser calls `POST /api/logout`. Our server revokes the RAGdoll session
-   (`GET /api/logout` on RAGdoll) and builds Keycloak's end-session URL.
+1. The browser calls `POST /api/logout`. Our server builds Keycloak's end-session URL.
 2. The browser clears the NextAuth cookie (`signOut({ redirect: false })`).
 3. The browser goes to Keycloak's end-session URL, which redirects back to `/login`.
 
@@ -471,7 +470,7 @@ Code: [`src/app/api/logout/route.ts`](../src/app/api/logout/route.ts),
 | Configuration answers              | JSON `{type, version, answers, sources, agents, customPrompt?}` in the saved agent's `description` (`src/domain/agentTypes/storedAnswers.ts`). Older agents have only the answers                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          | A field of its own, if RAGdoll gets a `metadata` field                  |
 | Templates (role, industry, ...)    | Built-in: four interviewer personas in `src/data/interviewer-templates.ts`, listed by agent type in `src/data/templates.ts`. Saved: each counsellor's own templates in RAGdoll's `templates` collection, visible only to them, with the agent type they are for as RAGdoll's `type` (`interviewer` so far, which older templates already have). `/configure` shows the chosen type's built-in templates first, then saved; the server fills the field the type's `presets.template` names (`Intervjuer`) from the chosen one. Industry: eight built-in general jobs, public or private, in `src/data/industry-templates.ts`; the server fills `Stilling` and `Bransje` from the chosen one | Same                                                                    |
 | Published agents for The Candidate | Not yet                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    | Agent marked as published in RAGdoll; The Candidate reads it from there |
-| Users                              | Keycloak (login) and RAGdoll (user record, created on first `POST /api/login`)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             | Same                                                                    |
+| Users                              | Keycloak (login) and RAGdoll (user record, created the first time RAGdoll sees the user's token)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           | Same                                                                    |
 | Job seeker profiles                | RAGdoll's `job_seeker_profiles` collection, each owned by one counsellor and visible only to them. Anonymous: a label, age range, experience, education, languages, practice areas and private notes. Chosen on `/configure`; the server fills `Jobbsøker` from it, without the notes                                                                                                                                                                                                                                                                                                                                                                                                      | Same                                                                    |
 | User settings                      | RAGdoll, in the user record under the namespace `interview-configurator` (`GET`/`PUT /api/user-settings`). No settings are defined yet                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     | Same                                                                    |
 | Session                            | Encrypted NextAuth cookie in the browser                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   | Same                                                                    |

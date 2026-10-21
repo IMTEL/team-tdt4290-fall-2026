@@ -83,8 +83,8 @@ The app needs three things running on your machine:
 | MongoDB, LibreTranslate | the RAGdoll repo, same Docker Compose (needed by the backend) | ports 27017 and 5000    |
 
 How logging in works: our **Logg inn** button sends you to RAGdoll's Keycloak. After you sign in there,
-our server hands the Keycloak token to RAGdoll (`POST /api/login`) and gets RAGdoll's own session
-token back. That token stays in an encrypted cookie. The browser never talks to RAGdoll: it calls our
+our server keeps Keycloak's ID token in an encrypted cookie. RAGdoll checks that token on every
+request, so there is no separate RAGdoll login. The browser never talks to RAGdoll: it calls our
 own routes under `/api/*` (for example `/api/agents`), which read the token on the server and call
 RAGdoll with it. The login code is in `src/lib/auth-options.ts`.
 
@@ -142,7 +142,7 @@ All commands in this step run in the **RAGdoll** folder.
    | Variable     | Set it to                           | Why                                                                   |
    | ------------ | ----------------------------------- | --------------------------------------------------------------------- |
    | `FERNET_KEY` | the output of the `python3` command | The placeholder is not a valid key, and the backend crashes on start. |
-   | `JWT_SECRET` | the output of the `openssl` command | RAGdoll signs its session tokens with it.                             |
+   | `JWT_SECRET` | the output of the `openssl` command | RAGdoll's Docker Compose refuses to start without it.                 |
    | `ENV`        | leave it as `prod`                  | With `dev`, RAGdoll ignores the database address from Docker Compose. |
 
    Leave the rest alone. `docker-compose.local.yml` overrides the Keycloak and MongoDB settings with
@@ -241,21 +241,20 @@ call arrive:
 docker compose -f docker-compose.local.yml logs -f backend
 ```
 
-| #   | Do this                                                                       | You should see                                                                                                 |
-| --- | ----------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
-| 1   | Open <http://localhost:3000/configure> while logged out                       | You are sent to `/login`                                                                                       |
-| 2   | Click **Logg inn** and sign in as `test@example.com` / `test`                 | You land back on `/configure`; the navbar shows your name and **Logg ut**; the log shows `POST /api/login` 200 |
-| 3   | In the browser console (F12), run `await (await fetch('/api/agents')).json()` | `{agents: [...]}` (probably empty), not an error. This shows our route sends RAGdoll's token                   |
-| 4   | Click **Logg ut**                                                             | You pass briefly through Keycloak and end on `/login`; the log shows `GET /api/logout`                         |
-| 5   | Run the console command from step 3 again                                     | `{error: 'Not signed in'}`                                                                                     |
-| 6   | Click **Logg inn** again                                                      | Keycloak asks for your password again. If it signs you straight in, run `npm run keycloak:setup`               |
-| 7   | Click **Logg ut**, then **Opprett konto**                                     | Keycloak's registration form opens                                                                             |
+| #   | Do this                                                                       | You should see                                                                                             |
+| --- | ----------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| 1   | Open <http://localhost:3000/configure> while logged out                       | You are sent to `/login`                                                                                   |
+| 2   | Click **Logg inn** and sign in as `test@example.com` / `test`                 | You land back on `/configure`; the navbar shows your name and **Logg ut**                                  |
+| 3   | In the browser console (F12), run `await (await fetch('/api/agents')).json()` | `{agents: [...]}` (probably empty), not an error. This shows our route sends the Keycloak token to RAGdoll |
+| 4   | Click **Logg ut**                                                             | You pass briefly through Keycloak and end on `/login`                                                      |
+| 5   | Run the console command from step 3 again                                     | `{error: 'Not signed in'}`                                                                                 |
+| 6   | Click **Logg inn** again                                                      | Keycloak asks for your password again. If it signs you straight in, run `npm run keycloak:setup`           |
+| 7   | Click **Logg ut**, then **Opprett konto**                                     | Keycloak's registration form opens                                                                         |
 
-**Optional, token refresh:** RAGdoll's session token lasts 15 minutes, and our app renews it
-automatically. To see that without waiting, add `SESSION_TOKEN_TTL=1` to `RAGdoll/.env`, restart
-the backend (`docker compose -f docker-compose.local.yml up -d backend`), log in, wait two minutes
-and repeat step 3. It should still work, and the log shows `POST /api/refresh`. Remove the line
-afterwards.
+**Optional, token refresh:** the Keycloak ID token that RAGdoll checks lasts as long as the realm's
+**Access Token Lifespan** (5 minutes by default, under Realm settings → Tokens in Keycloak's admin
+console), and our app renews it at Keycloak automatically. To see that, log in, wait six minutes and
+repeat step 3. It should still work.
 
 ### 5. Stop RAGdoll
 

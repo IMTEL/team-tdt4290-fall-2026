@@ -4,23 +4,24 @@ import KeycloakProvider from 'next-auth/providers/keycloak';
 
 declare module 'next-auth/jwt' {
   interface JWT {
-    sessionToken?: string;
-    refreshToken?: string;
-    sessionTokenExpiry?: number;
-    refreshTokenExpiry?: number;
-    /** Keycloak's ID token, needed to end the Keycloak session on log out. */
+    /**
+     * Keycloak's ID token. RAGdoll takes it as the Bearer token on every request (it checks that
+     * the audience is our client id, which an access token does not have), and Keycloak needs it to
+     * end its session on log out.
+     */
     idToken?: string;
+    refreshToken?: string;
+    idTokenExpiry?: number;
+    refreshTokenExpiry?: number;
   }
 }
 
-/** What RAGdoll's POST /api/login returns. The TTLs are in milliseconds. */
-interface LoginResponse {
-  session_token: string;
-  refresh_token: string;
-  session_token_ttl: number | string;
-  refresh_token_ttl: number | string;
-  name?: string | null;
-  picture?: string | null;
+/** What Keycloak's token endpoint returns. `expires_in` and `refresh_expires_in` are in seconds. */
+interface KeycloakTokenResponse {
+  id_token?: string;
+  refresh_token?: string;
+  expires_in: number;
+  refresh_expires_in?: number;
 }
 
 /** Treat tokens as expired a little early, so they do not run out while a request is in flight. */
@@ -30,50 +31,55 @@ export function hasExpired(expiry: number | undefined): boolean {
   return !expiry || Date.now() > expiry - EXPIRY_MARGIN_MS;
 }
 
-function backendUrl(path: string): string {
-  const base = process.env.BACKEND_API_URL;
-  if (!base) throw new Error('BACKEND_API_URL is not set');
-  return `${base.replace(/\/$/, '')}${path}`;
+/**
+ * Keycloak sends `refresh_expires_in: 0` for offline tokens, which do not expire on a timer.
+ * Those are given a far-off expiry so that only Keycloak's refusal ends the session.
+ */
+function refreshExpiry(refreshExpiresIn: number | undefined): number {
+  return refreshExpiresIn ? Date.now() + refreshExpiresIn * 1000 : Number.MAX_SAFE_INTEGER;
 }
 
-/** Trades the Keycloak token for RAGdoll's own session and refresh tokens. */
-async function handleLogin(token: JWT, account: Account): Promise<JWT> {
-  const res = await fetch(backendUrl('/api/login'), {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      token: account.id_token ?? account.access_token,
-      provider: 'keycloak',
-    }),
-  });
-  if (!res.ok) throw new Error(`RAGdoll login failed: ${res.status}`);
-
-  const data = (await res.json()) as LoginResponse;
+/** Keeps Keycloak's tokens from the first sign-in. */
+function handleLogin(token: JWT, account: Account): JWT {
+  if (!account.id_token) throw new Error('Keycloak sent no ID token');
   return {
     ...token,
-    sessionToken: data.session_token,
-    refreshToken: data.refresh_token,
-    sessionTokenExpiry: Date.now() + Number(data.session_token_ttl),
-    refreshTokenExpiry: Date.now() + Number(data.refresh_token_ttl),
     idToken: account.id_token,
-    name: data.name ?? null,
-    picture: data.picture ?? null,
+    refreshToken: account.refresh_token,
+    idTokenExpiry: account.expires_at ? account.expires_at * 1000 : undefined,
+    refreshTokenExpiry: refreshExpiry(account.refresh_expires_in as number | undefined),
   };
 }
 
-/** Asks RAGdoll for a new session token, using the refresh token as the Bearer. */
+/** Asks Keycloak for a new ID token, using the refresh token. */
 export async function refreshSession(token: JWT): Promise<JWT> {
-  const res = await fetch(backendUrl('/api/refresh'), {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${token.refreshToken}` },
-  });
-  if (!res.ok) throw new Error(`RAGdoll refresh failed: ${res.status}`);
+  const issuer = process.env.KEYCLOAK_ISSUER;
+  if (!issuer) throw new Error('KEYCLOAK_ISSUER is not set');
+  if (!token.refreshToken) throw new Error('No refresh token');
 
-  const data = (await res.json()) as Pick<LoginResponse, 'session_token' | 'session_token_ttl'>;
+  const res = await fetch(`${issuer.replace(/\/$/, '')}/protocol/openid-connect/token`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      grant_type: 'refresh_token',
+      refresh_token: token.refreshToken,
+      client_id: process.env.KEYCLOAK_CLIENT_ID ?? '',
+      client_secret: process.env.KEYCLOAK_CLIENT_SECRET ?? '',
+    }),
+  });
+  if (!res.ok) throw new Error(`Keycloak refresh failed: ${res.status}`);
+
+  const data = (await res.json()) as KeycloakTokenResponse;
+  if (!data.id_token) throw new Error('Keycloak refresh returned no ID token');
   return {
     ...token,
-    sessionToken: data.session_token,
-    sessionTokenExpiry: Date.now() + Number(data.session_token_ttl),
+    idToken: data.id_token,
+    idTokenExpiry: Date.now() + data.expires_in * 1000,
+    // Keycloak may rotate the refresh token; keep the old one if it did not.
+    refreshToken: data.refresh_token ?? token.refreshToken,
+    refreshTokenExpiry: data.refresh_token
+      ? refreshExpiry(data.refresh_expires_in)
+      : token.refreshTokenExpiry,
   };
 }
 
@@ -91,16 +97,16 @@ export const authOptions: AuthOptions = {
       // First sign-in: `account` is only present on this one call.
       if (account) return handleLogin(token, account);
 
-      if (!hasExpired(token.sessionTokenExpiry)) return token;
+      if (!hasExpired(token.idTokenExpiry)) return token;
 
-      // Session token expired: refresh it, unless the refresh token has expired too.
+      // ID token expired: refresh it, unless the refresh token has expired too.
       if (hasExpired(token.refreshTokenExpiry)) {
         throw new Error('Refresh token expired'); // ends the session, the user logs in again
       }
       return refreshSession(token);
     },
     async session({ session, token }) {
-      // RAGdoll's tokens stay in the encrypted cookie; the browser only gets name and image.
+      // The tokens stay in the encrypted cookie; the browser only gets name and image.
       if (session.user) {
         session.user.name = token.name ?? session.user.name;
         session.user.image = token.picture ?? session.user.image;
