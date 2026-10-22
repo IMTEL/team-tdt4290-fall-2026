@@ -4,7 +4,17 @@ Prompt for the configuration agent used in the configuration chat (`/configure`)
 
 The prompt is the same for every agent type. It has the tone and the rules every type shares, and says how to read the **briefing**. What is special about a type (who the agent is for, the questions, the type's own rules and the exact `KONFIGURASJON` block) comes from the type's definition in `src/domain/agentTypes/` (for example `interviewer.ts`). `/api/configure/turn` turns the definition into a briefing with `buildBriefing` (`src/domain/agentTypes/configurator.ts`) and sends it as the first message of every turn. So a new agent type needs no change here.
 
-Before the chat starts, the counsellor picks the agent type. For an interviewer, they then pick a template (`src/data/interviewer-templates.ts`) or continue without one, and can pick a job seeker profile (saved on `/profiles`). Then they pick an industry template (`src/data/industry-templates.ts`): a general job in an industry, public or private. The type's `presets` say which fields each of these fills in: the interviewer template `Intervjuer`, the profile `Jobbsøker`, and the industry template `Stilling` and `Bransje`. Those fields are left out of the briefing's questions and block, but listed with their text under **Allerede bestemt før samtalen**, so the configurator fits the rest to them. The server fills them in from the templates and profile whatever the configurator writes. The profile's notes are never sent.
+An **interviewer** is set up in a form wizard on `/configure` (stilling → intervjuer → jobbsøker →
+innstillinger → fullføre); that path does not use this chat. This prompt is for `ConfigurationChat`
+and `/api/configure/turn` (other agent types, or when the chat path is used). Before the chat, the
+counsellor picks the agent type and any presets the type has: an interviewer template
+(`src/data/interviewer-templates.ts`), a job seeker profile / jobbsøkermal (`/profiles`), and an
+industry template (`src/data/industry-templates.ts`). The type's `presets` say which fields each
+fills in: the interviewer template `Intervjuer`, the profile `Jobbsøker`, and the industry template
+`Stilling` and `Bransje`. Those fields are left out of the briefing's questions and block, but
+listed with their text under **Allerede bestemt før samtalen**, so the configurator fits the rest
+to them. The server fills them in from the templates and profile whatever the configurator writes.
+The profile's notes are never sent.
 
 The page sends a fixed greeting as the first assistant turn (it costs no LLM call). It is the type's greeting, what was chosen, and the first question that is not decided:
 

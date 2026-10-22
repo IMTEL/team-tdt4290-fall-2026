@@ -29,12 +29,12 @@ Course: TDT4290 Customer Driven Project, NTNU, autumn 2026. Group 3.
 
 ## What it does
 
-1. A counsellor logs in and starts a configuration chat.
-2. The chat asks a short questionnaire (multiple choice + open questions) and lets the counsellor combine templates (interviewer role, industry, ...).
-3. The answers become a system prompt; the agent is stored in **RAGdoll**.
-4. The counsellor tests the agent in a chat and, when satisfied, publishes it to **The Candidate**.
+1. A counsellor logs in and sets up an interviewer in a short form wizard (stilling, intervjuer, jobbsøkermal, innstillinger), with optional templates from **Maler**.
+2. Progress can be saved as a local **utkast** and finished later from **Agenter**.
+3. Publishing builds a system prompt and stores the agent in **RAGdoll**.
+4. The counsellor tests the agent in a chat and, when satisfied, can publish it to **The Candidate**.
 
-The product is a _conversational agent configurator_; the job interview is the first scenario, and the architecture should allow other scenarios later.
+The product is an _agent configurator_ for career counsellors; the job interview is the first scenario, and the architecture should allow other scenarios later.
 
 ## Where things live
 
