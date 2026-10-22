@@ -30,6 +30,32 @@ describe('MessageList', () => {
     expect(screen.getByText('Assistenten skriver …')).toBeInTheDocument();
   });
 
+  it('shows reply actions under assistant replies, with the user message each one answered', () => {
+    const renderReplyActions = vi.fn((reply: ChatMessage, userMessage?: ChatMessage) => (
+      <span>{`Vurder ${reply.id} (svar på ${userMessage?.id ?? 'ingen'})`}</span>
+    ));
+    const reply: ChatMessage = { id: '3', role: 'assistant', content: 'Hvorfor?' };
+    render(<MessageList messages={[...messages, reply]} renderReplyActions={renderReplyActions} />);
+
+    expect(screen.getByText('Vurder 1 (svar på ingen)')).toBeInTheDocument();
+    expect(screen.getByText('Vurder 3 (svar på 2)')).toBeInTheDocument();
+    // Never under the user's own messages.
+    expect(renderReplyActions).not.toHaveBeenCalledWith(messages[1], expect.anything());
+  });
+
+  it('keeps the reply actions out of the message count and out of the live log', () => {
+    render(
+      <MessageList messages={messages} renderReplyActions={() => <span>Vurder svaret</span>} />,
+    );
+
+    const log = screen.getByRole('log', { name: 'Samtale' });
+    expect(within(log).getAllByRole('listitem')).toHaveLength(messages.length);
+    expect(screen.getByText('Vurder svaret').closest('[aria-live]')).toHaveAttribute(
+      'aria-live',
+      'off',
+    );
+  });
+
   describe('with answer options', () => {
     const question: ChatMessage = {
       id: '3',

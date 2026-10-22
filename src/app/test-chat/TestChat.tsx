@@ -10,6 +10,7 @@ import { fetchAgents } from '@/app/browse-agents/api';
 import { AgentChat } from '@/components/chat/AgentChat';
 import { sendToAgent } from '@/components/chat/sendToAgent';
 import type { ChatMessage, SendMessages } from '@/components/chat/types';
+import { RateReply } from './RateReply';
 import styles from './TestChat.module.css';
 
 // The interviewer opens the interview. Fixed text, so it costs no LLM call. It is also sent to
@@ -57,6 +58,16 @@ export function TestChat({ agentId }: { agentId: string }) {
     [agentId],
   );
 
+  // Every reply to the counsellor can be rated. The greeting answers nobody: it is fixed text, not
+  // written by the agent, so there is nothing to teach it there.
+  const renderRating = useCallback(
+    (reply: ChatMessage, userMessage: ChatMessage | undefined) =>
+      userMessage && (
+        <RateReply agentId={agentId} reply={reply.content} userMessage={userMessage.content} />
+      ),
+    [agentId],
+  );
+
   const status = lookup?.agentId === agentId ? lookup.kind : 'loading';
 
   if (status === 'loading') {
@@ -91,6 +102,7 @@ export function TestChat({ agentId }: { agentId: string }) {
         key={`${agentId}-${round}`}
         send={askInterviewer}
         initialMessages={initialMessages}
+        renderReplyActions={renderRating}
       />
     </div>
   );

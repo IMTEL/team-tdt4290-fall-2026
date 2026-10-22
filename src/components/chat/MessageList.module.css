@@ -103,6 +103,13 @@
   margin-top: calc(-1 * var(--message-gap));
 }
 
+/* Actions under a reply, such as rating it: small, and right under the bubble like the options. */
+.replyActions {
+  align-self: flex-start;
+  max-width: var(--bubble-max-width);
+  margin-top: calc(-1 * var(--message-gap) + var(--space-1));
+}
+
 /* MUI's sm breakpoint. Media queries can't read CSS variables. */
 @media (max-width: 600px) {
   .options {

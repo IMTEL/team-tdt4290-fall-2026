@@ -1,5 +1,6 @@
 'use client';
 
+import type { ReactNode } from 'react';
 import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
 
@@ -17,9 +18,16 @@ type AgentChatProps = {
   initialMessages: ChatMessage[];
   /** For agents that write answer options: splits a reply into text and options. */
   parseReply?: (content: string) => ParsedReply;
+  /** Shown under each assistant reply, e.g. buttons to rate it. See MessageList. */
+  renderReplyActions?: (reply: ChatMessage, userMessage: ChatMessage | undefined) => ReactNode;
 };
 
-export function AgentChat({ send, initialMessages, parseReply }: AgentChatProps) {
+export function AgentChat({
+  send,
+  initialMessages,
+  parseReply,
+  renderReplyActions,
+}: AgentChatProps) {
   const { messages, isWaiting, error, sendMessage, retry } = useChat(send, initialMessages);
 
   return (
@@ -30,6 +38,7 @@ export function AgentChat({ send, initialMessages, parseReply }: AgentChatProps)
         onAnswer={sendMessage}
         answersDisabled={error !== null}
         parseReply={parseReply}
+        renderReplyActions={renderReplyActions}
       />
       {error && (
         <Alert
