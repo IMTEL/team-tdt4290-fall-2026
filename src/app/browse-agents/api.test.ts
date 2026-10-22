@@ -1,7 +1,14 @@
 // @vitest-environment node
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { cloneAgent, deleteAgent, fetchAgents, updateAgent } from './api';
+import {
+  cloneAgent,
+  deleteAgent,
+  fetchAgents,
+  publishAgent,
+  unpublishAgent,
+  updateAgent,
+} from './api';
 
 const agent = {
   id: 'agent-1',
@@ -261,5 +268,61 @@ describe('deleteAgent', () => {
     await expect(deleteAgent('agent-1')).rejects.toThrow(
       'Fikk ikke kontakt med serveren. Sjekk nettverket og prøv igjen.',
     );
+  });
+});
+
+describe('publishAgent and unpublishAgent', () => {
+  const publication = {
+    isPublished: true,
+    publicName: 'Servitørintervju',
+    publicDescription: 'Middels vanskelig',
+  };
+
+  it('sends the public name and description and returns the publication', async () => {
+    fetchMock.mockResolvedValue(Response.json({ publication }));
+
+    await expect(publishAgent('agent-1', 'Servitørintervju', 'Middels vanskelig')).resolves.toEqual(
+      publication,
+    );
+    expect(fetchMock).toHaveBeenCalledWith('/api/agents/agent-1/publish', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        publicName: 'Servitørintervju',
+        publicDescription: 'Middels vanskelig',
+      }),
+    });
+  });
+
+  it('hides the agent with DELETE', async () => {
+    const hidden = { ...publication, isPublished: false };
+    fetchMock.mockResolvedValue(Response.json({ publication: hidden }));
+
+    await expect(unpublishAgent('agent-1')).resolves.toEqual(hidden);
+    expect(fetchMock).toHaveBeenCalledWith('/api/agents/agent-1/publish', { method: 'DELETE' });
+  });
+
+  it.each([
+    [403, 'Bare eieren kan publisere eller gjemme agenten.'],
+    [400, 'Navnet eller beskrivelsen ble ikke godtatt. Sjekk feltene og prøv igjen.'],
+    [401, 'Du er logget ut. Logg inn på nytt og prøv igjen.'],
+  ])('gives a Norwegian message when the server answers %i', async (status, message) => {
+    fetchMock.mockResolvedValue(Response.json({ error: 'nope' }, { status }));
+
+    await expect(publishAgent('agent-1', 'Navn', '')).rejects.toThrow(message);
+  });
+
+  it('gives a network message when the server cannot be reached', async () => {
+    fetchMock.mockRejectedValue(new TypeError('Failed to fetch'));
+
+    await expect(unpublishAgent('agent-1')).rejects.toThrow(
+      'Fikk ikke kontakt med serveren. Sjekk nettverket og prøv igjen.',
+    );
+  });
+
+  it('fails when the answer is not a publication', async () => {
+    fetchMock.mockResolvedValue(Response.json({ publication: { isPublished: 'yes' } }));
+
+    await expect(unpublishAgent('agent-1')).rejects.toThrow('Noe gikk galt. Prøv igjen.');
   });
 });

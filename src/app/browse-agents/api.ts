@@ -68,6 +68,31 @@ function saveErrorMessage(status: number): string {
 }
 
 /**
+ * Calls one of our agent routes. Throws Error with a Norwegian message if the server can't be
+ * reached, or with `errorMessage(status)` if it answers with an error.
+ */
+async function send(
+  url: string,
+  init: RequestInit,
+  errorMessage: (status: number) => string = saveErrorMessage,
+): Promise<Response> {
+  let res: Response;
+  try {
+    res = await fetch(url, init);
+  } catch (cause) {
+    throw new Error('Fikk ikke kontakt med serveren. Sjekk nettverket og prøv igjen.', { cause });
+  }
+  if (!res.ok) throw new Error(errorMessage(res.status));
+  return res;
+}
+
+function withJson(method: 'POST' | 'PUT', body: unknown): RequestInit {
+  return { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) };
+}
+
+const agentUrl = (id: string, path = '') => `/api/agents/${encodeURIComponent(id)}${path}`;
+
+/**
  * Saves a new name, new answers, their sources, new advanced settings and a new avatar for an
  * agent, and returns the updated agent. Without `advanced` the agent keeps the settings it has,
  * and without `avatar` it keeps its avatar. `null` gives it the default image.
@@ -81,17 +106,10 @@ export async function updateAgent(
   advanced?: AdvancedSettings,
   avatar?: string | null,
 ): Promise<Agent> {
-  let res: Response;
-  try {
-    res = await fetch(`/api/agents/${encodeURIComponent(id)}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, answers, sources, advanced, avatar }),
-    });
-  } catch (cause) {
-    throw new Error('Fikk ikke kontakt med serveren. Sjekk nettverket og prøv igjen.', { cause });
-  }
-  if (!res.ok) throw new Error(saveErrorMessage(res.status));
+  const res = await send(
+    agentUrl(id),
+    withJson('PUT', { name, answers, sources, advanced, avatar }),
+  );
 
   const data = await res.json().catch(() => null);
   if (!isAgent(data?.agent)) throw new Error(GENERIC_ERROR);
@@ -112,17 +130,10 @@ export async function cloneAgent(
   advanced?: AdvancedSettings,
   avatar?: string | null,
 ): Promise<string> {
-  let res: Response;
-  try {
-    res = await fetch(`/api/agents/${encodeURIComponent(id)}/clone`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, answers, sources, advanced, avatar }),
-    });
-  } catch (cause) {
-    throw new Error('Fikk ikke kontakt med serveren. Sjekk nettverket og prøv igjen.', { cause });
-  }
-  if (!res.ok) throw new Error(saveErrorMessage(res.status));
+  const res = await send(
+    agentUrl(id, '/clone'),
+    withJson('POST', { name, answers, sources, advanced, avatar }),
+  );
 
   const data = await res.json().catch(() => null);
   if (typeof data?.id !== 'string') throw new Error(GENERIC_ERROR);
@@ -140,13 +151,7 @@ function publishErrorMessage(status: number): string {
 }
 
 async function sendPublication(id: string, init: RequestInit): Promise<Publication> {
-  let res: Response;
-  try {
-    res = await fetch(`/api/agents/${encodeURIComponent(id)}/publish`, init);
-  } catch (cause) {
-    throw new Error('Fikk ikke kontakt med serveren. Sjekk nettverket og prøv igjen.', { cause });
-  }
-  if (!res.ok) throw new Error(publishErrorMessage(res.status));
+  const res = await send(agentUrl(id, '/publish'), init, publishErrorMessage);
 
   const data = await res.json().catch(() => null);
   const publication = data?.publication;
@@ -169,11 +174,7 @@ export async function publishAgent(
   publicName: string,
   publicDescription: string,
 ): Promise<Publication> {
-  return sendPublication(id, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ publicName, publicDescription }),
-  });
+  return sendPublication(id, withJson('POST', { publicName, publicDescription }));
 }
 
 /** Hides an agent from The Candidate. Throws Error with a Norwegian message. */
@@ -183,11 +184,5 @@ export async function unpublishAgent(id: string): Promise<Publication> {
 
 /** Deletes an agent */
 export async function deleteAgent(id: string): Promise<void> {
-  let res: Response;
-  try {
-    res = await fetch(`/api/agents/${encodeURIComponent(id)}`, { method: 'DELETE' });
-  } catch (cause) {
-    throw new Error('Fikk ikke kontakt med serveren. Sjekk nettverket og prøv igjen.', { cause });
-  }
-  if (!res.ok) throw new Error(saveErrorMessage(res.status));
+  await send(agentUrl(id), { method: 'DELETE' });
 }
