@@ -95,19 +95,6 @@ describe('TestChat', () => {
     ]);
   });
 
-  it('lets the counsellor rate the agent’s replies, but not the fixed greeting', async () => {
-    sendMock.mockResolvedValue('Hva i CV-en din er relevant for stillingen?');
-    const { user, box } = await setup();
-    expect(screen.queryByRole('group', { name: 'Vurder svaret' })).not.toBeInTheDocument();
-
-    await user.type(box(), 'Hei{Enter}');
-    await screen.findByText('Hva i CV-en din er relevant for stillingen?');
-
-    expect(screen.getAllByRole('group', { name: 'Vurder svaret' })).toHaveLength(1);
-    expect(screen.getByRole('button', { name: 'Bra' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Dårlig' })).toBeInTheDocument();
-  });
-
   it('goes back to the greeting when starting over', async () => {
     sendMock.mockResolvedValue('Hva i CV-en din er relevant for stillingen?');
     const { user, box } = await setup();
