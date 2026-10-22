@@ -231,7 +231,7 @@ describe('saveAgent', () => {
     await expect(saveAgent(SESSION_TOKEN, newAgent)).resolves.toBe('new-agent-1');
 
     const [url, init] = fetchMock.mock.calls[0];
-    expect(url).toBe(`${BACKEND_URL}/update-agent/`);
+    expect(url).toBe(`${BACKEND_URL}/agents`);
     expect(init?.method).toBe('POST');
     expect((init?.headers as Record<string, string>).Authorization).toBe(`Bearer ${SESSION_TOKEN}`);
     expect(JSON.parse(init?.body as string)).toEqual(newAgent);
@@ -417,7 +417,7 @@ describe('fetchFullAgent', () => {
     await expect(fetchFullAgent(SESSION_TOKEN, 'agent-1')).resolves.toEqual(stored);
 
     const [url, init] = fetchMock.mock.calls[0];
-    expect(url).toBe(`${BACKEND_URL}/agents/`);
+    expect(url).toBe(`${BACKEND_URL}/agents`);
     expect((init?.headers as Record<string, string>).Authorization).toBe(`Bearer ${SESSION_TOKEN}`);
   });
 
@@ -459,12 +459,20 @@ describe('updateAgent', () => {
     await updateAgent(SESSION_TOKEN, existing);
 
     const [url, init] = fetchMock.mock.calls[0];
-    expect(url).toBe(`${BACKEND_URL}/update-agent/`);
+    expect(url).toBe(`${BACKEND_URL}/agents/agent-1`);
     expect(init?.method).toBe('POST');
     const body = JSON.parse(init?.body as string);
     expect(body).toMatchObject({ id: 'agent-1', llm_temperature: 0.2, name: 'Butikksjef' });
     expect(body.llm_api_key).toBe('');
     expect(body.embedding_api_key).toBe('');
+  });
+
+  it("leaves out the access keys' metadata from the list, since RAGdoll keeps the keys itself", async () => {
+    fetchMock.mockResolvedValue(Response.json(existing));
+
+    await updateAgent(SESSION_TOKEN, { ...existing, access_key: [{ id: 'key-1', name: 'Chat' }] });
+
+    expect(JSON.parse(fetchMock.mock.calls[0][1]?.body as string)).not.toHaveProperty('access_key');
   });
 
   it('returns the saved agent without the keys', async () => {
@@ -608,8 +616,8 @@ describe('deleteAgent', () => {
     await expect(deleteAgent(SESSION_TOKEN, 'agent-1')).resolves.toBeUndefined();
 
     const [url, init] = fetchMock.mock.calls[0];
-    expect(url).toBe(`${BACKEND_URL}/delete-agent?agent_id=agent-1`);
-    expect(init?.method).toBeUndefined(); // RAGdoll deletes with a GET.
+    expect(url).toBe(`${BACKEND_URL}/agents/agent-1`);
+    expect(init?.method).toBe('DELETE');
     expect((init?.headers as Record<string, string>).Authorization).toBe(`Bearer ${SESSION_TOKEN}`);
   });
 
@@ -637,7 +645,7 @@ describe('getChatAccessKey', () => {
   });
 
   it('asks for a chat key for the agent as the logged-in user and returns only the key', async () => {
-    // What RAGdoll's /chat-access-key returns: a whole AccessKey.
+    // What RAGdoll's POST /agents/{id}/accesskeys returns: a whole AccessKey.
     fetchMock.mockResolvedValue(
       Response.json({
         id: 'key-1',
@@ -650,7 +658,8 @@ describe('getChatAccessKey', () => {
     await expect(getChatAccessKey(SESSION_TOKEN, 'agent-1')).resolves.toBe('chat-key');
 
     const [url, init] = fetchMock.mock.calls[0];
-    expect(url).toBe(`${BACKEND_URL}/chat-access-key?agent_id=agent-1`);
+    expect(url).toBe(`${BACKEND_URL}/agents/agent-1/accesskeys`);
+    expect(init?.method).toBe('POST');
     expect((init?.headers as Record<string, string>).Authorization).toBe(`Bearer ${SESSION_TOKEN}`);
   });
 
@@ -659,7 +668,7 @@ describe('getChatAccessKey', () => {
 
     await getChatAccessKey(SESSION_TOKEN, 'a&b');
 
-    expect(fetchMock.mock.calls[0][0]).toBe(`${BACKEND_URL}/chat-access-key?agent_id=a%26b`);
+    expect(fetchMock.mock.calls[0][0]).toBe(`${BACKEND_URL}/agents/a%26b/accesskeys`);
   });
 
   it('throws a bad-response error when RAGdoll returns no key', async () => {
@@ -703,7 +712,7 @@ describe('getAgentRole', () => {
     expect(role).toBe('Butikksjef');
     expect(JSON.stringify(role)).not.toContain('idun-key');
     const [url, init] = fetchMock.mock.calls[0];
-    expect(url).toBe(`${BACKEND_URL}/fetch-agent?agent_id=agent-1`);
+    expect(url).toBe(`${BACKEND_URL}/agents/agent-1`);
     expect((init?.headers as Record<string, string>).Authorization).toBe(`Bearer ${SESSION_TOKEN}`);
   });
 

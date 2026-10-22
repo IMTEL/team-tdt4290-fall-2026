@@ -1,25 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSessionJwt, getSessionToken } from '@/lib/session-tokens';
+import { getSessionJwt } from '@/lib/session-tokens';
 
 /**
- * Revokes the RAGdoll session token and returns the Keycloak URL that ends the Keycloak session.
- * Clearing the NextAuth cookie alone would leave Keycloak's session alive, and the next "Log in"
- * would sign the user straight back in without asking for a password.
+ * Returns the Keycloak URL that ends the Keycloak session. RAGdoll keeps no session of its own (it
+ * checks the Keycloak token on every request), so there is nothing to revoke there. Clearing the
+ * NextAuth cookie alone would leave Keycloak's session alive, and the next "Log in" would sign the
+ * user straight back in without asking for a password.
  */
 export async function POST(req: NextRequest) {
-  const sessionToken = await getSessionToken(req);
-  const base = process.env.BACKEND_API_URL;
-  if (sessionToken && base) {
-    try {
-      await fetch(`${base.replace(/\/$/, '')}/api/logout`, {
-        headers: { Authorization: `Bearer ${sessionToken}` },
-        cache: 'no-store',
-      });
-    } catch (error) {
-      console.warn('RAGdoll logout failed; ending the Keycloak session anyway', error);
-    }
-  }
-
   const issuer = process.env.KEYCLOAK_ISSUER;
   if (!issuer) return NextResponse.json({ keycloakLogoutUrl: null });
 

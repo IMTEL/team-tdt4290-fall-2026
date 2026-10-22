@@ -22,6 +22,9 @@ const keycloakAccount = {
   providerAccountId: 'user-1',
   id_token: 'keycloak-id-token',
   access_token: 'keycloak-access-token',
+  refresh_token: 'keycloak-refresh-token',
+  expires_at: NOW / 1000 + 5 * 60,
+  refresh_expires_in: 30 * 60,
 } as Account;
 
 describe('hasExpired', () => {
@@ -56,7 +59,9 @@ describe('authOptions', () => {
   beforeEach(() => {
     vi.useFakeTimers({ now: NOW });
     vi.stubGlobal('fetch', fetchMock);
-    vi.stubEnv('BACKEND_API_URL', 'https://ragdoll.example/');
+    vi.stubEnv('KEYCLOAK_ISSUER', 'https://keycloak.example/realms/iac/');
+    vi.stubEnv('KEYCLOAK_CLIENT_ID', 'iac-frontend');
+    vi.stubEnv('KEYCLOAK_CLIENT_SECRET', 'client-secret');
   });
 
   afterEach(() => {
@@ -73,105 +78,89 @@ describe('authOptions', () => {
   });
 
   describe('jwt callback on first sign-in', () => {
-    it("trades the Keycloak ID token for RAGdoll's tokens and stores them with their expiry", async () => {
-      fetchMock.mockResolvedValue(
-        Response.json({
-          session_token: 'session-1',
-          refresh_token: 'refresh-1',
-          session_token_ttl: 15 * MINUTE,
-          refresh_token_ttl: '86400000', // RAGdoll may send the TTLs as strings
-          name: 'Kari Nordmann',
-          picture: 'https://img.example/kari.png',
-        }),
-      );
+    it("keeps Keycloak's ID and refresh tokens with their expiry, without calling anyone", async () => {
+      const token = await jwt({ token: { sub: 'user-1', name: 'Kari' }, account: keycloakAccount });
 
-      const token = await jwt({ token: { sub: 'user-1' }, account: keycloakAccount });
-
-      const [url, init] = fetchMock.mock.calls[0];
-      expect(url).toBe('https://ragdoll.example/api/login');
-      expect(init?.method).toBe('POST');
-      expect(JSON.parse(init?.body as string)).toEqual({
-        token: 'keycloak-id-token',
-        provider: 'keycloak',
-      });
+      expect(fetchMock).not.toHaveBeenCalled();
       expect(token).toEqual({
         sub: 'user-1',
-        sessionToken: 'session-1',
-        refreshToken: 'refresh-1',
-        sessionTokenExpiry: NOW + 15 * MINUTE,
-        refreshTokenExpiry: NOW + 86_400_000,
+        name: 'Kari',
         idToken: 'keycloak-id-token',
-        name: 'Kari Nordmann',
-        picture: 'https://img.example/kari.png',
+        refreshToken: 'keycloak-refresh-token',
+        idTokenExpiry: NOW + 5 * MINUTE,
+        refreshTokenExpiry: NOW + 30 * MINUTE,
       });
     });
 
-    it('falls back to the access token when Keycloak sent no ID token', async () => {
-      fetchMock.mockResolvedValue(
-        Response.json({
-          session_token: 's',
-          refresh_token: 'r',
-          session_token_ttl: MINUTE,
-          refresh_token_ttl: MINUTE,
-        }),
-      );
+    it('treats a refresh token without a lifetime (offline token) as not expiring', async () => {
+      const token = await jwt({ account: { ...keycloakAccount, refresh_expires_in: 0 } });
 
-      const token = await jwt({ account: { ...keycloakAccount, id_token: undefined } });
-
-      expect(JSON.parse(fetchMock.mock.calls[0][1]?.body as string).token).toBe(
-        'keycloak-access-token',
-      );
-      expect(token.name).toBeNull();
-      expect(token.picture).toBeNull();
+      expect(token.refreshTokenExpiry).toBe(Number.MAX_SAFE_INTEGER);
     });
 
-    it('fails the sign-in when RAGdoll rejects the login', async () => {
-      fetchMock.mockResolvedValue(new Response('nope', { status: 401 }));
-
-      await expect(jwt({ account: keycloakAccount })).rejects.toThrow('RAGdoll login failed: 401');
-    });
-
-    it('fails the sign-in when BACKEND_API_URL is not set', async () => {
-      vi.stubEnv('BACKEND_API_URL', '');
-
-      await expect(jwt({ account: keycloakAccount })).rejects.toThrow('BACKEND_API_URL is not set');
-      expect(fetchMock).not.toHaveBeenCalled();
+    it('fails the sign-in when Keycloak sent no ID token, since RAGdoll needs it', async () => {
+      await expect(jwt({ account: { ...keycloakAccount, id_token: undefined } })).rejects.toThrow(
+        'Keycloak sent no ID token',
+      );
     });
   });
 
   describe('jwt callback on later requests', () => {
     const signedIn: JWT = {
-      sessionToken: 'session-1',
+      idToken: 'id-1',
       refreshToken: 'refresh-1',
-      sessionTokenExpiry: NOW + 10 * MINUTE,
+      idTokenExpiry: NOW + 10 * MINUTE,
       refreshTokenExpiry: NOW + 60 * MINUTE,
     };
 
-    it('keeps the token as it is while the session token is valid', async () => {
+    it('keeps the token as it is while the ID token is valid', async () => {
       const token = await jwt({ token: signedIn });
 
       expect(token).toBe(signedIn);
       expect(fetchMock).not.toHaveBeenCalled();
     });
 
-    it('refreshes an expired session token with the refresh token', async () => {
+    it("refreshes an expired ID token at Keycloak's token endpoint", async () => {
       fetchMock.mockResolvedValue(
-        Response.json({ session_token: 'session-2', session_token_ttl: 15 * MINUTE }),
+        Response.json({
+          id_token: 'id-2',
+          refresh_token: 'refresh-2',
+          expires_in: 300,
+          refresh_expires_in: 1800,
+        }),
       );
 
-      const token = await jwt({ token: { ...signedIn, sessionTokenExpiry: NOW - 1 } });
+      const token = await jwt({ token: { ...signedIn, idTokenExpiry: NOW - 1 } });
 
       const [url, init] = fetchMock.mock.calls[0];
-      expect(url).toBe('https://ragdoll.example/api/refresh');
-      expect(init?.headers).toEqual({ Authorization: 'Bearer refresh-1' });
-      expect(token.sessionToken).toBe('session-2');
-      expect(token.sessionTokenExpiry).toBe(NOW + 15 * MINUTE);
+      expect(url).toBe('https://keycloak.example/realms/iac/protocol/openid-connect/token');
+      expect(init?.method).toBe('POST');
+      expect(Object.fromEntries(init?.body as URLSearchParams)).toEqual({
+        grant_type: 'refresh_token',
+        refresh_token: 'refresh-1',
+        client_id: 'iac-frontend',
+        client_secret: 'client-secret',
+      });
+      expect(token).toEqual({
+        idToken: 'id-2',
+        refreshToken: 'refresh-2',
+        idTokenExpiry: NOW + 5 * MINUTE,
+        refreshTokenExpiry: NOW + 30 * MINUTE,
+      });
+    });
+
+    it('keeps the old refresh token when Keycloak did not rotate it', async () => {
+      fetchMock.mockResolvedValue(Response.json({ id_token: 'id-2', expires_in: 300 }));
+
+      const token = await jwt({ token: { ...signedIn, idTokenExpiry: NOW - 1 } });
+
       expect(token.refreshToken).toBe('refresh-1');
+      expect(token.refreshTokenExpiry).toBe(NOW + 60 * MINUTE);
     });
 
     it('ends the session when the refresh token has expired too', async () => {
       await expect(
-        jwt({ token: { ...signedIn, sessionTokenExpiry: NOW - 1, refreshTokenExpiry: NOW - 1 } }),
+        jwt({ token: { ...signedIn, idTokenExpiry: NOW - 1, refreshTokenExpiry: NOW - 1 } }),
       ).rejects.toThrow('Refresh token expired');
       expect(fetchMock).not.toHaveBeenCalled();
     });
@@ -183,13 +172,12 @@ describe('authOptions', () => {
       user: { name: 'Keycloak Name', email: 'kari@example.no', image: null },
     };
 
-    it("shows RAGdoll's name and picture, but never the tokens", async () => {
+    it('shows the name and picture, but never the tokens', async () => {
       const result = await session({
         session: structuredClone(baseSession),
         token: {
           name: 'Kari Nordmann',
           picture: 'https://img.example/kari.png',
-          sessionToken: 'secret-session',
           refreshToken: 'secret-refresh',
           idToken: 'secret-id',
         },
@@ -203,7 +191,7 @@ describe('authOptions', () => {
       expect(JSON.stringify(result)).not.toMatch(/secret/);
     });
 
-    it("keeps Keycloak's name when RAGdoll sent none", async () => {
+    it('keeps the session name when the token has none', async () => {
       const result = await session({ session: structuredClone(baseSession), token: {} });
 
       expect(result.user?.name).toBe('Keycloak Name');
@@ -216,7 +204,7 @@ describe('refreshSession', () => {
 
   beforeEach(() => {
     vi.stubGlobal('fetch', fetchMock);
-    vi.stubEnv('BACKEND_API_URL', 'https://ragdoll.example');
+    vi.stubEnv('KEYCLOAK_ISSUER', 'https://keycloak.example/realms/iac');
   });
 
   afterEach(() => {
@@ -225,11 +213,24 @@ describe('refreshSession', () => {
     fetchMock.mockReset();
   });
 
-  it('throws when RAGdoll refuses the refresh token', async () => {
-    fetchMock.mockResolvedValue(new Response('expired', { status: 401 }));
+  it('throws when Keycloak refuses the refresh token', async () => {
+    fetchMock.mockResolvedValue(new Response('expired', { status: 400 }));
 
     await expect(refreshSession({ refreshToken: 'old' })).rejects.toThrow(
-      'RAGdoll refresh failed: 401',
+      'Keycloak refresh failed: 400',
+    );
+  });
+
+  it('throws when there is no refresh token to use', async () => {
+    await expect(refreshSession({})).rejects.toThrow('No refresh token');
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('throws when KEYCLOAK_ISSUER is not set', async () => {
+    vi.stubEnv('KEYCLOAK_ISSUER', '');
+
+    await expect(refreshSession({ refreshToken: 'old' })).rejects.toThrow(
+      'KEYCLOAK_ISSUER is not set',
     );
   });
 });
