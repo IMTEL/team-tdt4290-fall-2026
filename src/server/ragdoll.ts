@@ -1,5 +1,7 @@
 // Adapter for RAGdoll's API. Server only: it uses the agents' access keys.
 
+import { isRating, type Rating } from '@/domain/messageFeedback';
+
 export type RagdollAgent = { id: string; accessKey: string; roleName?: string };
 export type RagdollMessage = { role: 'user' | 'assistant'; content: string };
 
@@ -419,6 +421,67 @@ export async function deleteProfile(sessionToken: string, profileId: string): Pr
   await requestAsUser(sessionToken, path, { method: 'DELETE' }, { allowEmpty: true });
 }
 
+/** A rating as RAGdoll stores it, without the author. The fields follow RAGdoll's MessageFeedback. */
+export type RagdollFeedback = {
+  id: string;
+  agent_id: string;
+  rating: Rating;
+  agent_message: string;
+  user_message: string;
+  comment: string;
+  created_at: string;
+};
+
+/** What we send to RAGdoll to rate a reply. RAGdoll adds the agent, the author and the time. */
+export type NewRagdollFeedback = Pick<
+  RagdollFeedback,
+  'rating' | 'agent_message' | 'user_message' | 'comment'
+>;
+
+/**
+ * Rates one of the agent's replies and returns the stored rating. The owner and collaborators of
+ * the agent can do it. Throws RagdollError, with kind 'not-found' if the user has no access.
+ */
+export async function createFeedback(
+  sessionToken: string,
+  agentId: string,
+  feedback: NewRagdollFeedback,
+): Promise<RagdollFeedback> {
+  return toFeedback(
+    await requestAsUser(sessionToken, `/agents/${encodeURIComponent(agentId)}/feedback`, {
+      method: 'POST',
+      body: JSON.stringify(feedback),
+    }),
+  );
+}
+
+/** Lists the agent's ratings, newest first. Throws RagdollError. */
+export async function listFeedback(
+  sessionToken: string,
+  agentId: string,
+  limit = 50,
+): Promise<RagdollFeedback[]> {
+  const path = `/agents/${encodeURIComponent(agentId)}/feedback?limit=${limit}`;
+  const data = await requestAsUser(sessionToken, path);
+  if (!Array.isArray(data)) {
+    throw new RagdollError('bad-response', 'RAGdoll did not return a list of feedback');
+  }
+  return data.map(toFeedback);
+}
+
+/**
+ * Deletes one of the agent's ratings, e.g. to undo it. Throws RagdollError, with kind 'not-found'
+ * if the agent has no rating with this id.
+ */
+export async function deleteFeedback(
+  sessionToken: string,
+  agentId: string,
+  feedbackId: string,
+): Promise<void> {
+  const path = `/agents/${encodeURIComponent(agentId)}/feedback/${encodeURIComponent(feedbackId)}`;
+  await requestAsUser(sessionToken, path, { method: 'DELETE' }, { allowEmpty: true });
+}
+
 /** RAGdoll keeps each app's settings apart. This is ours. */
 const SETTINGS_NAMESPACE = 'interview-configurator';
 
@@ -590,4 +653,22 @@ function toProfile(data: unknown): RagdollProfile {
     practice_areas: (data.practice_areas ?? []) as string[],
     notes: data.notes,
   };
+}
+
+/** Only the fields we use. Leaves out the author: the browser never needs a user id. */
+function toFeedback(data: unknown): RagdollFeedback {
+  if (
+    !isObject(data) ||
+    typeof data.id !== 'string' ||
+    typeof data.agent_id !== 'string' ||
+    !isRating(data.rating) ||
+    typeof data.agent_message !== 'string' ||
+    typeof data.user_message !== 'string' ||
+    typeof data.comment !== 'string' ||
+    typeof data.created_at !== 'string'
+  ) {
+    throw new RagdollError('bad-response', 'RAGdoll did not return feedback');
+  }
+  const { id, agent_id, rating, agent_message, user_message, comment, created_at } = data;
+  return { id, agent_id, rating, agent_message, user_message, comment, created_at };
 }
