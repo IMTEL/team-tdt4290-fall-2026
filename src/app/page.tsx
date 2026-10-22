@@ -10,7 +10,6 @@ const STEPS = [
   {
     title: 'Du kan teste agenten',
     text: 'Trykk på "Test agenten" og snakk med agenten slik en jobbsøker ville gjort.',
-    href: '/test-chat',
   },
   {
     title: 'Publiser agenten',
@@ -51,30 +50,28 @@ export default function Home() {
                 </span>
                 <h3 className={styles.stepTitle}>{step.title}</h3>
               </div>
-              {'href' in step ? (
-                <Link href={step.href} className={styles.stepLink}>
-                  {step.text}
-                </Link>
-              ) : (
-                <p className={styles.stepText}>{step.text}</p>
-              )}
+              <p className={styles.stepText}>{step.text}</p>
             </li>
           ))}
         </ol>
         <ul className={styles.shortcuts}>
-          <li className={styles.shortcut}>
-            <Link href="/templates">Maler</Link>
-            <p>
-              Ferdige stillings- og bransjemaler. Velg en når du setter opp agenten, så er jobben
-              fylt inn.
-            </p>
+          <li>
+            <Link href="/templates" className={styles.shortcut}>
+              <span className={styles.shortcutTitle}>Maler</span>
+              <span>
+                Ferdige stillings- og bransjemaler. Velg en når du setter opp agenten, så er jobben
+                fylt inn.
+              </span>
+            </Link>
           </li>
-          <li className={styles.shortcut}>
-            <Link href="/profiles">Jobbsøkerprofiler</Link>
-            <p>
-              En anonym beskrivelse av en type jobbsøker: alder, erfaring og hva de skal øve på.
-              Intervjueren tilpasser seg profilen.
-            </p>
+          <li>
+            <Link href="/profiles" className={styles.shortcut}>
+              <span className={styles.shortcutTitle}>Jobbsøkerprofiler</span>
+              <span>
+                En anonym beskrivelse av en type jobbsøker: alder, erfaring og hva de skal øve på.
+                Intervjueren tilpasser seg profilen.
+              </span>
+            </Link>
           </li>
         </ul>
       </section>

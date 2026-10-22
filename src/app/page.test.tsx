@@ -26,7 +26,7 @@ describe('/', () => {
     expect(screen.queryByText(/Fortsett der du slapp/)).not.toBeInTheDocument();
   });
 
-  it('explains the three steps, and links the test step to the chat', () => {
+  it('explains the three steps without a link on the test step', () => {
     render(<Home />);
 
     expect(screen.getByRole('heading', { level: 2, name: 'Slik fungerer det' })).toBeVisible();
@@ -34,12 +34,17 @@ describe('/', () => {
     expect(screen.getByRole('heading', { level: 3, name: 'Du kan teste agenten' })).toBeVisible();
     expect(screen.getByRole('heading', { level: 3, name: 'Publiser agenten' })).toBeVisible();
     expect(
-      screen.getByRole('link', {
+      screen.getByText(
+        'Trykk på "Test agenten" og snakk med agenten slik en jobbsøker ville gjort.',
+      ),
+    ).toBeVisible();
+    expect(
+      screen.queryByRole('link', {
         name: 'Trykk på "Test agenten" og snakk med agenten slik en jobbsøker ville gjort.',
       }),
-    ).toHaveAttribute('href', '/test-chat');
-    expect(screen.getByRole('link', { name: 'Maler' })).toHaveAttribute('href', '/templates');
-    expect(screen.getByRole('link', { name: 'Jobbsøkerprofiler' })).toHaveAttribute(
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /^Maler/ })).toHaveAttribute('href', '/templates');
+    expect(screen.getByRole('link', { name: /^Jobbsøkerprofiler/ })).toHaveAttribute(
       'href',
       '/profiles',
     );
