@@ -8,7 +8,7 @@ Before the chat starts, the counsellor picks the agent type. For an interviewer,
 
 The page sends a fixed greeting as the first assistant turn (it costs no LLM call). It is the type's greeting, what was chosen, and the first question that is not decided:
 
-> Hei! Jeg hjelper deg med å sette opp en AI-intervjuer. Du har valgt malen «Teamleder». Du har valgt jobbsøkerprofilen «Profil A». Hvilken stilling skal jobbsøkeren øve til?
+> Hei! Jeg hjelper deg med å sette opp en AI-intervjuer. Du har valgt malen «Teamleder». Du har valgt jobbsøkermalen «Profil A». Hvilken stilling skal jobbsøkeren øve til?
 
 With an industry template, the job and industry are decided, so the first question is about the company:
 

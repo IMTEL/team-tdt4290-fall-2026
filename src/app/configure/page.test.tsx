@@ -48,6 +48,8 @@ afterEach(() => {
   vi.restoreAllMocks();
   fetchMock.mockReset();
   push.mockReset();
+  sessionStorage.clear();
+  localStorage.clear();
 });
 
 async function renderPage(type?: string, step?: string) {
@@ -74,7 +76,7 @@ async function openAsInterviewer() {
 
 /** Leaves the job seeker step without a profile, which is the step after the interviewer. */
 async function skipProfile(user: ReturnType<typeof userEvent.setup>) {
-  await user.click(screen.getByRole('button', { name: 'Fortsett uten profil' }));
+  await user.click(screen.getByRole('button', { name: 'Fortsett uten mal' }));
   await user.click(screen.getByRole('button', { name: 'Neste' }));
 }
 
@@ -190,9 +192,7 @@ describe('/configure', () => {
 
     await pickTemplate(user, /Teamleder/);
 
-    expect(
-      screen.getByRole('heading', { level: 2, name: 'Velg en jobbsøkerprofil' }),
-    ).toBeVisible();
+    expect(screen.getByRole('heading', { level: 2, name: 'Velg en jobbsøkermal' })).toBeVisible();
     expect(screen.getByRole('listitem', { current: 'step' })).toHaveTextContent('Jobbsøker');
     expect(screen.queryByRole('heading', { name: 'Velg en bransjemal' })).not.toBeInTheDocument();
 
@@ -220,6 +220,9 @@ describe('/configure', () => {
 
     expect(screen.getByRole('heading', { level: 2, name: 'Velg en mal' })).toBeVisible();
     expect(screen.getByRole('radio', { name: /Teamleder/ })).toBeChecked();
+    // Jumping back must not reset the side progress or clear later section marks.
+    expect(screen.getByText('4 av 5 seksjoner')).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Fullføre' })).toBeVisible();
   });
 
   it('opens the last step when the counsellor continues without templates', async () => {
@@ -265,7 +268,8 @@ describe('/configure', () => {
 
     await user.click(screen.getByRole('button', { name: 'Publiser' }));
 
-    expect(await screen.findByText(/er lagret/)).toBeVisible();
+    await waitFor(() => expect(push).toHaveBeenCalledWith('/browse-agents'));
+    expect(sessionStorage.getItem('kfi-agents-flash')).toBe('agent-lagret');
     const post = fetchMock.mock.calls.find(
       ([url, init]) => String(url) === '/api/agents' && init?.method === 'POST',
     );
@@ -286,15 +290,59 @@ describe('/configure', () => {
     });
     expect(body.configuration.stilling).toContain('Barnehageassistent.');
     expect(body.configuration.intervjuer).toContain('teamleder');
+  });
+
+  it('saves a draft and goes to the agents page', async () => {
+    fetchMock.mockImplementation(async (url, init) => {
+      const path = String(url);
+      if (path === '/api/agents' && (init?.method ?? 'GET') === 'POST') {
+        return Response.json({ id: 'agent-draft' });
+      }
+      if (path === '/api/profiles') return Response.json({ profiles: [] });
+      return Response.json({ templates: [] });
+    });
+
+    const user = await openAsInterviewer();
+    await skipTemplate(user);
+    await skipProfile(user);
+    await skipSettings(user);
+
+    await user.click(screen.getByRole('button', { name: 'Lagre som utkast' }));
+
+    await waitFor(() => expect(push).toHaveBeenCalledWith('/browse-agents'));
+    expect(sessionStorage.getItem('kfi-agents-flash')).toBe('agent-lagret');
+  });
+
+  it('saves the interviewer and opens the test with that agent', async () => {
+    fetchMock.mockImplementation(async (url, init) => {
+      const path = String(url);
+      const method = init?.method ?? 'GET';
+      if (path === '/api/agents' && method === 'POST') return Response.json({ id: 'agent-1' });
+      if (path === '/api/agents/agent-1' && method === 'PUT') {
+        return Response.json({
+          agent: {
+            id: 'agent-1',
+            name: 'Intervjuer for Barnehageassistent',
+            description: '{}',
+            lastUpdated: '2026-10-21T00:00:00.000Z',
+            llmModel: 'openai/gpt-oss-120b',
+            temperature: 0.7,
+            prompt: 'Du er en intervjuer',
+          },
+        });
+      }
+      if (path === '/api/profiles') return Response.json({ profiles: [] });
+      return Response.json({ templates: [] });
+    });
+
+    const user = await openAsInterviewer();
+    await pickTemplate(user, /Teamleder/);
+    await skipProfile(user);
+    await skipSettings(user);
 
     await user.click(screen.getByRole('button', { name: 'Test agenten' }));
 
     await waitFor(() => expect(push).toHaveBeenCalledWith('/test-chat?agent=agent-1'));
-    expect(
-      fetchMock.mock.calls.some(
-        ([url, init]) => String(url) === '/api/agents/agent-1' && init?.method === 'PUT',
-      ),
-    ).toBe(true);
   });
 
   it('goes back from the last step to the settings', async () => {
@@ -452,10 +500,66 @@ describe('/configure', () => {
 
     await skipTemplate(user);
 
-    expect(screen.getByRole('link', { name: 'Lag en ny profil' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Lag en ny mal' })).toHaveAttribute(
       'href',
       '/profiles/new',
     );
+  });
+
+  it('saves an unfinished draft and goes to the agents page', async () => {
+    const user = await openAsInterviewer();
+    await user.click(screen.getByRole('button', { name: 'Lagre utkast' }));
+
+    await waitFor(() => expect(push).toHaveBeenCalledWith('/browse-agents'));
+    expect(localStorage.getItem('kfi-configure-draft')).toContain('Barnehageassistent');
+    expect(sessionStorage.getItem('kfi-agents-flash')).toBe('utkast-lagret');
+  });
+
+  it('restores unfinished progress from local storage', async () => {
+    localStorage.setItem(
+      'kfi-configure-draft',
+      JSON.stringify({
+        version: 1,
+        agentTypeId: 'interviewer',
+        wizardStep: 1,
+        furthestStep: 1,
+        workplace: {
+          jobTitle: 'Barnehageassistent',
+          templateId: 'helsefagarbeider',
+          industry: 'Helse og omsorg',
+          sector: 'offentlig',
+          company: '',
+        },
+        hasTemplateChoice: false,
+        template: null,
+        profileId: '',
+        practiceAreas: [],
+        otherOpen: false,
+        otherPractice: '',
+        settings: {
+          interviewType: null,
+          difficulty: null,
+          questionCount: null,
+          questionCountDetail: '',
+          followUp: null,
+          ownQuestions: '',
+          extra: '',
+          model: 'openai/gpt-oss-120b',
+          temperature: 0.7,
+          customPrompt: null,
+        },
+        avatar: null,
+        nameEdited: false,
+        agentName: '',
+        presetsDone: false,
+      }),
+    );
+
+    await renderPage('interviewer');
+
+    expect(await screen.findByRole('heading', { level: 2, name: 'Velg en mal' })).toBeVisible();
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Stilling og arbeidsplass' }));
+    expect(screen.getByRole('textbox', { name: /Stilling/ })).toHaveValue('Barnehageassistent');
   });
 
   it('sets a Norwegian tab title', () => {

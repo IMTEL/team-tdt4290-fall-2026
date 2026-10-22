@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import Typography from '@mui/material/Typography';
 
 import { TemplateLibrary } from './TemplateLibrary';
@@ -7,7 +8,7 @@ import styles from './page.module.css';
 export const metadata: Metadata = {
   title: 'Maler',
   description:
-    'Bransjemaler, jobbsøkerprofiler og stillingsmaler du kan bruke når du setter opp en agent.',
+    'Bransjemaler, jobbsøkermaler og stillingsmaler du kan bruke når du setter opp en agent.',
 };
 
 export default function TemplatesPage() {
@@ -17,6 +18,9 @@ export default function TemplatesPage() {
         <Typography variant="h4" component="h1">
           Maler
         </Typography>
+        <Link href="/create-template?agentType=interviewer" className={styles.newTemplate}>
+          Lag ny mal
+        </Link>
       </header>
       <TemplateLibrary />
     </div>

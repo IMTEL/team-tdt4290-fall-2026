@@ -315,12 +315,7 @@
   align-items: stretch;
   gap: 0.15rem;
   min-height: 2.4rem;
-  padding: 0 var(--space-2);
   border-radius: var(--radius-md);
-}
-
-.sections li:has(.jump) {
-  padding: 0;
 }
 
 .sectionLine,
@@ -331,7 +326,7 @@
   width: 100%;
   min-height: 2.4rem;
   margin: 0;
-  padding: 0;
+  padding: 0 var(--space-2);
   border: 0;
   border-radius: var(--radius-md);
   background: transparent;

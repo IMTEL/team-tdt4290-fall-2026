@@ -8,7 +8,7 @@ import Button from '@mui/material/Button';
 export function NewProfileButton() {
   return (
     <Button component={Link} href="/profiles/new" variant="contained">
-      Lag en ny profil
+      Lag en ny mal
     </Button>
   );
 }

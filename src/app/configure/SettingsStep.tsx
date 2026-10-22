@@ -76,13 +76,13 @@ type SettingsStepProps = {
   name: string;
   onNameChange: (name: string) => void;
   saving: boolean;
-  saved: { id: string; name: string } | null;
   saveError: string | null;
   onSave: () => void;
   onTest: () => void;
   /** Opens an earlier section from the list on the side. */
   onGoTo?: (index: number) => void;
   reached?: number;
+  onSaveDraft?: () => void;
 };
 
 /** The settings step, in the same frame as stilling, intervjuer and jobbsøker. */
@@ -101,11 +101,11 @@ export function SettingsStep({
   name,
   onNameChange,
   saving,
-  saved,
   saveError,
   onSave,
   onTest,
   reached,
+  onSaveDraft,
 }: SettingsStepProps) {
   const languageModels = useLanguageModels(value.model);
   const advanced: AdvancedSettings = {
@@ -120,6 +120,7 @@ export function SettingsStep({
       onGoTo={onGoTo}
       reached={reached}
       expanded={expanded}
+      onSaveDraft={onSaveDraft}
       more={
         <FinishActions
           intro={intro}
@@ -129,7 +130,6 @@ export function SettingsStep({
           name={name}
           onNameChange={onNameChange}
           saving={saving}
-          saved={saved}
           error={saveError}
           onSave={onSave}
           onTest={onTest}

@@ -1,4 +1,5 @@
 import { render, screen, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import type { Agent } from '@/lib/types';
@@ -40,6 +41,8 @@ function cardNames(section: HTMLElement): string[] {
 describe('AgentList', () => {
   afterEach(() => {
     fetchAgentsMock.mockReset();
+    sessionStorage.clear();
+    localStorage.clear();
   });
 
   it('says it is loading until the list arrives', async () => {
@@ -139,5 +142,92 @@ describe('AgentList', () => {
 
     const heading = await screen.findByRole('heading', { level: 2, name: 'Intervjuer' });
     expect(cardNames(heading.closest('section')!)).toEqual(['Ny agent', 'Ny', 'Gammel']);
+  });
+
+  it('shows Agent lagret when opened after a save', async () => {
+    sessionStorage.setItem('kfi-agents-flash', 'agent-lagret');
+    fetchAgentsMock.mockResolvedValue([]);
+
+    render(<AgentList />);
+
+    expect(await screen.findByText('Agent lagret')).toBeVisible();
+    expect(sessionStorage.getItem('kfi-agents-flash')).toBeNull();
+  });
+
+  const draftJson = JSON.stringify({
+    version: 1,
+    agentTypeId: 'interviewer',
+    wizardStep: 1,
+    furthestStep: 1,
+    workplace: {
+      jobTitle: 'Barnehageassistent',
+      templateId: 'helsefagarbeider',
+      industry: 'Helse og omsorg',
+      sector: 'offentlig',
+      company: '',
+    },
+    hasTemplateChoice: false,
+    template: null,
+    profileId: '',
+    practiceAreas: [],
+    otherOpen: false,
+    otherPractice: '',
+    settings: {
+      interviewType: null,
+      difficulty: null,
+      questionCount: null,
+      questionCountDetail: '',
+      followUp: null,
+      ownQuestions: '',
+      extra: '',
+      model: 'openai/gpt-oss-120b',
+      temperature: 0.7,
+      customPrompt: null,
+    },
+    avatar: null,
+    nameEdited: false,
+    agentName: '',
+    presetsDone: false,
+  });
+
+  it('shows a local draft as an utkast card', async () => {
+    localStorage.setItem('kfi-configure-draft', draftJson);
+    fetchAgentsMock.mockResolvedValue([]);
+
+    render(<AgentList />);
+
+    const heading = await screen.findByRole('heading', { level: 2, name: 'Intervjuer' });
+    expect(cardNames(heading.closest('section')!)).toEqual([
+      'Ny agent',
+      'Intervjuer for Barnehageassistent',
+    ]);
+    expect(screen.getByText('Utkast')).toBeVisible();
+    expect(screen.getByRole('link', { name: /Intervjuer for Barnehageassistent/ })).toHaveAttribute(
+      'href',
+      '/configure?type=interviewer',
+    );
+  });
+
+  it('can delete the local draft from the utkast card', async () => {
+    localStorage.setItem('kfi-configure-draft', draftJson);
+    fetchAgentsMock.mockResolvedValue([]);
+    const user = userEvent.setup();
+
+    render(<AgentList />);
+
+    await user.click(
+      await screen.findByRole('button', {
+        name: 'Slett utkastet Intervjuer for Barnehageassistent',
+      }),
+    );
+    expect(
+      screen.getByRole('dialog', { name: 'Slette utkastet «Intervjuer for Barnehageassistent»?' }),
+    ).toBeVisible();
+    await user.click(screen.getByRole('button', { name: 'Slett' }));
+
+    expect(localStorage.getItem('kfi-configure-draft')).toBeNull();
+    expect(
+      screen.queryByRole('heading', { name: 'Intervjuer for Barnehageassistent' }),
+    ).not.toBeInTheDocument();
   });
 });

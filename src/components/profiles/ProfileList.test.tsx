@@ -48,7 +48,7 @@ describe('ProfileList', () => {
     fetchMock.mockResolvedValue([]);
     render(<ProfileList />);
 
-    expect(await screen.findByText(/Du har ingen profiler ennå/)).toBeInTheDocument();
+    expect(await screen.findByText(/Du har ingen maler ennå/)).toBeInTheDocument();
   });
 
   it('shows the error when the profiles cannot be loaded', async () => {
@@ -65,7 +65,7 @@ describe('ProfileList', () => {
     render(<ProfileList />);
 
     await user.click(await screen.findByRole('button', { name: 'Slett Profil A' }));
-    expect(screen.getByRole('dialog', { name: 'Slette profilen «Profil A»?' })).toBeVisible();
+    expect(screen.getByRole('dialog', { name: 'Slette malen «Profil A»?' })).toBeVisible();
     await user.click(screen.getByRole('button', { name: 'Slett' }));
 
     expect(deleteMock).toHaveBeenCalledWith('profile-1');

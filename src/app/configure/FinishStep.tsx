@@ -1,7 +1,6 @@
 'use client';
 
 import type { ReactNode } from 'react';
-import Link from 'next/link';
 import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
 import TextField from '@mui/material/TextField';
@@ -72,7 +71,7 @@ export function configurationLines(overview: FinishOverview): { label: string; v
     ],
     [{ label: 'Mal', value: overview.interviewerTitle ?? 'Ingen mal' }],
     [
-      { label: 'Profil', value: overview.profileLabel ?? 'Ingen profil' },
+      { label: 'Jobbsøkermal', value: overview.profileLabel ?? 'Ingen mal' },
       {
         label: 'Øve på',
         value:
@@ -113,7 +112,6 @@ export function FinishActions({
   name,
   onNameChange,
   saving,
-  saved,
   error,
   onSave,
   onTest,
@@ -126,8 +124,6 @@ export function FinishActions({
   name: string;
   onNameChange: (name: string) => void;
   saving: boolean;
-  /** Set once the agent exists, so a later save updates that agent. */
-  saved: { id: string; name: string } | null;
   error: string | null;
   onSave: () => void;
   onTest: () => void;
@@ -153,11 +149,6 @@ export function FinishActions({
         helperText={`${name.length}/${MAX_NAME_LENGTH} tegn`}
         slotProps={{ htmlInput: { maxLength: MAX_NAME_LENGTH } }}
       />
-      {saved && (
-        <Alert severity="success">
-          «{saved.name}» er lagret. <Link href={`/browse-agents/${saved.id}`}>Se agenten</Link>
-        </Alert>
-      )}
       {error && <Alert severity="error">{error}</Alert>}
       <div className={stepStyles.finishButtons}>
         <Button type="button" variant="contained" onClick={onSave} disabled={!canSave}>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import Button from '@mui/material/Button';
@@ -30,17 +30,28 @@ import {
   type JobSeekerProfile,
 } from '@/domain/jobSeekerProfile';
 import { updateAgent } from '../browse-agents/api';
+import { AGENT_SAVED_FLASH, DRAFT_SAVED_FLASH, setAgentsFlash } from '../browse-agents/flash';
 import { fetchSavedTemplates, saveConfiguredAgent } from './api';
 import { ConfigurationChat } from './ConfigurationChat';
 import { JobSeekerStep } from './JobSeekerStep';
 import { EMPTY_INTERVIEW_SETTINGS, SettingsStep, type InterviewSettings } from './SettingsStep';
 import { StillingStep, WizardFrame, type Workplace } from './StillingStep';
 import { suggestedAgentName, wizardConfiguration } from './wizardConfiguration';
+import { clearWizardDraft, readWizardDraft, writeWizardDraft } from './wizardDraft';
 import styles from './page.module.css';
 import stepStyles from './StillingStep.module.css';
 
 // undefined: the counsellor hasn't chosen yet. null: they chose to continue without one.
 type Choice<T> = T | null | undefined;
+
+/** True after hydration, so a local draft can be restored without a server/client HTML mismatch. */
+function useIsClient() {
+  return useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false,
+  );
+}
 
 /** Shows where the counsellor is, so they know what comes before the chat. */
 function Steps({ steps, active }: { steps: string[]; active: number }) {
@@ -107,12 +118,117 @@ export function ConfigureAgent({
     sector: null,
     company: '',
   });
+  // False until a stored draft has been read (or found missing), so we do not overwrite it.
+  const [draftReady, setDraftReady] = useState(false);
+  const isClient = useIsClient();
 
   const presets = definition?.presets ?? {};
   const usesTemplates = Boolean(presets.template);
   const agentType = definition?.id;
   const usesProfiles = Boolean(presets.jobSeekerProfile);
   const usesIndustries = Boolean(presets.industryTemplate);
+
+  // Restore once after hydration (setState during render when the client flag flips).
+  if (isClient && !draftReady) {
+    const draft = readWizardDraft();
+    if (
+      draft &&
+      draft.agentTypeId === 'interviewer' &&
+      (!initialTypeId || initialTypeId === draft.agentTypeId)
+    ) {
+      const type = getAgentType(draft.agentTypeId);
+      if (type) {
+        setDefinition(type);
+        setWorkplace(draft.workplace);
+        setChoice(draft.hasTemplateChoice ? draft.template : undefined);
+        setProfileId(draft.profileId);
+        setPracticeAreas(draft.practiceAreas);
+        setOtherOpen(draft.otherOpen);
+        setOtherPractice(draft.otherPractice);
+        setSettings(draft.settings);
+        setAvatar(draft.avatar);
+        setNameEdited(draft.nameEdited);
+        setAgentName(draft.agentName);
+        setPresetsDone(draft.presetsDone);
+        // A returnTo link can ask for the intervjuer step; otherwise open where they left off.
+        if (initialTypeId === 'interviewer' && initialStep === 'intervjuer') {
+          setWizardStep(1);
+          setFurthestStep(Math.max(draft.furthestStep, 1));
+        } else {
+          setWizardStep(draft.wizardStep);
+          setFurthestStep(draft.furthestStep);
+        }
+      }
+    }
+    setDraftReady(true);
+  }
+
+  useEffect(() => {
+    if (!draftReady || definition?.id !== 'interviewer') return;
+    writeWizardDraft({
+      version: 1,
+      agentTypeId: 'interviewer',
+      wizardStep,
+      furthestStep,
+      workplace,
+      hasTemplateChoice: choice !== undefined,
+      template: choice ?? null,
+      profileId,
+      practiceAreas,
+      otherOpen,
+      otherPractice,
+      settings,
+      avatar,
+      nameEdited,
+      agentName,
+      presetsDone,
+    });
+  }, [
+    draftReady,
+    definition?.id,
+    wizardStep,
+    furthestStep,
+    workplace,
+    choice,
+    profileId,
+    practiceAreas,
+    otherOpen,
+    otherPractice,
+    settings,
+    avatar,
+    nameEdited,
+    agentName,
+    presetsDone,
+  ]);
+
+  function saveDraft() {
+    if (definition?.id !== 'interviewer') return;
+    writeWizardDraft({
+      version: 1,
+      agentTypeId: 'interviewer',
+      wizardStep,
+      furthestStep,
+      workplace,
+      hasTemplateChoice: choice !== undefined,
+      template: choice ?? null,
+      profileId,
+      practiceAreas,
+      otherOpen,
+      otherPractice,
+      settings,
+      avatar,
+      nameEdited,
+      agentName,
+      presetsDone,
+    });
+  }
+
+  /** Writes the unfinished wizard and opens the agents list, where the utkast card appears. */
+  function saveDraftAndLeave() {
+    saveDraft();
+    setAgentsFlash(DRAFT_SAVED_FLASH);
+    router.push('/browse-agents');
+  }
 
   useEffect(() => {
     if (!agentType || (!usesTemplates && !usesProfiles)) return;
@@ -140,6 +256,7 @@ export function ConfigureAgent({
   }, [agentType, usesTemplates, usesProfiles]);
 
   function chooseType(next: AgentTypeDefinition | undefined) {
+    if (!next) clearWizardDraft();
     setDefinition(next);
     setChoice(undefined);
     setIndustry(undefined);
@@ -247,6 +364,7 @@ export function ConfigureAgent({
             avatar,
           );
       setSavedAgent({ id, name: trimmed });
+      clearWizardDraft();
       return id;
     } catch (error) {
       setSaveError(error instanceof Error ? error.message : 'Noe gikk galt. Prøv igjen.');
@@ -265,8 +383,8 @@ export function ConfigureAgent({
           <p className={styles.lead}>
             Velg hva slags agent du vil sette opp, og svar så på spørsmålene fra assistenten. Da
             lager vi en AI-agent som jobbsøkeren kan øve med. For en intervjuer kan du også velge
-            maler for intervjueren og bransjen og en jobbsøkerprofil, eller la assistenten spørre
-            deg om alt.
+            maler for intervjueren og bransjen og en jobbsøkermal, eller la assistenten spørre deg
+            om alt.
           </p>
         </header>
         <AgentTypePicker
@@ -285,7 +403,7 @@ export function ConfigureAgent({
   const usesPresetStep = usesTemplates || usesProfiles;
   const presetStep = `Velg ${[
     usesTemplates && fieldLabel(presets.template?.field).toLowerCase(),
-    usesProfiles && 'profil',
+    usesProfiles && 'jobbsøkermal',
   ]
     .filter(Boolean)
     .join(' og ')}`;
@@ -332,13 +450,14 @@ export function ConfigureAgent({
         onNext={() => goTo(1)}
         onGoTo={goTo}
         reached={furthestStep}
+        onSaveDraft={saveDraftAndLeave}
       />
     );
   }
 
   if (definition.id === 'interviewer' && wizardStep === 1) {
     return (
-      <WizardFrame current={1} onGoTo={goTo} reached={furthestStep}>
+      <WizardFrame current={1} onGoTo={goTo} reached={furthestStep} onSaveDraft={saveDraftAndLeave}>
         <div className={stepStyles.form}>
           {chosenType}
           {usesIndustries && industry !== undefined && chosenIndustry}
@@ -394,6 +513,7 @@ export function ConfigureAgent({
         onOtherPracticeChange={setOtherPractice}
         onNext={() => goTo(3)}
         onBack={() => goTo(1)}
+        onSaveDraft={saveDraftAndLeave}
       />
     );
   }
@@ -423,10 +543,13 @@ export function ConfigureAgent({
           setAgentName(next);
         }}
         saving={saving}
-        saved={savedAgent}
         saveError={saveError}
         onSave={() => {
-          void persist();
+          void persist().then((id) => {
+            if (!id) return;
+            setAgentsFlash(AGENT_SAVED_FLASH);
+            router.push('/browse-agents');
+          });
         }}
         onTest={() => {
           void persist().then((id) => {
@@ -436,6 +559,7 @@ export function ConfigureAgent({
         onBack={() => goTo(2)}
         onFinishBack={() => goTo(3)}
         onNext={() => goTo(4)}
+        onSaveDraft={saveDraftAndLeave}
       />
     );
   }
@@ -485,7 +609,7 @@ export function ConfigureAgent({
         {usesProfiles && (
           <>
             {fieldLabel(presets.jobSeekerProfile)}:{' '}
-            <strong>{profile ? profile.label : 'Ingen profil valgt'}</strong>
+            <strong>{profile ? profile.label : 'Ingen mal valgt'}</strong>
           </>
         )}
       </p>
@@ -498,11 +622,7 @@ export function ConfigureAgent({
           setPresetsDone(false);
         }}
       >
-        {usesTemplates && usesProfiles
-          ? 'Bytt mal eller profil'
-          : usesTemplates
-            ? 'Bytt mal'
-            : 'Bytt profil'}
+        {usesTemplates && usesProfiles ? 'Bytt maler' : 'Bytt mal'}
       </Button>
     </div>
   );

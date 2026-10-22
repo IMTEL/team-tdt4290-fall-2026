@@ -109,8 +109,8 @@ export function TemplateLibrary() {
         leading={<AddCatalogCard title="Ny bransjemal" subtitle="Kommer snart" />}
       />
 
-      <Section id="jobbsokerprofiler" title="Jobbsøkerprofiler">
-        {profiles.kind === 'loading' && <Typography>Laster profiler …</Typography>}
+      <Section id="jobbsokerprofiler" title="Jobbsøkermaler">
+        {profiles.kind === 'loading' && <Typography>Laster maler …</Typography>}
         {profiles.kind === 'error' && <Alert severity="error">{profiles.message}</Alert>}
         {profiles.kind === 'ready' && (
           <CatalogGrid
@@ -118,8 +118,8 @@ export function TemplateLibrary() {
             leading={
               <AddCatalogCard
                 href="/profiles/new"
-                title="Ny profil"
-                subtitle="Legg til en jobbsøkerprofil"
+                title="Ny jobbsøkermal"
+                subtitle="Legg til en jobbsøkermal"
               />
             }
           />
@@ -130,7 +130,13 @@ export function TemplateLibrary() {
         id="stillingsmaler"
         title="Stillingsmaler"
         items={jobCatalog(industryTemplates)}
-        leading={<AddCatalogCard title="Ny stillingsmal" subtitle="Kommer snart" />}
+        leading={
+          <AddCatalogCard
+            href="/create-template?agentType=interviewer"
+            title="Ny stillingsmal"
+            subtitle="Lag en mal for stillingen"
+          />
+        }
       />
     </>
   );

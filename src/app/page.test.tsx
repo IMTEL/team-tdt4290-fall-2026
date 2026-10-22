@@ -35,18 +35,19 @@ describe('/', () => {
     expect(screen.getByRole('heading', { level: 3, name: 'Publiser agenten' })).toBeVisible();
     expect(
       screen.getByText(
-        'Trykk på "Test agenten" og snakk med agenten slik en jobbsøker ville gjort.',
+        'Trykk på «Test agenten» og snakk med agenten slik en jobbsøker ville gjort.',
       ),
     ).toBeVisible();
     expect(
       screen.queryByRole('link', {
-        name: 'Trykk på "Test agenten" og snakk med agenten slik en jobbsøker ville gjort.',
+        name: 'Trykk på «Test agenten» og snakk med agenten slik en jobbsøker ville gjort.',
       }),
     ).not.toBeInTheDocument();
     expect(screen.getByRole('link', { name: /^Maler/ })).toHaveAttribute('href', '/templates');
-    expect(screen.getByRole('link', { name: /^Jobbsøkerprofiler/ })).toHaveAttribute(
-      'href',
-      '/profiles',
-    );
+    expect(screen.queryByRole('link', { name: /^Jobbsøkermaler/ })).not.toBeInTheDocument();
+    // Maler sits with the CTAs above the steps, not as a step-like card.
+    const maler = screen.getByRole('link', { name: /^Maler/ });
+    const how = screen.getByRole('heading', { level: 2, name: 'Slik fungerer det' });
+    expect(maler.compareDocumentPosition(how) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 });

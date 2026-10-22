@@ -16,7 +16,6 @@ const NAV_LINKS: { href: string; label: string }[] = [
   { href: '/', label: 'Hjem' },
   { href: '/browse-agents', label: 'Agenter' },
   { href: '/templates', label: 'Maler' },
-  { href: '/profiles', label: 'Jobbsøkerprofiler' },
 ];
 
 function isActive(pathname: string, href: string) {

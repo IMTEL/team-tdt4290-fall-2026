@@ -82,8 +82,8 @@ describe('TemplateLibrary', () => {
     fetchProfilesMock.mockResolvedValue([profile]);
     render(<TemplateLibrary />);
 
-    const profiles = section('Jobbsøkerprofiler');
-    expect(await within(profiles).findByRole('link', { name: /Ny profil/ })).toHaveAttribute(
+    const profiles = section('Jobbsøkermaler');
+    expect(await within(profiles).findByRole('link', { name: /Ny jobbsøkermal/ })).toHaveAttribute(
       'href',
       '/profiles/new',
     );
@@ -99,24 +99,31 @@ describe('TemplateLibrary', () => {
     render(<TemplateLibrary />);
 
     expect(await screen.findByText('Noe gikk galt. Prøv igjen.')).toBeVisible();
-    expect(screen.queryByRole('link', { name: /Ny profil/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /Ny jobbsøkermal/ })).not.toBeInTheDocument();
   });
 
-  it('shows a placeholder for a new industry and a new job', () => {
+  it('shows a placeholder for a new industry', () => {
     fetchProfilesMock.mockResolvedValue([]);
     render(<TemplateLibrary />);
 
-    for (const [group, title] of [
-      ['Bransjemaler', 'Ny bransjemal'],
-      ['Stillingsmaler', 'Ny stillingsmal'],
-    ] as const) {
-      const area = section(group);
-      expect(within(area).getByRole('heading', { level: 3, name: title })).toBeVisible();
-      expect(within(area).getByText('Kommer snart')).toBeVisible();
-      expect(within(area).queryByRole('link', { name: new RegExp(title) })).not.toBeInTheDocument();
-      expect(
-        within(area).queryByRole('button', { name: new RegExp(title) }),
-      ).not.toBeInTheDocument();
-    }
+    const industries = section('Bransjemaler');
+    expect(
+      within(industries).getByRole('heading', { level: 3, name: 'Ny bransjemal' }),
+    ).toBeVisible();
+    expect(within(industries).getByText('Kommer snart')).toBeVisible();
+    expect(
+      within(industries).queryByRole('link', { name: /Ny bransjemal/ }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('links Ny stillingsmal to creating a template', () => {
+    fetchProfilesMock.mockResolvedValue([]);
+    render(<TemplateLibrary />);
+
+    const jobs = section('Stillingsmaler');
+    expect(within(jobs).getByRole('link', { name: /Ny stillingsmal/ })).toHaveAttribute(
+      'href',
+      '/create-template?agentType=interviewer',
+    );
   });
 });

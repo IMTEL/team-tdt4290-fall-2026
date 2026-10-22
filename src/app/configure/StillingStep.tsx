@@ -39,6 +39,7 @@ type StillingStepProps = {
   /** Opens a section the counsellor has already been to. */
   onGoTo?: (index: number) => void;
   reached?: number;
+  onSaveDraft?: () => void;
 };
 
 function industriesOf(templates: IndustryTemplate[]): string[] {
@@ -55,6 +56,7 @@ export function WizardFrame({
   details,
   expanded = false,
   more,
+  onSaveDraft,
   children,
 }: {
   current: number;
@@ -67,9 +69,12 @@ export function WizardFrame({
   /** The same side card, a little wider, with `more` shown under the progress. */
   expanded?: boolean;
   more?: ReactNode;
+  /** Writes the unfinished wizard to local storage. */
+  onSaveDraft?: () => void;
   children: ReactNode;
 }) {
-  const done = Math.min(current, SECTIONS.length);
+  // Progress follows the furthest section opened, so jumping back does not empty the bar.
+  const progress = Math.min(Math.max(reached ?? current, current), SECTIONS.length);
 
   return (
     <div className={styles.step}>
@@ -100,18 +105,26 @@ export function WizardFrame({
             aria-hidden={expanded || undefined}
           >
             <div className={styles.clip}>
-              <Button type="button" variant="outlined" fullWidth>
+              <Button
+                type="button"
+                variant="outlined"
+                fullWidth
+                disabled={!onSaveDraft}
+                onClick={() => onSaveDraft?.()}
+              >
                 Lagre utkast
               </Button>
             </div>
           </div>
           <p className={styles.count}>
-            {done} av {SECTIONS.length} seksjoner
+            {progress} av {SECTIONS.length} seksjoner
           </p>
           <div className={styles.track} aria-hidden="true">
             <div
               className={styles.fill}
-              style={{ width: done === 0 ? '0.6rem' : `${(done / SECTIONS.length) * 100}%` }}
+              style={{
+                width: progress === 0 ? '0.6rem' : `${(progress / SECTIONS.length) * 100}%`,
+              }}
             />
           </div>
           <div className={expanded ? `${styles.extra} ${styles.extraOpen}` : styles.extra}>
@@ -129,7 +142,10 @@ export function WizardFrame({
   );
 }
 
-/** The section list. A check means the step is behind you. Steps already opened can be jumped to. */
+/**
+ * The section list. A check means the counsellor has already been to that section (including ones
+ * after the one they jumped back to). Steps already opened can be jumped to.
+ */
 export function SectionMenu({
   current,
   onGoTo,
@@ -145,12 +161,13 @@ export function SectionMenu({
   details?: { label: string; value: string }[][];
   className?: string;
 }) {
-  const furthest = reached ?? current;
+  const furthest = Math.max(reached ?? current, current);
   return (
     <ol className={className ? `${styles.sections} ${className}` : styles.sections}>
       {SECTIONS.map((section, index) => {
         const open = Boolean(onGoTo) && index !== current && index <= furthest;
-        const done = index < current;
+        // Visited sections keep their check when the counsellor jumps back.
+        const done = index !== current && index <= furthest;
         const mark = done ? styles.doneMark : styles.mark;
         const lines = details?.[index] ?? [];
         return (
@@ -219,6 +236,7 @@ export function StillingStep({
   onNext,
   onGoTo,
   reached,
+  onSaveDraft,
 }: StillingStepProps) {
   const [showAllJobs, setShowAllJobs] = useState(false);
   const [showAllIndustries, setShowAllIndustries] = useState(false);
@@ -231,7 +249,7 @@ export function StillingStep({
   }
 
   return (
-    <WizardFrame current={0} onGoTo={onGoTo} reached={reached}>
+    <WizardFrame current={0} onGoTo={onGoTo} reached={reached} onSaveDraft={onSaveDraft}>
       <form
         className={styles.form}
         onSubmit={(event) => {

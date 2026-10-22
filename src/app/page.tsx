@@ -5,15 +5,15 @@ import styles from './page.module.css';
 const STEPS = [
   {
     title: 'Lag en agent',
-    text: 'Trykk på "Ny agent" og svar på noen spørsmål om stilling, intervjuer og jobbsøker.',
+    text: 'Trykk på «Ny agent» og svar på spørsmål om stilling, intervjuer, jobbsøkermal og innstillinger.',
   },
   {
     title: 'Du kan teste agenten',
-    text: 'Trykk på "Test agenten" og snakk med agenten slik en jobbsøker ville gjort.',
+    text: 'Trykk på «Test agenten» og snakk med agenten slik en jobbsøker ville gjort.',
   },
   {
     title: 'Publiser agenten',
-    text: 'Trykk på "Publiser agenten" og gjør agenten tilgjengelig i The Candidate.',
+    text: 'Trykk på «Publiser» for å lagre agenten. Du finner den igjen under Agenter.',
   },
 ] as const;
 
@@ -37,6 +37,17 @@ export default function Home() {
         </Link>
       </div>
 
+      <Link href="/templates" className={styles.templatesLink}>
+        <span className={styles.templatesTitle}>
+          Maler
+          <span aria-hidden="true"> →</span>
+        </span>
+        <span className={styles.templatesHint}>
+          Stillings-, bransje- og jobbsøkermaler. Velg en når du setter opp agenten, så er mye
+          allerede fylt inn.
+        </span>
+      </Link>
+
       <section className={styles.how} aria-labelledby="how-heading">
         <h2 id="how-heading" className={styles.howTitle}>
           Slik fungerer det
@@ -54,26 +65,6 @@ export default function Home() {
             </li>
           ))}
         </ol>
-        <ul className={styles.shortcuts}>
-          <li>
-            <Link href="/templates" className={styles.shortcut}>
-              <span className={styles.shortcutTitle}>Maler</span>
-              <span>
-                Ferdige stillings- og bransjemaler. Velg en når du setter opp agenten, så er jobben
-                fylt inn.
-              </span>
-            </Link>
-          </li>
-          <li>
-            <Link href="/profiles" className={styles.shortcut}>
-              <span className={styles.shortcutTitle}>Jobbsøkerprofiler</span>
-              <span>
-                En anonym beskrivelse av en type jobbsøker: alder, erfaring og hva de skal øve på.
-                Intervjueren tilpasser seg profilen.
-              </span>
-            </Link>
-          </li>
-        </ul>
       </section>
     </div>
   );

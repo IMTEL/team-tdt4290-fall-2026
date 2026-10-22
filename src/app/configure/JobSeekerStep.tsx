@@ -41,6 +41,7 @@ type JobSeekerStepProps = {
   /** Opens an earlier section from the list on the side. */
   onGoTo?: (index: number) => void;
   reached?: number;
+  onSaveDraft?: () => void;
 };
 
 /** The job seeker step, in the same frame as stilling and intervjuer. */
@@ -60,22 +61,23 @@ export function JobSeekerStep({
   onBack,
   onGoTo,
   reached,
+  onSaveDraft,
 }: JobSeekerStepProps) {
   return (
-    <WizardFrame current={2} onGoTo={onGoTo} reached={reached}>
+    <WizardFrame current={2} onGoTo={onGoTo} reached={reached} onSaveDraft={onSaveDraft}>
       <div className={stepStyles.form}>
         {intro}
         <section aria-labelledby="profile-picker-heading" className={cardStyles.picker}>
           <h2 id="profile-picker-heading" className={cardStyles.heading}>
-            Velg en jobbsøkerprofil
+            Velg en jobbsøkermal
           </h2>
           <p className={cardStyles.lead}>
-            Profilen bestemmer hvem jobbsøkeren er. Uten profil spør assistenten deg om det.
+            Malen bestemmer hvem jobbsøkeren er. Uten mal spør assistenten deg om det.
           </p>
           {loading ? (
-            <p className={cardStyles.lead}>Laster profiler …</p>
+            <p className={cardStyles.lead}>Laster maler …</p>
           ) : profiles.length === 0 ? (
-            <p className={cardStyles.lead}>Du har ingen profiler ennå.</p>
+            <p className={cardStyles.lead}>Du har ingen maler ennå.</p>
           ) : (
             <ul
               className={cardStyles.grid}
@@ -168,14 +170,14 @@ export function JobSeekerStep({
               slotProps={{ formHelperText: { className: stepStyles.commaHint } }}
             />
           )}
-          <p className={stepStyles.hint}>Gjelder denne agenten. Profilen endres ikke.</p>
+          <p className={stepStyles.hint}>Gjelder denne agenten. Malen endres ikke.</p>
         </div>
         <div className={pageStyles.presetActions}>
           <Button variant="outlined" onClick={() => onSelect('')}>
-            Fortsett uten profil
+            Fortsett uten mal
           </Button>
           <Button component={Link} href="/profiles/new" variant="outlined">
-            Lag en ny profil
+            Lag en ny mal
           </Button>
           <div className={stepStyles.nav}>
             <Button onClick={onBack}>Tilbake</Button>

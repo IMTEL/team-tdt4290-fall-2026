@@ -10,8 +10,8 @@ const GENERIC_ERROR = 'Noe gikk galt. Prøv igjen.';
 /** The Norwegian message for a failed request. Never the server's own text. */
 function errorMessage(status: number): string {
   if (status === 401) return 'Du er logget ut. Logg inn på nytt og prøv igjen.';
-  if (status === 400) return 'Profilen ble ikke godtatt. Sjekk feltene og prøv igjen.';
-  if (status === 404) return 'Fant ikke profilen. Den kan ha blitt slettet.';
+  if (status === 400) return 'Malen ble ikke godtatt. Sjekk feltene og prøv igjen.';
+  if (status === 404) return 'Fant ikke malen. Den kan ha blitt slettet.';
   if (status === 504) return 'Det tok for lang tid å få svar. Prøv igjen.';
   return GENERIC_ERROR;
 }

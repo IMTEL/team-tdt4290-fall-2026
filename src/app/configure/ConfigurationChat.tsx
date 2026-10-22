@@ -39,7 +39,7 @@ function greeting(
     industry &&
       ` Du har valgt bransjemalen «${industry.title}» (${industry.industry}, ` +
         `${SECTOR_LABELS[industry.sector].toLowerCase()} sektor).`,
-    profile && ` Du har valgt jobbsøkerprofilen «${profile.label}».`,
+    profile && ` Du har valgt jobbsøkermalen «${profile.label}».`,
   ]
     .filter(Boolean)
     .join('');
