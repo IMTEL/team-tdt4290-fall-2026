@@ -30,7 +30,10 @@ export function PublishAgentButton({ agent, publication, onChange }: Props) {
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   // A hidden agent keeps its text, so publishing again starts from it.
-  const [name, setName] = useState(publication.publicName || agent.name);
+  // Cut to the limit: agents saved before it was lowered can have longer names.
+  const [name, setName] = useState(
+    (publication.publicName || agent.name).slice(0, MAX_NAME_LENGTH),
+  );
   const [description, setDescription] = useState(publication.publicDescription);
 
   const nameMissing = name.trim() === '';
@@ -120,7 +123,7 @@ export function PublishAgentButton({ agent, publication, onChange }: Props) {
               onChange={(event) => setName(event.target.value)}
               required
               error={nameMissing}
-              helperText={nameMissing ? 'Skriv et navn.' : ' '}
+              helperText={nameMissing ? 'Skriv et navn.' : `${name.length}/${MAX_NAME_LENGTH} tegn`}
               slotProps={{ htmlInput: { maxLength: MAX_NAME_LENGTH } }}
               fullWidth
               margin="normal"

@@ -3,13 +3,7 @@ import { NextRequest } from 'next/server';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { getSessionToken } from '@/lib/session-tokens';
-import {
-  fetchFullAgent,
-  isAgentOwner,
-  publishAgent,
-  RagdollError,
-  unpublishAgent,
-} from '@/server/ragdoll';
+import { isAgentOwner, publishAgent, RagdollError, unpublishAgent } from '@/server/ragdoll';
 import { DELETE, POST } from './route';
 
 // The adapter has its own tests. Here we check the session, the body, the owner check and the
@@ -19,7 +13,6 @@ vi.mock('@/server/ragdoll', async (importOriginal) => {
   const original = await importOriginal<typeof import('@/server/ragdoll')>();
   return {
     ...original,
-    fetchFullAgent: vi.fn(),
     isAgentOwner: vi.fn(),
     publishAgent: vi.fn(),
     unpublishAgent: vi.fn(),
@@ -27,7 +20,6 @@ vi.mock('@/server/ragdoll', async (importOriginal) => {
 });
 
 const getSessionTokenMock = vi.mocked(getSessionToken);
-const fetchFullAgentMock = vi.mocked(fetchFullAgent);
 const isAgentOwnerMock = vi.mocked(isAgentOwner);
 const publishAgentMock = vi.mocked(publishAgent);
 const unpublishAgentMock = vi.mocked(unpublishAgent);
@@ -53,7 +45,6 @@ function deleteRequest() {
 
 beforeEach(() => {
   getSessionTokenMock.mockResolvedValue('session-token');
-  fetchFullAgentMock.mockResolvedValue({} as Awaited<ReturnType<typeof fetchFullAgent>>);
   isAgentOwnerMock.mockResolvedValue(true);
   publishAgentMock.mockResolvedValue(published);
   unpublishAgentMock.mockResolvedValue({ ...published, isPublished: false });
@@ -89,7 +80,7 @@ describe('POST /api/agents/[agentId]/publish', () => {
     const res = await POST(postRequest({ publicName: 'Kari' }), params);
 
     expect(res.status).toBe(401);
-    expect(fetchFullAgentMock).not.toHaveBeenCalled();
+    expect(isAgentOwnerMock).not.toHaveBeenCalled();
     expect(publishAgentMock).not.toHaveBeenCalled();
   });
 
@@ -105,7 +96,7 @@ describe('POST /api/agents/[agentId]/publish', () => {
   });
 
   it('answers 404 when the user has no such agent', async () => {
-    fetchFullAgentMock.mockRejectedValue(new RagdollError('not-found', 'no agent'));
+    isAgentOwnerMock.mockRejectedValue(new RagdollError('not-found', 'no agent'));
 
     const res = await POST(postRequest({ publicName: 'Kari' }), params);
 

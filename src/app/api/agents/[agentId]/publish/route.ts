@@ -4,7 +4,7 @@ import { cleanName } from '@/domain/agentName';
 import { cleanPublicDescription } from '@/domain/publication';
 import { getSessionToken } from '@/lib/session-tokens';
 import { ragdollErrorResponse } from '@/server/errorResponse';
-import { fetchFullAgent, isAgentOwner, publishAgent, unpublishAgent } from '@/server/ragdoll';
+import { isAgentOwner, publishAgent, unpublishAgent } from '@/server/ragdoll';
 
 type Params = { params: Promise<{ agentId: string }> };
 
@@ -62,9 +62,7 @@ async function asOwner(
   action: () => Promise<Response>,
 ): Promise<Response> {
   try {
-    // 404 if the user has no such agent.
-    await fetchFullAgent(sessionToken, agentId);
-
+    // RAGdoll answers 404 if the user has no such agent, and RagdollError carries that.
     if (!(await isAgentOwner(sessionToken, agentId))) {
       return Response.json({ error: 'Only the owner can publish the agent' }, { status: 403 });
     }

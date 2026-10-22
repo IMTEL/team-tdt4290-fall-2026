@@ -13,12 +13,10 @@ import { AvatarPicker } from '@/components/agents/AvatarPicker';
 import { useLanguageModels } from '@/components/agents/useLanguageModels';
 import { ChatError } from '@/components/chat/sendToAgent';
 import { advancedSettingsErrors, DEFAULT_ADVANCED_SETTINGS } from '@/domain/advancedSettings';
+import { MAX_NAME_LENGTH } from '@/domain/agentName';
 import type { AgentTypeDefinition, AnswerSources, Answers } from '@/domain/agentTypes/types';
 import { saveConfiguredAgent } from './api';
 import styles from './SaveAgentForm.module.css';
-
-// Same limit as POST /api/agents.
-const MAX_NAME_LENGTH = 100;
 
 type SaveStatus =
   | { kind: 'idle' }
