@@ -36,20 +36,22 @@ Goal:
 
 ### 1. RAGdoll (`C:\Users\emma_\Projects\RAGdoll`, branch off `tdt4290/main`)
 
-- `src/models/agent.py` (~line 105): add these fields:
+> **Updated 2026-10-22:** RAGdoll's `tdt4290/main` was rewritten with a new API: every agent route is under `/agents`, every credential goes in `Authorization: Bearer …`, and responses use `AgentPublic` (no secrets). The branch was rebuilt on it. The list below describes the final version.
+
+- `src/models/agent.py`: add these fields to `AgentBase` (not secret, so the owner's `AgentPublic` view includes them):
   - `is_published: bool = False`
   - `public_name: str = ""`
   - `public_description: str = ""`
   - `published_at: str | None = None`
 - `src/routes/agents.py`:
-  - `/update-agent/` (~204-217): keep the publish fields from the stored agent, the same way it already keeps `access_key`. Otherwise an edit silently unpublishes the agent.
-  - `POST /agents/{agent_id}/publish`: body `{public_name, public_description}`, max 80 and 300 chars (our own `MAX_NAME_LENGTH` was lowered from 100 to 80 to match). JWT auth, owner only via `_ensure_agent_owner`. Sets the fields.
+  - `update_agent` (`POST|PATCH /agents/{agent_id}`): keep the publish fields from the stored agent, the same way it already keeps `access_key`. Otherwise an edit silently unpublishes the agent.
+  - `POST /agents/{agent_id}/publish`: body `{public_name, public_description}`, max 80 and 300 chars (our own `MAX_NAME_LENGTH` was lowered from 100 to 80 to match). Owner only via `require_user_has_agent_ownership` (others get 404). Writes with a targeted `$set` through `AgentDAO.set_publication`.
   - `POST /agents/{agent_id}/unpublish`: owner only.
-  - `GET /published-agents`: the `access-key` header must be the client key. Returns `[{agent_id, name, description, roles}]`, where `name` and `description` are the public ones.
+  - `GET /agents/published`: the bearer token must be the client key. Returns `[{agent_id, name, description, roles}]`, where `name` and `description` are the public ones.
     - `roles` holds the role **names** only. The role description is the interviewer persona, so it is left out.
     - It must **never** return the prompt, the `description` JSON (VR-03: no profile), API keys or access keys.
-- **Changed while building:** the client key is checked only in `routes/chat.py` `_get_authorized_agent`, through `src/access_service/candidate_client.py`. It is accepted when it equals `config.CANDIDATE_CLIENT_KEY` **and** `agent.is_published` is true.
-  - It is deliberately **not** added to `AccessService.authenticate()`. `/agent-info` also uses `authenticate()`, and it returns the full agent: the prompt, the decrypted API keys and the stored answers. Accepting the client key there would leak the job-seeker profile (#97).
+- **Changed while building:** the client key is checked only in `routes/chat.py` `_authorize_command`, through `src/access_service/candidate_client.py`. It is accepted when it equals `config.CANDIDATE_CLIENT_KEY` **and** `agent.is_published` is true; otherwise 403.
+  - It is deliberately **not** added to `AccessService.authenticate()`. `GET /agents/{agent_id}` and `/agents/agent-info` accept anything `authenticate()` accepts, and they return the agent's prompt and stored answers. Accepting the client key there would leak the job-seeker profile (#97).
 - `src/config.py`: add `CANDIDATE_CLIENT_KEY`. An empty value means the feature is off. Add it to `.env.example`.
 - DAO: `get_published_agents()` in:
   - `dao/agent/base.py`;
@@ -79,7 +81,7 @@ Goal:
 
 ### 3. The Candidate (`C:\Users\emma_\Projects\The-Candidate`, PR to IMTEL/Mathias)
 
-- `Providers/Services/RAGDollService.cs`: add `GetPublishedAgents()`. It calls `GET /backend/published-agents` and parses the list into `RagAgent{id, name=role}` plus the public name and description.
+- `Providers/Services/RAGDollService.cs`: add `GetPublishedAgents()`. It calls `GET {url}/agents/published` (`url` is `https://iplvr.it.ntnu.no/backend` on the server, `http://localhost:8000` locally) with `Authorization: Bearer <client key>` and parses the list into `RagAgent{id, name=role}` plus the public name and description.
 - Add a second provider asset, `PublishedRag.asset`, with `apiKey: CANDIDATE`. That is an env var name, the same pattern as `RAGDOLL`. Add `CANDIDATE=` to `.env.example`.
 - UI: an interviewer picker panel, copied from `Views/JobSelectionManager.cs` / `JobButton.cs`. It stores the choice in `ScenarioSettings`.
 - Spawn: in `SpawnManager`, the interviewer NPC's `Agent` uses `PublishedRag` with the chosen `RagAgent`. This needs a small runtime setter on `Agent` (`Providers/Core/Agent.cs`).
@@ -91,7 +93,7 @@ Goal:
    - Replace it with: "a published agent is chosen from RAGdoll's list of published agents and used as the interviewer NPC's actor".
    - The same stale claim is in `interviewer.ts:126`, `ragdoll.ts:92` and `docs/architecture.md`.
 2. **Figure 4**:
-   - Change the Candidate edge from "access key: /agent-info-by-accesskey, /api/chat/ask" to "client key: /published-agents, /api/chat/ask".
+   - Change the Candidate edge from "access key: /agent-info-by-accesskey, /api/chat/ask" to "client key: /agents/published, /api/chat/ask".
    - Mark the new RAGdoll endpoints.
 3. **Table 16, Modifiability** says "RAGdoll is used as is". That is no longer true: we extend RAGdoll with publish fields and endpoints, as the team already did for templates and profiles. **C1** still holds.
 4. **Figure 6**: change "Publish to The Candidate (access key)" to "Publish (flag in RAGdoll)". The counsellor never handles a key.
@@ -114,7 +116,7 @@ Goal:
 - End to end, locally:
   1. Run RAGdoll (docker compose local) with `CANDIDATE_CLIENT_KEY=test`.
   2. Publish an agent in the web app.
-  3. `curl -H "access-key: test" localhost/backend/published-agents` shows it.
+  3. `curl -H "Authorization: Bearer test" localhost:8000/agents/published` shows it.
   4. `POST /api/chat/ask` with the client key works.
   5. Unpublish ("Gjem agent"). Both calls now fail or leave the agent out.
   6. In the Unity editor, the picker lists the agent and the NPC answers with its persona.
