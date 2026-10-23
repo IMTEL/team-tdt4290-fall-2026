@@ -66,6 +66,16 @@ describe('TemplateLibrary', () => {
     ).toBeVisible();
     expect(within(jobs).getByText('Helse og omsorg · Offentlig')).toBeVisible();
 
+    // Every card opens the template's page.
+    expect(within(industries).getByRole('link', { name: /^Helse og omsorg/ })).toHaveAttribute(
+      'href',
+      '/templates/industries/helse-og-omsorg',
+    );
+    expect(within(jobs).getByRole('link', { name: /^Helsefagarbeider/ })).toHaveAttribute(
+      'href',
+      '/templates/jobs/helsefagarbeider',
+    );
+
     const toggle = screen.getByRole('button', { name: 'Bransjemaler' });
     expect(toggle).toHaveAttribute('aria-expanded', 'true');
     await user.click(toggle);
@@ -110,7 +120,7 @@ describe('TemplateLibrary', () => {
       '/profiles/new',
     );
     const card = await within(profiles).findByRole('link', { name: /Profil A/ });
-    expect(card).toHaveAttribute('href', '/profiles/profile-1/edit');
+    expect(card).toHaveAttribute('href', '/profiles/profile-1');
     expect(card).toHaveTextContent('25–29 år · Litt (under 1 år)');
     expect(card).toHaveTextContent('Fortelle om seg selv.');
     expect(card).not.toHaveTextContent('Hemmelig');

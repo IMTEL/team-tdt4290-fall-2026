@@ -17,10 +17,16 @@ type DeleteProfileButtonProps = {
   profile: JobSeekerProfile;
   /** Called once the profile is deleted. */
   onDeleted: (id: string) => void;
+  /** Text on a card, outlined among the actions on the template's page. */
+  variant?: 'text' | 'outlined';
 };
 
 /** Deletes one of the counsellor's profiles, after asking first. */
-export function DeleteProfileButton({ profile, onDeleted }: DeleteProfileButtonProps) {
+export function DeleteProfileButton({
+  profile,
+  onDeleted,
+  variant = 'text',
+}: DeleteProfileButtonProps) {
   const [open, setOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -49,7 +55,8 @@ export function DeleteProfileButton({ profile, onDeleted }: DeleteProfileButtonP
   return (
     <>
       <Button
-        size="small"
+        size={variant === 'text' ? 'small' : 'medium'}
+        variant={variant}
         color="error"
         onClick={() => setOpen(true)}
         aria-label={`Slett ${profile.label}`}
