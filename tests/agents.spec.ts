@@ -7,15 +7,23 @@ import { createAgent } from './support/data';
 const field = (page: Page, label: string) =>
   page.getByRole('textbox', { name: new RegExp(`^${label}`) });
 
-test('a new user has no agents', async ({ page }) => {
+test('a new user has no agents, only the card for a new one', async ({ page }) => {
   await logIn(page, '/browse-agents');
 
-  await expect(page.getByText('Du har ingen agenter ennå.')).toBeVisible();
-  await page.getByRole('link', { name: 'Sett opp en agent', exact: true }).click();
-  await expect(page).toHaveURL(/\/configure$/);
+  await expect(page.getByRole('heading', { level: 3 })).toHaveText(['Ny agent']);
+  await page.getByRole('button', { name: /^Ny agent/ }).click();
+  await page
+    .getByRole('dialog')
+    .getByRole('button', { name: /^Intervjuer/ })
+    .click();
+
+  await expect(page).toHaveURL(/\/configure\?type=interviewer$/);
+  await expect(
+    page.getByRole('heading', { level: 1, name: 'Ny intervjuagent', exact: true }),
+  ).toBeVisible();
 });
 
-test('a saved agent is listed under its type, with a summary', async ({ page }) => {
+test('a saved agent is listed under its type, with its interviewer', async ({ page }) => {
   await logIn(page);
   await createAgent(page, 'Intervjuer for butikk');
 
@@ -24,10 +32,10 @@ test('a saved agent is listed under its type, with a summary', async ({ page }) 
   await expect(
     page.getByRole('heading', { level: 2, name: 'Intervjuer', exact: true }),
   ).toBeVisible();
-  await expect(
-    page.getByRole('heading', { name: 'Intervjuer for butikk', exact: true }),
-  ).toBeVisible();
-  await expect(page.getByText('Butikkmedarbeider · Lett')).toBeVisible();
+  const card = page.getByRole('link', { name: /^Intervjuer for butikk/ });
+  await expect(card.getByRole('heading', { level: 3 })).toHaveText('Intervjuer for butikk');
+  await expect(card).toContainText('Privat');
+  await expect(card).toContainText('Vennlig butikksjef');
 });
 
 test('a saved agent is listed and can be tested in a chat', async ({ page }) => {
@@ -61,23 +69,22 @@ test('the agent page shows the configuration and the system prompt', async ({ pa
   ).toBeVisible();
   await expect(page.getByRole('definition').filter({ hasText: 'Butikkmedarbeider' })).toBeVisible();
   await expect(page.getByRole('definition').filter({ hasText: 'En matbutikk' })).toBeVisible();
-  await expect(page.getByText('Agenttype: Intervjuer')).toBeVisible();
+  await expect(page.getByRole('main')).toContainText(/Agenttype:\s*Intervjuer/);
   await expect(page.getByRole('region', { name: 'Oppsummering', exact: true })).toBeVisible();
 
-  // The model, temperature and system prompt are closed until the counsellor opens them.
-  const advanced = page.getByRole('button', { name: 'Avanserte innstillinger', exact: true });
-  await expect(advanced).toHaveAttribute('aria-expanded', 'false');
+  // The model, temperature and system prompt are in their own tabs.
+  const advanced = page.getByRole('tab', { name: 'Avanserte innstillinger', exact: true });
+  await expect(advanced).toHaveAttribute('aria-selected', 'false');
   await advanced.click();
-  await expect(advanced).toHaveAttribute('aria-expanded', 'true');
+  await expect(advanced).toHaveAttribute('aria-selected', 'true');
   await expect(
     page.getByRole('definition').filter({ hasText: 'openai/gpt-oss-120b' }),
   ).toBeVisible();
-  await expect(
-    page
-      .getByRole('definition')
-      .filter({ hasText: /Butikkmedarbeider/ })
-      .last(),
-  ).toBeVisible();
+
+  await page.getByRole('tab', { name: 'Systemprompt', exact: true }).click();
+  await expect(page.getByRole('tabpanel', { name: 'Systemprompt', exact: true })).toContainText(
+    'Butikkmedarbeider',
+  );
 });
 
 test('an agent that does not exist shows the not found page', async ({ page }) => {
@@ -179,6 +186,7 @@ test('an agent can be cloned, and the original stays as it was', async ({ page }
 
   await page.goto('/browse-agents');
   await expect(page.getByRole('heading', { level: 3 })).toHaveText([
+    'Ny agent',
     'Intervjuer for butikk (kopi)',
     'Intervjuer for butikk',
   ]);
@@ -200,5 +208,5 @@ test('an agent can be deleted after confirming', async ({ page }) => {
   await dialog.getByRole('button', { name: 'Slett', exact: true }).click();
 
   await expect(page).toHaveURL(/\/browse-agents$/);
-  await expect(page.getByText('Du har ingen agenter ennå.')).toBeVisible();
+  await expect(page.getByRole('heading', { level: 3 })).toHaveText(['Ny agent']);
 });

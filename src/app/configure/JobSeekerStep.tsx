@@ -79,43 +79,42 @@ export function JobSeekerStep({
           ) : profiles.length === 0 ? (
             <p className={cardStyles.lead}>Du har ingen maler ennå.</p>
           ) : (
-            <ul
-              className={cardStyles.grid}
-              role="radiogroup"
-              aria-labelledby="profile-picker-heading"
-            >
-              {profiles.map((profile) => {
-                const summary = summarizeProfile(profile);
-                const selected = selectedId === profile.id;
-                return (
-                  <li key={profile.id}>
-                    <Card
-                      variant="outlined"
-                      className={
-                        selected ? `${cardStyles.card} ${cardStyles.chosen}` : cardStyles.card
-                      }
-                    >
-                      <CardActionArea
-                        onClick={() => onSelect(profile.id)}
-                        className={cardStyles.action}
-                        role="radio"
-                        aria-checked={selected}
+            // The group is around the list, so the cards are still a list and also radios.
+            <div role="radiogroup" aria-labelledby="profile-picker-heading">
+              <ul className={cardStyles.grid}>
+                {profiles.map((profile) => {
+                  const summary = summarizeProfile(profile);
+                  const selected = selectedId === profile.id;
+                  return (
+                    <li key={profile.id}>
+                      <Card
+                        variant="outlined"
+                        className={
+                          selected ? `${cardStyles.card} ${cardStyles.chosen}` : cardStyles.card
+                        }
                       >
-                        <h3 className={cardStyles.title}>{profile.label}</h3>
-                        {summary && <p className={cardStyles.description}>{summary}</p>}
-                        {profile.practiceAreas.length > 0 && (
-                          <div className={cardStyles.focus}>
-                            {profile.practiceAreas.map((area) => (
-                              <Chip key={area} label={area} size="small" />
-                            ))}
-                          </div>
-                        )}
-                      </CardActionArea>
-                    </Card>
-                  </li>
-                );
-              })}
-            </ul>
+                        <CardActionArea
+                          onClick={() => onSelect(profile.id)}
+                          className={cardStyles.action}
+                          role="radio"
+                          aria-checked={selected}
+                        >
+                          <h3 className={cardStyles.title}>{profile.label}</h3>
+                          {summary && <p className={cardStyles.description}>{summary}</p>}
+                          {profile.practiceAreas.length > 0 && (
+                            <div className={cardStyles.focus}>
+                              {profile.practiceAreas.map((area) => (
+                                <Chip key={area} label={area} size="small" />
+                              ))}
+                            </div>
+                          )}
+                        </CardActionArea>
+                      </Card>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
           )}
         </section>
         <div className={stepStyles.suggestions}>

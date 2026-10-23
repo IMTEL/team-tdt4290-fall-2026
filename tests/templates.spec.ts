@@ -1,12 +1,13 @@
 import { test, expect } from '@playwright/test';
 
 import { logIn } from './support/auth';
-import { chooseInterviewer, startInterviewerChat } from './support/configure';
+import { chooseInterviewer, fillStilling, goToFinish, INTERVIEWER_STEP } from './support/configure';
 import { createTemplate } from './support/data';
 
-test('a counsellor can make a template and find it on the configure page', async ({ page }) => {
+test('a counsellor can make a template from the wizard and choose it there', async ({ page }) => {
   await logIn(page, '/configure');
   await chooseInterviewer(page);
+  await fillStilling(page);
 
   await page.getByRole('link', { name: 'Lag en ny mal', exact: true }).click();
   await expect(
@@ -27,12 +28,10 @@ test('a counsellor can make a template and find it on the configure page', async
   await save.click();
 
   await expect(page.getByText('Malen «Butikksjef» er lagret.')).toBeVisible();
+  // The link goes back to the wizard's interviewer step, with the rest of the wizard kept.
   await page.getByRole('link', { name: 'Bruk den til å sette opp en agent', exact: true }).click();
-  await chooseInterviewer(page);
 
-  await expect(
-    page.getByRole('heading', { level: 3, name: 'Butikksjef', exact: true }),
-  ).toBeVisible();
+  await expect(page.getByRole('radio', { name: /^Butikksjef/ })).toBeVisible();
   await expect(page.getByText('Travel, men vennlig.')).toBeVisible();
   await expect(page.getByRole('link', { name: 'Rediger Butikksjef', exact: true })).toBeVisible();
 });
@@ -51,23 +50,25 @@ test('a template cannot have too many focus areas', async ({ page }) => {
   await expect(page.getByRole('button', { name: 'Lagre mal', exact: true })).toBeDisabled();
 });
 
-test('a saved template can be used to start the configurator', async ({ page }) => {
+test('a saved template can be chosen for a new interviewer', async ({ page }) => {
   await logIn(page);
   await createTemplate(page, { title: 'Butikksjef' });
   await page.goto('/configure');
 
-  await startInterviewerChat(page, { template: 'Butikksjef' });
+  await goToFinish(page, { interviewer: 'Butikksjef' });
 
-  await expect(page.getByRole('log', { name: 'Samtale', exact: true })).toContainText(
-    'Du har valgt malen «Butikksjef».',
-  );
+  await expect(
+    page
+      .getByRole('complementary', { name: 'Seksjoner', exact: true })
+      .getByRole('definition')
+      .filter({ hasText: 'Butikksjef' }),
+  ).toBeVisible();
 });
 
 test('a saved template can be edited', async ({ page }) => {
   await logIn(page);
   await createTemplate(page, { title: 'Butikksjef', description: 'Gammel beskrivelse.' });
-  await page.goto('/configure');
-  await chooseInterviewer(page);
+  await page.goto(INTERVIEWER_STEP);
 
   await page.getByRole('link', { name: 'Rediger Butikksjef', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Rediger mal', exact: true })).toBeVisible();
@@ -78,8 +79,7 @@ test('a saved template can be edited', async ({ page }) => {
   await page.getByRole('button', { name: 'Lagre endringene', exact: true }).click();
   await expect(page.getByText('Malen «Butikksjef» er lagret.')).toBeVisible();
 
-  await page.goto('/configure');
-  await chooseInterviewer(page);
+  await page.goto(INTERVIEWER_STEP);
   await expect(page.getByText('Ny beskrivelse.')).toBeVisible();
   await expect(page.getByText('Gammel beskrivelse.')).toBeHidden();
 });
@@ -87,8 +87,7 @@ test('a saved template can be edited', async ({ page }) => {
 test('a saved template can be deleted after confirming', async ({ page }) => {
   await logIn(page);
   await createTemplate(page, { title: 'Butikksjef' });
-  await page.goto('/configure');
-  await chooseInterviewer(page);
+  await page.goto(INTERVIEWER_STEP);
   const card = page.getByRole('heading', { level: 3, name: 'Butikksjef', exact: true });
   await expect(card).toBeVisible();
 
@@ -99,7 +98,6 @@ test('a saved template can be deleted after confirming', async ({ page }) => {
 
   await expect(card).toBeHidden();
   await page.reload();
-  await chooseInterviewer(page);
   await expect(
     page.getByRole('heading', { level: 2, name: 'Velg en mal', exact: true }),
   ).toBeVisible();

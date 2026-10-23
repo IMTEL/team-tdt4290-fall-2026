@@ -4,7 +4,7 @@ import { expect, type Page } from '@playwright/test';
 // logged in (see logIn in ./auth); page.request shares its login cookie. Use these when a test is
 // about something else than making the data, so it doesn't click through a form first.
 
-/** A finished interviewer configuration, as the configurator writes it. Invented data. */
+/** A finished interviewer configuration, as it is saved. Invented data. */
 export const configuration = {
   stilling: 'Butikkmedarbeider',
   bransje: 'Varehandel',
@@ -16,7 +16,7 @@ export const configuration = {
   egneSporsmal: 'Ingen',
 };
 
-/** Saves an interviewer, as the configurator's save form does. Returns its id. */
+/** Saves an interviewer through the agents API. Returns its id. */
 export async function createAgent(
   page: Page,
   name: string,
@@ -66,26 +66,4 @@ export async function createProfile(
   });
   expect(res.status()).toBe(201);
   return (await res.json()).profile.id;
-}
-
-/**
- * The text of a finished KONFIGURASJON block. The mock configurator echoes the last message, so
- * sending this in the configuration chat makes the reply finish the configuration. Leave out a
- * field with `undefined` when a template or profile decides it.
- */
-export function configurationBlock(answers: Partial<typeof configuration> = configuration): string {
-  const labels: Record<keyof typeof configuration, string> = {
-    stilling: 'Stilling',
-    bransje: 'Bransje',
-    bedrift: 'Bedrift',
-    intervjutype: 'Intervjutype',
-    intervjuer: 'Intervjuer',
-    jobbsoker: 'Jobbsøker',
-    vanskelighetsgrad: 'Vanskelighetsgrad',
-    egneSporsmal: 'Egne spørsmål',
-  };
-  const lines = (Object.keys(labels) as (keyof typeof configuration)[])
-    .filter((key) => answers[key])
-    .map((key) => `${labels[key]}: ${answers[key]}`);
-  return ['KONFIGURASJON', ...lines].join('\n');
 }

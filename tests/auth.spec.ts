@@ -13,6 +13,7 @@ test('a signed-out user is sent to the login page', async ({ page }) => {
 for (const path of [
   '/configure',
   '/create-template',
+  '/templates',
   '/profiles',
   '/profiles/new',
   '/test-chat',

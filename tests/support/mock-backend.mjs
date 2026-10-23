@@ -5,23 +5,34 @@
 // every visit to the authorize endpoint logs in a brand-new user, so each test starts with no
 // agents, templates or profiles, and tests running in parallel never see each other's data.
 //
-// RAGdoll: the endpoints src/server/ragdoll.ts and src/lib/auth-options.ts call, with the same
-// request and response shapes. Chat replies are canned; no LLM is involved.
+// RAGdoll: the endpoints src/server/ragdoll.ts calls, with the same request and response shapes.
+// Like the real RAGdoll it takes Keycloak's ID token as the Bearer token on every request, and
+// keeps no session of its own. Chat replies are canned; no LLM is involved.
 //
 // Only Node built-ins, so it runs with plain `node tests/support/mock-backend.mjs`.
 
 import { createServer } from 'node:http';
-import { createHash, generateKeyPairSync, randomBytes, randomUUID, sign } from 'node:crypto';
+import {
+  createHash,
+  generateKeyPairSync,
+  randomBytes,
+  randomUUID,
+  sign,
+  verify,
+} from 'node:crypto';
 
 const PORT = Number(process.env.MOCK_BACKEND_PORT ?? 8181);
+/** The app's Keycloak client id, KEYCLOAK_CLIENT_ID in playwright.config.ts. */
+const CLIENT_ID = 'ragdoll-config';
 const ORIGIN = `http://localhost:${PORT}`;
 const REALM_PATH = '/realms/ragdoll';
 const OIDC_PATH = `${REALM_PATH}/protocol/openid-connect`;
 const ISSUER = `${ORIGIN}${REALM_PATH}`;
 const OIDC = `${ORIGIN}${OIDC_PATH}`;
 
-const SESSION_TTL_MS = 15 * 60 * 1000;
-const REFRESH_TTL_MS = 24 * 60 * 60 * 1000;
+/** How long an ID token lasts, in seconds. The app refreshes it at Keycloak when it runs out. */
+const ID_TOKEN_TTL_S = 300;
+const REFRESH_TTL_S = 24 * 60 * 60;
 
 /** Every chat reply starts with this, followed by the last user message. Tests look for it. */
 const CHAT_REPLY_PREFIX = 'Mock-svar:';
@@ -42,17 +53,57 @@ function signJwt(payload) {
   return `${header}.${body}.${signature.toString('base64url')}`;
 }
 
-function decodeJwt(token) {
+/** The claims of an ID token this mock signed and that has not expired, or null. */
+function verifyJwt(token) {
+  const [header, body, signature] = token.split('.');
+  if (!header || !body || !signature) return null;
+  const valid = verify(
+    'sha256',
+    Buffer.from(`${header}.${body}`),
+    publicKey,
+    Buffer.from(signature, 'base64url'),
+  );
+  if (!valid) return null;
   try {
-    return JSON.parse(Buffer.from(token.split('.')[1], 'base64url').toString());
+    const claims = JSON.parse(Buffer.from(body, 'base64url').toString());
+    return claims.exp * 1000 > Date.now() ? claims : null;
   } catch {
     return null;
   }
 }
 
+/** Keycloak's token response: a fresh ID token for the user, and a refresh token for later. */
+function issueTokens(user, clientId, nonce) {
+  const issuedAt = Math.floor(Date.now() / 1000);
+  const idToken = signJwt({
+    iss: ISSUER,
+    sub: user.sub,
+    aud: clientId,
+    azp: clientId,
+    iat: issuedAt,
+    exp: issuedAt + ID_TOKEN_TTL_S,
+    ...(nonce ? { nonce } : {}),
+    name: user.name,
+    preferred_username: user.email,
+    email: user.email,
+  });
+  const refreshToken = randomUUID();
+  refreshTokens.set(refreshToken, { user, clientId });
+  return {
+    access_token: `access-${createHash('sha256').update(user.sub).digest('hex')}`,
+    token_type: 'Bearer',
+    expires_in: ID_TOKEN_TTL_S,
+    refresh_token: refreshToken,
+    refresh_expires_in: REFRESH_TTL_S,
+    id_token: idToken,
+  };
+}
+
 let userCount = 0;
 /** Authorization code → the user it logs in, until the token endpoint redeems it. */
 const pendingCodes = new Map();
+/** Refresh token → the user and client it was issued to. */
+const refreshTokens = new Map();
 
 function newUser() {
   userCount += 1;
@@ -67,21 +118,12 @@ function newUser() {
 
 /** sub → the user's data. */
 const users = new Map();
-/** RAGdoll session or refresh token → sub. */
-const sessions = new Map();
-const refreshTokens = new Map();
 
 function dataFor(sub) {
   if (!users.has(sub)) {
     users.set(sub, { agents: [], templates: [], profiles: [], settings: {} });
   }
   return users.get(sub);
-}
-
-function issueSession(sub) {
-  const sessionToken = randomUUID();
-  sessions.set(sessionToken, sub);
-  return sessionToken;
 }
 
 // --- HTTP helpers ----------------------------------------------------------------------------
@@ -112,11 +154,14 @@ async function readBody(req) {
   }
 }
 
-/** The user behind the request's Bearer token, or null. */
-function userFromBearer(req, tokens = sessions) {
-  const token = (req.headers.authorization ?? '').replace(/^Bearer /, '');
-  const sub = tokens.get(token);
-  return sub ? dataFor(sub) : null;
+/**
+ * The user behind the request's Bearer token, or null. Like RAGdoll, it must be a valid ID token
+ * for our client: an access token has another audience.
+ */
+function userFromBearer(req) {
+  const claims = verifyJwt((req.headers.authorization ?? '').replace(/^Bearer /, ''));
+  if (!claims?.sub || claims.aud !== CLIENT_ID) return null;
+  return dataFor(claims.sub);
 }
 
 const now = () => new Date().toISOString();
@@ -172,29 +217,21 @@ async function handle(req, res) {
 
   if (path === `${OIDC_PATH}/token` && method === 'POST') {
     const body = await readBody(req);
+
+    // The app asks for a new ID token when the old one runs out (src/lib/auth-options.ts).
+    if (body.grant_type === 'refresh_token') {
+      const issued = refreshTokens.get(body.refresh_token);
+      if (!issued) return send(res, 400, { error: 'invalid_grant' });
+      refreshTokens.delete(body.refresh_token);
+      return send(res, 200, issueTokens(issued.user, issued.clientId));
+    }
+
     const pending = pendingCodes.get(body.code);
     if (!pending) return send(res, 400, { error: 'invalid_grant' });
     pendingCodes.delete(body.code);
 
     const { user, clientId, nonce } = pending;
-    const issuedAt = Math.floor(Date.now() / 1000);
-    const idToken = signJwt({
-      iss: ISSUER,
-      sub: user.sub,
-      aud: clientId,
-      iat: issuedAt,
-      exp: issuedAt + 300,
-      ...(nonce ? { nonce } : {}),
-      name: user.name,
-      preferred_username: user.email,
-      email: user.email,
-    });
-    return send(res, 200, {
-      access_token: `access-${createHash('sha256').update(user.sub).digest('hex')}`,
-      token_type: 'Bearer',
-      expires_in: 300,
-      id_token: idToken,
-    });
+    return send(res, 200, issueTokens(user, clientId, nonce));
   }
 
   if (path === `${OIDC_PATH}/userinfo`) {
@@ -203,38 +240,6 @@ async function handle(req, res) {
 
   if (path === `${OIDC_PATH}/logout`) {
     return redirect(res, url.searchParams.get('post_logout_redirect_uri') ?? '/');
-  }
-
-  // RAGdoll: login and sessions
-
-  if (path === '/api/login' && method === 'POST') {
-    const claims = decodeJwt((await readBody(req)).token ?? '');
-    if (!claims?.sub) return send(res, 401, { detail: 'Invalid token' });
-
-    dataFor(claims.sub);
-    const refreshToken = randomUUID();
-    refreshTokens.set(refreshToken, claims.sub);
-    return send(res, 200, {
-      session_token: issueSession(claims.sub),
-      refresh_token: refreshToken,
-      session_token_ttl: SESSION_TTL_MS,
-      refresh_token_ttl: REFRESH_TTL_MS,
-      name: claims.name ?? null,
-      picture: null,
-    });
-  }
-
-  if (path === '/api/refresh' && method === 'POST') {
-    const token = (req.headers.authorization ?? '').replace(/^Bearer /, '');
-    const sub = refreshTokens.get(token);
-    if (!sub) return send(res, 401, { detail: 'Invalid refresh token' });
-    return send(res, 200, { session_token: issueSession(sub), session_token_ttl: SESSION_TTL_MS });
-  }
-
-  if (path === '/api/logout') {
-    const token = (req.headers.authorization ?? '').replace(/^Bearer /, '');
-    sessions.delete(token);
-    return send(res, 200, { ok: true });
   }
 
   // RAGdoll: chat. Uses the agent's access key, not a session.
@@ -252,7 +257,7 @@ async function handle(req, res) {
     });
   }
 
-  // RAGdoll: everything below needs a session.
+  // RAGdoll: everything below needs the user's ID token.
 
   const data = userFromBearer(req);
   if (!data) return send(res, 401, { detail: 'Not signed in' });
@@ -265,45 +270,22 @@ async function handle(req, res) {
 
   // Agents
 
-  if (path === '/agents/' && method === 'GET') return send(res, 200, data.agents);
-
-  if (path === '/update-agent/' && method === 'POST') {
-    const body = await readBody(req);
-    if (!body.id) {
-      const agent = { ...body, id: objectId(), last_updated: now() };
-      data.agents.push(agent);
-      return send(res, 200, agent);
-    }
-    const index = data.agents.findIndex((agent) => agent.id === body.id);
-    if (index === -1) return send(res, 404, { detail: 'Agent not found' });
-    const old = data.agents[index];
-    // Like RAGdoll: empty keys keep the stored ones.
-    data.agents[index] = {
-      ...body,
-      llm_api_key: body.llm_api_key || old.llm_api_key,
-      embedding_api_key: body.embedding_api_key || old.embedding_api_key,
-      last_updated: now(),
-    };
-    return send(res, 200, data.agents[index]);
-  }
-
-  const agentId = url.searchParams.get('agent_id');
   const findAgent = (id) => data.agents.find((agent) => agent.id === id);
 
-  if (path === '/fetch-agent') {
-    const agent = findAgent(agentId);
-    return agent ? send(res, 200, agent) : send(res, 401, { detail: 'Not your agent' });
+  if (path === '/agents' && method === 'GET') return send(res, 200, data.agents);
+
+  if (path === '/agents' && method === 'POST') {
+    const agent = { ...(await readBody(req)), id: objectId(), last_updated: now() };
+    data.agents.push(agent);
+    return send(res, 200, { id: agent.id });
   }
 
-  if (path === '/chat-access-key') {
-    return findAgent(agentId)
-      ? send(res, 200, { key: `chat-key-${agentId}` })
-      : send(res, 401, { detail: 'Not your agent' });
-  }
-
-  if (path === '/delete-agent') {
-    data.agents = data.agents.filter((agent) => agent.id !== agentId);
-    return send(res, 200, null);
+  const accessKeys = path.match(/^\/agents\/([^/]+)\/accesskeys$/);
+  if (accessKeys && method === 'POST') {
+    const id = decodeURIComponent(accessKeys[1]);
+    return findAgent(id)
+      ? send(res, 200, { key: `chat-key-${id}` })
+      : send(res, 404, { detail: 'Agent not found' });
   }
 
   const collaborators = path.match(/^\/agents\/([^/]+)\/collaborators$/);
@@ -311,6 +293,31 @@ async function handle(req, res) {
     return findAgent(decodeURIComponent(collaborators[1]))
       ? send(res, 200, { is_owner: true, collaborators: [] })
       : send(res, 404, { detail: 'Agent not found' });
+  }
+
+  const agentPath = path.match(/^\/agents\/([^/]+)$/);
+  if (agentPath) {
+    const id = decodeURIComponent(agentPath[1]);
+    const index = data.agents.findIndex((agent) => agent.id === id);
+    if (index === -1) return send(res, 404, { detail: 'Agent not found' });
+    if (method === 'GET') return send(res, 200, data.agents[index]);
+    if (method === 'POST') {
+      const body = await readBody(req);
+      const old = data.agents[index];
+      // Like RAGdoll: empty keys keep the stored ones.
+      data.agents[index] = {
+        ...body,
+        id,
+        llm_api_key: body.llm_api_key || old.llm_api_key,
+        embedding_api_key: body.embedding_api_key || old.embedding_api_key,
+        last_updated: now(),
+      };
+      return send(res, 200, data.agents[index]);
+    }
+    if (method === 'DELETE') {
+      data.agents.splice(index, 1);
+      return send(res, 200, null);
+    }
   }
 
   // Templates and profiles: the same create/read/update/delete shape.

@@ -4,11 +4,13 @@ import { expectNoAccessibilityViolations } from './support/accessibility';
 import { logIn } from './support/auth';
 import {
   chooseInterviewer,
-  chooseProfile,
+  fillStilling,
+  goToFinish,
+  INTERVIEWER_STEP,
+  pickTemplate,
   sendMessage,
-  startInterviewerChat,
 } from './support/configure';
-import { configurationBlock, createAgent, createProfile, createTemplate } from './support/data';
+import { createAgent, createProfile, createTemplate } from './support/data';
 
 // Every page, and the states a user can open on it (dialogs, menus, errors, chat), checked with
 // axe in the light and the dark theme, since the colours and so the contrast differ.
@@ -46,7 +48,23 @@ for (const colorScheme of ['light', 'dark'] as const) {
     test.describe('agents', () => {
       test('empty agent list', async ({ page }) => {
         await logIn(page, '/browse-agents');
-        await expect(page.getByText('Du har ingen agenter ennå.')).toBeVisible();
+        await expect(page.getByRole('button', { name: /^Ny agent/ })).toBeVisible();
+        await expectNoAccessibilityViolations(page);
+      });
+
+      test('new agent dialog', async ({ page }) => {
+        await logIn(page, '/browse-agents');
+        await page.getByRole('button', { name: /^Ny agent/ }).click();
+        await expect(page.getByRole('dialog')).toBeVisible();
+        await expectNoAccessibilityViolations(page);
+      });
+
+      test('agent list with a draft', async ({ page }) => {
+        await logIn(page, '/configure');
+        await chooseInterviewer(page);
+        await fillStilling(page);
+        await page.getByRole('button', { name: 'Lagre utkast', exact: true }).click();
+        await expect(page.getByRole('link', { name: /Fortsett fra/ })).toBeVisible();
         await expectNoAccessibilityViolations(page);
       });
 
@@ -64,7 +82,7 @@ for (const colorScheme of ['light', 'dark'] as const) {
         await logIn(page);
         const id = await createAgent(page, 'Intervjuer for butikk');
         await page.goto(`/browse-agents/${id}`);
-        await page.getByRole('button', { name: 'Avanserte innstillinger', exact: true }).click();
+        await page.getByRole('tab', { name: 'Avanserte innstillinger', exact: true }).click();
         await expect(page.getByText('openai/gpt-oss-120b')).toBeVisible();
         await expectNoAccessibilityViolations(page);
       });
@@ -118,52 +136,38 @@ for (const colorScheme of ['light', 'dark'] as const) {
         await expectNoAccessibilityViolations(page);
       });
 
-      test('template picker with saved templates', async ({ page }) => {
+      test('stilling step', async ({ page }) => {
+        await logIn(page, '/configure');
+        await chooseInterviewer(page);
+        await expect(page.getByRole('button', { name: 'Neste', exact: true })).toBeDisabled();
+        await expectNoAccessibilityViolations(page);
+      });
+
+      test('interviewer step with saved templates', async ({ page }) => {
         await logIn(page);
         await createTemplate(page, { title: 'Butikksjef' });
-        await page.goto('/configure');
-        await chooseInterviewer(page);
-        await expect(
-          page.getByRole('heading', { level: 3, name: 'Butikksjef', exact: true }),
-        ).toBeVisible();
+        await page.goto(INTERVIEWER_STEP);
+        await page.getByRole('radio', { name: /^Butikksjef/ }).click();
+        await expect(page.getByRole('radio', { name: /^Butikksjef/ })).toBeChecked();
         await expectNoAccessibilityViolations(page);
       });
 
-      test('profile list open', async ({ page }) => {
+      test('job seeker step with a template', async ({ page }) => {
         await logIn(page);
         await createProfile(page, { label: 'Profil A', ageRange: '18-24' });
-        await page.goto('/configure');
-        await chooseInterviewer(page);
-        await page.getByRole('combobox', { name: 'Jobbsøkerprofil', exact: true }).click();
-        await expect(page.getByRole('listbox')).toBeVisible();
+        await page.goto(INTERVIEWER_STEP);
+        await pickTemplate(page, null);
+        await page.getByRole('radio', { name: /^Profil A/ }).click();
+        await expect(page.getByRole('radio', { name: /^Profil A/ })).toBeChecked();
         await expectNoAccessibilityViolations(page);
       });
 
-      test('industry picker', async ({ page }) => {
-        await logIn(page);
-        await createProfile(page, { label: 'Profil A' });
-        await page.goto('/configure');
-        await chooseInterviewer(page);
-        await chooseProfile(page, 'Profil A');
-        await page.getByRole('button', { name: /^Daglig leder/ }).click();
-        await expect(
-          page.getByRole('heading', { name: 'Velg en bransjemal', exact: true }),
-        ).toBeVisible();
-        await expectNoAccessibilityViolations(page);
-      });
-
-      test('chat with a finished configuration', async ({ page }) => {
+      test('settings step with the advanced settings open', async ({ page }) => {
         await logIn(page, '/configure');
-        await startInterviewerChat(page);
-        await sendMessage(page, configurationBlock());
-        await expect(page.getByRole('form', { name: 'Lagre agenten', exact: true })).toBeVisible();
-        await expectNoAccessibilityViolations(page);
-      });
-
-      test('save form with the advanced settings open', async ({ page }) => {
-        await logIn(page, '/configure');
-        await startInterviewerChat(page);
-        await sendMessage(page, configurationBlock());
+        await chooseInterviewer(page);
+        await fillStilling(page);
+        await pickTemplate(page, null);
+        await pickTemplate(page, null);
         await page.getByRole('button', { name: /^Avanserte innstillinger/ }).click();
         await expect(
           page.getByRole('combobox', { name: 'Språkmodell', exact: true }),
@@ -171,17 +175,23 @@ for (const colorScheme of ['light', 'dark'] as const) {
         await expectNoAccessibilityViolations(page);
       });
 
-      test('saved agent message', async ({ page }) => {
+      test('last step', async ({ page }) => {
         await logIn(page, '/configure');
-        await startInterviewerChat(page);
-        await sendMessage(page, configurationBlock());
-        await page.getByRole('button', { name: 'Lagre agent', exact: true }).click();
-        await expect(page.getByText(/er lagret\./)).toBeVisible();
+        await goToFinish(page);
+        await expect(page.getByRole('button', { name: 'Publiser', exact: true })).toBeVisible();
         await expectNoAccessibilityViolations(page);
       });
     });
 
     test.describe('templates', () => {
+      test('templates page', async ({ page }) => {
+        await logIn(page);
+        await createProfile(page, { label: 'Profil A', ageRange: '25-29' });
+        await page.goto('/templates');
+        await expect(page.getByRole('link', { name: /^Profil A/ })).toBeVisible();
+        await expectNoAccessibilityViolations(page);
+      });
+
       test('new template form with an error', async ({ page }) => {
         await logIn(page, '/create-template');
         await page
@@ -204,8 +214,7 @@ for (const colorScheme of ['light', 'dark'] as const) {
       test('delete template dialog', async ({ page }) => {
         await logIn(page);
         await createTemplate(page, { title: 'Butikksjef' });
-        await page.goto('/configure');
-        await chooseInterviewer(page);
+        await page.goto(INTERVIEWER_STEP);
         await page.getByRole('button', { name: 'Slett Butikksjef', exact: true }).click();
         await expect(page.getByRole('dialog')).toBeVisible();
         await expectNoAccessibilityViolations(page);
@@ -215,7 +224,7 @@ for (const colorScheme of ['light', 'dark'] as const) {
     test.describe('profiles', () => {
       test('empty profile list', async ({ page }) => {
         await logIn(page, '/profiles');
-        await expect(page.getByText('Du har ingen profiler ennå.')).toBeVisible();
+        await expect(page.getByText('Du har ingen maler ennå.')).toBeVisible();
         await expectNoAccessibilityViolations(page);
       });
 
@@ -239,9 +248,7 @@ for (const colorScheme of ['light', 'dark'] as const) {
         await logIn(page);
         const id = await createProfile(page, { label: 'Profil A' });
         await page.goto(`/profiles/${id}/edit`);
-        await expect(page.getByRole('textbox', { name: /^Navn på profilen/ })).toHaveValue(
-          'Profil A',
-        );
+        await expect(page.getByRole('textbox', { name: /^Navn på malen/ })).toHaveValue('Profil A');
         await expectNoAccessibilityViolations(page);
       });
 

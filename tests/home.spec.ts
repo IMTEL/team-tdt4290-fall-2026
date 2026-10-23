@@ -6,7 +6,7 @@ test('start page shows the heading without logging in', async ({ page }) => {
   await page.goto('/');
 
   await expect(
-    page.getByRole('heading', { name: 'Konfigurator for intervjuagenter', exact: true }),
+    page.getByRole('heading', { level: 1, name: 'Lag AI-intervjuere for jobbsøkere', exact: true }),
   ).toBeVisible();
 });
 
@@ -16,10 +16,8 @@ test('the navbar links to every page and marks the one that is open', async ({ p
 
   const pages = [
     { link: 'Agenter', url: /\/browse-agents$/, heading: 'Agenter' },
-    { link: 'Konfigurer', url: /\/configure$/, heading: 'Sett opp en agent' },
-    { link: 'Jobbsøkere', url: /\/profiles$/, heading: 'Jobbsøkerprofiler' },
-    { link: 'Test intervjuer', url: /\/test-chat$/, heading: 'Test intervjueren' },
-    { link: 'Hjem', url: /\/$/, heading: 'Konfigurator for intervjuagenter' },
+    { link: 'Maler', url: /\/templates$/, heading: 'Maler' },
+    { link: 'Hjem', url: /\/$/, heading: 'Lag AI-intervjuere for jobbsøkere' },
   ];
   for (const { link, url, heading } of pages) {
     await nav.getByRole('link', { name: link, exact: true }).click();

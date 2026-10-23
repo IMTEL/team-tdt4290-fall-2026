@@ -96,16 +96,17 @@ next run tests an old build.
 shapes, and keeps everything in memory. It uses only Node built-ins.
 
 - **Login**: the mock Keycloak has no password form. Clicking **Logg inn** goes through the real
-  NextAuth flow (redirect, code, signed ID token, RAGdoll `/api/login`) and comes straight back,
-  logged in as a **new user** called «Test Bruker N».
+  NextAuth flow (redirect, code, signed ID token) and comes straight back, logged in as a **new
+  user** called «Test Bruker N». Like the real RAGdoll, the mock takes Keycloak's ID token as the
+  Bearer token on every request: it checks the signature, the audience and the expiry, and keeps no
+  session of its own. An expired ID token is refreshed at the mock Keycloak's token endpoint.
 - **Every login is a new user**, with no agents, templates or profiles. So each test starts from
   an empty account, and tests running in parallel never see each other's data. A test that needs
   data creates it, through the UI or through our own API with the helpers in
   `tests/support/data.ts` (`createAgent`, `createTemplate`, `createProfile`).
-- **Chat**: no LLM. Every reply, from the configurator or a saved agent, is
-  `Mock-svar: <the last message you sent>`. To finish the configurator chat, send it a
-  `KONFIGURASJON` block (`configurationBlock()` in `tests/support/data.ts`): the reply echoes it,
-  and the app reads it as a finished configuration.
+- **Chat**: no LLM. Every reply from a saved agent is `Mock-svar: <the last message you sent>`.
+  The interviewer is set up in the wizard on `/configure`, without a chat, so only the test chat
+  talks to the mock this way.
 - **What it does not check**: the mock trusts what it gets and does not know RAGdoll's rules. A
   test passing against the mock does not prove the real RAGdoll accepts the same request. That is
   what the [manual check](testing.md#manual-end-to-end-check) is for.
@@ -118,20 +119,20 @@ the mock, copying the request and response shapes from `src/server/ragdoll.ts`.
 
 In `tests/`, named `*.spec.ts`, one file per flow or page:
 
-| File                    | Covers                                                               |
-| ----------------------- | -------------------------------------------------------------------- |
-| `home.spec.ts`          | Start page, navbar links, theme toggle                               |
-| `auth.spec.ts`          | Login, logout, protected pages, login errors                         |
-| `agents.spec.ts`        | Agent list, agent page, edit (with presets), clone, delete           |
-| `configure.spec.ts`     | Configurator: agent type, templates, profile, industry, chat, saving |
-| `templates.spec.ts`     | Create, edit, delete and use interviewer templates                   |
-| `profiles.spec.ts`      | Create, edit, delete job seeker profiles, form validation            |
-| `test-chat.spec.ts`     | Testing an agent in the chat: greeting, sending, starting over       |
-| `accessibility.spec.ts` | axe on every page, dialog, menu and error state, light and dark      |
+| File                    | Covers                                                             |
+| ----------------------- | ------------------------------------------------------------------ |
+| `home.spec.ts`          | Start page, navbar links, theme toggle                             |
+| `auth.spec.ts`          | Login, logout, protected pages, login errors                       |
+| `agents.spec.ts`        | Agent list, agent page, edit (with presets), clone, delete         |
+| `configure.spec.ts`     | The interviewer wizard: every step, publishing, testing and drafts |
+| `templates.spec.ts`     | Create, edit, delete and use interviewer templates                 |
+| `profiles.spec.ts`      | Create, edit, delete job seeker templates, form validation         |
+| `test-chat.spec.ts`     | Testing an agent in the chat: greeting, sending, starting over     |
+| `accessibility.spec.ts` | axe on every page, dialog, menu and error state, light and dark    |
 
 Helpers and the mock backend are in `tests/support/`: `auth.ts` logs in, `data.ts` creates test
-data through our API, `configure.ts` clicks through the steps on `/configure` to the chat
-(`startInterviewerChat`), and `accessibility.ts` runs axe.
+data through our API, `configure.ts` clicks through the wizard on `/configure` (`goToFinish` goes
+all the way to the last step), and `accessibility.ts` runs axe.
 
 Vitest only picks up `src/**/*.test.{ts,tsx}`, and Playwright only looks in `tests/`, so the two
 never run each other's files.
@@ -172,7 +173,8 @@ work without login.
 ## Accessibility
 
 `tests/accessibility.spec.ts` runs [axe](https://github.com/dequelabs/axe-core) on every page and
-on the states a user can open there: dialogs, dropdowns, form errors and the chat. It checks WCAG
+on the states a user can open there: dialogs, dropdowns, form errors, the wizard's steps and the
+chat. It checks WCAG
 2.0, 2.1 and 2.2 at level A and AA (universell utforming requires 2.1 AA), once in the light and
 once in the dark theme, since the colours differ. It runs only in Chromium: axe checks the page,
 not the browser.
