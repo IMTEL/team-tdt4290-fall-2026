@@ -4,14 +4,14 @@ import { CreateProfileForm } from './CreateProfileForm';
 import styles from '../page.module.css';
 
 export const metadata: Metadata = {
-  title: 'Lag en jobbsøkerprofil',
+  title: 'Lag en jobbsøkermal',
 };
 
 export default function NewProfilePage() {
   return (
     <div className={styles.page}>
       <header className={styles.header}>
-        <h1 className={styles.title}>Lag en jobbsøkerprofil</h1>
+        <h1 className={styles.title}>Lag en jobbsøkermal</h1>
         <p className={styles.lead}>
           {/* English translation: Describe the job seeker without personal data: no name, exact
           age or diagnoses. Only fill in what you know. */}

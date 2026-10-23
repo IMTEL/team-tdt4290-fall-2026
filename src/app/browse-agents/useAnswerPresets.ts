@@ -69,7 +69,7 @@ export function useAnswerPresets(definition: AgentTypeDefinition | undefined): A
     presets.push({
       field: profileField,
       kind: 'profile',
-      label: 'Jobbsøkerprofil',
+      label: 'Jobbsøkermal',
       loaded: profiles !== null,
       options: (profiles ?? []).map((profile) => {
         const summary = summarizeProfile(profile);
@@ -80,7 +80,7 @@ export function useAnswerPresets(definition: AgentTypeDefinition | undefined): A
         };
       }),
       manageHref: '/profiles',
-      manageLabel: 'Administrer profiler',
+      manageLabel: 'Administrer maler',
     });
   }
   return presets;

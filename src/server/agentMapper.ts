@@ -1,3 +1,4 @@
+import { interviewerTemplates } from '@/data/interviewer-templates';
 import {
   type AdvancedSettings,
   DEFAULT_ADVANCED_SETTINGS,
@@ -126,11 +127,15 @@ export type AgentListItem = RagdollAgentSummary & {
   stilling: string | null;
   bransje: string | null;
   vanskelighetsgrad: string | null;
+  intervjuer: string | null;
+  intervjutype: string | null;
+  intervjuerMal: string | null;
 };
 
 /** Reads the agent's stored answers so the browser does not have to parse the description. */
 export function toAgentListItem(summary: RagdollAgentSummary): AgentListItem {
   const stored = readStoredAnswers(summary.description);
+  const template = interviewerTemplate(stored?.sources.intervjuer);
   return {
     // The description stays: the detail and edit pages read the answers from it.
     ...summary,
@@ -142,5 +147,14 @@ export function toAgentListItem(summary: RagdollAgentSummary): AgentListItem {
     stilling: stored?.answers.stilling || null,
     bransje: stored?.answers.bransje || null,
     vanskelighetsgrad: stored?.answers.vanskelighetsgrad || null,
+    intervjuer: stored?.answers.intervjuer || null,
+    intervjutype: stored?.answers.intervjutype || null,
+    intervjuerMal: template?.title ?? null,
   };
+}
+
+/** The built-in interviewer template an answer came from, when it did. */
+function interviewerTemplate(source: AnswerSources[string] | undefined) {
+  if (source?.kind !== 'template') return undefined;
+  return interviewerTemplates.find((template) => template.id === source.id);
 }

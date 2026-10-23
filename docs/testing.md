@@ -9,7 +9,7 @@
 - [Where tests live](#where-tests-live)
 - [What is covered so far](#what-is-covered-so-far)
 - [Manual end-to-end check](#manual-end-to-end-check)
-- [Manual check: job seeker profiles](#manual-check-job-seeker-profiles)
+- [Manual check: job seeker templates](#manual-check-job-seeker-templates)
 
 ## Tools
 
@@ -48,7 +48,8 @@ calls the real RAGdoll: tests replace `fetch`, the RAGdoll adapter or the login 
 
 Unit and component level only:
 
-- `src/app/page.test.tsx`: smoke test for the start page's heading and introduction.
+- `src/app/page.test.tsx`: start page heading, «Slik fungerer det», CTAs (Ny agent, Agenter, Maler)
+  and no separate Jobbsøkermaler link in the nav area.
 - `src/app/api/agents/[agentId]/chat/route.test.ts`: chats with the agent using the chat key and role
   fetched as the user; the key never reaches the browser; 401 without a session and 404 for an id
   that is not a MongoDB id, both without calling RAGdoll; 400 for bad bodies (including a
@@ -86,15 +87,15 @@ Unit and component level only:
   the agent type when given), the type's lead is shown, and
   only saved templates have edit and delete.
 - `src/app/configure/page.test.tsx`: the page starts by asking for the agent type, with planned
-  types shown as "Kommer snart" and not choosable; choosing the interviewer shows the template
-  picker, the steps and a preview of the industry templates grouped by public and private, and
-  "Bytt agenttype" goes back and forgets the templates; choosing a template, or continuing without
-  one, goes on to the industry picker, and choosing an industry template, or continuing without
-  one, opens the chat with the first question not decided (the company with an industry
-  template); changing the interviewer template keeps the industry template, and the other way
-  round; and the button above the chat goes back to the
-  picker; saved templates are shown after the built-in ones, and the built-in ones still show if
-  the saved ones cannot be loaded; a deleted template disappears from the picker; the tab title.
+  types shown as "Kommer snart" and not choosable; `?type=interviewer` opens the wizard (stilling
+  → intervjuer → jobbsøker → innstillinger → fullføre); section progress and jumping back keep
+  later marks; **Publiser** / **Test agenten** save and redirect; **Lagre utkast** writes
+  `localStorage` and goes to Agenter; a stored draft is restored; saved templates appear after the
+  built-in ones; a deleted template disappears from the picker; the tab title.
+- `src/app/configure/wizardDraft.test.ts`: round-trip, reject bad values, and clear the draft.
+- `src/app/browse-agents/AgentList.test.tsx`: Ny agent first in the interviewer section; agents as
+  cards; toast «Agent lagret» from flash; a local draft as an Utkast card; deleting the draft
+  clears storage and removes the card.
 - `src/components/templates/IndustryPicker.test.tsx`: every industry template is shown with its
   industry and sector, clicking one selects it, "Fortsett uten bransjemal" selects none, and the
   sector filter shows only public or only private jobs.
@@ -132,8 +133,8 @@ Unit and component level only:
 - `src/components/profiles/api.test.ts`: the browser functions call the right profile routes,
   reject badly shaped profiles, load a missing profile as null, and give Norwegian messages.
 - `src/app/profiles/page.test.tsx` and `src/app/profiles/[profileId]/edit/EditProfile.test.tsx`:
-  the profiles page and its link to a new profile; editing loads the profile and saves to the
-  same id; a missing profile shows the not-found page.
+  the Jobbsøkermaler page and its link to a new mal; editing loads and saves to the same id; a
+  missing mal shows the not-found page.
 - `src/domain/jobSeekerProfile.test.ts`: the Jobbsøker line has every filled-in field, never the
   notes or the label, and leaves out empty fields.
 - `src/server/profileMapper.test.ts` and `src/app/api/profiles/**/route.test.ts`: profiles are
@@ -269,89 +270,84 @@ Not covered yet:
 
 ## Manual end-to-end check
 
-Run this before a demo, and after changes to login, the chat or saving. It uses the real RAGdoll,
-Keycloak and IDUN, so it catches what the mocked tests cannot: a wrong environment variable, a
-changed RAGdoll API, or a configurator that writes the `KONFIGURASJON` block differently.
+Run this before a demo, and after changes to login, the interviewer wizard or saving. It uses the
+real RAGdoll, Keycloak and IDUN, so it catches what the mocked tests cannot: a wrong environment
+variable or a changed RAGdoll API.
 
 Before you start: RAGdoll runs locally and `.env` is filled in as described in the README
-(including `RAGDOLL_CONFIGURATOR_*` and `IDUN_API_KEY`). Restart `npm run dev` after changing
-`.env`.
+(including `IDUN_API_KEY`). Restart `npm run dev` after changing `.env`.
 
-| #   | Do this                                                                                  | You should see                                                                                   |
-| --- | ---------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
-| 1   | Open <http://localhost:3000/configure> while logged out                                  | You are sent to `/login`                                                                         |
-| 2   | Log in as `test@example.com` / `test`                                                    | You land on `/configure` with the assistant's greeting                                           |
-| 3   | Answer the assistant's questions until it shows a summary, then confirm it               | Its last reply contains the `KONFIGURASJON` block, and a form with **Lagre agent** appears below |
-| 4   | Keep or change the suggested name and click **Lagre agent**                              | "«name» er lagret" with a link to your agents                                                    |
-| 5   | In the browser console (F12), run `await (await fetch('/api/agents')).json()`            | The new agent is in the list, with your configuration as JSON in `description`                   |
-| 6   | Open the Network tab, repeat steps 3 to 5, and look at every request to `/api/*`         | No response contains `llm_api_key`, `embedding_api_key`, an access key or a token                |
-| 7   | Log out, log in as a second user (register one on the login page), and repeat step 5     | The first user's agent is not in this list                                                       |
-| 8   | Log in as the first user again, open the agent on `/browse-agents` and click **Rediger** | The form shows the agent's name and answers                                                      |
-| 9   | Change the name and one answer, and click **Lagre endringer**                            | Back on the details page with the new values; the system prompt shows the new answer             |
-| 10  | Repeat step 5                                                                            | Same number of agents as before, with the same id: the agent was updated, not copied             |
-| 11  | Stop RAGdoll, change an answer and save, then start RAGdoll again                        | A Norwegian error, and the form still shows what you typed                                       |
+| #   | Do this                                                                                                          | You should see                                                                                            |
+| --- | ---------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| 1   | Open <http://localhost:3000/configure?type=interviewer> while logged out                                         | You are sent to `/login`                                                                                  |
+| 2   | Log in as `test@example.com` / `test`                                                                            | You land on the wizard at **Stilling og arbeidsplass**                                                    |
+| 3   | Fill in a stilling (and required workplace fields), go through Intervjuer → Jobbsøker → Innstillinger → Fullføre | **Publiser**, **Lagre som utkast** and **Test agenten** are available; overview shows what you chose      |
+| 4   | Keep or change the suggested name and click **Publiser**                                                         | You go to `/browse-agents` with toast **Agent lagret**; the new agent is in the list                      |
+| 5   | In the browser console (F12), run `await (await fetch('/api/agents')).json()`                                    | The new agent is in the list, with your configuration as JSON in `description`                            |
+| 6   | Open the Network tab, repeat steps 3 to 5, and look at every request to `/api/*`                                 | No response contains `llm_api_key`, `embedding_api_key`, an access key or a token                         |
+| 7   | Start a new interviewer, fill only the first section, click **Lagre utkast**                                     | Agenter shows an **Utkast** card; toast **Utkast lagret**; card opens `/configure?type=interviewer` again |
+| 8   | On the Utkast card, click **Slett**, confirm                                                                     | The card is gone; `localStorage` has no `kfi-configure-draft`                                             |
+| 9   | Log out, log in as a second user (register one on the login page), and repeat step 5                             | The first user's agent is not in this list                                                                |
+| 10  | Log in as the first user again, open the agent on `/browse-agents` and click **Rediger**                         | The form shows the agent's name and answers                                                               |
+| 11  | Change the name and one answer, and click **Lagre endringer**                                                    | Back on the details page with the new values; the system prompt shows the new answer                      |
+| 12  | Repeat step 5                                                                                                    | Same number of agents as before, with the same id: the agent was updated, not copied                      |
+| 13  | Stop RAGdoll, change an answer and save, then start RAGdoll again                                                | A Norwegian error, and the form still shows what you typed                                                |
 
-If the form in step 3 never appears, look at the assistant's last reply: every line of the block
-must start with the exact label (`Stilling:`, `Bransje:` ...). If the model formats it
-differently, `parseAnswers` in `src/domain/agentTypes/configurator.ts` needs to accept that format.
-The block only appears when the configurator's **General Agent Prompt** in RAGdoll is the fenced
-prompt in `prompts/configurator.nb.md`.
+If **Publiser** stays disabled or shows that required fields are missing, go back through the
+section list and fill every marked field (stilling, arbeidsgiver, intervjutype, vanskelighetsgrad,
+antall spørsmål, oppfølging). The configuration chat (`ConfigurationChat` / `KONFIGURASJON` block)
+is not used for the interviewer wizard; it remains for other agent types and is covered by unit
+tests plus `prompts/configurator.nb.md` when that path is used.
 
-## Manual check: job seeker profiles
+## Manual check: job seeker templates
 
-Run this after changes to the profiles, the profile choice on `/configure` or the configurator
-prompt. The unit tests mock RAGdoll, so only this shows that the profile is stored, that the
-configurator stops asking about the job seeker, and that the notes never reach an agent.
+Run this after changes to jobbsøkermaler (`/profiles`), the Jobbsøker step on `/configure`, or how
+`Jobbsøker` is stored on an agent. The unit tests mock RAGdoll, so only this shows that the mal is
+stored, that notes never reach an agent, and that one counsellor cannot see another's maler.
 
 Before you start:
 
-- RAGdoll has the profile endpoints with every field. Until
-  `feat/profile-experience-and-practice-areas` is merged into `tdt4290/main`, check out that
-  branch in RAGdoll and rebuild (`docker compose -f docker-compose.local.yml up --build`).
-  On an older RAGdoll, saving fails or the experience and practice areas come back empty.
-- The configurator's **General Agent Prompt** in RAGdoll is the current fenced prompt in
-  `prompts/configurator.nb.md`. This feature changed it: an old prompt still asks about the job
-  seeker.
+- RAGdoll exposes the profile endpoints with experience and practice areas.
 - You can log in as two users (`test@example.com` / `test`, and one you register yourself).
+- Jobbsøkermaler are not in the navbar; open `/profiles` directly or via **Maler** → Jobbsøkermaler
+  / **Administrer maler** from the wizard.
 
 Create, edit and keep private:
 
 | #   | Do this                                                                                                                                                                                                                                                  | You should see                                                                                            |
 | --- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
 | 1   | Open <http://localhost:3000/profiles> while logged out                                                                                                                                                                                                   | You are sent to `/login`                                                                                  |
-| 2   | Log in as the first user and click **Jobbsøkere** in the menu                                                                                                                                                                                            | "Du har ingen profiler ennå …" (or your earlier profiles)                                                 |
-| 3   | Click **Lag en ny profil**                                                                                                                                                                                                                               | An empty form; **Lagre profil** is disabled until **Navn på profilen** has text                           |
-| 4   | In **Språk**, type 21 languages separated by commas                                                                                                                                                                                                      | "Skriv høyst 20 språk." and **Lagre profil** is disabled. Clear the field again                           |
-| 5   | Fill in: name `Profil A`, age `18–24 år`, experience `Litt (under 1 år)`, `sommerjobb i butikk`, `videregående`, `Norsk B1, Arabisk`; tick **Mestre nervøsitet** and **Forklare hull i CV-en**; **Annet** `Snakke om lønn`; **Notater** `HEMMELIG-NOTAT` | "Profilen «Profil A» er lagret." with a link to the profiles                                              |
+| 2   | Log in as the first user and open `/profiles`                                                                                                                                                                                                            | "Du har ingen maler ennå …" (or your earlier maler); heading **Jobbsøkermaler**                           |
+| 3   | Click **Lag en ny mal**                                                                                                                                                                                                                                  | An empty form; **Lagre mal** is disabled until **Navn på malen** has text                                 |
+| 4   | In **Språk**, type 21 languages separated by commas                                                                                                                                                                                                      | "Skriv høyst 20 språk." and **Lagre mal** is disabled. Clear the field again                              |
+| 5   | Fill in: name `Profil A`, age `18–24 år`, experience `Litt (under 1 år)`, `sommerjobb i butikk`, `videregående`, `Norsk B1, Arabisk`; tick **Mestre nervøsitet** and **Forklare hull i CV-en**; **Annet** `Snakke om lønn`; **Notater** `HEMMELIG-NOTAT` | "Malen «Profil A» er lagret." with a link to the maler                                                    |
 | 6   | Follow the link                                                                                                                                                                                                                                          | A card for Profil A with "18–24 år · Litt (under 1 år)" and the three practice areas as chips             |
 | 7   | Click **Rediger**                                                                                                                                                                                                                                        | Every field as you saved it: the two boxes ticked, `Snakke om lønn` in **Annet**, the note in **Notater** |
 | 8   | Change the age to `25–29 år` and click **Lagre endringene**, then go back to `/profiles`                                                                                                                                                                 | Still one Profil A card, now with "25–29 år"                                                              |
 | 9   | Copy the profile id from the edit page's URL. Log out, log in as the second user and open `/profiles`                                                                                                                                                    | Profil A is not in the list                                                                               |
-| 10  | As the second user, open `/profiles/<the id>/edit`                                                                                                                                                                                                       | The not-found page, not the profile                                                                       |
+| 10  | As the second user, open `/profiles/<the id>/edit`                                                                                                                                                                                                       | The not-found page, not the mal                                                                           |
 
-Use a profile on `/configure` (log in as the first user again):
+Use a mal on `/configure` (log in as the first user again):
 
-| #   | Do this                                                                                                      | You should see                                                                                                                                                                                        |
-| --- | ------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 11  | Open `/configure` and open **Jobbsøkerprofil**                                                               | **Ingen profil** and "Profil A (25–29 år · Litt (under 1 år))". **Administrer profiler** links to `/profiles`                                                                                         |
-| 12  | Choose Profil A, then a template                                                                             | Above the chat: "Jobbsøker: Profil A". The greeting says "Du har valgt jobbsøkerprofilen «Profil A»."                                                                                                 |
-| 13  | Answer the assistant's questions until it shows the summary, then confirm it                                 | It never asks about the job seeker's age, experience, Norwegian level or what they want to practise. **Lagre agent** appears                                                                          |
-| 14  | Save the agent and open it on `/browse-agents`                                                               | **Jobbsøker** is the profile as one line: "aldersgruppe 25–29 år; arbeidserfaring: litt (under 1 år), sommerjobb i butikk; …; vil øve på: mestre nervøsitet, …". The same line is in **Systemprompt** |
-| 15  | In the browser console, run `JSON.stringify(await (await fetch('/api/agents')).json()).includes('HEMMELIG')` | `false`: the notes are not in any agent                                                                                                                                                               |
-| 16  | Open the agent in the test chat and say you are nervous                                                      | The interviewer keeps a calm tempo and is encouraging (judged by hand, depends on the model)                                                                                                          |
-| 17  | Back on `/configure`, click **Bytt mal eller profil**, choose **Ingen profil** and a template                | "Jobbsøker: Ingen profil valgt", no profile sentence in the greeting, and the assistant asks about the job seeker again                                                                               |
+| #   | Do this                                                                                                      | You should see                                                                                                                                                                 |
+| --- | ------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 11  | Open `/configure?type=interviewer`, go to **Jobbsøker**                                                      | **Ingen mal** and "Profil A (25–29 år · Litt (under 1 år))". **Administrer maler** links to `/profiles`                                                                        |
+| 12  | Choose Profil A (and practice areas if offered), finish the wizard, click **Publiser**                       | Agenter with toast **Agent lagret**                                                                                                                                            |
+| 13  | Open the agent                                                                                               | **Jobbsøker** is the mal as one line: "aldersgruppe 25–29 år; arbeidserfaring: litt (under 1 år), sommerjobb i butikk; …; vil øve på: …". The same line is in **Systemprompt** |
+| 14  | In the browser console, run `JSON.stringify(await (await fetch('/api/agents')).json()).includes('HEMMELIG')` | `false`: the notes are not in any agent                                                                                                                                        |
+| 15  | Open the agent in the test chat and say you are nervous                                                      | The interviewer keeps a calm tempo and is encouraging (judged by hand, depends on the model)                                                                                   |
+| 16  | Start a new interviewer, on **Jobbsøker** choose **Ingen mal**, finish and **Publiser**                      | On the agent, **Jobbsøker** is not the Profil A line (practice-only or a short fallback), and notes still never appear                                                         |
 
 Delete and failures:
 
 | #   | Do this                                                                                                       | You should see                                                                                     |
 | --- | ------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
-| 18  | On `/profiles`, click **Slett** on Profil A, then **Avbryt**                                                  | The dialog closes and the profile is still there                                                   |
-| 19  | Click **Slett** again, then **Slett** in the dialog                                                           | The card disappears, and stays gone after a reload                                                 |
-| 20  | Open the agent from step 14                                                                                   | Unchanged: the **Jobbsøker** line is still there                                                   |
-| 21  | Make a new profile, choose it on `/configure`, delete it in another tab, then send a message in the first tab | A Norwegian error in the chat, not a crash or a technical message                                  |
-| 22  | Stop RAGdoll. Fill in a new profile and save; then reload `/profiles`                                         | A Norwegian error, and the form keeps what you typed; the list shows an error instead of the cards |
+| 17  | On `/profiles`, click **Slett** on Profil A, then **Avbryt**                                                  | The dialog closes and the mal is still there                                                       |
+| 18  | Click **Slett** again, then **Slett** in the dialog                                                           | The card disappears, and stays gone after a reload                                                 |
+| 19  | Open the agent from step 12                                                                                   | Unchanged: the **Jobbsøker** line is still there                                                   |
+| 20  | Make a new mal, choose it on the Jobbsøker step, delete it in another tab, then **Publiser** in the first tab | A Norwegian error (or missing-mal behaviour), not a crash or a technical message                   |
+| 21  | Stop RAGdoll. Fill in a new mal and save; then reload `/profiles`                                             | A Norwegian error, and the form keeps what you typed; the list shows an error instead of the cards |
 
-If step 13 still asks about the job seeker, the configurator in RAGdoll has the old prompt. If
-step 14 shows the configurator's own Jobbsøker text instead of the profile line, the server did
-not use the profile: check that `/api/configure/turn` was called with `profileId` in the Network
-tab.
+If step 13 shows an empty or wrong **Jobbsøker** line, the wizard did not attach the mal: check
+that you selected it on the Jobbsøker step before **Publiser**, and that `sources.jobbsoker` is in
+the saved agent's `description`.

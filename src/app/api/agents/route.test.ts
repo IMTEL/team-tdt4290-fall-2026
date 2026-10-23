@@ -272,6 +272,9 @@ describe('GET /api/agents', () => {
           stilling: 'Butikkmedarbeider',
           bransje: 'Varehandel (privat)',
           vanskelighetsgrad: 'lett | Antall spørsmål: 6 | Oppfølgingsspørsmål: ja',
+          intervjuer: 'butikksjef, vennlig',
+          intervjutype: 'første intervju',
+          intervjuerMal: null,
         },
       ],
     });

@@ -1,0 +1,303 @@
+.page {
+  max-width: 72rem;
+  margin: 0 auto;
+  padding: var(--space-6) var(--space-5) 4rem;
+}
+
+.intro {
+  margin-bottom: var(--space-5);
+}
+
+.title {
+  margin: 0;
+  font-size: 2rem;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+}
+
+.lead {
+  margin: var(--space-2) 0 0;
+  color: var(--muted-foreground);
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: 18rem minmax(0, 1fr);
+  gap: var(--space-4);
+  align-items: start;
+}
+
+.side,
+.main {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--card);
+}
+
+.identity {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  text-align: center;
+}
+
+.avatar,
+.mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-full);
+  background: color-mix(in oklch, var(--secondary) 55%, var(--background));
+  color: var(--foreground);
+  font-weight: 650;
+}
+
+.avatar {
+  width: 4.5rem;
+  height: 4.5rem;
+  overflow: hidden;
+  background-position: center;
+  background-size: cover;
+  font-size: 1.6rem;
+}
+
+.avatarButton {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.avatarHint {
+  color: var(--muted-foreground);
+  font-size: 0.8rem;
+}
+
+.picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  max-width: 18rem;
+  padding: var(--space-3);
+}
+
+.choice {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+  width: 4.4rem;
+  padding: 0.2rem;
+  border: 0;
+  background: transparent;
+  color: var(--foreground);
+  font: inherit;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.choiceImage,
+.letter {
+  width: 2.4rem;
+  height: 2.4rem;
+  border-radius: var(--radius-full);
+  background-color: color-mix(in oklch, var(--secondary) 55%, var(--background));
+  background-position: center;
+  background-size: cover;
+}
+
+.letter {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 650;
+}
+
+.choice[aria-pressed='true'] .choiceImage,
+.choice[aria-pressed='true'] .letter {
+  outline: 3px solid var(--primary);
+  outline-offset: 2px;
+}
+
+.error {
+  margin: 0;
+  color: var(--destructive);
+}
+
+.name {
+  margin: 0;
+  font-size: 1.15rem;
+}
+
+.facts {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  width: 100%;
+  margin: 0;
+}
+
+.facts dt {
+  color: var(--muted-foreground);
+  font-size: 0.8rem;
+}
+
+.facts dd {
+  margin: 0;
+}
+
+.accountActions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  gap: var(--space-2);
+}
+
+.cardHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  width: 100%;
+}
+
+.cardTitle {
+  margin: 0;
+  font-size: 1.15rem;
+}
+
+.fieldLabel {
+  margin: 0;
+  font-size: 0.85rem;
+  font-weight: 650;
+}
+
+.themes {
+  display: flex;
+  width: 100%;
+  padding: 0.2rem;
+  border-radius: var(--radius-md);
+  background: color-mix(in oklch, var(--secondary) 25%, var(--background));
+}
+
+.theme,
+.themeOn {
+  flex: 1;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--foreground);
+  font: inherit;
+  font-size: 0.9rem;
+  padding: 0.4rem 0.5rem;
+  cursor: pointer;
+}
+
+.themeOn {
+  background: var(--primary);
+  color: var(--primary-foreground);
+}
+
+.language {
+  width: 100%;
+  padding: 0.5rem 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--background);
+  color: var(--foreground);
+  font: inherit;
+}
+
+.note {
+  margin: 0;
+  color: var(--muted-foreground);
+}
+
+.tableWrap {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+}
+
+.table th,
+.table td {
+  padding: 0.7rem 0.4rem;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  vertical-align: middle;
+}
+
+.table thead th {
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.table tbody th {
+  font-weight: 500;
+}
+
+.table tbody th a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.mark {
+  width: 1.7rem;
+  height: 1.7rem;
+  margin-right: var(--space-2);
+  font-size: 0.8rem;
+  vertical-align: middle;
+}
+
+.rowActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  white-space: nowrap;
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@media (width < 56rem) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+}

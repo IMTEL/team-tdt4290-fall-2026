@@ -4,6 +4,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import ConfigurePage, { metadata } from './page';
 
+const { push } = vi.hoisted(() => ({ push: vi.fn() }));
+
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ push }),
+}));
+
 const fetchMock = vi.fn<typeof fetch>();
 
 const profile = {
@@ -41,19 +47,71 @@ afterEach(() => {
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
   fetchMock.mockReset();
+  push.mockReset();
+  sessionStorage.clear();
+  localStorage.clear();
 });
 
-/** Opens the page and chooses the interviewer, the step the interviewer tests start after. */
+async function renderPage(type?: string, step?: string) {
+  render(
+    await ConfigurePage({
+      searchParams: Promise.resolve(type === undefined ? {} : { type, ...(step ? { step } : {}) }),
+    }),
+  );
+}
+
+/** Opens the page, chooses the interviewer, fills the required stilling fields, and leaves that screen. */
 async function openAsInterviewer() {
   const user = userEvent.setup();
-  render(<ConfigurePage />);
+  await renderPage();
   await user.click(screen.getByRole('button', { name: /^Intervjuer/ }));
+  await user.click(screen.getByRole('textbox', { name: /Stilling/ }));
+  await user.paste('Barnehageassistent');
+  await user.click(screen.getByRole('button', { name: 'Helsefagarbeider' }));
+  await user.click(screen.getByRole('button', { name: 'Helse og omsorg' }));
+  await user.click(screen.getByRole('button', { name: 'Offentlig' }));
+  await user.click(screen.getByRole('button', { name: 'Neste' }));
   return user;
 }
 
+/** Leaves the job seeker step without a profile, which is the step after the interviewer. */
+async function skipProfile(user: ReturnType<typeof userEvent.setup>) {
+  const without = screen.getByRole('button', { name: 'Fortsett uten mal' });
+  await user.click(without);
+  expect(without).toHaveAttribute('aria-pressed', 'true');
+  await user.click(screen.getByRole('button', { name: 'Neste' }));
+}
+
+/** Chooses an interviewer template and moves on. The card is a radio, so Neste confirms it. */
+async function pickTemplate(user: ReturnType<typeof userEvent.setup>, name: RegExp) {
+  await user.click(screen.getByRole('radio', { name }));
+  expect(screen.getByRole('button', { name: 'Fortsett uten mal' })).toHaveAttribute(
+    'aria-pressed',
+    'false',
+  );
+  await user.click(screen.getByRole('button', { name: 'Neste' }));
+}
+
+/** Leaves the interviewer step without a template. */
+async function skipTemplate(user: ReturnType<typeof userEvent.setup>) {
+  const without = screen.getByRole('button', { name: 'Fortsett uten mal' });
+  await user.click(without);
+  expect(without).toHaveAttribute('aria-pressed', 'true');
+  await user.click(screen.getByRole('button', { name: 'Neste' }));
+}
+
+/** Leaves the settings step, which comes after the job seeker step. */
+async function skipSettings(user: ReturnType<typeof userEvent.setup>) {
+  await user.click(screen.getByRole('button', { name: 'Første intervju' }));
+  await user.click(screen.getByRole('button', { name: 'Lett' }));
+  await user.click(screen.getByRole('button', { name: '5–6' }));
+  await user.click(screen.getByRole('button', { name: 'Ja' }));
+  await user.click(screen.getByRole('button', { name: 'Neste' }));
+}
+
 describe('/configure', () => {
-  it('starts by asking what kind of agent to set up, not with templates or the chat', () => {
-    render(<ConfigurePage />);
+  it('starts by asking what kind of agent to set up, not with templates or the chat', async () => {
+    await renderPage();
 
     expect(screen.getByRole('heading', { level: 1, name: 'Sett opp en agent' })).toBeVisible();
     expect(
@@ -64,12 +122,42 @@ describe('/configure', () => {
     expect(screen.queryByRole('log', { name: 'Samtale' })).not.toBeInTheDocument();
   });
 
-  it('shows planned agent types as coming soon, without letting them be chosen', () => {
-    render(<ConfigurePage />);
+  it('shows planned agent types as coming soon, without letting them be chosen', async () => {
+    await renderPage();
 
     const teacher = screen.getByRole('heading', { level: 3, name: 'Lærer' }).closest('li')!;
     expect(teacher).toHaveTextContent('Kommer snart');
     expect(teacher.querySelector('button')).toBeNull();
+  });
+
+  it('skips the type step when the agents page already chose one', async () => {
+    await renderPage('interviewer');
+
+    expect(screen.getByRole('heading', { level: 1, name: 'Ny intervjuagent' })).toBeVisible();
+    expect(
+      screen.getByRole('heading', { level: 2, name: 'Hvilken stilling skal jobbsøkeren øve til?' }),
+    ).toBeVisible();
+    expect(screen.queryByText('Velg agenttype')).not.toBeInTheDocument();
+    expect(screen.getByRole('list')).toBeVisible();
+    const jobs = screen.getByRole('group', { name: /Stillingsmaler/ });
+    const industries = screen.getByRole('group', { name: /^Bransje/ });
+    expect(within(jobs).getAllByRole('button')[0]).toHaveAccessibleName('Ingen mal');
+    expect(within(industries).getAllByRole('button')[0]).toHaveAccessibleName('Ingen bransje');
+    expect(screen.getByRole('button', { name: 'Neste' })).toBeDisabled();
+    expect(screen.getByText(/Stillingsmaler/)).toHaveTextContent('*');
+    expect(screen.getByText(/^Bransje/)).toHaveTextContent('*');
+    expect(screen.getByText(/Arbeidsgiver/)).toHaveTextContent('*');
+    expect(
+      screen.queryByRole('heading', { name: 'Hva slags agent vil du sette opp?' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('asks for the type when the link names a type that does not exist', async () => {
+    await renderPage('finnes-ikke');
+
+    expect(
+      screen.getByRole('heading', { level: 2, name: 'Hva slags agent vil du sette opp?' }),
+    ).toBeVisible();
   });
 
   it('shows the templates once the interviewer is chosen, and can go back to the types', async () => {
@@ -85,105 +173,239 @@ describe('/configure', () => {
     ).toBeVisible();
   });
 
-  it('shows the steps, and previews the industries grouped by sector before one can be chosen', async () => {
+  it('returns to the interviewer step when the link asks for it', async () => {
+    await renderPage('interviewer', 'intervjuer');
+
+    expect(screen.getByRole('heading', { level: 2, name: 'Velg en mal' })).toBeVisible();
+    expect(screen.getByRole('link', { name: 'Lag en ny mal' })).toHaveAttribute(
+      'href',
+      '/create-template?agentType=interviewer&returnTo=%2Fconfigure%3Ftype%3Dinterviewer%26step%3Dintervjuer',
+    );
+  });
+
+  it('marks Intervjuer as the current section', async () => {
     await openAsInterviewer();
 
+    expect(screen.getByRole('listitem', { current: 'step' })).toHaveTextContent('Intervjuer');
+    expect(screen.queryByRole('button', { name: 'Jobbsøker' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Fullføre' })).not.toBeInTheDocument();
+    expect(screen.queryByText('Velg agenttype')).not.toBeInTheDocument();
     expect(
-      screen.getByText('Velg intervjuer og profil').closest('[aria-current="step"]'),
-    ).not.toBeNull();
-    expect(screen.getByText('Velg agenttype')).toBeVisible();
-    expect(screen.getByText('Velg bransje')).toBeVisible();
-
-    const preview = screen.getByRole('region', { name: 'Bransjer du kan velge i neste steg' });
-    const publicList = within(preview).getByRole('list', { name: 'Offentlig sektor' });
-    const privateList = within(preview).getByRole('list', { name: 'Privat sektor' });
-    expect(publicList).toHaveTextContent('Helsefagarbeider · Helse og omsorg');
-    expect(privateList).toHaveTextContent('Butikkmedarbeider · Varehandel');
-    expect(publicList).not.toHaveTextContent('Butikkmedarbeider');
+      screen.queryByRole('region', { name: 'Bransjer du kan velge i neste steg' }),
+    ).not.toBeInTheDocument();
   });
 
-  it('asks for an industry template after the interviewer template, then opens the chat', async () => {
+  it('opens the last step after the settings', async () => {
     const user = await openAsInterviewer();
 
-    await user.click(screen.getByRole('button', { name: /Teamleder/ }));
+    await pickTemplate(user, /Teamleder/);
 
-    expect(screen.getByRole('heading', { level: 2, name: 'Velg en bransjemal' })).toBeVisible();
-    expect(screen.getByText('Velg bransje').closest('[aria-current="step"]')).not.toBeNull();
-    expect(screen.queryByRole('log', { name: 'Samtale' })).not.toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 2, name: 'Velg en jobbsøkermal' })).toBeVisible();
+    expect(screen.getByRole('listitem', { current: 'step' })).toHaveTextContent('Jobbsøker');
+    expect(screen.queryByRole('heading', { name: 'Velg en bransjemal' })).not.toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: /Helsefagarbeider/ }));
+    await skipProfile(user);
 
-    expect(screen.getByRole('log', { name: 'Samtale' })).toBeInTheDocument();
-    expect(screen.getByRole('textbox', { name: 'Melding' })).toBeInTheDocument();
-    expect(screen.getByText(/malen «Teamleder»/)).toBeInTheDocument();
-    expect(screen.getByText(/bransjemalen «Helsefagarbeider»/)).toBeInTheDocument();
-    // The industry template decides the job, so the chat asks about the company first.
-    expect(screen.getByText(/Hvilken bedrift eller virksomhet/)).toBeInTheDocument();
-  });
+    expect(
+      screen.getByRole('heading', { level: 2, name: 'Hvordan skal intervjuet være?' }),
+    ).toBeVisible();
+    expect(screen.getByRole('listitem', { current: 'step' })).toHaveTextContent('Innstillinger');
+    expect(screen.queryByRole('heading', { name: 'Velg en bransjemal' })).not.toBeInTheDocument();
 
-  it('asks the interviewer’s first question when no templates are chosen', async () => {
-    const user = await openAsInterviewer();
+    await skipSettings(user);
 
-    await user.click(screen.getByRole('button', { name: 'Fortsett uten mal' }));
-    await user.click(screen.getByRole('button', { name: 'Fortsett uten bransjemal' }));
+    expect(screen.getByRole('heading', { level: 2, name: 'Fullføre' })).toBeVisible();
+    expect(screen.getByRole('listitem', { current: 'step' })).toHaveTextContent('Fullføre');
+    expect(screen.getByText('4 av 5 seksjoner')).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Publiser' })).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Lagre som utkast' })).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Test agenten' })).toBeVisible();
+    expect(screen.getByRole('radio', { name: 'Standard' })).toBeChecked();
+    expect(screen.getByText('Teamleder')).toBeVisible();
+    expect(screen.queryByRole('heading', { name: 'Velg en bransjemal' })).not.toBeInTheDocument();
 
-    expect(screen.getByText(/Hvilken stilling skal jobbsøkeren øve til\?/)).toBeInTheDocument();
-  });
-
-  it('lets the user change the interviewer template and keeps the industry template', async () => {
-    const user = await openAsInterviewer();
-
-    await user.click(screen.getByRole('button', { name: /Teamleder/ }));
-    await user.click(screen.getByRole('button', { name: /Helsefagarbeider/ }));
-    await user.click(screen.getByRole('button', { name: 'Bytt mal eller profil' }));
+    await user.click(screen.getByRole('button', { name: 'Intervjuer' }));
 
     expect(screen.getByRole('heading', { level: 2, name: 'Velg en mal' })).toBeVisible();
-    expect(screen.getByText('Helsefagarbeider', { selector: 'strong' })).toBeVisible();
-
-    await user.click(screen.getByRole('button', { name: /HR-medarbeider/ }));
-
-    expect(screen.getByText(/malen «HR-medarbeider»/)).toBeInTheDocument();
-    expect(screen.getByText(/bransjemalen «Helsefagarbeider»/)).toBeInTheDocument();
+    expect(screen.getByRole('radio', { name: /Teamleder/ })).toBeChecked();
+    // Jumping back must not reset the side progress or clear later section marks.
+    expect(screen.getByText('4 av 5 seksjoner')).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Fullføre' })).toBeVisible();
   });
 
-  it('lets the user change the industry template', async () => {
+  it('opens the last step when the counsellor continues without templates', async () => {
     const user = await openAsInterviewer();
 
-    await user.click(screen.getByRole('button', { name: /Teamleder/ }));
-    await user.click(screen.getByRole('button', { name: /Helsefagarbeider/ }));
-    await user.click(screen.getByRole('button', { name: 'Bytt bransjemal' }));
+    await skipTemplate(user);
+    await skipProfile(user);
+    await skipSettings(user);
 
-    expect(screen.getByRole('heading', { level: 2, name: 'Velg en bransjemal' })).toBeVisible();
+    expect(screen.getByRole('heading', { level: 2, name: 'Fullføre' })).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Publiser' })).toBeVisible();
   });
 
-  it('can continue without templates, and choose them afterwards', async () => {
+  it('saves the interviewer from the last step and opens the test with that agent', async () => {
+    const savedAgent = {
+      id: 'agent-1',
+      name: 'Intervjuer for Barnehageassistent',
+      description: '{}',
+      lastUpdated: '2026-10-21T00:00:00.000Z',
+      llmModel: 'openai/gpt-oss-120b',
+      temperature: 0.7,
+      prompt: 'Du er en intervjuer',
+    };
+    fetchMock.mockImplementation(async (url, init) => {
+      const path = String(url);
+      const method = init?.method ?? 'GET';
+      if (path === '/api/agents' && method === 'POST') return Response.json({ id: 'agent-1' });
+      if (path === '/api/agents/agent-1' && method === 'PUT') {
+        return Response.json({ agent: savedAgent });
+      }
+      if (path === '/api/profiles') return Response.json({ profiles: [] });
+      return Response.json({ templates: [] });
+    });
+
+    const user = await openAsInterviewer();
+    await pickTemplate(user, /Teamleder/);
+    await skipProfile(user);
+    await skipSettings(user);
+
+    expect(screen.getByRole('textbox', { name: 'Navn på agenten' })).toHaveValue(
+      'Intervjuer for Barnehageassistent',
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Publiser' }));
+
+    await waitFor(() => expect(push).toHaveBeenCalledWith('/browse-agents'));
+    expect(sessionStorage.getItem('kfi-agents-flash')).toBe('agent-lagret');
+    const post = fetchMock.mock.calls.find(
+      ([url, init]) => String(url) === '/api/agents' && init?.method === 'POST',
+    );
+    const body = JSON.parse(String(post?.[1]?.body));
+    expect(body).toMatchObject({
+      name: 'Intervjuer for Barnehageassistent',
+      type: 'interviewer',
+      avatar: null,
+      sources: { intervjuer: { kind: 'template', id: 'teamleder' } },
+      configuration: {
+        intervjutype: 'første intervju',
+        bedrift: 'ikke oppgitt',
+        egneSporsmal: 'ingen',
+        bransje: 'Helse og omsorg (offentlig)',
+        vanskelighetsgrad: 'lett | Antall spørsmål: 5–6 | Oppfølgingsspørsmål: ja',
+        jobbsoker: 'ingen opplysninger om jobbsøkeren',
+      },
+    });
+    expect(body.configuration.stilling).toContain('Barnehageassistent.');
+    expect(body.configuration.intervjuer).toContain('teamleder');
+  });
+
+  it('saves a draft and goes to the agents page', async () => {
+    fetchMock.mockImplementation(async (url, init) => {
+      const path = String(url);
+      if (path === '/api/agents' && (init?.method ?? 'GET') === 'POST') {
+        return Response.json({ id: 'agent-draft' });
+      }
+      if (path === '/api/profiles') return Response.json({ profiles: [] });
+      return Response.json({ templates: [] });
+    });
+
+    const user = await openAsInterviewer();
+    await skipTemplate(user);
+    await skipProfile(user);
+    await skipSettings(user);
+
+    await user.click(screen.getByRole('button', { name: 'Lagre som utkast' }));
+
+    await waitFor(() => expect(push).toHaveBeenCalledWith('/browse-agents'));
+    expect(sessionStorage.getItem('kfi-agents-flash')).toBe('agent-lagret');
+  });
+
+  it('saves the interviewer and opens the test with that agent', async () => {
+    fetchMock.mockImplementation(async (url, init) => {
+      const path = String(url);
+      const method = init?.method ?? 'GET';
+      if (path === '/api/agents' && method === 'POST') return Response.json({ id: 'agent-1' });
+      if (path === '/api/agents/agent-1' && method === 'PUT') {
+        return Response.json({
+          agent: {
+            id: 'agent-1',
+            name: 'Intervjuer for Barnehageassistent',
+            description: '{}',
+            lastUpdated: '2026-10-21T00:00:00.000Z',
+            llmModel: 'openai/gpt-oss-120b',
+            temperature: 0.7,
+            prompt: 'Du er en intervjuer',
+          },
+        });
+      }
+      if (path === '/api/profiles') return Response.json({ profiles: [] });
+      return Response.json({ templates: [] });
+    });
+
+    const user = await openAsInterviewer();
+    await pickTemplate(user, /Teamleder/);
+    await skipProfile(user);
+    await skipSettings(user);
+
+    await user.click(screen.getByRole('button', { name: 'Test agenten' }));
+
+    await waitFor(() => expect(push).toHaveBeenCalledWith('/test-chat?agent=agent-1'));
+  });
+
+  it('goes back from the last step to the settings', async () => {
     const user = await openAsInterviewer();
 
-    await user.click(screen.getByRole('button', { name: 'Fortsett uten mal' }));
-    await user.click(screen.getByRole('button', { name: 'Fortsett uten bransjemal' }));
+    await pickTemplate(user, /Teamleder/);
+    await skipProfile(user);
+    await skipSettings(user);
+    await user.click(screen.getByRole('button', { name: 'Gå tilbake' }));
 
-    expect(screen.getByRole('log', { name: 'Samtale' })).toBeInTheDocument();
-    expect(screen.getByText('Ingen mal valgt')).toBeVisible();
-    expect(screen.getByText('Ingen bransjemal valgt')).toBeVisible();
+    expect(
+      screen.getByRole('heading', { level: 2, name: 'Hvordan skal intervjuet være?' }),
+    ).toBeVisible();
 
-    await user.click(screen.getByRole('button', { name: 'Velg en bransjemal' }));
+    await user.click(screen.getByRole('button', { name: 'Neste' }));
+    await user.click(screen.getByRole('button', { name: 'Innstillinger' }));
 
-    expect(screen.getByRole('heading', { level: 2, name: 'Velg en bransjemal' })).toBeVisible();
+    expect(
+      screen.getByRole('heading', { level: 2, name: 'Hvordan skal intervjuet være?' }),
+    ).toBeVisible();
 
-    await user.click(screen.getByRole('button', { name: 'Bytt mal eller profil' }));
+    await user.click(screen.getByRole('button', { name: 'Stilling og arbeidsplass' }));
 
-    expect(screen.getByRole('heading', { level: 2, name: 'Velg en mal' })).toBeVisible();
+    expect(
+      screen.getByRole('heading', { level: 2, name: 'Hvilken stilling skal jobbsøkeren øve til?' }),
+    ).toBeVisible();
+
+    await user.click(screen.getByRole('button', { name: 'Fullføre' }));
+
+    expect(screen.getByRole('heading', { level: 2, name: 'Fullføre' })).toBeVisible();
+    await user.click(screen.getByRole('radio', { name: 'Rev' }));
+    expect(screen.getByRole('radio', { name: 'Rev' })).toBeChecked();
+
+    await user.click(screen.getByRole('button', { name: 'Stilling og arbeidsplass' }));
+    await user.click(screen.getByRole('button', { name: 'Fullføre' }));
+
+    expect(screen.getByRole('radio', { name: 'Rev' })).toBeChecked();
+
+    await user.click(screen.getByRole('button', { name: 'Intervjuer' }));
+
+    expect(screen.getByRole('radio', { name: /Teamleder/ })).toBeChecked();
   });
 
   it('forgets the templates when the agent type is changed', async () => {
     const user = await openAsInterviewer();
 
-    await user.click(screen.getByRole('button', { name: /Teamleder/ }));
-    await user.click(screen.getByRole('button', { name: /Helsefagarbeider/ }));
+    await pickTemplate(user, /Teamleder/);
+    await skipProfile(user);
+    await skipSettings(user);
     await user.click(screen.getByRole('button', { name: 'Bytt agenttype' }));
     await user.click(screen.getByRole('button', { name: /^Intervjuer/ }));
 
-    expect(screen.getByRole('heading', { level: 2, name: 'Velg en mal' })).toBeVisible();
+    expect(
+      screen.getByRole('heading', { level: 2, name: 'Hvilken stilling skal jobbsøkeren øve til?' }),
+    ).toBeVisible();
     expect(screen.queryByText('Helsefagarbeider', { selector: 'strong' })).not.toBeInTheDocument();
   });
 
@@ -204,11 +426,11 @@ describe('/configure', () => {
     );
     await openAsInterviewer();
 
-    const saved = await screen.findByRole('button', { name: /^Min butikksjef/ });
+    const saved = await screen.findByRole('radio', { name: /^Min butikksjef/ });
     const picker = screen.getByRole('region', { name: 'Velg en mal' });
     const cards = within(picker).getAllByRole('listitem');
     expect(cards.at(-1)).toContainElement(saved);
-    expect(screen.getByRole('button', { name: /Teamleder/ })).toBeInTheDocument();
+    expect(screen.getByRole('radio', { name: /Teamleder/ })).toBeInTheDocument();
   });
 
   it('removes a saved template from the picker once it is deleted', async () => {
@@ -242,33 +464,134 @@ describe('/configure', () => {
     await openAsInterviewer();
 
     await waitFor(() => expect(console.error).toHaveBeenCalled());
-    expect(screen.getByRole('button', { name: /Teamleder/ })).toBeInTheDocument();
+    expect(screen.getByRole('radio', { name: /Teamleder/ })).toBeInTheDocument();
   });
 
   it('uses the chosen job seeker profile together with the chosen template', async () => {
     respondWith({ profiles: [profile] });
     const user = await openAsInterviewer();
 
-    await user.click(screen.getByRole('combobox', { name: 'Jobbsøkerprofil' }));
-    await user.click(await screen.findByRole('option', { name: /Profil A/ }));
-    await user.click(screen.getByRole('button', { name: /Teamleder/ }));
-    await user.click(screen.getByRole('button', { name: 'Fortsett uten bransjemal' }));
+    await pickTemplate(user, /Teamleder/);
+    await user.click(await screen.findByRole('radio', { name: /Profil A/ }));
+    expect(screen.getByRole('button', { name: 'Nervøsitet' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    await user.click(screen.getByRole('button', { name: 'Hull i CV-en' }));
+    await user.click(screen.getByRole('button', { name: 'Andre' }));
+    await user.type(screen.getByRole('textbox', { name: 'Andre områder' }), 'turnus, lønn');
+    expect(screen.getByText('Skriv komma mellom hver ting.')).toBeVisible();
+    await user.click(screen.getByRole('button', { name: 'Neste' }));
+    await skipSettings(user);
 
-    expect(screen.getByText(/jobbsøkerprofilen «Profil A»/)).toBeInTheDocument();
-    expect(screen.getByText('Profil A')).toBeVisible();
+    expect(screen.getByRole('heading', { level: 2, name: 'Fullføre' })).toBeVisible();
+    expect(screen.getByText('Nervøsitet, Hull i CV-en, turnus, lønn')).toBeVisible();
 
-    // Going back keeps the profile, so only the template needs choosing again.
-    await user.click(screen.getByRole('button', { name: 'Bytt mal eller profil' }));
-    expect(screen.getByRole('combobox', { name: 'Jobbsøkerprofil' })).toHaveTextContent('Profil A');
+    await user.click(screen.getByRole('button', { name: 'Gå tilbake' }));
+    await user.click(screen.getByRole('button', { name: 'Tilbake' }));
+
+    expect(screen.getByRole('radio', { name: /Profil A/ })).toBeChecked();
+    expect(screen.getByRole('button', { name: 'Nervøsitet' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    expect(screen.getByRole('button', { name: 'Hull i CV-en' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    expect(screen.getByRole('button', { name: 'Andre' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('textbox', { name: 'Andre områder' })).toHaveValue('turnus, lønn');
   });
 
-  it('links to the profiles page from the profile choice', async () => {
-    await openAsInterviewer();
+  it('clears practice areas when switching from a profile to without one', async () => {
+    respondWith({ profiles: [profile] });
+    const user = await openAsInterviewer();
 
-    expect(screen.getByRole('link', { name: 'Administrer profiler' })).toHaveAttribute(
-      'href',
-      '/profiles',
+    await pickTemplate(user, /Teamleder/);
+    await user.click(await screen.findByRole('radio', { name: /Profil A/ }));
+    expect(screen.getByRole('button', { name: 'Nervøsitet' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
     );
+
+    await user.click(screen.getByRole('button', { name: 'Fortsett uten mal' }));
+
+    expect(screen.getByRole('button', { name: 'Fortsett uten mal' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    expect(screen.getByRole('button', { name: 'Nervøsitet' })).toHaveAttribute(
+      'aria-pressed',
+      'false',
+    );
+    expect(screen.queryByRole('textbox', { name: 'Andre områder' })).not.toBeInTheDocument();
+  });
+
+  it('links to a new profile from the profile step', async () => {
+    const user = await openAsInterviewer();
+
+    await skipTemplate(user);
+
+    expect(screen.getByRole('link', { name: 'Lag en ny mal' })).toHaveAttribute(
+      'href',
+      '/profiles/new',
+    );
+  });
+
+  it('saves an unfinished draft and goes to the agents page', async () => {
+    const user = await openAsInterviewer();
+    await user.click(screen.getByRole('button', { name: 'Lagre utkast' }));
+
+    await waitFor(() => expect(push).toHaveBeenCalledWith('/browse-agents'));
+    expect(localStorage.getItem('kfi-configure-draft')).toContain('Barnehageassistent');
+    expect(sessionStorage.getItem('kfi-agents-flash')).toBe('utkast-lagret');
+  });
+
+  it('restores unfinished progress from local storage', async () => {
+    localStorage.setItem(
+      'kfi-configure-draft',
+      JSON.stringify({
+        version: 1,
+        agentTypeId: 'interviewer',
+        wizardStep: 1,
+        furthestStep: 1,
+        workplace: {
+          jobTitle: 'Barnehageassistent',
+          templateId: 'helsefagarbeider',
+          industry: 'Helse og omsorg',
+          sector: 'offentlig',
+          company: '',
+        },
+        hasTemplateChoice: false,
+        template: null,
+        profileId: '',
+        practiceAreas: [],
+        otherOpen: false,
+        otherPractice: '',
+        settings: {
+          interviewType: null,
+          difficulty: null,
+          questionCount: null,
+          questionCountDetail: '',
+          followUp: null,
+          ownQuestions: '',
+          extra: '',
+          model: 'openai/gpt-oss-120b',
+          temperature: 0.7,
+          customPrompt: null,
+        },
+        avatar: null,
+        nameEdited: false,
+        agentName: '',
+        presetsDone: false,
+      }),
+    );
+
+    await renderPage('interviewer');
+
+    expect(await screen.findByRole('heading', { level: 2, name: 'Velg en mal' })).toBeVisible();
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Stilling og arbeidsplass' }));
+    expect(screen.getByRole('textbox', { name: /Stilling/ })).toHaveValue('Barnehageassistent');
   });
 
   it('sets a Norwegian tab title', () => {

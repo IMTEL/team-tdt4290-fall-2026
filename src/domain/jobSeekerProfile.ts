@@ -26,6 +26,51 @@ export const PRACTICE_AREAS = [
   'Stille spørsmål til arbeidsgiveren',
 ] as const;
 
+/**
+ * The same areas as short labels for the wizard. `id` is the text stored on a profile, so a
+ * chosen profile can fill the pills in.
+ */
+export const PRACTICE_CHOICES = [
+  { id: 'Mestre nervøsitet', label: 'Nervøsitet' },
+  { id: 'Fortelle om seg selv', label: 'Fortelle om seg selv' },
+  { id: 'Gi konkrete svar med eksempler', label: 'Konkrete eksempler' },
+  { id: 'Snakke om egne styrker og svakheter', label: 'Styrker og svakheter' },
+  { id: 'Forklare hull i CV-en', label: 'Hull i CV-en' },
+  { id: 'Snakke norsk i intervju', label: 'Norsk muntlig' },
+  { id: 'Stille spørsmål til arbeidsgiveren', label: 'Spørsmål til arbeidsgiver' },
+] as const satisfies readonly { id: (typeof PRACTICE_AREAS)[number]; label: string }[];
+
+export type PracticeChoiceId = (typeof PRACTICE_CHOICES)[number]['id'];
+
+/** The short label for a practice area, or the text itself when the counsellor wrote their own. */
+export function practiceChoiceLabel(area: string): string {
+  return PRACTICE_CHOICES.find((choice) => choice.id === area)?.label ?? area;
+}
+
+export function isPracticeChoice(area: string): area is PracticeChoiceId {
+  return PRACTICE_CHOICES.some((choice) => choice.id === area);
+}
+
+/**
+ * The areas written in the Andre field. A comma separates them. Blanks and areas already chosen
+ * as pills are left out, and the same area written twice counts once.
+ */
+export function parseOtherPractice(text: string, selected: readonly string[] = []): string[] {
+  const taken = new Set(
+    selected.flatMap((area) => [area.toLowerCase(), practiceChoiceLabel(area).toLowerCase()]),
+  );
+  const seen = new Set<string>();
+  const areas: string[] = [];
+  for (const part of text.split(',')) {
+    const area = part.trim();
+    const key = area.toLowerCase();
+    if (!area || taken.has(key) || seen.has(key)) continue;
+    seen.add(key);
+    areas.push(area);
+  }
+  return areas;
+}
+
 /** The longest each field may be. The same limits as RAGdoll; the server checks them too. */
 export const PROFILE_LIMITS = {
   label: 100,
