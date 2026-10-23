@@ -388,6 +388,9 @@ describe('/configure', () => {
       ([url, init]) => String(url) === '/api/agents' && init?.method === 'POST',
     );
     const body = JSON.parse(String(post?.[1]?.body));
+    expect(body.sources).toEqual({
+      lovverk: { kind: 'legal', ids: ['builtin-legal-hiring-rights', 'legal-1'] },
+    });
     expect(body.configuration.lovverk).toMatch(
       /^Rettigheter i ansettelsesprosessen:\n[\s\S]*\n\nArbeidsmiljøloven § 9-3:\nIkke spør om helse\.$/,
     );

@@ -17,10 +17,16 @@ type DeleteLegalTemplateButtonProps = {
   template: LegalTemplate;
   /** Called once the template is deleted. */
   onDeleted: (id: string) => void;
+  /** Text on a card, outlined among the actions on the details page. */
+  variant?: 'text' | 'outlined';
 };
 
 /** Deletes one of the counsellor's legal templates, after asking first. */
-export function DeleteLegalTemplateButton({ template, onDeleted }: DeleteLegalTemplateButtonProps) {
+export function DeleteLegalTemplateButton({
+  template,
+  onDeleted,
+  variant = 'text',
+}: DeleteLegalTemplateButtonProps) {
   const [open, setOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -49,7 +55,8 @@ export function DeleteLegalTemplateButton({ template, onDeleted }: DeleteLegalTe
   return (
     <>
       <Button
-        size="small"
+        size={variant === 'text' ? 'small' : 'medium'}
+        variant={variant}
         color="error"
         onClick={() => setOpen(true)}
         aria-label={`Slett ${template.title}`}

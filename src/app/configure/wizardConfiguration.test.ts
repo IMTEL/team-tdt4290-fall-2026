@@ -133,7 +133,7 @@ describe('wizardConfiguration', () => {
     expect(saved?.answers.jobbsoker).toBe('vil øve på: mestre nervøsitet, turnus, lønn og vilkår');
   });
 
-  it('writes the chosen legal templates into Lovverk, in the order they were chosen', () => {
+  it('writes the chosen legal templates into Lovverk with their ids, in the order they were chosen', () => {
     const legal = (id: string, title: string, text: string) => ({
       id,
       title,
@@ -153,6 +153,7 @@ describe('wizardConfiguration', () => {
     expect(saved?.answers.lovverk).toBe(
       'Arbeidsmiljøloven § 9-3:\nIkke spør om helse.\n\nLikestillingsloven § 30:\nIkke spør om graviditet.',
     );
+    expect(saved?.sources).toEqual({ lovverk: { kind: 'legal', ids: ['legal-2', 'legal-1'] } });
   });
 
   it('refuses to build answers while a required choice is missing', () => {

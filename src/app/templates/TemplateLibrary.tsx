@@ -10,12 +10,16 @@ import Typography from '@mui/material/Typography';
 
 import { AddCatalogCard } from '@/components/templates/AddCatalogCard';
 import { CatalogGrid } from '@/components/templates/CatalogGrid';
+import { fetchLegalTemplates } from '@/components/legalTemplates/api';
 import { fetchProfiles } from '@/components/profiles/api';
 import { industryTemplates } from '@/data/industry-templates';
+import { builtInLegalTemplates } from '@/data/legal-templates';
 import type { JobSeekerProfile } from '@/domain/jobSeekerProfile';
+import type { LegalTemplate } from '@/domain/legalTemplate';
 import {
   industryCatalog,
   jobCatalog,
+  legalCatalog,
   profileCatalog,
   type CatalogItem,
 } from '@/domain/templateCatalog';
@@ -30,6 +34,11 @@ import styles from './TemplateLibrary.module.css';
 type ProfileState =
   | { kind: 'loading' }
   | { kind: 'ready'; profiles: JobSeekerProfile[] }
+  | { kind: 'error'; message: string };
+
+type LegalState =
+  | { kind: 'loading' }
+  | { kind: 'ready'; templates: LegalTemplate[] }
   | { kind: 'error'; message: string };
 
 function Section({
@@ -84,11 +93,12 @@ function BuiltInSection({
 }
 
 /**
- * Templates and job seeker profiles, in the same card layout as the agents page. Each group folds
- * shut, so a long list does not have to stay open.
+ * Templates, job seeker profiles and legal templates, in the same card layout as the agents page.
+ * Each group folds shut, so a long list does not have to stay open.
  */
 export function TemplateLibrary() {
   const [profiles, setProfiles] = useState<ProfileState>({ kind: 'loading' });
+  const [legal, setLegal] = useState<LegalState>({ kind: 'loading' });
 
   useEffect(() => {
     const controller = new AbortController();
@@ -96,6 +106,11 @@ export function TemplateLibrary() {
       .then((loaded) => setProfiles({ kind: 'ready', profiles: loaded }))
       .catch((error: Error) => {
         if (!controller.signal.aborted) setProfiles({ kind: 'error', message: error.message });
+      });
+    fetchLegalTemplates(controller.signal)
+      .then((templates) => setLegal({ kind: 'ready', templates }))
+      .catch((error: Error) => {
+        if (!controller.signal.aborted) setLegal({ kind: 'error', message: error.message });
       });
     return () => controller.abort();
   }, []);
@@ -138,6 +153,24 @@ export function TemplateLibrary() {
           />
         }
       />
+
+      <Section id="lovverk" title="Lovverk">
+        {/* The built-in templates are shown while the counsellor's own load, or if they can't. */}
+        {legal.kind === 'error' && <Alert severity="error">{legal.message}</Alert>}
+        <CatalogGrid
+          items={legalCatalog([
+            ...builtInLegalTemplates,
+            ...(legal.kind === 'ready' ? legal.templates : []),
+          ])}
+          leading={
+            <AddCatalogCard
+              href="/legal-templates/new"
+              title="Nytt lovverk"
+              subtitle="Legg til en lov eller regel"
+            />
+          }
+        />
+      </Section>
     </>
   );
 }
