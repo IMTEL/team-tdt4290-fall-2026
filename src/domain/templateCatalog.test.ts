@@ -125,7 +125,7 @@ describe('savedTemplateCatalog', () => {
         title: 'Min mal',
         line: 'Service · Samarbeid',
         detail: 'Kort.',
-        href: '/templates/saved-1/edit',
+        href: '/templates/saved-1',
       },
     ]);
   });

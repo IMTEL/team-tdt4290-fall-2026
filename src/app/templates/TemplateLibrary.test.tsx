@@ -172,7 +172,7 @@ describe('TemplateLibrary', () => {
       '/create-template?agentType=interviewer&returnTo=%2Ftemplates',
     );
     const saved = within(jobs).getByRole('link', { name: /Min butikksjef/ });
-    expect(saved).toHaveAttribute('href', '/templates/saved-1/edit');
+    expect(saved).toHaveAttribute('href', '/templates/saved-1');
     expect(saved).toHaveTextContent('Service');
     expect(saved).toHaveTextContent('Lagret av meg.');
   });

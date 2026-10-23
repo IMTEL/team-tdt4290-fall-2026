@@ -90,14 +90,14 @@ export function profileCatalog(profiles: JobSeekerProfile[]): CatalogItem[] {
   }));
 }
 
-/** Saved interviewer templates, as cards that open the template for editing. */
+/** Saved interviewer templates, as cards that open the template's page. */
 export function savedTemplateCatalog(templates: AgentTemplate[]): CatalogItem[] {
   return templates.map((template) => ({
     id: template.id,
     title: template.title,
     line: template.focus.slice(0, 3).join(' · ') || 'Intervjuermal',
     detail: sentence(template.description),
-    href: `/templates/${encodeURIComponent(template.id)}/edit`,
+    href: `/templates/${encodeURIComponent(template.id)}`,
   }));
 }
 

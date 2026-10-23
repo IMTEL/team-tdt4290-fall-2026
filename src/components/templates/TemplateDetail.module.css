@@ -69,9 +69,14 @@
   margin: 0.25rem 0 0;
 }
 
+/* Lined up with the other values: no indent and no bullets, one link per line. */
 .links {
   margin: 0;
-  padding-left: 1.25rem;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
 }
 
 .skeletonBlock {
