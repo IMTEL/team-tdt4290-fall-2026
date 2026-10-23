@@ -6,7 +6,11 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { fetchTemplate, updateTemplate } from '@/components/templates/api';
 import { EditTemplate } from './EditTemplate';
 
-vi.mock('next/navigation', () => ({ notFound: vi.fn() }));
+const push = vi.fn();
+vi.mock('next/navigation', () => ({
+  notFound: vi.fn(),
+  useRouter: () => ({ push }),
+}));
 vi.mock('@/components/templates/api', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/components/templates/api')>()),
   fetchTemplate: vi.fn(),
@@ -27,6 +31,8 @@ const template = {
 afterEach(() => {
   fetchMock.mockReset();
   updateMock.mockReset();
+  push.mockReset();
+  sessionStorage.clear();
   vi.mocked(notFound).mockReset();
 });
 
@@ -48,6 +54,8 @@ describe('EditTemplate', () => {
 
     const { id, ...fields } = template;
     expect(updateMock).toHaveBeenCalledWith(id, { ...fields, title: 'Butikksjef Kari' });
+    await vi.waitFor(() => expect(push).toHaveBeenCalledWith('/templates'));
+    expect(sessionStorage.getItem('kfi-templates-flash')).toBe('mal-lagret');
   });
 
   it('shows the not-found page when the counsellor has no such template', async () => {

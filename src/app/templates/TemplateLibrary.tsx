@@ -6,12 +6,15 @@ import Accordion from '@mui/material/Accordion';
 import AccordionDetails from '@mui/material/AccordionDetails';
 import AccordionSummary from '@mui/material/AccordionSummary';
 import Alert from '@mui/material/Alert';
+import Snackbar from '@mui/material/Snackbar';
 import Typography from '@mui/material/Typography';
 
+import { fetchSavedTemplates } from '@/app/configure/api';
 import { AddCatalogCard } from '@/components/templates/AddCatalogCard';
 import { CatalogGrid } from '@/components/templates/CatalogGrid';
 import { fetchLegalTemplates } from '@/components/legalTemplates/api';
 import { fetchProfiles } from '@/components/profiles/api';
+import type { AgentTemplate } from '@/data/templates';
 import { industryTemplates } from '@/data/industry-templates';
 import { builtInLegalTemplates } from '@/data/legal-templates';
 import type { JobSeekerProfile } from '@/domain/jobSeekerProfile';
@@ -21,8 +24,10 @@ import {
   jobCatalog,
   legalCatalog,
   profileCatalog,
+  savedTemplateCatalog,
   type CatalogItem,
 } from '@/domain/templateCatalog';
+import { TEMPLATE_CREATED_FLASH, TEMPLATE_SAVED_FLASH, takeTemplatesFlash } from './flash';
 import {
   sectionOpen,
   setSectionOpen,
@@ -40,6 +45,30 @@ type LegalState =
   | { kind: 'loading' }
   | { kind: 'ready'; templates: LegalTemplate[] }
   | { kind: 'error'; message: string };
+
+type SavedState =
+  | { kind: 'loading' }
+  | { kind: 'ready'; templates: AgentTemplate[] }
+  | { kind: 'error'; message: string };
+
+const NEW_STILLINGSMAL_HREF =
+  '/create-template?agentType=interviewer&returnTo=' + encodeURIComponent('/templates');
+
+/** True after hydration, so sessionStorage flash can be read without a mismatch. */
+function useIsClient() {
+  return useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false,
+  );
+}
+
+function toastFromFlash(): string | null {
+  const flash = takeTemplatesFlash();
+  if (flash === TEMPLATE_CREATED_FLASH) return 'Mal laget';
+  if (flash === TEMPLATE_SAVED_FLASH) return 'Mal lagret';
+  return null;
+}
 
 function Section({
   id,
@@ -94,11 +123,16 @@ function BuiltInSection({
 
 /**
  * Templates, job seeker profiles and legal templates, in the same card layout as the agents page.
- * Each group folds shut, so a long list does not have to stay open.
+ * Each group folds shut, so a long list does not have to stay open. Saved interviewer templates sit
+ * with the built-in stillingsmaler, because that is where «Ny stillingsmal» creates them.
  */
 export function TemplateLibrary() {
+  const isClient = useIsClient();
   const [profiles, setProfiles] = useState<ProfileState>({ kind: 'loading' });
   const [legal, setLegal] = useState<LegalState>({ kind: 'loading' });
+  const [saved, setSaved] = useState<SavedState>({ kind: 'loading' });
+  const [toast, setToast] = useState<string | null>(null);
+  const [flashSeen, setFlashSeen] = useState(false);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -114,6 +148,28 @@ export function TemplateLibrary() {
       });
     return () => controller.abort();
   }, []);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    fetchSavedTemplates('interviewer', controller.signal)
+      .then((templates) => setSaved({ kind: 'ready', templates }))
+      .catch(() => {
+        if (!controller.signal.aborted) {
+          setSaved({ kind: 'error', message: 'Noe gikk galt. Prøv igjen.' });
+        }
+      });
+    return () => controller.abort();
+  }, []);
+
+  const ownTemplates: CatalogItem[] =
+    saved.kind === 'ready' ? savedTemplateCatalog(saved.templates) : [];
+  const builtInJobs = jobCatalog(industryTemplates);
+
+  if (isClient && !flashSeen) {
+    setFlashSeen(true);
+    const message = toastFromFlash();
+    if (message) setToast(message);
+  }
 
   return (
     <>
@@ -141,18 +197,29 @@ export function TemplateLibrary() {
         )}
       </Section>
 
-      <BuiltInSection
-        id="stillingsmaler"
-        title="Stillingsmaler"
-        items={jobCatalog(industryTemplates)}
-        leading={
-          <AddCatalogCard
-            href="/create-template?agentType=interviewer"
-            title="Ny stillingsmal"
-            subtitle="Lag en mal for stillingen"
-          />
-        }
-      />
+      <Section id="stillingsmaler" title="Stillingsmaler">
+        {saved.kind === 'loading' && <Typography>Laster egne maler …</Typography>}
+        {saved.kind === 'error' && <Alert severity="error">{saved.message}</Alert>}
+        {(saved.kind === 'ready' || saved.kind === 'error') && (
+          <div className={styles.group}>
+            <p className={styles.groupTitle}>Dine maler</p>
+            <CatalogGrid
+              items={ownTemplates}
+              leading={
+                <AddCatalogCard
+                  href={NEW_STILLINGSMAL_HREF}
+                  title="Ny stillingsmal"
+                  subtitle="Lag en mal for stillingen"
+                />
+              }
+            />
+          </div>
+        )}
+        <div className={styles.group}>
+          <p className={styles.groupTitle}>Ferdige maler</p>
+          <CatalogGrid items={builtInJobs} />
+        </div>
+      </Section>
 
       <Section id="lovverk" title="Lovverk">
         {/* The built-in templates are shown while the counsellor's own load, or if they can't. */}
@@ -171,6 +238,13 @@ export function TemplateLibrary() {
           }
         />
       </Section>
+
+      <Snackbar
+        open={toast !== null}
+        autoHideDuration={4000}
+        onClose={() => setToast(null)}
+        message={toast ?? ''}
+      />
     </>
   );
 }
