@@ -7,6 +7,10 @@ vi.mock('@/components/profiles/api', () => ({
   fetchProfiles: vi.fn(() => new Promise(() => {})),
 }));
 
+vi.mock('@/app/configure/api', () => ({
+  fetchSavedTemplates: vi.fn(() => new Promise(() => {})),
+}));
+
 describe('/templates', () => {
   it('titles the page Maler', () => {
     render(<TemplatesPage />);
@@ -15,12 +19,9 @@ describe('/templates', () => {
     expect(metadata.title).toBe('Maler');
   });
 
-  it('links Lag ny mal to creating an interviewer template', () => {
+  it('does not show Lag ny mal in the header', () => {
     render(<TemplatesPage />);
 
-    expect(screen.getByRole('link', { name: 'Lag ny mal' })).toHaveAttribute(
-      'href',
-      '/create-template?agentType=interviewer',
-    );
+    expect(screen.queryByRole('link', { name: 'Lag ny mal' })).not.toBeInTheDocument();
   });
 });

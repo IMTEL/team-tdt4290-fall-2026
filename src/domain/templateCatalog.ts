@@ -1,4 +1,5 @@
 import { SECTOR_LABELS, type IndustryTemplate } from '@/data/industry-templates';
+import type { AgentTemplate } from '@/data/templates';
 import { summarizeProfile, type JobSeekerProfile } from '@/domain/jobSeekerProfile';
 
 /** One card on the templates page: a title, one short line, and one sentence. */
@@ -54,5 +55,16 @@ export function profileCatalog(profiles: JobSeekerProfile[]): CatalogItem[] {
     line: summarizeProfile(profile),
     detail: sentence(profile.practiceAreas[0] ?? ''),
     href: `/profiles/${encodeURIComponent(profile.id)}/edit`,
+  }));
+}
+
+/** Saved interviewer templates, as cards that open the template for editing. */
+export function savedTemplateCatalog(templates: AgentTemplate[]): CatalogItem[] {
+  return templates.map((template) => ({
+    id: template.id,
+    title: template.title,
+    line: template.focus.slice(0, 3).join(' · ') || 'Intervjuermal',
+    detail: sentence(template.description),
+    href: `/templates/${encodeURIComponent(template.id)}/edit`,
   }));
 }

@@ -2,7 +2,12 @@ import { describe, expect, it } from 'vitest';
 
 import type { IndustryTemplate } from '@/data/industry-templates';
 import type { JobSeekerProfile } from '@/domain/jobSeekerProfile';
-import { industryCatalog, jobCatalog, profileCatalog } from './templateCatalog';
+import {
+  industryCatalog,
+  jobCatalog,
+  profileCatalog,
+  savedTemplateCatalog,
+} from './templateCatalog';
 
 const helse: IndustryTemplate = {
   id: 'helsefagarbeider',
@@ -75,6 +80,31 @@ describe('profileCatalog', () => {
         line: '18–24 år · Litt (under 1 år)',
         detail: 'Mestre nervøsitet.',
         href: '/profiles/profil%20a/edit',
+      },
+    ]);
+  });
+});
+
+describe('savedTemplateCatalog', () => {
+  it('links to edit and shows focus on the card', () => {
+    expect(
+      savedTemplateCatalog([
+        {
+          id: 'saved-1',
+          agentType: 'interviewer',
+          title: 'Min mal',
+          description: 'Kort',
+          focus: ['Service', 'Samarbeid'],
+          persona: 'Hen er butikksjef.',
+        },
+      ]),
+    ).toEqual([
+      {
+        id: 'saved-1',
+        title: 'Min mal',
+        line: 'Service · Samarbeid',
+        detail: 'Kort.',
+        href: '/templates/saved-1/edit',
       },
     ]);
   });
