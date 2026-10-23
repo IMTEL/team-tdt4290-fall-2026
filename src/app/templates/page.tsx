@@ -1,5 +1,4 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
 import Typography from '@mui/material/Typography';
 
 import { TemplateLibrary } from './TemplateLibrary';
@@ -18,9 +17,6 @@ export default function TemplatesPage() {
         <Typography variant="h4" component="h1">
           Maler
         </Typography>
-        <Link href="/create-template?agentType=interviewer" className={styles.newTemplate}>
-          Lag ny mal
-        </Link>
       </header>
       <TemplateLibrary />
     </div>
