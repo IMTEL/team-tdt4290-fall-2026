@@ -105,7 +105,7 @@ export function ProfileForm({ initial, onSave }: ProfileFormProps) {
   if (status.kind === 'saved') {
     return (
       <Alert severity="success">
-        Profilen «{label.trim()}» er lagret. <Link href="/profiles">Se profilene dine</Link>
+        Malen «{label.trim()}» er lagret. <Link href="/profiles">Se malene dine</Link>
       </Alert>
     );
   }
@@ -118,10 +118,10 @@ export function ProfileForm({ initial, onSave }: ProfileFormProps) {
     <form
       className={styles.form}
       onSubmit={handleSubmit}
-      aria-label={initial ? 'Rediger profilen' : 'Lag en profil'}
+      aria-label={initial ? 'Rediger malen' : 'Lag en mal'}
     >
       <TextField
-        label="Navn på profilen"
+        label="Navn på malen"
         helperText="Et navn bare du ser, for eksempel «Profil A». Ikke bruk jobbsøkerens ekte navn."
         value={label}
         onChange={(event) => setLabel(event.target.value)}
@@ -228,7 +228,7 @@ export function ProfileForm({ initial, onSave }: ProfileFormProps) {
       {status.kind === 'error' && <Alert severity="error">{status.message}</Alert>}
       <div className={styles.actions}>
         <Button type="submit" variant="contained" disabled={!canSave}>
-          {isSaving ? 'Lagrer …' : initial ? 'Lagre endringene' : 'Lagre profil'}
+          {isSaving ? 'Lagrer …' : initial ? 'Lagre endringene' : 'Lagre mal'}
         </Button>
         <Button component={Link} href="/profiles" disabled={isSaving}>
           Avbryt

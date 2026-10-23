@@ -1,6 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import Button from '@mui/material/Button';
 import Step from '@mui/material/Step';
 import StepLabel from '@mui/material/StepLabel';
@@ -14,15 +16,42 @@ import { IndustryPreview } from '@/components/templates/IndustryPreview';
 import { TemplatePicker } from '@/components/templates/TemplatePicker';
 import { industryTemplates, type IndustryTemplate } from '@/data/industry-templates';
 import { builtInTemplates, type AgentTemplate } from '@/data/templates';
-import { listAccessibleAgentTypes, listPlannedAgentTypes } from '@/domain/agentTypes/registry';
+import {
+  getAgentType,
+  listAccessibleAgentTypes,
+  listPlannedAgentTypes,
+} from '@/domain/agentTypes/registry';
+import type { AdvancedSettings } from '@/domain/advancedSettings';
 import type { AgentTypeDefinition } from '@/domain/agentTypes/types';
-import type { JobSeekerProfile } from '@/domain/jobSeekerProfile';
-import { fetchSavedTemplates } from './api';
+import {
+  isPracticeChoice,
+  parseOtherPractice,
+  PRACTICE_CHOICES,
+  type JobSeekerProfile,
+} from '@/domain/jobSeekerProfile';
+import { updateAgent } from '../browse-agents/api';
+import { AGENT_SAVED_FLASH, DRAFT_SAVED_FLASH, setAgentsFlash } from '../browse-agents/flash';
+import { fetchSavedTemplates, saveConfiguredAgent } from './api';
 import { ConfigurationChat } from './ConfigurationChat';
+import { JobSeekerStep } from './JobSeekerStep';
+import { EMPTY_INTERVIEW_SETTINGS, SettingsStep, type InterviewSettings } from './SettingsStep';
+import { StillingStep, WizardFrame, type Workplace } from './StillingStep';
+import { suggestedAgentName, wizardConfiguration } from './wizardConfiguration';
+import { clearWizardDraft, readWizardDraft, writeWizardDraft } from './wizardDraft';
 import styles from './page.module.css';
+import stepStyles from './StillingStep.module.css';
 
 // undefined: the counsellor hasn't chosen yet. null: they chose to continue without one.
 type Choice<T> = T | null | undefined;
+
+/** True after hydration, so a local draft can be restored without a server/client HTML mismatch. */
+function useIsClient() {
+  return useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false,
+  );
+}
 
 /** Shows where the counsellor is, so they know what comes before the chat. */
 function Steps({ steps, active }: { steps: string[]; active: number }) {
@@ -44,21 +73,163 @@ function Steps({ steps, active }: { steps: string[]; active: number }) {
  * ones the counsellor has saved. Then the chat starts. Everything type-specific comes from the
  * type's definition, so a new type needs no change here.
  */
-export function ConfigureAgent() {
-  const [definition, setDefinition] = useState<AgentTypeDefinition | undefined>(undefined);
+export function ConfigureAgent({
+  initialTypeId = null,
+  initialStep = null,
+}: {
+  initialTypeId?: string | null;
+  initialStep?: string | null;
+}) {
+  const [definition, setDefinition] = useState<AgentTypeDefinition | undefined>(() =>
+    initialTypeId ? getAgentType(initialTypeId) : undefined,
+  );
   const [choice, setChoice] = useState<Choice<AgentTemplate>>(undefined);
   const [industry, setIndustry] = useState<Choice<IndustryTemplate>>(undefined);
   const [saved, setSaved] = useState<AgentTemplate[]>([]);
   const [profiles, setProfiles] = useState<JobSeekerProfile[]>([]);
-  const [profileId, setProfileId] = useState('');
+  const [profilesLoaded, setProfilesLoaded] = useState(false);
+  /** Profile id, '' for «Fortsett uten mal», or null until they choose. */
+  const [profileId, setProfileId] = useState<string | null>(null);
+  const [practiceAreas, setPracticeAreas] = useState<string[]>([]);
+  const [otherOpen, setOtherOpen] = useState(false);
+  const [otherPractice, setOtherPractice] = useState('');
+  const [settings, setSettings] = useState<InterviewSettings>(EMPTY_INTERVIEW_SETTINGS);
+  // Null is the default image, chosen until the counsellor picks another.
+  const [avatar, setAvatar] = useState<string | null>(null);
+  const [nameEdited, setNameEdited] = useState(false);
+  const [agentName, setAgentName] = useState('');
+  const [savedAgent, setSavedAgent] = useState<{ id: string; name: string } | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const savingLock = useRef(false);
+  const router = useRouter();
   // For a type with a profile but no template, where no template card moves the counsellor on.
   const [presetsDone, setPresetsDone] = useState(false);
+  // Which interviewer screen is open. 0 stilling, 1 intervjuer, 2 jobbsøker, 3 innstillinger, 4 fullføre.
+  const [wizardStep, setWizardStep] = useState(
+    initialTypeId === 'interviewer' && initialStep === 'intervjuer' ? 1 : 0,
+  );
+  const [furthestStep, setFurthestStep] = useState(
+    initialTypeId === 'interviewer' && initialStep === 'intervjuer' ? 1 : 0,
+  );
+  const [workplace, setWorkplace] = useState<Workplace>({
+    jobTitle: '',
+    templateId: null,
+    industry: '',
+    sector: null,
+    company: '',
+  });
+  // False until a stored draft has been read (or found missing), so we do not overwrite it.
+  const [draftReady, setDraftReady] = useState(false);
+  const isClient = useIsClient();
 
   const presets = definition?.presets ?? {};
   const usesTemplates = Boolean(presets.template);
   const agentType = definition?.id;
   const usesProfiles = Boolean(presets.jobSeekerProfile);
   const usesIndustries = Boolean(presets.industryTemplate);
+
+  // Restore once after hydration (setState during render when the client flag flips).
+  if (isClient && !draftReady) {
+    const draft = readWizardDraft();
+    if (
+      draft &&
+      draft.agentTypeId === 'interviewer' &&
+      (!initialTypeId || initialTypeId === draft.agentTypeId)
+    ) {
+      const type = getAgentType(draft.agentTypeId);
+      if (type) {
+        setDefinition(type);
+        setWorkplace(draft.workplace);
+        setChoice(draft.hasTemplateChoice ? draft.template : undefined);
+        setProfileId(draft.profileId || (draft.furthestStep >= 2 ? '' : null));
+        setPracticeAreas(draft.practiceAreas);
+        setOtherOpen(draft.otherOpen);
+        setOtherPractice(draft.otherPractice);
+        setSettings(draft.settings);
+        setAvatar(draft.avatar);
+        setNameEdited(draft.nameEdited);
+        setAgentName(draft.agentName);
+        setPresetsDone(draft.presetsDone);
+        // A returnTo link can ask for the intervjuer step; otherwise open where they left off.
+        if (initialTypeId === 'interviewer' && initialStep === 'intervjuer') {
+          setWizardStep(1);
+          setFurthestStep(Math.max(draft.furthestStep, 1));
+        } else {
+          setWizardStep(draft.wizardStep);
+          setFurthestStep(draft.furthestStep);
+        }
+      }
+    }
+    setDraftReady(true);
+  }
+
+  useEffect(() => {
+    if (!draftReady || definition?.id !== 'interviewer') return;
+    writeWizardDraft({
+      version: 1,
+      agentTypeId: 'interviewer',
+      wizardStep,
+      furthestStep,
+      workplace,
+      hasTemplateChoice: choice !== undefined,
+      template: choice ?? null,
+      profileId: profileId ?? '',
+      practiceAreas,
+      otherOpen,
+      otherPractice,
+      settings,
+      avatar,
+      nameEdited,
+      agentName,
+      presetsDone,
+    });
+  }, [
+    draftReady,
+    definition?.id,
+    wizardStep,
+    furthestStep,
+    workplace,
+    choice,
+    profileId,
+    practiceAreas,
+    otherOpen,
+    otherPractice,
+    settings,
+    avatar,
+    nameEdited,
+    agentName,
+    presetsDone,
+  ]);
+
+  function saveDraft() {
+    if (definition?.id !== 'interviewer') return;
+    writeWizardDraft({
+      version: 1,
+      agentTypeId: 'interviewer',
+      wizardStep,
+      furthestStep,
+      workplace,
+      hasTemplateChoice: choice !== undefined,
+      template: choice ?? null,
+      profileId: profileId ?? '',
+      practiceAreas,
+      otherOpen,
+      otherPractice,
+      settings,
+      avatar,
+      nameEdited,
+      agentName,
+      presetsDone,
+    });
+  }
+
+  /** Writes the unfinished wizard and opens the agents list, where the utkast card appears. */
+  function saveDraftAndLeave() {
+    saveDraft();
+    setAgentsFlash(DRAFT_SAVED_FLASH);
+    router.push('/browse-agents');
+  }
 
   useEffect(() => {
     if (!agentType || (!usesTemplates && !usesProfiles)) return;
@@ -70,25 +241,164 @@ export function ConfigureAgent() {
     if (usesTemplates) {
       fetchSavedTemplates(agentType, controller.signal).then(setSaved).catch(logError);
     }
-    if (usesProfiles) fetchProfiles(controller.signal).then(setProfiles).catch(logError);
+    if (usesProfiles) {
+      fetchProfiles(controller.signal)
+        .then((list) => {
+          if (controller.signal.aborted) return;
+          setProfiles(list);
+          setProfilesLoaded(true);
+        })
+        .catch((error: unknown) => {
+          logError(error);
+          if (!controller.signal.aborted) setProfilesLoaded(true);
+        });
+    }
     return () => controller.abort();
   }, [agentType, usesTemplates, usesProfiles]);
 
   function chooseType(next: AgentTypeDefinition | undefined) {
+    if (!next) clearWizardDraft();
     setDefinition(next);
     setChoice(undefined);
     setIndustry(undefined);
-    setProfileId('');
+    setProfileId(null);
+    setPracticeAreas([]);
+    setOtherOpen(false);
+    setOtherPractice('');
+    setProfilesLoaded(false);
+    setSettings(EMPTY_INTERVIEW_SETTINGS);
+    setAvatar(null);
+    setNameEdited(false);
+    setAgentName('');
+    setSavedAgent(null);
+    setSaving(false);
+    setSaveError(null);
     setPresetsDone(false);
+    setWizardStep(0);
+    setFurthestStep(0);
+    setWorkplace({ jobTitle: '', templateId: null, industry: '', sector: null, company: '' });
+  }
+
+  /** Moves to a section and remembers the furthest one, so it can be opened again. */
+  function goTo(index: number) {
+    setWizardStep(index);
+    setFurthestStep((reached) => Math.max(reached, index));
+  }
+
+  /** Picks a profile (or '' for without) and starts practice areas from that profile. */
+  function chooseProfile(id: string) {
+    if (id !== profileId) {
+      const next = id ? profiles.find((item) => item.id === id) : undefined;
+      if (next) {
+        const custom = next.practiceAreas.filter((area) => !isPracticeChoice(area));
+        setPracticeAreas(next.practiceAreas.filter(isPracticeChoice));
+        setOtherPractice(custom.join(', '));
+        setOtherOpen(custom.length > 0);
+      } else {
+        // Leaving a mal: drop its practice areas so the counsellor picks their own.
+        setPracticeAreas([]);
+        setOtherPractice('');
+        setOtherOpen(false);
+      }
+    }
+    setProfileId(id);
+  }
+
+  function changePractice(areas: string[]) {
+    const order = PRACTICE_CHOICES.map((choice) => choice.id);
+    setPracticeAreas(order.filter((id) => areas.includes(id)));
+  }
+
+  function changeOtherOpen(open: boolean) {
+    setOtherOpen(open);
+    if (!open) setOtherPractice('');
+  }
+
+  const chosenPractice = [
+    ...practiceAreas,
+    ...(otherOpen ? parseOtherPractice(otherPractice, practiceAreas) : []),
+  ];
+
+  const name = nameEdited ? agentName : suggestedAgentName(workplace.jobTitle);
+
+  /** Creates the agent, or updates it when this wizard has already saved one. */
+  async function persist(): Promise<string | null> {
+    if (!definition || savingLock.current) return savedAgent?.id ?? null;
+    const trimmed = name.trim();
+    if (!trimmed) {
+      setSaveError('Agenten trenger et navn.');
+      return null;
+    }
+    const built = wizardConfiguration({
+      workplace,
+      interviewer: choice ?? null,
+      profile: (profileId && profiles.find((item) => item.id === profileId)) || null,
+      practiceAreas: chosenPractice,
+      settings,
+    });
+    if (!built) {
+      setSaveError('Noen obligatoriske felt mangler. Gå tilbake og fyll dem ut.');
+      return null;
+    }
+
+    savingLock.current = true;
+    setSaving(true);
+    setSaveError(null);
+    const advanced: AdvancedSettings = {
+      model: settings.model,
+      temperature: settings.temperature,
+      customPrompt: settings.customPrompt?.trim() ? settings.customPrompt : null,
+    };
+    try {
+      const id = savedAgent
+        ? (
+            await updateAgent(
+              savedAgent.id,
+              trimmed,
+              built.answers,
+              built.sources,
+              advanced,
+              avatar,
+            )
+          ).id
+        : await saveConfiguredAgent(
+            trimmed,
+            definition,
+            built.answers,
+            built.sources,
+            advanced,
+            avatar,
+          );
+      setSavedAgent({ id, name: trimmed });
+      clearWizardDraft();
+      return id;
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : 'Noe gikk galt. Prøv igjen.');
+      return null;
+    } finally {
+      savingLock.current = false;
+      setSaving(false);
+    }
   }
 
   if (!definition) {
     return (
-      <AgentTypePicker
-        types={listAccessibleAgentTypes()}
-        planned={listPlannedAgentTypes()}
-        onSelect={chooseType}
-      />
+      <>
+        <header className={styles.header}>
+          <h1 className={styles.title}>Sett opp en agent</h1>
+          <p className={styles.lead}>
+            Velg hva slags agent du vil sette opp, og svar så på spørsmålene fra assistenten. Da
+            lager vi en AI-agent som jobbsøkeren kan øve med. For en intervjuer kan du også velge
+            maler for intervjueren og bransjen og en jobbsøkermal, eller la assistenten spørre deg
+            om alt.
+          </p>
+        </header>
+        <AgentTypePicker
+          types={listAccessibleAgentTypes()}
+          planned={listPlannedAgentTypes()}
+          onSelect={chooseType}
+        />
+      </>
     );
   }
 
@@ -99,7 +409,7 @@ export function ConfigureAgent() {
   const usesPresetStep = usesTemplates || usesProfiles;
   const presetStep = `Velg ${[
     usesTemplates && fieldLabel(presets.template?.field).toLowerCase(),
-    usesProfiles && 'profil',
+    usesProfiles && 'jobbsøkermal',
   ]
     .filter(Boolean)
     .join(' og ')}`;
@@ -133,9 +443,138 @@ export function ConfigureAgent() {
     </div>
   );
 
-  const profile = (usesProfiles && profiles.find((item) => item.id === profileId)) || null;
+  const profile =
+    (usesProfiles && profileId && profiles.find((item) => item.id === profileId)) || null;
   const template = usesTemplates ? (choice ?? null) : null;
   const choosingPresets = usesTemplates ? choice === undefined : usesProfiles && !presetsDone;
+
+  if (definition.id === 'interviewer' && wizardStep <= 0) {
+    return (
+      <StillingStep
+        value={workplace}
+        templates={industryTemplates}
+        onChange={setWorkplace}
+        onNext={() => goTo(1)}
+        onGoTo={goTo}
+        reached={furthestStep}
+        onSaveDraft={saveDraftAndLeave}
+      />
+    );
+  }
+
+  if (definition.id === 'interviewer' && wizardStep === 1) {
+    return (
+      <WizardFrame current={1} onGoTo={goTo} reached={furthestStep} onSaveDraft={saveDraftAndLeave}>
+        <div className={stepStyles.form}>
+          {chosenType}
+          {usesIndustries && industry !== undefined && chosenIndustry}
+          <TemplatePicker
+            embedded
+            asRadios
+            selectedId={choice ? choice.id : null}
+            templates={builtInTemplates(definition.id)}
+            savedTemplates={saved}
+            agentType={definition.id}
+            lead={presets.template?.text.pickerLead}
+            onSelect={setChoice}
+            onDeleted={(id) => setSaved((current) => current.filter((item) => item.id !== id))}
+          />
+          <div className={styles.presetActions}>
+            <Button
+              variant={choice === null ? 'contained' : 'outlined'}
+              aria-pressed={choice === null}
+              onClick={() => setChoice(null)}
+            >
+              Fortsett uten mal
+            </Button>
+            <Button
+              component={Link}
+              href={`/create-template?agentType=${encodeURIComponent(definition.id)}&returnTo=${encodeURIComponent(`/configure?type=${definition.id}&step=intervjuer`)}`}
+              variant="outlined"
+            >
+              Lag en ny mal
+            </Button>
+            <div className={stepStyles.nav}>
+              <Button onClick={() => goTo(0)}>Tilbake</Button>
+              <Button variant="contained" onClick={() => goTo(2)}>
+                Neste
+              </Button>
+            </div>
+          </div>
+        </div>
+      </WizardFrame>
+    );
+  }
+
+  if (definition.id === 'interviewer' && wizardStep === 2) {
+    return (
+      <JobSeekerStep
+        profiles={profiles}
+        loading={!profilesLoaded}
+        intro={chosenType}
+        onGoTo={goTo}
+        reached={furthestStep}
+        onSelect={chooseProfile}
+        selectedId={profileId}
+        practiceAreas={practiceAreas}
+        onPracticeChange={changePractice}
+        otherOpen={otherOpen}
+        onOtherOpenChange={changeOtherOpen}
+        otherPractice={otherPractice}
+        onOtherPracticeChange={setOtherPractice}
+        onNext={() => goTo(3)}
+        onBack={() => goTo(1)}
+        onSaveDraft={saveDraftAndLeave}
+      />
+    );
+  }
+
+  if (definition.id === 'interviewer' && (wizardStep === 3 || wizardStep === 4)) {
+    return (
+      <SettingsStep
+        value={settings}
+        onChange={setSettings}
+        intro={chosenType}
+        onGoTo={goTo}
+        reached={furthestStep}
+        expanded={wizardStep === 4}
+        overview={{
+          workplace,
+          jobTemplates: industryTemplates,
+          interviewerTitle: choice ? choice.title : null,
+          profileLabel:
+            (profileId && profiles.find((item) => item.id === profileId)?.label) || null,
+          practiceAreas: chosenPractice,
+          settings,
+        }}
+        avatar={avatar}
+        onAvatarChange={setAvatar}
+        name={name}
+        onNameChange={(next) => {
+          setNameEdited(true);
+          setAgentName(next);
+        }}
+        saving={saving}
+        saveError={saveError}
+        onSave={() => {
+          void persist().then((id) => {
+            if (!id) return;
+            setAgentsFlash(AGENT_SAVED_FLASH);
+            router.push('/browse-agents');
+          });
+        }}
+        onTest={() => {
+          void persist().then((id) => {
+            if (id) router.push(`/test-chat?agent=${encodeURIComponent(id)}`);
+          });
+        }}
+        onBack={() => goTo(2)}
+        onFinishBack={() => goTo(3)}
+        onNext={() => goTo(4)}
+        onSaveDraft={saveDraftAndLeave}
+      />
+    );
+  }
 
   if (choosingPresets) {
     return (
@@ -145,7 +584,7 @@ export function ConfigureAgent() {
         {/* Kept when the counsellor goes back to change the interviewer. */}
         {usesIndustries && industry !== undefined && chosenIndustry}
         {usesProfiles && (
-          <ProfileSelect profiles={profiles} value={profileId} onChange={setProfileId} />
+          <ProfileSelect profiles={profiles} value={profileId ?? ''} onChange={setProfileId} />
         )}
         {usesTemplates ? (
           <TemplatePicker
@@ -182,7 +621,7 @@ export function ConfigureAgent() {
         {usesProfiles && (
           <>
             {fieldLabel(presets.jobSeekerProfile)}:{' '}
-            <strong>{profile ? profile.label : 'Ingen profil valgt'}</strong>
+            <strong>{profile ? profile.label : 'Ingen mal valgt'}</strong>
           </>
         )}
       </p>
@@ -195,11 +634,7 @@ export function ConfigureAgent() {
           setPresetsDone(false);
         }}
       >
-        {usesTemplates && usesProfiles
-          ? 'Bytt mal eller profil'
-          : usesTemplates
-            ? 'Bytt mal'
-            : 'Bytt profil'}
+        {usesTemplates && usesProfiles ? 'Bytt maler' : 'Bytt mal'}
       </Button>
     </div>
   );

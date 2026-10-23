@@ -47,4 +47,30 @@ describe('/create-template', () => {
   it('sets a Norwegian tab title', () => {
     expect(metadata.title).toBe('Lag en mal');
   });
+
+  it('sends Avbryt back to the page that opened the form', async () => {
+    render(
+      await CreateTemplatePage({
+        searchParams: Promise.resolve({
+          agentType: 'interviewer',
+          returnTo: '/configure?type=interviewer&step=intervjuer',
+        }),
+      }),
+    );
+
+    expect(screen.getByRole('link', { name: 'Avbryt' })).toHaveAttribute(
+      'href',
+      '/configure?type=interviewer&step=intervjuer',
+    );
+  });
+
+  it('ignores a cancel target that leaves the site', async () => {
+    render(
+      await CreateTemplatePage({
+        searchParams: Promise.resolve({ returnTo: 'https://example.com' }),
+      }),
+    );
+
+    expect(screen.getByRole('link', { name: 'Avbryt' })).toHaveAttribute('href', '/configure');
+  });
 });

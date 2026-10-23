@@ -196,7 +196,7 @@ export function AdvancedSettingsFields({
               }
               className={styles.promptField}
             />
-          ) : (
+          ) : builtPrompt ? (
             <>
               <FormHelperText>
                 {/* English translation: The prompt is made from the answers. This is how it looks now: */}
@@ -204,6 +204,11 @@ export function AdvancedSettingsFields({
               </FormHelperText>
               <pre className={styles.prompt}>{builtPrompt}</pre>
             </>
+          ) : (
+            <FormHelperText>
+              {/* English translation: The prompt is made from the answers. */}
+              Prompten lages fra svarene.
+            </FormHelperText>
           )}
         </div>
 

@@ -2,7 +2,13 @@
 import { describe, expect, it } from 'vitest';
 
 import type { Agent } from '@/lib/types';
-import { agentRole, agentSummary, groupAgentsByType } from './agentList';
+import {
+  agentCardDetail,
+  agentInterviewer,
+  agentRole,
+  agentSummary,
+  groupAgentsByType,
+} from './agentList';
 
 function makeAgent(fields: Partial<Agent> = {}): Agent {
   return {
@@ -32,6 +38,15 @@ describe('agentSummary', () => {
     expect(agentSummary(agent)).toBe('Butikkmedarbeider · Lett');
   });
 
+  it('uses only the job title when the position includes the whole description', () => {
+    const agent = makeAgent({
+      stilling: 'Lagermedarbeider. Lagermedarbeider på et lager eller en terminal. Tar imot varer.',
+      vanskelighetsgrad: 'krevende',
+    });
+
+    expect(agentSummary(agent)).toBe('Lagermedarbeider · Krevende');
+  });
+
   it('leaves out what is missing', () => {
     expect(agentSummary(makeAgent({ vanskelighetsgrad: null }))).toBe('Butikkmedarbeider');
     expect(agentSummary(makeAgent({ stilling: '  ' }))).toBe('Middels');
@@ -39,6 +54,34 @@ describe('agentSummary', () => {
 
   it('is empty when there is nothing to show', () => {
     expect(agentSummary(makeAgent({ stilling: null, vanskelighetsgrad: undefined }))).toBe('');
+  });
+});
+
+describe('the card lines', () => {
+  it('shows the interviewer with a capital letter, and the interview type as one sentence', () => {
+    const agent = makeAgent({ intervjuer: 'butikksjef, vennlig', intervjutype: 'første intervju' });
+
+    expect(agentInterviewer(agent)).toBe('Butikksjef, vennlig');
+    expect(agentCardDetail(agent)).toBe('Første intervju.');
+  });
+
+  it('uses the template name for a long persona, and still shows the interview type', () => {
+    const agent = makeAgent({
+      intervjuer:
+        'Intervjueren er daglig leder i en mindre bedrift og ansetter selv. Hen er direkte.',
+      intervjuerMal: 'Daglig leder',
+      intervjutype: 'første intervju',
+    });
+
+    expect(agentInterviewer(agent)).toBe('Daglig leder');
+    expect(agentCardDetail(agent)).toBe('Første intervju.');
+  });
+
+  it('is empty when those answers are missing', () => {
+    const agent = makeAgent({ intervjuer: '  ', intervjutype: null });
+
+    expect(agentInterviewer(agent)).toBe('');
+    expect(agentCardDetail(agent)).toBe('');
   });
 });
 

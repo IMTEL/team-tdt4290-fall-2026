@@ -40,7 +40,7 @@ describe('EditProfile', () => {
     const user = userEvent.setup();
     render(<EditProfile profileId="profile-1" />);
 
-    const label = await screen.findByRole('textbox', { name: /Navn på profilen/ });
+    const label = await screen.findByRole('textbox', { name: /Navn på malen/ });
     await user.type(label, ' ny');
     await user.click(screen.getByRole('button', { name: 'Lagre endringene' }));
 

@@ -31,12 +31,12 @@ function setup(initial?: NewJobSeekerProfile) {
 }
 
 describe('ProfileForm for a new profile', () => {
-  const saveButton = () => screen.getByRole('button', { name: 'Lagre profil' });
+  const saveButton = () => screen.getByRole('button', { name: 'Lagre mal' });
 
   it('saves every field, with presets and own practice areas together', async () => {
     const { user, onSave, field, choose } = setup();
 
-    await user.type(field(/Navn på profilen/), ' Profil A ');
+    await user.type(field(/Navn på malen/), ' Profil A ');
     await choose('Aldersgruppe', /18–24/);
     await choose('Arbeidserfaring', /Litt/);
     await user.type(field(/Hva slags erfaring/), 'sommerjobb');
@@ -48,8 +48,8 @@ describe('ProfileForm for a new profile', () => {
     await user.click(saveButton());
 
     expect(onSave).toHaveBeenCalledWith(saved);
-    expect(await screen.findByText(/Profilen «Profil A» er lagret/)).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Se profilene dine' })).toHaveAttribute(
+    expect(await screen.findByText(/Malen «Profil A» er lagret/)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Se malene dine' })).toHaveAttribute(
       'href',
       '/profiles',
     );
@@ -59,7 +59,7 @@ describe('ProfileForm for a new profile', () => {
     const { user, onSave, field } = setup();
 
     expect(saveButton()).toBeDisabled();
-    await user.type(field(/Navn på profilen/), 'Profil B');
+    await user.type(field(/Navn på malen/), 'Profil B');
     await user.click(saveButton());
 
     expect(onSave).toHaveBeenCalledWith({
@@ -87,11 +87,11 @@ describe('ProfileForm for a new profile', () => {
     const { user, onSave, field } = setup();
     onSave.mockRejectedValue(new Error('Du er logget ut. Logg inn på nytt og prøv igjen.'));
 
-    await user.type(field(/Navn på profilen/), 'Profil A');
+    await user.type(field(/Navn på malen/), 'Profil A');
     await user.click(saveButton());
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Du er logget ut');
-    expect(field(/Navn på profilen/)).toHaveValue('Profil A');
+    expect(field(/Navn på malen/)).toHaveValue('Profil A');
   });
 
   it('has a cancel link back to the profiles', () => {
@@ -105,7 +105,7 @@ describe('ProfileForm for a saved profile', () => {
   it('starts with the saved values, own practice areas in Annet, and saves the changes', async () => {
     const { user, onSave, field } = setup(saved);
 
-    expect(field(/Navn på profilen/)).toHaveValue('Profil A');
+    expect(field(/Navn på malen/)).toHaveValue('Profil A');
     expect(field(/Språk/)).toHaveValue('Norsk B1, Arabisk');
     expect(screen.getByRole('checkbox', { name: 'Mestre nervøsitet' })).toBeChecked();
     expect(field(/Annet/)).toHaveValue('Snakke om lønn');

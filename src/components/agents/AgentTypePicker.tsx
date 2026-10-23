@@ -12,16 +12,28 @@ type AgentTypePickerProps = {
   types: AgentTypeDefinition[];
   /** Types that are coming, shown so counsellors see what is planned, but not choosable. */
   planned?: PlannedAgentType[];
+  /**
+   * Id of a heading that already asks the question, such as a dialog title. Without it, the
+   * picker renders its own heading.
+   */
+  labelledBy?: string;
   onSelect: (definition: AgentTypeDefinition) => void;
 };
 
 /** The first step on /configure: what kind of agent to set up. */
-export function AgentTypePicker({ types, planned = [], onSelect }: AgentTypePickerProps) {
+export function AgentTypePicker({
+  types,
+  planned = [],
+  labelledBy,
+  onSelect,
+}: AgentTypePickerProps) {
   return (
-    <section aria-labelledby="agent-type-picker-heading" className={styles.picker}>
-      <h2 id="agent-type-picker-heading" className={styles.heading}>
-        Hva slags agent vil du sette opp?
-      </h2>
+    <section aria-labelledby={labelledBy ?? 'agent-type-picker-heading'} className={styles.picker}>
+      {!labelledBy && (
+        <h2 id="agent-type-picker-heading" className={styles.heading}>
+          Hva slags agent vil du sette opp?
+        </h2>
+      )}
 
       <ul className={styles.grid}>
         {types.map((definition) => (

@@ -33,13 +33,13 @@ export function ProfileList() {
     return () => controller.abort();
   }, []);
 
-  if (state.kind === 'loading') return <p>Laster profiler …</p>;
+  if (state.kind === 'loading') return <p>Laster maler …</p>;
   if (state.kind === 'error') return <Alert severity="error">{state.message}</Alert>;
 
   if (state.profiles.length === 0) {
     return (
       <p className={styles.empty}>
-        Du har ingen profiler ennå. Lag en, så kan du velge den når du setter opp en intervjuer.
+        Du har ingen maler ennå. Lag en, så kan du velge den når du setter opp en intervjuer.
       </p>
     );
   }

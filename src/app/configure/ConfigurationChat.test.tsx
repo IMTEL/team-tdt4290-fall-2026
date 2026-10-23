@@ -147,7 +147,7 @@ describe('ConfigurationChat', () => {
     render(<ConfigurationChat definition={interviewer} template={template} profile={profile} />);
 
     expect(screen.getByText(/malen «Teamleder»/)).toBeInTheDocument();
-    expect(screen.getByText(/jobbsøkerprofilen «Profil A»/)).toBeInTheDocument();
+    expect(screen.getByText(/jobbsøkermalen «Profil A»/)).toBeInTheDocument();
 
     await sendMessage('Butikkmedarbeider');
     await screen.findByText('Neste spørsmål');
@@ -162,8 +162,8 @@ describe('ConfigurationChat', () => {
   it('can use a profile without a template', () => {
     render(<ConfigurationChat definition={interviewer} template={null} profile={profile} />);
 
-    expect(screen.queryByText(/malen/)).not.toBeInTheDocument();
-    expect(screen.getByText(/jobbsøkerprofilen «Profil A»/)).toBeInTheDocument();
+    expect(screen.queryByText(/valgt malen «/)).not.toBeInTheDocument();
+    expect(screen.getByText(/jobbsøkermalen «Profil A»/)).toBeInTheDocument();
   });
 
   it('does not offer to save before the configuration is finished', async () => {

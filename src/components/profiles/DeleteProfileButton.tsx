@@ -58,10 +58,10 @@ export function DeleteProfileButton({ profile, onDeleted }: DeleteProfileButtonP
       </Button>
 
       <Dialog open={open} onClose={close}>
-        <DialogTitle>Slette profilen «{profile.label}»?</DialogTitle>
+        <DialogTitle>Slette malen «{profile.label}»?</DialogTitle>
         <DialogContent>
           <DialogContentText>
-            Profilen blir borte for godt. Intervjuere du allerede har laget med den, blir som de er.
+            Malen blir borte for godt. Intervjuere du allerede har laget med den, blir som de er.
           </DialogContentText>
           {error && (
             <Alert severity="error" className={styles.dialogError}>

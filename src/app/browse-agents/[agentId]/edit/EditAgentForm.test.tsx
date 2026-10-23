@@ -44,7 +44,7 @@ const answers = {
 const profilePreset: AnswerPreset = {
   field: 'jobbsoker',
   kind: 'profile',
-  label: 'Jobbsøkerprofil',
+  label: 'Jobbsøkermal',
   loaded: true,
   options: [
     { id: 'profile-1', label: 'Profil A', value: 'aldersgruppe 30–39 år' },
@@ -52,7 +52,7 @@ const profilePreset: AnswerPreset = {
     { id: 'profile-2', label: 'Profil B', value: 'aldersgruppe 30–39 år' },
   ],
   manageHref: '/profiles',
-  manageLabel: 'Administrer profiler',
+  manageLabel: 'Administrer maler',
 };
 
 type RenderOptions = {
@@ -326,7 +326,7 @@ describe('EditAgentForm', () => {
   });
 
   describe('presets', () => {
-    const select = () => screen.getByRole('combobox', { name: 'Jobbsøkerprofil' });
+    const select = () => screen.getByRole('combobox', { name: 'Jobbsøkermal' });
     const profileAnswers = { ...answers, jobbsoker: 'aldersgruppe 30–39 år' };
 
     async function choose(user: UserEvent, option: string) {
@@ -414,7 +414,7 @@ describe('EditAgentForm', () => {
       });
 
       expect(
-        screen.getByText('Teksten kom fra en jobbsøkerprofil som ikke finnes lenger.'),
+        screen.getByText('Teksten kom fra en jobbsøkermal som ikke finnes lenger.'),
       ).toBeVisible();
     });
 
@@ -432,7 +432,7 @@ describe('EditAgentForm', () => {
     it('links to where the options are managed', () => {
       renderForm({ presets: [profilePreset] });
 
-      expect(screen.getByRole('link', { name: 'Administrer profiler' })).toHaveAttribute(
+      expect(screen.getByRole('link', { name: 'Administrer maler' })).toHaveAttribute(
         'href',
         '/profiles',
       );
