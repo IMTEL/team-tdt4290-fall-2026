@@ -76,19 +76,27 @@ async function openAsInterviewer() {
 
 /** Leaves the job seeker step without a profile, which is the step after the interviewer. */
 async function skipProfile(user: ReturnType<typeof userEvent.setup>) {
-  await user.click(screen.getByRole('button', { name: 'Fortsett uten mal' }));
+  const without = screen.getByRole('button', { name: 'Fortsett uten mal' });
+  await user.click(without);
+  expect(without).toHaveAttribute('aria-pressed', 'true');
   await user.click(screen.getByRole('button', { name: 'Neste' }));
 }
 
 /** Chooses an interviewer template and moves on. The card is a radio, so Neste confirms it. */
 async function pickTemplate(user: ReturnType<typeof userEvent.setup>, name: RegExp) {
   await user.click(screen.getByRole('radio', { name }));
+  expect(screen.getByRole('button', { name: 'Fortsett uten mal' })).toHaveAttribute(
+    'aria-pressed',
+    'false',
+  );
   await user.click(screen.getByRole('button', { name: 'Neste' }));
 }
 
 /** Leaves the interviewer step without a template. */
 async function skipTemplate(user: ReturnType<typeof userEvent.setup>) {
-  await user.click(screen.getByRole('button', { name: 'Fortsett uten mal' }));
+  const without = screen.getByRole('button', { name: 'Fortsett uten mal' });
+  await user.click(without);
+  expect(without).toHaveAttribute('aria-pressed', 'true');
   await user.click(screen.getByRole('button', { name: 'Neste' }));
 }
 
@@ -493,6 +501,30 @@ describe('/configure', () => {
     );
     expect(screen.getByRole('button', { name: 'Andre' })).toHaveAttribute('aria-pressed', 'true');
     expect(screen.getByRole('textbox', { name: 'Andre områder' })).toHaveValue('turnus, lønn');
+  });
+
+  it('clears practice areas when switching from a profile to without one', async () => {
+    respondWith({ profiles: [profile] });
+    const user = await openAsInterviewer();
+
+    await pickTemplate(user, /Teamleder/);
+    await user.click(await screen.findByRole('radio', { name: /Profil A/ }));
+    expect(screen.getByRole('button', { name: 'Nervøsitet' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Fortsett uten mal' }));
+
+    expect(screen.getByRole('button', { name: 'Fortsett uten mal' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    expect(screen.getByRole('button', { name: 'Nervøsitet' })).toHaveAttribute(
+      'aria-pressed',
+      'false',
+    );
+    expect(screen.queryByRole('textbox', { name: 'Andre områder' })).not.toBeInTheDocument();
   });
 
   it('links to a new profile from the profile step', async () => {

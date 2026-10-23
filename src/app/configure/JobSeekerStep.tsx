@@ -25,8 +25,8 @@ type JobSeekerStepProps = {
   /** The agent-type line, same as on the interviewer step. */
   intro: ReactNode;
   onSelect: (profileId: string) => void;
-  /** The chosen profile's id, or '' when none is chosen. */
-  selectedId: string;
+  /** The chosen profile's id, '' for «Fortsett uten mal», or null until they choose. */
+  selectedId: string | null;
   /** Practice areas chosen for this agent, using the stored profile texts as ids. */
   practiceAreas: string[];
   onPracticeChange: (areas: string[]) => void;
@@ -173,7 +173,11 @@ export function JobSeekerStep({
           <p className={stepStyles.hint}>Gjelder denne agenten. Malen endres ikke.</p>
         </div>
         <div className={pageStyles.presetActions}>
-          <Button variant="outlined" onClick={() => onSelect('')}>
+          <Button
+            variant={selectedId === '' ? 'contained' : 'outlined'}
+            aria-pressed={selectedId === ''}
+            onClick={() => onSelect('')}
+          >
             Fortsett uten mal
           </Button>
           <Button component={Link} href="/profiles/new" variant="outlined">

@@ -88,7 +88,8 @@ export function ConfigureAgent({
   const [saved, setSaved] = useState<AgentTemplate[]>([]);
   const [profiles, setProfiles] = useState<JobSeekerProfile[]>([]);
   const [profilesLoaded, setProfilesLoaded] = useState(false);
-  const [profileId, setProfileId] = useState('');
+  /** Profile id, '' for «Fortsett uten mal», or null until they choose. */
+  const [profileId, setProfileId] = useState<string | null>(null);
   const [practiceAreas, setPracticeAreas] = useState<string[]>([]);
   const [otherOpen, setOtherOpen] = useState(false);
   const [otherPractice, setOtherPractice] = useState('');
@@ -141,7 +142,7 @@ export function ConfigureAgent({
         setDefinition(type);
         setWorkplace(draft.workplace);
         setChoice(draft.hasTemplateChoice ? draft.template : undefined);
-        setProfileId(draft.profileId);
+        setProfileId(draft.profileId || (draft.furthestStep >= 2 ? '' : null));
         setPracticeAreas(draft.practiceAreas);
         setOtherOpen(draft.otherOpen);
         setOtherPractice(draft.otherPractice);
@@ -173,7 +174,7 @@ export function ConfigureAgent({
       workplace,
       hasTemplateChoice: choice !== undefined,
       template: choice ?? null,
-      profileId,
+      profileId: profileId ?? '',
       practiceAreas,
       otherOpen,
       otherPractice,
@@ -211,7 +212,7 @@ export function ConfigureAgent({
       workplace,
       hasTemplateChoice: choice !== undefined,
       template: choice ?? null,
-      profileId,
+      profileId: profileId ?? '',
       practiceAreas,
       otherOpen,
       otherPractice,
@@ -260,7 +261,7 @@ export function ConfigureAgent({
     setDefinition(next);
     setChoice(undefined);
     setIndustry(undefined);
-    setProfileId('');
+    setProfileId(null);
     setPracticeAreas([]);
     setOtherOpen(false);
     setOtherPractice('');
@@ -284,15 +285,20 @@ export function ConfigureAgent({
     setFurthestStep((reached) => Math.max(reached, index));
   }
 
-  /** Picks a profile and starts the practice areas from what that profile already has. */
+  /** Picks a profile (or '' for without) and starts practice areas from that profile. */
   function chooseProfile(id: string) {
     if (id !== profileId) {
-      const next = profiles.find((item) => item.id === id);
+      const next = id ? profiles.find((item) => item.id === id) : undefined;
       if (next) {
         const custom = next.practiceAreas.filter((area) => !isPracticeChoice(area));
         setPracticeAreas(next.practiceAreas.filter(isPracticeChoice));
         setOtherPractice(custom.join(', '));
         setOtherOpen(custom.length > 0);
+      } else {
+        // Leaving a mal: drop its practice areas so the counsellor picks their own.
+        setPracticeAreas([]);
+        setOtherPractice('');
+        setOtherOpen(false);
       }
     }
     setProfileId(id);
@@ -326,7 +332,7 @@ export function ConfigureAgent({
     const built = wizardConfiguration({
       workplace,
       interviewer: choice ?? null,
-      profile: profiles.find((item) => item.id === profileId) ?? null,
+      profile: (profileId && profiles.find((item) => item.id === profileId)) || null,
       practiceAreas: chosenPractice,
       settings,
     });
@@ -437,7 +443,8 @@ export function ConfigureAgent({
     </div>
   );
 
-  const profile = (usesProfiles && profiles.find((item) => item.id === profileId)) || null;
+  const profile =
+    (usesProfiles && profileId && profiles.find((item) => item.id === profileId)) || null;
   const template = usesTemplates ? (choice ?? null) : null;
   const choosingPresets = usesTemplates ? choice === undefined : usesProfiles && !presetsDone;
 
@@ -473,7 +480,11 @@ export function ConfigureAgent({
             onDeleted={(id) => setSaved((current) => current.filter((item) => item.id !== id))}
           />
           <div className={styles.presetActions}>
-            <Button variant="outlined" onClick={() => setChoice(null)}>
+            <Button
+              variant={choice === null ? 'contained' : 'outlined'}
+              aria-pressed={choice === null}
+              onClick={() => setChoice(null)}
+            >
               Fortsett uten mal
             </Button>
             <Button
@@ -531,7 +542,8 @@ export function ConfigureAgent({
           workplace,
           jobTemplates: industryTemplates,
           interviewerTitle: choice ? choice.title : null,
-          profileLabel: profiles.find((item) => item.id === profileId)?.label ?? null,
+          profileLabel:
+            (profileId && profiles.find((item) => item.id === profileId)?.label) || null,
           practiceAreas: chosenPractice,
           settings,
         }}
@@ -572,7 +584,7 @@ export function ConfigureAgent({
         {/* Kept when the counsellor goes back to change the interviewer. */}
         {usesIndustries && industry !== undefined && chosenIndustry}
         {usesProfiles && (
-          <ProfileSelect profiles={profiles} value={profileId} onChange={setProfileId} />
+          <ProfileSelect profiles={profiles} value={profileId ?? ''} onChange={setProfileId} />
         )}
         {usesTemplates ? (
           <TemplatePicker
