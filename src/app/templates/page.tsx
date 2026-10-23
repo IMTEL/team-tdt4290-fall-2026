@@ -7,7 +7,7 @@ import styles from './page.module.css';
 export const metadata: Metadata = {
   title: 'Maler',
   description:
-    'Bransjemaler, jobbsøkermaler og stillingsmaler du kan bruke når du setter opp en agent.',
+    'Bransjemaler, jobbsøkermaler, stillingsmaler og lovverk du kan bruke når du setter opp en agent.',
 };
 
 export default function TemplatesPage() {

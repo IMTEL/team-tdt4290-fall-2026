@@ -70,7 +70,12 @@ describe('ConfigurationChat', () => {
 
     const [definition, choices, history] = sendMock.mock.calls[0];
     expect(definition).toBe(interviewer);
-    expect(choices).toEqual({ templateId: 'teamleder', profileId: null, industryTemplateId: null });
+    expect(choices).toEqual({
+      templateId: 'teamleder',
+      profileId: null,
+      industryTemplateId: null,
+      legalTemplateIds: [],
+    });
     expect(history.map(({ role, content }) => ({ role, content }))).toEqual([
       { role: 'assistant', content: expect.stringContaining('Hei!') },
       { role: 'user', content: 'Butikkmedarbeider' },
@@ -123,6 +128,7 @@ describe('ConfigurationChat', () => {
       templateId: 'teamleder',
       profileId: null,
       industryTemplateId: 'helsefagarbeider',
+      legalTemplateIds: [],
     });
   });
 
@@ -139,6 +145,7 @@ describe('ConfigurationChat', () => {
       templateId: null,
       profileId: null,
       industryTemplateId: null,
+      legalTemplateIds: [],
     });
   });
 
@@ -156,6 +163,7 @@ describe('ConfigurationChat', () => {
       templateId: 'teamleder',
       profileId: 'profile-1',
       industryTemplateId: null,
+      legalTemplateIds: [],
     });
   });
 

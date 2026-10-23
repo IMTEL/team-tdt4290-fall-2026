@@ -1,7 +1,12 @@
 /** Which template groups are open. Kept in the browser, so a closed group stays closed after a restart. */
 const STORAGE_KEY = 'kfi-template-sections';
 
-export const TEMPLATE_SECTIONS = ['bransjemaler', 'jobbsokerprofiler', 'stillingsmaler'] as const;
+export const TEMPLATE_SECTIONS = [
+  'bransjemaler',
+  'jobbsokerprofiler',
+  'stillingsmaler',
+  'lovverk',
+] as const;
 
 export type TemplateSectionId = (typeof TEMPLATE_SECTIONS)[number];
 
@@ -12,6 +17,7 @@ function read(): Record<TemplateSectionId, boolean> {
     bransjemaler: true,
     jobbsokerprofiler: true,
     stillingsmaler: true,
+    lovverk: true,
   };
   try {
     const raw = localStorage.getItem(STORAGE_KEY);

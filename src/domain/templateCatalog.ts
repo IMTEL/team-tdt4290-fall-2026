@@ -1,6 +1,7 @@
 import { SECTOR_LABELS, type IndustryTemplate } from '@/data/industry-templates';
 import type { AgentTemplate } from '@/data/templates';
 import { summarizeProfile, type JobSeekerProfile } from '@/domain/jobSeekerProfile';
+import type { LegalTemplate } from '@/domain/legalTemplate';
 
 /** One card on the templates page: a title, one short line, and one sentence. */
 export type CatalogItem = {
@@ -9,6 +10,8 @@ export type CatalogItem = {
   line: string;
   detail: string;
   href?: string;
+  /** A short label shown as a pill under the title, such as «Følger med appen». */
+  chip?: string;
 };
 
 function sentence(text: string): string {
@@ -87,13 +90,25 @@ export function profileCatalog(profiles: JobSeekerProfile[]): CatalogItem[] {
   }));
 }
 
-/** Saved interviewer templates, as cards that open the template for editing. */
+/** Saved interviewer templates, as cards that open the template's page. */
 export function savedTemplateCatalog(templates: AgentTemplate[]): CatalogItem[] {
   return templates.map((template) => ({
     id: template.id,
     title: template.title,
     line: template.focus.slice(0, 3).join(' · ') || 'Intervjuermal',
     detail: sentence(template.description),
-    href: `/templates/${encodeURIComponent(template.id)}/edit`,
+    href: `/templates/${encodeURIComponent(template.id)}`,
+  }));
+}
+
+/** Legal templates, as cards that open the template's details. A pill says whose it is. */
+export function legalCatalog(templates: LegalTemplate[]): CatalogItem[] {
+  return templates.map((template) => ({
+    id: template.id,
+    title: template.title,
+    line: '',
+    chip: template.builtIn ? 'Følger med appen' : 'Eget lovverk',
+    detail: sentence(template.description),
+    href: `/legal-templates/${encodeURIComponent(template.id)}`,
   }));
 }

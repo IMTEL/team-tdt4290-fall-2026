@@ -5,6 +5,7 @@ import {
   industryConfiguration,
   type IndustryTemplate,
 } from '@/data/industry-templates';
+import { findBuiltInLegalTemplate } from '@/data/legal-templates';
 import { findBuiltInTemplate, type AgentTemplate } from '@/data/templates';
 import { buildBriefing, parseAnswers } from '@/domain/agentTypes/configurator';
 import { DEFAULT_AGENT_TYPE, getAgentType } from '@/domain/agentTypes/registry';
@@ -13,6 +14,12 @@ import { getSessionToken } from '@/lib/session-tokens';
 import { isRagdollMessage } from '@/server/chatMessages';
 import { configErrorResponse, ragdollErrorResponse } from '@/server/errorResponse';
 import { describeJobSeeker } from '@/domain/jobSeekerProfile';
+import {
+  describeLegalFrameworks,
+  LEGAL_TEMPLATE_LIMITS,
+  type LegalTemplate,
+} from '@/domain/legalTemplate';
+import { fromRagdollLegalTemplate } from '@/server/legalTemplateMapper';
 import { fromRagdollProfile } from '@/server/profileMapper';
 import {
   askAgent,
@@ -28,8 +35,8 @@ import { fromRagdollTemplate } from '@/server/templateMapper';
  * after a briefing built from the agent type's definition, and checks whether its reply finishes
  * the configuration. A template, industry template or profile the counsellor chose decides the
  * fields the type's presets name, so the configurator doesn't ask about them, but gets their text
- * to fit the rest to. A finished configuration comes with the sources of the interviewer template
- * and profile answers.
+ * to fit the rest to. Legal templates fill in a field the configurator never asks about. A finished
+ * configuration comes with the sources of the template, profile and legal template answers.
  */
 export async function POST(req: NextRequest) {
   // The configurator is shared, but only logged-in counsellors may use it (it spends IDUN quota).
@@ -43,6 +50,7 @@ export async function POST(req: NextRequest) {
   let templateId: string | undefined;
   let profileId: string | undefined;
   let industryTemplateId: string | undefined;
+  let legalTemplateIds: string[] = [];
   try {
     const body = await req.json();
     if (
@@ -91,6 +99,20 @@ export async function POST(req: NextRequest) {
       }
       industryTemplateId = body.industryTemplateId;
     }
+    // No legalTemplateIds means the counsellor chose no legal templates.
+    if (body.legalTemplateIds !== undefined) {
+      const ids: unknown = body.legalTemplateIds;
+      if (
+        !Array.isArray(ids) ||
+        ids.length > LEGAL_TEMPLATE_LIMITS.perAgent ||
+        !ids.every((item) => typeof item === 'string' && item) ||
+        new Set(ids).size !== ids.length ||
+        !definition.presets?.legalTemplates
+      ) {
+        return Response.json({ error: 'Unknown legal template' }, { status: 400 });
+      }
+      legalTemplateIds = ids;
+    }
   } catch {
     return Response.json({ error: 'Invalid JSON' }, { status: 400 });
   }
@@ -129,6 +151,18 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  let legalTemplates: LegalTemplate[];
+  try {
+    legalTemplates = await Promise.all(
+      legalTemplateIds.map((legalId) => findAnyLegalTemplate(sessionToken, legalId)),
+    ).then((found) => found.filter((template) => template !== undefined));
+  } catch (error) {
+    return ragdollErrorResponse(error);
+  }
+  if (legalTemplates.length !== legalTemplateIds.length) {
+    return Response.json({ error: 'Unknown legal template' }, { status: 400 });
+  }
+
   const id = process.env.RAGDOLL_CONFIGURATOR_AGENT_ID;
   const accessKey = process.env.RAGDOLL_CONFIGURATOR_ACCESS_KEY;
   if (!id || !accessKey) {
@@ -140,7 +174,11 @@ export async function POST(req: NextRequest) {
   // where they came from.
   const decided: Answers = {};
   const sources: AnswerSources = {};
-  const { jobSeekerProfile, industryTemplate } = definition.presets ?? {};
+  const {
+    jobSeekerProfile,
+    industryTemplate,
+    legalTemplates: legalField,
+  } = definition.presets ?? {};
   const templateField = definition.presets?.template?.field;
   if (templateField && template?.persona) {
     decided[templateField] = template.persona;
@@ -155,6 +193,10 @@ export async function POST(req: NextRequest) {
     const { stilling, bransje } = industryConfiguration(industry);
     decided[industryTemplate.job] = stilling;
     decided[industryTemplate.industry] = bransje;
+  }
+  if (legalField && legalTemplates.length > 0) {
+    decided[legalField] = describeLegalFrameworks(legalTemplates);
+    sources[legalField] = { kind: 'legal', ids: legalTemplates.map(({ id }) => id) };
   }
 
   // The briefing goes first, so the configurator knows what to ask before it reads the chat.
@@ -187,6 +229,22 @@ async function findAnyTemplate(
 
   try {
     return fromRagdollTemplate(await getTemplate(sessionToken, templateId)) ?? undefined;
+  } catch (error) {
+    if (error instanceof RagdollError && error.kind === 'not-found') return undefined;
+    throw error;
+  }
+}
+
+/** A built-in legal template, or one the counsellor has saved in RAGdoll. Undefined if neither. */
+async function findAnyLegalTemplate(
+  sessionToken: string,
+  templateId: string,
+): Promise<LegalTemplate | undefined> {
+  const builtIn = findBuiltInLegalTemplate(templateId);
+  if (builtIn) return builtIn;
+
+  try {
+    return fromRagdollLegalTemplate(await getTemplate(sessionToken, templateId)) ?? undefined;
   } catch (error) {
     if (error instanceof RagdollError && error.kind === 'not-found') return undefined;
     throw error;

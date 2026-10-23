@@ -14,6 +14,7 @@ const configuration: Configuration = {
   vanskelighetsgrad: 'lett | Antall spørsmål: 6 | Oppfølgingsspørsmål: ja',
   egneSporsmal: 'ingen',
   tillegg: '',
+  lovverk: '',
 };
 
 describe('buildPrompt', () => {
@@ -31,6 +32,17 @@ describe('buildPrompt', () => {
       'Tillegg: Snakk sakte.',
     );
     expect(buildPrompt(configuration)).not.toContain('Tillegg:');
+  });
+
+  it('has the chosen legal frameworks and how to follow them, and no section without any', () => {
+    const prompt = buildPrompt({
+      ...configuration,
+      lovverk: 'Arbeidsmiljøloven § 9-3:\nIkke spør om helse.',
+    });
+    expect(prompt).toContain('## Lovverk og jobbsøkerens rettigheter');
+    expect(prompt).toContain('Arbeidsmiljøloven § 9-3:\nIkke spør om helse.');
+    expect(prompt).toContain('Ikke gi juridiske råd');
+    expect(buildPrompt(configuration)).not.toContain('## Lovverk');
   });
 
   it('does not contain the hand-written example', () => {

@@ -10,6 +10,7 @@ import type { AgentTemplate } from '@/data/templates';
 import { decidedFields, firstQuestion } from '@/domain/agentTypes/configurator';
 import type { AgentTypeDefinition, AnswerSources, Answers } from '@/domain/agentTypes/types';
 import type { JobSeekerProfile } from '@/domain/jobSeekerProfile';
+import type { LegalTemplate } from '@/domain/legalTemplate';
 import { parseQuestionOptions } from '@/domain/questionOptions';
 import { sendConfigurationTurn } from './api';
 import { ConfirmConfiguration } from './ConfirmConfiguration';
@@ -28,6 +29,7 @@ function greeting(
   template: AgentTemplate | null,
   profile: JobSeekerProfile | null,
   industry: IndustryTemplate | null,
+  legalTemplates: LegalTemplate[],
 ): ChatMessage {
   const decided = decidedFields(definition, {
     template: template !== null,
@@ -40,6 +42,8 @@ function greeting(
       ` Du har valgt bransjemalen «${industry.title}» (${industry.industry}, ` +
         `${SECTOR_LABELS[industry.sector].toLowerCase()} sektor).`,
     profile && ` Du har valgt jobbsøkermalen «${profile.label}».`,
+    legalTemplates.length > 0 &&
+      ` Intervjueren skal følge ${legalTemplates.map(({ title }) => `«${title}»`).join(', ')}.`,
   ]
     .filter(Boolean)
     .join('');
@@ -49,6 +53,9 @@ function greeting(
     content: `${definition.configurator.greeting}${chosen} ${firstQuestion(definition, decided)}`,
   };
 }
+
+// The same empty list every render, so the greeting isn't rebuilt.
+const NO_LEGAL_TEMPLATES: LegalTemplate[] = [];
 
 // A client component because page.tsx (a server component) can't pass a function to AgentChat.
 type ConfigurationChatProps = {
@@ -60,6 +67,8 @@ type ConfigurationChatProps = {
   profile: JobSeekerProfile | null;
   /** The industry template, or null when the counsellor started without one. */
   industry?: IndustryTemplate | null;
+  /** The legal templates the interviewer must follow. None when the counsellor chose none. */
+  legalTemplates?: LegalTemplate[];
 };
 
 export function ConfigurationChat({
@@ -67,6 +76,7 @@ export function ConfigurationChat({
   template,
   profile,
   industry = null,
+  legalTemplates = NO_LEGAL_TEMPLATES,
 }: ConfigurationChatProps) {
   // The finished configuration and its sources, once the configurator has written its
   // KONFIGURASJON block. Lives only in this browser tab: nothing is stored until the counsellor
@@ -81,9 +91,11 @@ export function ConfigurationChat({
   const templateId = template?.id ?? null;
   const profileId = profile?.id ?? null;
   const industryTemplateId = industry?.id ?? null;
+  // A string, so the callback below stays the same while the same templates are chosen.
+  const legalKey = JSON.stringify(legalTemplates.map(({ id }) => id));
   const initialMessages = useMemo(
-    () => [greeting(definition, template, profile, industry)],
-    [definition, template, profile, industry],
+    () => [greeting(definition, template, profile, industry, legalTemplates)],
+    [definition, template, profile, industry, legalTemplates],
   );
 
   // useCallback keeps it the same function on every render.
@@ -91,7 +103,12 @@ export function ConfigurationChat({
     async (messages, signal) => {
       const result = await sendConfigurationTurn(
         definition,
-        { templateId, profileId, industryTemplateId },
+        {
+          templateId,
+          profileId,
+          industryTemplateId,
+          legalTemplateIds: JSON.parse(legalKey) as string[],
+        },
         messages,
         signal,
       );
@@ -102,7 +119,7 @@ export function ConfigurationChat({
       setOpen(true);
       return FINISHED_REPLY;
     },
-    [definition, templateId, profileId, industryTemplateId],
+    [definition, templateId, profileId, industryTemplateId, legalKey],
   );
 
   return (

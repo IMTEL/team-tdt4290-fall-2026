@@ -1,16 +1,19 @@
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { fetchSavedTemplates } from '@/app/configure/api';
 import type { JobSeekerProfile } from '@/domain/jobSeekerProfile';
+import { fetchLegalTemplates } from '@/components/legalTemplates/api';
 import { fetchProfiles } from '@/components/profiles/api';
 import { TemplateLibrary } from './TemplateLibrary';
 
 vi.mock('@/components/profiles/api', () => ({ fetchProfiles: vi.fn() }));
+vi.mock('@/components/legalTemplates/api', () => ({ fetchLegalTemplates: vi.fn() }));
 vi.mock('@/app/configure/api', () => ({ fetchSavedTemplates: vi.fn() }));
 
 const fetchProfilesMock = vi.mocked(fetchProfiles);
+const fetchLegalTemplatesMock = vi.mocked(fetchLegalTemplates);
 const fetchSavedTemplatesMock = vi.mocked(fetchSavedTemplates);
 
 const profile: JobSeekerProfile = {
@@ -41,8 +44,14 @@ function section(name: string): HTMLElement {
   return region as HTMLElement;
 }
 
+beforeEach(() => {
+  fetchLegalTemplatesMock.mockResolvedValue([]);
+  fetchSavedTemplatesMock.mockResolvedValue([]);
+});
+
 afterEach(() => {
   fetchProfilesMock.mockReset();
+  fetchLegalTemplatesMock.mockReset();
   fetchSavedTemplatesMock.mockReset();
   localStorage.clear();
 });
@@ -163,7 +172,7 @@ describe('TemplateLibrary', () => {
       '/create-template?agentType=interviewer&returnTo=%2Ftemplates',
     );
     const saved = within(jobs).getByRole('link', { name: /Min butikksjef/ });
-    expect(saved).toHaveAttribute('href', '/templates/saved-1/edit');
+    expect(saved).toHaveAttribute('href', '/templates/saved-1');
     expect(saved).toHaveTextContent('Service');
     expect(saved).toHaveTextContent('Lagret av meg.');
   });
@@ -197,5 +206,45 @@ describe('TemplateLibrary', () => {
     render(<TemplateLibrary />);
 
     expect(await screen.findByText('Mal lagret')).toBeVisible();
+  });
+
+  it('shows the built-in and the counsellor’s own legal templates as cards that open them', async () => {
+    fetchProfilesMock.mockResolvedValue([]);
+    fetchLegalTemplatesMock.mockResolvedValue([
+      {
+        id: 'legal-1',
+        title: 'Arbeidsmiljøloven § 9-3',
+        description: 'Helseopplysninger',
+        text: 'Ikke spør om helse.',
+        builtIn: false,
+      },
+    ]);
+    render(<TemplateLibrary />);
+
+    const legal = section('Lovverk');
+    expect(within(legal).getByRole('link', { name: /Nytt lovverk/ })).toHaveAttribute(
+      'href',
+      '/legal-templates/new',
+    );
+    const builtIn = within(legal).getByRole('link', { name: /Rettigheter i ansettelsesprosessen/ });
+    expect(builtIn).toHaveAttribute('href', '/legal-templates/builtin-legal-hiring-rights');
+    expect(builtIn).toHaveTextContent('Følger med appen');
+    const own = await within(legal).findByRole('link', { name: /Arbeidsmiljøloven § 9-3/ });
+    expect(own).toHaveAttribute('href', '/legal-templates/legal-1');
+    expect(own).toHaveTextContent('Helseopplysninger.');
+    expect(within(builtIn).getByText('Følger med appen')).toHaveClass('MuiChip-label');
+    expect(within(own).getByText('Eget lovverk')).toHaveClass('MuiChip-label');
+  });
+
+  it('still shows the built-in legal templates when the counsellor’s own cannot be loaded', async () => {
+    fetchProfilesMock.mockResolvedValue([]);
+    fetchLegalTemplatesMock.mockRejectedValue(new Error('Fant ikke lovverket.'));
+    render(<TemplateLibrary />);
+
+    const legal = section('Lovverk');
+    expect(await within(legal).findByText('Fant ikke lovverket.')).toBeVisible();
+    expect(
+      within(legal).getByRole('link', { name: /Rettigheter i ansettelsesprosessen/ }),
+    ).toBeVisible();
   });
 });
