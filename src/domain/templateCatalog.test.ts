@@ -2,7 +2,14 @@ import { describe, expect, it } from 'vitest';
 
 import type { IndustryTemplate } from '@/data/industry-templates';
 import type { JobSeekerProfile } from '@/domain/jobSeekerProfile';
-import { industryCatalog, jobCatalog, profileCatalog } from './templateCatalog';
+import {
+  findIndustry,
+  industryCatalog,
+  industrySlug,
+  jobCatalog,
+  profileCatalog,
+  savedTemplateCatalog,
+} from './templateCatalog';
 
 const helse: IndustryTemplate = {
   id: 'helsefagarbeider',
@@ -44,14 +51,32 @@ describe('industryCatalog', () => {
         title: 'Helse og omsorg',
         line: 'Offentlig',
         detail: 'Helsefagarbeider.',
+        href: '/templates/industries/helse-og-omsorg',
       },
       {
         id: 'Varehandel',
         title: 'Varehandel',
         line: 'Privat',
         detail: 'Butikkmedarbeider.',
+        href: '/templates/industries/varehandel',
       },
     ]);
+  });
+});
+
+describe('industrySlug and findIndustry', () => {
+  it('makes a readable address part, keeping æ, ø and å', () => {
+    expect(industrySlug('Helse og omsorg')).toBe('helse-og-omsorg');
+    expect(industrySlug(' Bygg & anlegg ')).toBe('bygg-anlegg');
+    expect(industrySlug('Fiske og sjømat')).toBe('fiske-og-sjømat');
+  });
+
+  it('finds the industry and its jobs from the slug, or nothing', () => {
+    expect(findIndustry([helse, butikk], 'varehandel')).toEqual({
+      industry: 'Varehandel',
+      jobs: [butikk],
+    });
+    expect(findIndustry([helse, butikk], 'finnes-ikke')).toBeUndefined();
   });
 });
 
@@ -62,6 +87,7 @@ describe('jobCatalog', () => {
       title: 'Helsefagarbeider',
       line: 'Helse og omsorg · Offentlig',
       detail: 'Pleie og omsorg på sykehjem.',
+      href: '/templates/jobs/helsefagarbeider',
     });
   });
 });
@@ -74,7 +100,32 @@ describe('profileCatalog', () => {
         title: 'Profil A',
         line: '18–24 år · Litt (under 1 år)',
         detail: 'Mestre nervøsitet.',
-        href: '/profiles/profil%20a/edit',
+        href: '/profiles/profil%20a',
+      },
+    ]);
+  });
+});
+
+describe('savedTemplateCatalog', () => {
+  it('links to edit and shows focus on the card', () => {
+    expect(
+      savedTemplateCatalog([
+        {
+          id: 'saved-1',
+          agentType: 'interviewer',
+          title: 'Min mal',
+          description: 'Kort',
+          focus: ['Service', 'Samarbeid'],
+          persona: 'Hen er butikksjef.',
+        },
+      ]),
+    ).toEqual([
+      {
+        id: 'saved-1',
+        title: 'Min mal',
+        line: 'Service · Samarbeid',
+        detail: 'Kort.',
+        href: '/templates/saved-1',
       },
     ]);
   });

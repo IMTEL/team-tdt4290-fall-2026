@@ -23,6 +23,7 @@ const answers = {
   vanskelighetsgrad: 'lett | Antall spørsmål: 6 | Oppfølgingsspørsmål: ja',
   egneSporsmal: 'ingen',
   tillegg: '',
+  lovverk: '',
 };
 
 describe('toRagdollAgent', () => {

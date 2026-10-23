@@ -20,6 +20,8 @@ export type FinishOverview = {
   jobTemplates: IndustryTemplate[];
   interviewerTitle: string | null;
   profileLabel: string | null;
+  /** The chosen legal templates' titles, in the order they were chosen. */
+  legalTitles: string[];
   /** Practice area ids chosen for this agent. */
   practiceAreas: string[];
   settings: InterviewSettings;
@@ -69,7 +71,13 @@ export function configurationLines(overview: FinishOverview): { label: string; v
       { label: 'Arbeidsgiver', value: sector(overview.workplace.sector) },
       { label: 'Bedrift', value: text(overview.workplace.company) },
     ],
-    [{ label: 'Mal', value: overview.interviewerTitle ?? 'Ingen mal' }],
+    [
+      { label: 'Mal', value: overview.interviewerTitle ?? 'Ingen mal' },
+      {
+        label: 'Lovverk',
+        value: overview.legalTitles.length > 0 ? overview.legalTitles.join(', ') : NONE,
+      },
+    ],
     [
       { label: 'Jobbsøkermal', value: overview.profileLabel ?? 'Ingen mal' },
       {

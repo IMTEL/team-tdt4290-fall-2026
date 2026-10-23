@@ -1,4 +1,5 @@
 import { type AvatarId, cleanAvatar } from '../avatars';
+import { LEGAL_TEMPLATE_LIMITS } from '../legalTemplate';
 import { DEFAULT_AGENT_TYPE, getAgentType } from './registry';
 import type { AgentTypeDefinition, AnswerSource, AnswerSources, Answers } from './types';
 
@@ -43,29 +44,44 @@ export function toStoredDescription(
 
 /**
  * The valid sources in `value`, for fields the agent type has. Anything else is left out, so a
- * bad or old source never stops an agent from being read or saved. The ids are not checked here:
- * they only label where a text came from, and the edit form only trusts one whose text still
- * matches.
+ * bad or old source never stops an agent from being read or saved. A legal source is only kept
+ * for the field the type's legal templates fill in. The ids are not checked here: they only label
+ * where a text came from, and the edit form only trusts a source whose text still matches.
  */
 export function cleanSources(definition: AgentTypeDefinition, value: unknown): AnswerSources {
   if (typeof value !== 'object' || value === null) return {};
   const saved = value as Record<string, unknown>;
+  const legalField = definition.presets?.legalTemplates;
   return Object.fromEntries(
     definition.fields.flatMap(({ key }) => {
-      const source = saved[key];
-      return isSource(source) ? [[key, { kind: source.kind, id: source.id }]] : [];
+      const source = cleanSource(saved[key], key === legalField);
+      return source ? [[key, source]] : [];
     }),
   );
 }
 
-function isSource(value: unknown): value is AnswerSource {
-  if (typeof value !== 'object' || value === null) return false;
+/** Only the fields a source has, or null if it is not a valid one. */
+function cleanSource(value: unknown, allowLegal: boolean): AnswerSource | null {
+  if (typeof value !== 'object' || value === null) return null;
   const source = value as Record<string, unknown>;
-  return (
-    (source.kind === 'template' || source.kind === 'profile') &&
-    typeof source.id === 'string' &&
-    source.id !== ''
-  );
+  if (source.kind === 'template' || source.kind === 'profile') {
+    return isId(source.id) ? { kind: source.kind, id: source.id } : null;
+  }
+  if (source.kind === 'legal' && allowLegal) {
+    const { ids } = source;
+    const valid =
+      Array.isArray(ids) &&
+      ids.length > 0 &&
+      ids.length <= LEGAL_TEMPLATE_LIMITS.perAgent &&
+      ids.every(isId) &&
+      new Set(ids).size === ids.length;
+    return valid ? { kind: 'legal', ids: [...ids] } : null;
+  }
+  return null;
+}
+
+function isId(value: unknown): value is string {
+  return typeof value === 'string' && value !== '';
 }
 
 /**

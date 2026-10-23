@@ -1,7 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
 
 // The e2e tests run against a production build on its own port, so they don't clash with
-// `npm run dev` on 3000. Keycloak and RAGdoll are replaced by tests/support/mock-backend.mjs.
+// `npm run dev` on 3000. Keycloak and RAGdoll are replaced by e2e/support/mock-backend.mjs.
 // See docs/e2e-testing.md.
 const APP_PORT = 3100;
 const MOCK_PORT = 8181;
@@ -9,7 +9,7 @@ const appUrl = `http://localhost:${APP_PORT}`;
 const mockUrl = `http://localhost:${MOCK_PORT}`;
 
 export default defineConfig({
-  testDir: './tests',
+  testDir: './e2e',
   fullyParallel: true,
   // Fail CI if someone leaves test.only in the code.
   forbidOnly: !!process.env.CI,
@@ -35,7 +35,7 @@ export default defineConfig({
 
   webServer: [
     {
-      command: 'node tests/support/mock-backend.mjs',
+      command: 'node e2e/support/mock-backend.mjs',
       url: `${mockUrl}/health`,
       env: { MOCK_BACKEND_PORT: String(MOCK_PORT) },
       reuseExistingServer: !process.env.CI,

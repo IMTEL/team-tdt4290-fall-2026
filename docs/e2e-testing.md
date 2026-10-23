@@ -49,7 +49,7 @@ On Linux, add `--with-deps` to also install the system libraries the browsers ne
 ```bash
 npm run test:e2e                              # every test in Chromium, headless (about 30 s)
 npm run test:e2e:all                          # every test in Chromium, Firefox and WebKit, as CI does
-npm run test:e2e -- tests/profiles.spec.ts    # one file
+npm run test:e2e -- e2e/profiles.spec.ts      # one file
 npm run test:e2e -- -g "log"                  # tests whose name matches
 npx playwright test --ui                      # UI mode: pick tests, watch them run, time-travel
 npx playwright test --headed                  # show the browser window
@@ -72,7 +72,7 @@ servers itself (`webServer` in `playwright.config.ts`), runs the tests and stops
 
 | Server       | Port | What it is                                                                            |
 | ------------ | ---- | ------------------------------------------------------------------------------------- |
-| Mock backend | 8181 | `tests/support/mock-backend.mjs`: a fake Keycloak and a fake RAGdoll in one           |
+| Mock backend | 8181 | `e2e/support/mock-backend.mjs`: a fake Keycloak and a fake RAGdoll in one             |
 | The app      | 3100 | `npm run build && next start`, a production build with every variable set to the mock |
 
 The app gets its environment variables from `playwright.config.ts`, and they win over `.env`. So
@@ -92,7 +92,7 @@ next run tests an old build.
 
 ## The mock backend
 
-`tests/support/mock-backend.mjs` answers the same requests as Keycloak and RAGdoll, with the same
+`e2e/support/mock-backend.mjs` answers the same requests as Keycloak and RAGdoll, with the same
 shapes, and keeps everything in memory. It uses only Node built-ins.
 
 - **Login**: the mock Keycloak has no password form. Clicking **Logg inn** goes through the real
@@ -103,7 +103,7 @@ shapes, and keeps everything in memory. It uses only Node built-ins.
 - **Every login is a new user**, with no agents, templates or profiles. So each test starts from
   an empty account, and tests running in parallel never see each other's data. A test that needs
   data creates it, through the UI or through our own API with the helpers in
-  `tests/support/data.ts` (`createAgent`, `createTemplate`, `createProfile`).
+  `e2e/support/data.ts` (`createAgent`, `createTemplate`, `createProfile`).
 - **Chat**: no LLM. Every reply from a saved agent is `Mock-svar: <the last message you sent>`.
   The interviewer is set up in the wizard on `/configure`, without a chat, so only the test chat
   talks to the mock this way.
@@ -117,7 +117,7 @@ the mock, copying the request and response shapes from `src/server/ragdoll.ts`.
 
 ## Where tests live
 
-In `tests/`, named `*.spec.ts`, one file per flow or page:
+In `e2e/`, named `*.spec.ts`, one file per flow or page:
 
 | File                    | Covers                                                             |
 | ----------------------- | ------------------------------------------------------------------ |
@@ -130,11 +130,11 @@ In `tests/`, named `*.spec.ts`, one file per flow or page:
 | `test-chat.spec.ts`     | Testing an agent in the chat: greeting, sending, starting over     |
 | `accessibility.spec.ts` | axe on every page, dialog, menu and error state, light and dark    |
 
-Helpers and the mock backend are in `tests/support/`: `auth.ts` logs in, `data.ts` creates test
+Helpers and the mock backend are in `e2e/support/`: `auth.ts` logs in, `data.ts` creates test
 data through our API, `configure.ts` clicks through the wizard on `/configure` (`goToFinish` goes
 all the way to the last step), and `accessibility.ts` runs axe.
 
-Vitest only picks up `src/**/*.test.{ts,tsx}`, and Playwright only looks in `tests/`, so the two
+Vitest only picks up `src/**/*.test.{ts,tsx}`, and Playwright only looks in `e2e/`, so the two
 never run each other's files.
 
 ## Writing a test
@@ -172,7 +172,7 @@ work without login.
 
 ## Accessibility
 
-`tests/accessibility.spec.ts` runs [axe](https://github.com/dequelabs/axe-core) on every page and
+`e2e/accessibility.spec.ts` runs [axe](https://github.com/dequelabs/axe-core) on every page and
 on the states a user can open there: dialogs, dropdowns, form errors, the wizard's steps and the
 chat. It checks WCAG
 2.0, 2.1 and 2.2 at level A and AA (universell utforming requires 2.1 AA), once in the light and
@@ -242,7 +242,7 @@ A failure in one browser does not cancel the others.
 
 **When a run fails right after merging `main`**, the app has usually changed under the tests: a
 new step, a renamed button. Run `npm run test:e2e` locally, see what the failures wait for, and
-update the tests (or a helper in `tests/support/`) to the new behaviour.
+update the tests (or a helper in `e2e/support/`) to the new behaviour.
 
 To see why a CI run failed: open the run on GitHub, download the `playwright-report-<browser>` artifact for the browser that failed,
 unzip it and run `npx playwright show-report <unzipped folder>`. Failed tests that were retried

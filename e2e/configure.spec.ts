@@ -105,7 +105,9 @@ test('the last step shows what was chosen, and a section can be opened again', a
     .filter({
       has: page.getByRole('button', { name: 'Intervjuer', exact: true }),
     });
-  await expect(interviewer.getByRole('definition')).toHaveText('Daglig leder');
+  // The first line is the template; the legal template comes after it.
+  const interviewerTemplate = interviewer.getByRole('definition').first();
+  await expect(interviewerTemplate).toHaveText('Daglig leder');
   await expect(sections(page).getByRole('definition').filter({ hasText: 'Lett' })).toBeVisible();
 
   await sections(page).getByRole('button', { name: 'Intervjuer', exact: true }).click();
@@ -113,7 +115,7 @@ test('the last step shows what was chosen, and a section can be opened again', a
   await pickTemplate(page, 'HR-medarbeider');
   await pickTemplate(page, null);
   await page.getByRole('button', { name: 'Neste', exact: true }).click();
-  await expect(interviewer.getByRole('definition')).toHaveText('HR-medarbeider');
+  await expect(interviewerTemplate).toHaveText('HR-medarbeider');
 });
 
 test('the chosen templates fill in the answers, and the agent remembers them', async ({ page }) => {

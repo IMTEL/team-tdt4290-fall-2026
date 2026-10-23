@@ -27,10 +27,7 @@ test('a counsellor can make a template from the wizard and choose it there', asy
     .fill('Intervjueren er butikksjef og spør om service.');
   await save.click();
 
-  await expect(page.getByText('Malen «Butikksjef» er lagret.')).toBeVisible();
-  // The link goes back to the wizard's interviewer step, with the rest of the wizard kept.
-  await page.getByRole('link', { name: 'Bruk den til å sette opp en agent', exact: true }).click();
-
+  // Saving goes back to the wizard's interviewer step, with the rest of the wizard kept.
   await expect(page.getByRole('radio', { name: /^Butikksjef/ })).toBeVisible();
   await expect(page.getByText('Travel, men vennlig.')).toBeVisible();
   await expect(page.getByRole('link', { name: 'Rediger Butikksjef', exact: true })).toBeVisible();
@@ -77,7 +74,8 @@ test('a saved template can be edited', async ({ page }) => {
 
   await description.fill('Ny beskrivelse.');
   await page.getByRole('button', { name: 'Lagre endringene', exact: true }).click();
-  await expect(page.getByText('Malen «Butikksjef» er lagret.')).toBeVisible();
+  await expect(page).toHaveURL('/templates');
+  await expect(page.getByText('Mal lagret', { exact: true })).toBeVisible();
 
   await page.goto(INTERVIEWER_STEP);
   await expect(page.getByText('Ny beskrivelse.')).toBeVisible();

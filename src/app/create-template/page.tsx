@@ -39,7 +39,7 @@ export default async function CreateTemplatePage({ searchParams }: CreateTemplat
 
       <CreateTemplateForm
         agentType={typeof agentType === 'string' ? agentType : null}
-        cancelHref={returnPath(returnTo)}
+        cancelHref={returnPath(returnTo) ?? '/templates'}
       />
     </div>
   );

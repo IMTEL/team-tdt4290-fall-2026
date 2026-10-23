@@ -2,6 +2,7 @@ import Link from 'next/link';
 import Card from '@mui/material/Card';
 import CardActionArea from '@mui/material/CardActionArea';
 import CardContent from '@mui/material/CardContent';
+import Chip from '@mui/material/Chip';
 import Typography from '@mui/material/Typography';
 
 import type { CatalogItem } from '@/domain/templateCatalog';
@@ -14,6 +15,7 @@ export function CatalogCard({ item }: { item: CatalogItem }) {
       <Typography variant="subtitle1" component="h3" className={styles.title}>
         {item.title}
       </Typography>
+      {item.chip && <Chip label={item.chip} size="small" className={styles.chip} />}
       {item.line && <Typography className={styles.line}>{item.line}</Typography>}
       {item.detail && <Typography className={styles.detail}>{item.detail}</Typography>}
     </CardContent>

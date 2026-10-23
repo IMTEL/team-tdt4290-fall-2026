@@ -9,7 +9,7 @@
 // Like the real RAGdoll it takes Keycloak's ID token as the Bearer token on every request, and
 // keeps no session of its own. Chat replies are canned; no LLM is involved.
 //
-// Only Node built-ins, so it runs with plain `node tests/support/mock-backend.mjs`.
+// Only Node built-ins, so it runs with plain `node e2e/support/mock-backend.mjs`.
 
 import { createServer } from 'node:http';
 import {

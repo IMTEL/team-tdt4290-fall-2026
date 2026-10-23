@@ -10,6 +10,7 @@ export const LABELS = {
   vanskelighetsgrad: 'Vanskelighetsgrad',
   egneSporsmal: 'Egne spørsmål',
   tillegg: 'Tillegg',
+  lovverk: 'Lovverk',
 } as const;
 
 /** What the counsellor has decided about the interviewer. */

@@ -9,6 +9,7 @@ import {
   PRACTICE_CHOICES,
   type JobSeekerProfile,
 } from '@/domain/jobSeekerProfile';
+import { describeLegalFrameworks, type LegalTemplate } from '@/domain/legalTemplate';
 import type { InterviewSettings } from './SettingsStep';
 import { NO_TEMPLATE, type Workplace } from './StillingStep';
 
@@ -21,6 +22,8 @@ export type WizardDraft = {
   profile: JobSeekerProfile | null;
   /** Practice areas for this agent. Ids are the texts stored on a profile. */
   practiceAreas: string[];
+  /** The legal templates the interviewer must follow, in the order they were chosen. */
+  legalTemplates: LegalTemplate[];
   settings: InterviewSettings;
 };
 
@@ -37,8 +40,8 @@ export function suggestedAgentName(jobTitle: string): string {
 }
 
 /**
- * The wizard's choices as the nine texts an interviewer is saved as, plus the template and
- * profile those texts came from. Returns null when a required choice is missing, so a half
+ * The wizard's choices as the texts an interviewer is saved as, plus the template, profile and
+ * legal templates those texts came from. Returns null when a required choice is missing, so a half
  * filled wizard is not saved. Skipped choices become a short sentence, because every answer
  * except Tillegg has to contain text.
  */
@@ -54,6 +57,9 @@ export function wizardConfiguration(draft: WizardDraft): WizardConfiguration | n
     sources.intervjuer = { kind: 'template', id: draft.interviewer.id };
   }
   if (draft.profile) sources.jobbsoker = { kind: 'profile', id: draft.profile.id };
+  if (draft.legalTemplates.length > 0) {
+    sources.lovverk = { kind: 'legal', ids: draft.legalTemplates.map(({ id }) => id) };
+  }
 
   return {
     answers: {
@@ -66,6 +72,7 @@ export function wizardConfiguration(draft: WizardDraft): WizardConfiguration | n
       vanskelighetsgrad: `${settings.difficulty} | Antall spørsmål: ${count} | Oppfølgingsspørsmål: ${settings.followUp}`,
       egneSporsmal: settings.ownQuestions.trim() || 'ingen',
       tillegg: settings.extra.trim(),
+      lovverk: describeLegalFrameworks(draft.legalTemplates),
     },
     sources,
   };

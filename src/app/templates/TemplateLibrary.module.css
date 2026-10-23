@@ -16,3 +16,17 @@
 .details {
   padding: 0 0 var(--space-3);
 }
+
+.group {
+  margin-top: var(--space-3);
+}
+
+.group:first-child {
+  margin-top: 0;
+}
+
+.groupTitle {
+  margin: 0 0 var(--space-2);
+  font-size: 0.95rem;
+  font-weight: 600;
+}

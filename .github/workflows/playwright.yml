@@ -1,5 +1,5 @@
 # Runs the Playwright end-to-end tests on every pull request and on pushes to main.
-# Keycloak and RAGdoll are replaced by tests/support/mock-backend.mjs, which Playwright starts
+# Keycloak and RAGdoll are replaced by e2e/support/mock-backend.mjs, which Playwright starts
 # together with a production build of the app, so no secrets or .env are needed.
 # See docs/e2e-testing.md.
 name: Playwright Tests
