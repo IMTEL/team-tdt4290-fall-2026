@@ -8,7 +8,10 @@ import {
   agentRole,
   agentSummary,
   groupAgentsByType,
+  searchAgents,
 } from './agentList';
+import { getAgentType } from './agentTypes/registry';
+import { toStoredDescription } from './agentTypes/storedAnswers';
 
 function makeAgent(fields: Partial<Agent> = {}): Agent {
   return {
@@ -143,5 +146,79 @@ describe('groupAgentsByType', () => {
     ];
     groupAgentsByType(agents);
     expect(agents.map((agent) => agent.id)).toEqual(['old', 'new']);
+  });
+});
+
+describe('searchAgents', () => {
+  // The answers behind the card fields, so the summary on the details page can be built.
+  const description = toStoredDescription(getAgentType('interviewer')!, {
+    stilling: 'Butikkmedarbeider',
+    bransje: 'Varehandel (privat)',
+    intervjutype: 'første intervju',
+    vanskelighetsgrad: 'middels',
+    jobbsoker: 'aldersgruppe 18–24 år; arbeidserfaring: ingen arbeidserfaring',
+  });
+  const shop = makeAgent({ id: 'shop', name: 'Kari i butikken', description });
+  const kitchen = makeAgent({
+    id: 'kitchen',
+    name: 'Kokk Ola',
+    stilling: 'Kokk. Kokk på en restaurant i sentrum.',
+    bransje: 'Reiseliv og servering',
+    vanskelighetsgrad: 'lett',
+  });
+  const agents = [shop, kitchen];
+
+  const ids = (query: string) => searchAgents(agents, query).map((agent) => agent.id);
+
+  it('keeps every agent for an empty search or only spaces', () => {
+    expect(ids('')).toEqual(['shop', 'kitchen']);
+    expect(ids('   ')).toEqual(['shop', 'kitchen']);
+  });
+
+  it('finds an agent by its name, in any case', () => {
+    expect(ids('OLA')).toEqual(['kitchen']);
+  });
+
+  it('finds part of a word, so "butikk" finds Butikkmedarbeider', () => {
+    expect(ids('butikk')).toEqual(['shop']);
+  });
+
+  it('looks in the industry and the difficulty the card shows', () => {
+    expect(ids('servering')).toEqual(['kitchen']);
+    expect(ids('middels')).toEqual(['shop']);
+  });
+
+  it('looks in the configuration summary, also at what the card does not show', () => {
+    expect(ids('18–24')).toEqual(['shop']);
+    expect(ids('ingen arbeidserfaring')).toEqual(['shop']);
+  });
+
+  it('keeps only the agents that have every word', () => {
+    expect(ids('kokk lett')).toEqual(['kitchen']);
+    expect(ids('kokk middels')).toEqual([]);
+  });
+
+  it('handles æ, ø and å', () => {
+    expect(ids('FØRSTE')).toEqual(['shop']);
+  });
+
+  it('does not look in the system prompt', () => {
+    const agent = makeAgent({ prompt: 'Du er en intervjuer. Hold deg til rollen.' });
+    expect(searchAgents([agent], 'rollen')).toEqual([]);
+  });
+
+  it('searches only the name of an agent whose description is not ours', () => {
+    const other = makeAgent({
+      id: 'other',
+      name: 'Fra RAGdoll',
+      description: 'Laget i RAGdoll',
+      type: null,
+      typeLabel: null,
+      stilling: null,
+      bransje: null,
+      vanskelighetsgrad: null,
+    });
+    expect(searchAgents([other], 'ragdoll').map((agent) => agent.id)).toEqual(['other']);
+    expect(searchAgents([other], 'laget')).toEqual([]);
   });
 });

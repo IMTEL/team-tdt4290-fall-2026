@@ -1,5 +1,6 @@
 import type { Agent } from '@/lib/types';
 import { getAgentType, listAgentTypes } from './agentTypes/registry';
+import { readStoredAnswers } from './agentTypes/storedAnswers';
 import { difficultyLevel } from './difficulty';
 
 /** One section of the agent list: the agents of one type, or the ones we cannot read. */
@@ -60,6 +61,44 @@ function capitalize(text: string | null | undefined): string {
   const trimmed = text?.trim() ?? '';
   if (!trimmed) return '';
   return trimmed.charAt(0).toUpperCase() + trimmed.slice(1);
+}
+
+/**
+ * All the text a search looks in, in lower case: the name, what the card shows and the summary of
+ * the configuration. Not the system prompt: every agent shares its rules and words such as
+ * "intervju", so a search in it would find almost every agent.
+ */
+export function agentSearchText(agent: Agent): string {
+  const stored = readStoredAnswers(agent.description);
+  const parts = [
+    agent.name,
+    agent.typeLabel,
+    agent.stilling,
+    agent.bransje,
+    difficultyLevel(agent.vanskelighetsgrad),
+    agent.intervjuer,
+    agent.intervjuerMal,
+    agent.intervjutype,
+    stored ? stored.definition.buildSummary(stored.answers) : '',
+  ];
+  return parts
+    .map((part) => part?.trim() ?? '')
+    .filter((part) => part !== '')
+    .join(' ')
+    .toLocaleLowerCase('nb');
+}
+
+/**
+ * The agents that have every word of the search in them, in any case and as part of a longer
+ * word ("butikk" finds "Butikkmedarbeider"). An empty search keeps all agents.
+ */
+export function searchAgents(agents: Agent[], query: string): Agent[] {
+  const words = query.toLocaleLowerCase('nb').split(/\s+/).filter(Boolean);
+  if (words.length === 0) return agents;
+  return agents.filter((agent) => {
+    const text = agentSearchText(agent);
+    return words.every((word) => text.includes(word));
+  });
 }
 
 /**
