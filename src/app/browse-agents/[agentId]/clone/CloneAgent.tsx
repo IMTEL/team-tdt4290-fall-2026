@@ -14,7 +14,7 @@ import { settingsOf } from '@/domain/advancedSettings';
 import { cloneName } from '@/domain/agentName';
 import { readStoredAnswers } from '@/domain/agentTypes/storedAnswers';
 import { cloneAgent } from '../../api';
-import { useAnswerPresets } from '../../useAnswerPresets';
+import { useAnswerPresets, useLegalPreset } from '../../useAnswerPresets';
 import { useAgent } from '../../useAgent';
 import { EditAgentForm } from '../edit/EditAgentForm';
 
@@ -26,6 +26,7 @@ export function CloneAgent({ agentId }: { agentId: string }) {
   const state = useAgent(agentId);
   const stored = state.kind === 'ready' ? readStoredAnswers(state.agent.description) : null;
   const presets = useAnswerPresets(stored?.definition);
+  const legalPreset = useLegalPreset(stored?.definition);
 
   if (state.kind === 'missing') notFound();
   if (state.kind === 'loading') return <Typography>Laster agent …</Typography>;
@@ -73,6 +74,7 @@ export function CloneAgent({ agentId }: { agentId: string }) {
           }
           allowUnchanged
           presets={presets}
+          legalPreset={legalPreset}
         />
       ) : (
         <Alert severity="info">Denne agenten ble ikke laget her, og kan ikke klones.</Alert>

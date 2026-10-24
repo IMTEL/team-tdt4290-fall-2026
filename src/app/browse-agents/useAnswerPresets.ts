@@ -2,7 +2,9 @@
 
 import { useEffect, useState } from 'react';
 
+import { fetchLegalTemplates } from '@/components/legalTemplates/api';
 import { fetchProfiles } from '@/components/profiles/api';
+import { builtInLegalTemplates } from '@/data/legal-templates';
 import { builtInTemplates, type AgentTemplate } from '@/data/templates';
 import type { AgentTypeDefinition } from '@/domain/agentTypes/types';
 import {
@@ -10,8 +12,9 @@ import {
   summarizeProfile,
   type JobSeekerProfile,
 } from '@/domain/jobSeekerProfile';
+import type { LegalTemplate } from '@/domain/legalTemplate';
 import { fetchSavedTemplates } from '../configure/api';
-import type { AnswerPreset } from './[agentId]/edit/EditAgentForm';
+import type { AnswerPreset, LegalPreset } from './[agentId]/edit/EditAgentForm';
 
 /**
  * The templates and job seeker profiles an interviewer's answers can be filled in from, the same
@@ -84,4 +87,32 @@ export function useAnswerPresets(definition: AgentTypeDefinition | undefined): A
     });
   }
   return presets;
+}
+
+/**
+ * The legal templates the type's legal field can be made from: the built-in ones first, then the
+ * counsellor's own. Undefined for a type without a legal field.
+ */
+export function useLegalPreset(
+  definition: AgentTypeDefinition | undefined,
+): LegalPreset | undefined {
+  // Null until loaded. Stays empty if loading fails, so the built-in ones can still be chosen.
+  const [saved, setSaved] = useState<LegalTemplate[] | null>(null);
+  const field = definition?.presets?.legalTemplates;
+
+  useEffect(() => {
+    if (!field) return;
+    const controller = new AbortController();
+    fetchLegalTemplates(controller.signal)
+      .then(setSaved)
+      .catch((error: unknown) => {
+        if (controller.signal.aborted) return;
+        console.error(error);
+        setSaved([]);
+      });
+    return () => controller.abort();
+  }, [field]);
+
+  if (!field) return undefined;
+  return { field, options: [...builtInLegalTemplates, ...(saved ?? [])], loaded: saved !== null };
 }

@@ -1,12 +1,17 @@
 /** The counsellor's answers, one text per field. Every agent type stores its answers like this. */
 export type Answers = Record<string, string>;
 
+/** An answer that came from one interviewer template or one job seeker profile, by id. */
+export type SingleAnswerSource = { kind: 'template' | 'profile'; id: string };
+
+/** An answer made from several legal templates together, by id, in the order they were chosen. */
+export type LegalAnswerSource = { kind: 'legal'; ids: string[] };
+
 /**
- * Where an answer's text came from: an interviewer template or a job seeker profile, by id.
- * The text itself is still in the answers; this only remembers the origin, so the edit form can
- * show which template or profile was used.
+ * Where an answer's text came from. The text itself is still in the answers; this only remembers
+ * the origin, so the edit form can show which template, profile or legal templates were used.
  */
-export type AnswerSource = { kind: 'template' | 'profile'; id: string };
+export type AnswerSource = SingleAnswerSource | LegalAnswerSource;
 
 /** The source of each answer that came from one, by field key. */
 export type AnswerSources = Record<string, AnswerSource>;
@@ -24,6 +29,12 @@ export type AgentField = {
   format?: string;
   /** The counsellor may leave it empty, e.g. Tillegg. Its line in the block may be missing. */
   optional?: boolean;
+  /**
+   * Only filled in from a preset before the chat, never by the configurator, e.g. Lovverk: legal
+   * text must come from the counsellor's templates, not from a language model. Empty when no
+   * preset fills it in. Must also be optional.
+   */
+  presetOnly?: boolean;
 };
 
 /** A role. The mapper turns it into a RAGdoll role. */
@@ -71,6 +82,8 @@ export type AgentPresets = {
   jobSeekerProfile?: string;
   /** The fields an industry template fills in: the job, and the industry with its sector. */
   industryTemplate?: { job: string; industry: string };
+  /** The field the chosen legal templates fill in, together. The field should be presetOnly. */
+  legalTemplates?: string;
 };
 
 /**

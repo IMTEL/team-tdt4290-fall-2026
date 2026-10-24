@@ -161,6 +161,7 @@ describe('parseAnswers', () => {
       vanskelighetsgrad: 'lett | Antall spørsmål: 6 | Oppfølgingsspørsmål: ja',
       egneSporsmal: 'ingen',
       tillegg: '',
+      lovverk: '',
     });
   });
 
@@ -171,6 +172,17 @@ Tillegg: Snakk sakte og tydelig.`;
       'Snakk sakte og tydelig.',
     );
     expect(parseAnswers(completeReply, interviewer, { intervjuer: persona })?.tillegg).toBe('');
+  });
+
+  it('never asks about or reads Lovverk, which only legal templates fill in', () => {
+    const briefing = buildBriefing(interviewer);
+    expect(briefing).not.toContain('Lovverk');
+
+    const withLaw = `${completeReply}\nLovverk: noe assistenten fant på`;
+    expect(parseAnswers(withLaw, interviewer, { intervjuer: persona })?.lovverk).toBe('');
+    expect(
+      parseAnswers(withLaw, interviewer, { intervjuer: persona, lovverk: 'Fra malen' })?.lovverk,
+    ).toBe('Fra malen');
   });
 
   it('reads the fields of any type', () => {

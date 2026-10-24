@@ -239,6 +239,66 @@ describe('POST /api/configure/turn', () => {
     expect(askAgentMock).not.toHaveBeenCalled();
   });
 
+  it('fills in Lovverk from the chosen legal templates, built in and saved', async () => {
+    getTemplateMock.mockResolvedValue({
+      id: 'legal-1',
+      type: 'legal-framework',
+      name: 'Arbeidsmiljøloven § 9-3',
+      description: 'Helseopplysninger',
+      content: { text: 'Ikke spør om helse.' },
+    });
+    askAgentMock.mockResolvedValue(finalReply);
+
+    const res = await POST(
+      turnRequest({
+        templateId: 'teamleder',
+        legalTemplateIds: ['builtin-legal-hiring-rights', 'legal-1'],
+        messages,
+      }),
+    );
+
+    const { configuration, sources } = await res.json();
+    expect(configuration.lovverk).toMatch(/^Rettigheter i ansettelsesprosessen:\n/);
+    expect(configuration.lovverk).toContain('Arbeidsmiljøloven § 9-3:\nIkke spør om helse.');
+    expect(sources.lovverk).toEqual({
+      kind: 'legal',
+      ids: ['builtin-legal-hiring-rights', 'legal-1'],
+    });
+    const [, [briefing]] = askAgentMock.mock.calls[0];
+    expect(briefing.content).toContain('- Lovverk: Rettigheter i ansettelsesprosessen:');
+  });
+
+  it('leaves Lovverk empty without legal templates', async () => {
+    askAgentMock.mockResolvedValue(finalReply);
+
+    const res = await POST(turnRequest({ templateId: 'teamleder', messages }));
+
+    expect((await res.json()).configuration.lovverk).toBe('');
+  });
+
+  it('answers 400 and asks nothing for a template that is not a legal template', async () => {
+    getTemplateMock.mockResolvedValue({
+      id: 'interviewer-1',
+      type: 'interviewer',
+      name: 'Butikksjef',
+      description: 'Vennlig',
+      content: { focus: [], persona: 'En butikksjef' },
+    });
+
+    const res = await POST(turnRequest({ legalTemplateIds: ['interviewer-1'], messages }));
+
+    expect(res.status).toBe(400);
+    expect(askAgentMock).not.toHaveBeenCalled();
+  });
+
+  it('answers 400 for legal template ids that are not a list of distinct ids', async () => {
+    for (const legalTemplateIds of ['legal-1', [''], ['a', 'a'], ['1', '2', '3', '4', '5', '6']]) {
+      const res = await POST(turnRequest({ legalTemplateIds, messages }));
+      expect(res.status).toBe(400);
+    }
+    expect(askAgentMock).not.toHaveBeenCalled();
+  });
+
   it('answers 401 and asks nothing when the user is not logged in', async () => {
     getSessionTokenMock.mockResolvedValue(null);
 

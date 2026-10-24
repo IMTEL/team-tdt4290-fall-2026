@@ -85,7 +85,8 @@ export function buildBriefing(definition: AgentTypeDefinition, decided: Answers 
 /**
  * Reads the answers out of the configurator's block: one `Label: answer` line per field of the
  * type. `decided` holds answers settled before the chat, from a template or profile. Their lines
- * are not needed, and these values win over what the configurator writes. Every other line is
+ * are not needed, and these values win over what the configurator writes. A presetOnly field is
+ * never read from the block, so the configurator can't fill it in. Every other line is
  * required, except an optional field's, which becomes empty when its line is missing.
  * Returns null if the reply has no block, or if a required line is missing or empty.
  */
@@ -103,9 +104,9 @@ export function parseAnswers(
     .map((line) => line.trim());
 
   const answers: Answers = {};
-  for (const { key, label, optional } of definition.fields) {
-    if (decided[key]) {
-      answers[key] = decided[key];
+  for (const { key, label, optional, presetOnly } of definition.fields) {
+    if (decided[key] || presetOnly) {
+      answers[key] = decided[key] ?? '';
       continue;
     }
     const line = lines.find((l) => l.startsWith(`${label}:`));
@@ -116,8 +117,9 @@ export function parseAnswers(
   return answers;
 }
 
+/** The fields the configurator asks about: not decided, and not one only a preset fills in. */
 function openFields(definition: AgentTypeDefinition, decided: string[]): AgentField[] {
-  return definition.fields.filter(({ key }) => !decided.includes(key));
+  return definition.fields.filter(({ key, presetOnly }) => !presetOnly && !decided.includes(key));
 }
 
 // "(valgfritt)" tells the configurator to offer «Hopp over» and to leave the line out when empty,

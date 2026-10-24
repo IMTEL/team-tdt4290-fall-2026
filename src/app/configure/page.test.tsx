@@ -353,6 +353,49 @@ describe('/configure', () => {
     await waitFor(() => expect(push).toHaveBeenCalledWith('/test-chat?agent=agent-1'));
   });
 
+  it('saves the chosen legal templates, built in and saved, with the interviewer', async () => {
+    const saved = {
+      id: 'legal-1',
+      title: 'Arbeidsmiljøloven § 9-3',
+      description: 'Helseopplysninger',
+      text: 'Ikke spør om helse.',
+      builtIn: false,
+    };
+    fetchMock.mockImplementation(async (url, init) => {
+      const path = String(url);
+      const method = init?.method ?? 'GET';
+      if (path === '/api/agents' && method === 'POST') return Response.json({ id: 'agent-1' });
+      if (path === '/api/legal-templates') return Response.json({ templates: [saved] });
+      if (path === '/api/profiles') return Response.json({ profiles: [] });
+      return Response.json({ templates: [] });
+    });
+
+    const user = await openAsInterviewer();
+    await user.click(screen.getByRole('checkbox', { name: 'Rettigheter i ansettelsesprosessen' }));
+    await user.click(await screen.findByRole('checkbox', { name: 'Arbeidsmiljøloven § 9-3' }));
+    await skipTemplate(user);
+    await skipProfile(user);
+    await skipSettings(user);
+
+    expect(
+      screen.getByText('Rettigheter i ansettelsesprosessen, Arbeidsmiljøloven § 9-3'),
+    ).toBeVisible();
+
+    await user.click(screen.getByRole('button', { name: 'Publiser' }));
+
+    await waitFor(() => expect(push).toHaveBeenCalledWith('/browse-agents'));
+    const post = fetchMock.mock.calls.find(
+      ([url, init]) => String(url) === '/api/agents' && init?.method === 'POST',
+    );
+    const body = JSON.parse(String(post?.[1]?.body));
+    expect(body.sources).toEqual({
+      lovverk: { kind: 'legal', ids: ['builtin-legal-hiring-rights', 'legal-1'] },
+    });
+    expect(body.configuration.lovverk).toMatch(
+      /^Rettigheter i ansettelsesprosessen:\n[\s\S]*\n\nArbeidsmiljøloven § 9-3:\nIkke spør om helse\.$/,
+    );
+  });
+
   it('goes back from the last step to the settings', async () => {
     const user = await openAsInterviewer();
 
