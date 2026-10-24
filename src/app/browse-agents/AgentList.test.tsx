@@ -230,4 +230,68 @@ describe('AgentList', () => {
       screen.queryByRole('heading', { name: 'Intervjuer for Barnehageassistent' }),
     ).not.toBeInTheDocument();
   });
+
+  describe('search', () => {
+    const agents = [
+      makeAgent({ id: 'kindergarten', name: 'Intervjuer for Barnehagelærer' }),
+      makeAgent({
+        id: 'shop',
+        name: 'Butikksjef Kari',
+        stilling: 'Butikkmedarbeider',
+        bransje: 'Varehandel (privat)',
+        vanskelighetsgrad: 'krevende',
+      }),
+    ];
+
+    it('shows only the agents that match, without Ny agent and the utkast', async () => {
+      localStorage.setItem('kfi-configure-draft', draftJson);
+      fetchAgentsMock.mockResolvedValue(agents);
+      const user = userEvent.setup();
+
+      render(<AgentList />);
+
+      await user.click(await screen.findByRole('searchbox', { name: 'Søk i agenter' }));
+      await user.paste('butikk krevende');
+
+      const heading = screen.getByRole('heading', { level: 2, name: 'Intervjuer' });
+      expect(cardNames(heading.closest('section')!)).toEqual(['Butikksjef Kari']);
+      expect(screen.queryByRole('button', { name: /Ny agent/ })).not.toBeInTheDocument();
+      expect(screen.queryByText('Utkast')).not.toBeInTheDocument();
+      expect(screen.getByRole('status')).toHaveTextContent('1 agent funnet');
+    });
+
+    it('says when no agent matches, and can clear the search', async () => {
+      fetchAgentsMock.mockResolvedValue(agents);
+      const user = userEvent.setup();
+
+      render(<AgentList />);
+
+      await user.click(await screen.findByRole('searchbox', { name: 'Søk i agenter' }));
+      await user.paste('sykepleier');
+
+      expect(screen.getByText('Ingen agenter passer søket.')).toBeVisible();
+      expect(screen.queryByRole('heading', { level: 2 })).not.toBeInTheDocument();
+      expect(screen.getByRole('status')).toHaveTextContent('0 agenter funnet');
+
+      await user.click(screen.getByRole('button', { name: 'Tøm søket' }));
+
+      expect(screen.getByRole('searchbox', { name: 'Søk i agenter' })).toHaveValue('');
+      const heading = screen.getByRole('heading', { level: 2, name: 'Intervjuer' });
+      expect(cardNames(heading.closest('section')!)).toEqual([
+        'Ny agent',
+        'Intervjuer for Barnehagelærer',
+        'Butikksjef Kari',
+      ]);
+    });
+
+    it('has no search field while loading or after an error', async () => {
+      fetchAgentsMock.mockRejectedValue(new Error('Noe gikk galt. Prøv igjen.'));
+
+      render(<AgentList />);
+
+      expect(screen.queryByRole('searchbox')).not.toBeInTheDocument();
+      expect(await screen.findByText('Noe gikk galt. Prøv igjen.')).toBeVisible();
+      expect(screen.queryByRole('searchbox')).not.toBeInTheDocument();
+    });
+  });
 });
