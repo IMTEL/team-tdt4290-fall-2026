@@ -9,6 +9,8 @@ import {
   agentSummary,
   groupAgentsByType,
   searchAgents,
+  searchWords,
+  toSearchableAgents,
 } from './agentList';
 import { getAgentType } from './agentTypes/registry';
 import { toStoredDescription } from './agentTypes/storedAnswers';
@@ -149,30 +151,48 @@ describe('groupAgentsByType', () => {
   });
 });
 
+describe('searchWords', () => {
+  it('gives no words for an empty search or only spaces', () => {
+    expect(searchWords('')).toEqual([]);
+    expect(searchWords('   ')).toEqual([]);
+  });
+
+  it('splits on spaces, in lower case, with a plain hyphen for any dash', () => {
+    expect(searchWords('  Kokk   LETT ')).toEqual(['kokk', 'lett']);
+    expect(searchWords('18–24')).toEqual(['18-24']);
+  });
+});
+
 describe('searchAgents', () => {
-  // The answers behind the card fields, so the summary on the details page can be built.
-  const description = toStoredDescription(getAgentType('interviewer')!, {
+  const interviewer = getAgentType('interviewer')!;
+  /** An agent with these stored answers, so the search can read them from the description. */
+  function withAnswers(id: string, name: string, answers: Record<string, string>): Agent {
+    return makeAgent({ id, name, description: toStoredDescription(interviewer, answers) });
+  }
+
+  const shop = withAnswers('shop', 'Kari i butikken', {
     stilling: 'Butikkmedarbeider',
     bransje: 'Varehandel (privat)',
     intervjutype: 'første intervju',
-    vanskelighetsgrad: 'middels',
-    jobbsoker: 'aldersgruppe 18–24 år; arbeidserfaring: ingen arbeidserfaring',
+    vanskelighetsgrad: 'middels | Antall spørsmål: 6 | Oppfølgingsspørsmål: ja',
+    jobbsoker:
+      'aldersgruppe 18–24 år; arbeidserfaring: ingen arbeidserfaring; norsknivå: B1; ' +
+      'øvingsmål: nervøsitet, å fortelle om egne styrker, hull i CV-en; morsmål: polsk',
   });
-  const shop = makeAgent({ id: 'shop', name: 'Kari i butikken', description });
-  const kitchen = makeAgent({
-    id: 'kitchen',
-    name: 'Kokk Ola',
+  const kitchen = withAnswers('kitchen', 'Kokk Ola', {
     stilling: 'Kokk. Kokk på en restaurant i sentrum.',
     bransje: 'Reiseliv og servering',
-    vanskelighetsgrad: 'lett',
+    intervjutype: 'andre intervju',
+    vanskelighetsgrad: 'lett | Antall spørsmål: 8 | Oppfølgingsspørsmål: nei',
+    egneSporsmal: 'Hvorfor vil du jobbe i butikk?',
   });
-  const agents = [shop, kitchen];
+  const searchable = toSearchableAgents([shop, kitchen]);
 
-  const ids = (query: string) => searchAgents(agents, query).map((agent) => agent.id);
+  const ids = (query: string) =>
+    searchAgents(searchable, searchWords(query)).map((agent) => agent.id);
 
-  it('keeps every agent for an empty search or only spaces', () => {
+  it('keeps every agent when there are no words', () => {
     expect(ids('')).toEqual(['shop', 'kitchen']);
-    expect(ids('   ')).toEqual(['shop', 'kitchen']);
   });
 
   it('finds an agent by its name, in any case', () => {
@@ -183,14 +203,19 @@ describe('searchAgents', () => {
     expect(ids('butikk')).toEqual(['shop']);
   });
 
-  it('looks in the industry and the difficulty the card shows', () => {
+  it('looks in the answers: industry, interview type and difficulty level', () => {
     expect(ids('servering')).toEqual(['kitchen']);
+    expect(ids('andre')).toEqual(['kitchen']);
     expect(ids('middels')).toEqual(['shop']);
   });
 
-  it('looks in the configuration summary, also at what the card does not show', () => {
-    expect(ids('18–24')).toEqual(['shop']);
+  it('looks in the whole job seeker answer, also past what the summary shows', () => {
     expect(ids('ingen arbeidserfaring')).toEqual(['shop']);
+    expect(ids('polsk')).toEqual(['shop']);
+  });
+
+  it('finds "18-24" typed with a hyphen when the answer has a dash', () => {
+    expect(ids('18-24')).toEqual(['shop']);
   });
 
   it('keeps only the agents that have every word', () => {
@@ -198,13 +223,23 @@ describe('searchAgents', () => {
     expect(ids('kokk middels')).toEqual([]);
   });
 
-  it('handles æ, ø and å', () => {
+  it('handles æ, ø and å, also when pasted in decomposed form', () => {
     expect(ids('FØRSTE')).toEqual(['shop']);
+    expect(ids('første'.normalize('NFD'))).toEqual(['shop']);
   });
 
-  it('does not look in the system prompt', () => {
+  it('does not find the fixed words of the summary or the difficulty answer', () => {
+    expect(ids('stillingen')).toEqual([]);
+    expect(ids('bransjen')).toEqual([]);
+    expect(ids('vanskelighetsgrad')).toEqual([]);
+    expect(ids('oppfølgingsspørsmål')).toEqual([]);
+  });
+
+  it('does not look in own questions or the system prompt', () => {
+    // "butikk" is only in the kitchen agent's own question.
+    expect(ids('butikk')).toEqual(['shop']);
     const agent = makeAgent({ prompt: 'Du er en intervjuer. Hold deg til rollen.' });
-    expect(searchAgents([agent], 'rollen')).toEqual([]);
+    expect(searchAgents(toSearchableAgents([agent]), ['rollen'])).toEqual([]);
   });
 
   it('searches only the name of an agent whose description is not ours', () => {
@@ -214,11 +249,9 @@ describe('searchAgents', () => {
       description: 'Laget i RAGdoll',
       type: null,
       typeLabel: null,
-      stilling: null,
-      bransje: null,
-      vanskelighetsgrad: null,
     });
-    expect(searchAgents([other], 'ragdoll').map((agent) => agent.id)).toEqual(['other']);
-    expect(searchAgents([other], 'laget')).toEqual([]);
+    const found = (query: string) => searchAgents(toSearchableAgents([other]), searchWords(query));
+    expect(found('ragdoll')).toEqual([other]);
+    expect(found('laget')).toEqual([]);
   });
 });

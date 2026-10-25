@@ -64,41 +64,65 @@ function capitalize(text: string | null | undefined): string {
 }
 
 /**
- * All the text a search looks in, in lower case: the name, what the card shows and the summary of
- * the configuration. Not the system prompt: every agent shares its rules and words such as
- * "intervju", so a search in it would find almost every agent.
+ * The answers a search looks in: those the summary on the details page is built from, plus the
+ * company and the interviewer. Long free texts (own questions, additions, legal text) are left
+ * out, as their common words would find many agents.
  */
-export function agentSearchText(agent: Agent): string {
-  const stored = readStoredAnswers(agent.description);
+const SEARCH_FIELDS = ['stilling', 'bransje', 'bedrift', 'intervjutype', 'intervjuer', 'jobbsoker'];
+
+/** One agent and the text a search looks in. Built once per list, not once per keystroke. */
+export type SearchableAgent = { agent: Agent; text: string };
+
+/**
+ * The agents with the text a search looks in: the name, the interviewer template and the
+ * agent's own answers. Not the summary sentences or the system prompt: their fixed words (such
+ * as "stillingen" or "intervju") are in every agent, so a search in them would find them all.
+ */
+export function toSearchableAgents(agents: Agent[]): SearchableAgent[] {
+  return agents.map((agent) => ({ agent, text: agentSearchText(agent) }));
+}
+
+function agentSearchText(agent: Agent): string {
+  const answers = readStoredAnswers(agent.description)?.answers ?? {};
   const parts = [
     agent.name,
-    agent.typeLabel,
-    agent.stilling,
-    agent.bransje,
-    difficultyLevel(agent.vanskelighetsgrad),
-    agent.intervjuer,
     agent.intervjuerMal,
-    agent.intervjutype,
-    stored ? stored.definition.buildSummary(stored.answers) : '',
+    ...SEARCH_FIELDS.map((key) => answers[key]),
+    // Only the level: the rest of that answer has the same labels in every agent.
+    difficultyLevel(answers.vanskelighetsgrad),
   ];
-  return parts
-    .map((part) => part?.trim() ?? '')
-    .filter((part) => part !== '')
-    .join(' ')
-    .toLocaleLowerCase('nb');
+  return normalize(
+    parts
+      .map((part) => part?.trim() ?? '')
+      .filter((part) => part !== '')
+      .join(' '),
+  );
+}
+
+/** The words of a search. None for an empty search or one with only spaces. */
+export function searchWords(query: string): string[] {
+  return normalize(query).split(/\s+/).filter(Boolean);
 }
 
 /**
- * The agents that have every word of the search in them, in any case and as part of a longer
- * word ("butikk" finds "Butikkmedarbeider"). An empty search keeps all agents.
+ * The agents that have every word in them, in any case and as part of a longer word ("butikk"
+ * finds "Butikkmedarbeider"). No words keeps all agents.
  */
-export function searchAgents(agents: Agent[], query: string): Agent[] {
-  const words = query.toLocaleLowerCase('nb').split(/\s+/).filter(Boolean);
-  if (words.length === 0) return agents;
-  return agents.filter((agent) => {
-    const text = agentSearchText(agent);
-    return words.every((word) => text.includes(word));
-  });
+export function searchAgents(agents: SearchableAgent[], words: string[]): Agent[] {
+  return agents
+    .filter(({ text }) => words.every((word) => text.includes(word)))
+    .map(({ agent }) => agent);
+}
+
+/**
+ * Lower case, with one form for letters such as å (typed or pasted), and a plain hyphen for any
+ * dash, so "18-24" finds "18–24".
+ */
+function normalize(text: string): string {
+  return text
+    .normalize('NFC')
+    .toLocaleLowerCase('nb')
+    .replace(/[\u2010-\u2015\u2212]/g, '-');
 }
 
 /**
