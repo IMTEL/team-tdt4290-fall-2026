@@ -4,14 +4,14 @@
 
 .search {
   max-width: 480px;
-  margin-bottom: 2rem;
+  margin-bottom: var(--space-6);
 }
 
 .noMatch {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 1rem;
+  gap: var(--space-4);
 }
 
 /* Hidden visually but still read by screen readers. */

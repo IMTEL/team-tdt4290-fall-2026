@@ -2,6 +2,8 @@ import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { getAgentType } from '@/domain/agentTypes/registry';
+import { toStoredDescription } from '@/domain/agentTypes/storedAnswers';
 import type { Agent } from '@/lib/types';
 import { fetchAgents } from './api';
 import { AgentList } from './AgentList';
@@ -232,14 +234,25 @@ describe('AgentList', () => {
   });
 
   describe('search', () => {
+    // The search reads the answers from the description.
+    const interviewer = getAgentType('interviewer')!;
     const agents = [
-      makeAgent({ id: 'kindergarten', name: 'Intervjuer for Barnehagelærer' }),
+      makeAgent({
+        id: 'kindergarten',
+        name: 'Intervjuer for Barnehagelærer',
+        description: toStoredDescription(interviewer, {
+          stilling: 'Barnehagelærer',
+          vanskelighetsgrad: 'lett',
+        }),
+      }),
       makeAgent({
         id: 'shop',
         name: 'Butikksjef Kari',
-        stilling: 'Butikkmedarbeider',
-        bransje: 'Varehandel (privat)',
-        vanskelighetsgrad: 'krevende',
+        description: toStoredDescription(interviewer, {
+          stilling: 'Butikkmedarbeider',
+          bransje: 'Varehandel (privat)',
+          vanskelighetsgrad: 'krevende',
+        }),
       }),
     ];
 
@@ -275,7 +288,10 @@ describe('AgentList', () => {
 
       await user.click(screen.getByRole('button', { name: 'Tøm søket' }));
 
-      expect(screen.getByRole('searchbox', { name: 'Søk i agenter' })).toHaveValue('');
+      const search = screen.getByRole('searchbox', { name: 'Søk i agenter' });
+      expect(search).toHaveValue('');
+      // The button is gone, so focus goes back to the search field.
+      expect(search).toHaveFocus();
       const heading = screen.getByRole('heading', { level: 2, name: 'Intervjuer' });
       expect(cardNames(heading.closest('section')!)).toEqual([
         'Ny agent',

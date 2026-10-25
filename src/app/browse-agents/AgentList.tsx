@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useSyncExternalStore } from 'react';
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import SearchIcon from '@mui/icons-material/Search';
 import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
@@ -14,14 +14,25 @@ import { readWizardDraft, subscribeWizardDraft } from '@/app/configure/wizardDra
 import { AgentCardGrid, AGENT_CARD_SIZE } from '@/components/agents/AgentCardGrid';
 import { DraftAgentCard } from '@/components/agents/DraftAgentCard';
 import { NewAgentCard } from '@/components/agents/NewAgentCard';
-import { groupAgentsByType, searchAgents, type AgentSection } from '@/domain/agentList';
+import {
+  groupAgentsByType,
+  searchAgents,
+  searchWords,
+  toSearchableAgents,
+  type AgentSection,
+  type SearchableAgent,
+} from '@/domain/agentList';
 import { getAgentType } from '@/domain/agentTypes/registry';
 import type { Agent } from '@/lib/types';
 import { fetchAgents } from './api';
 import { AGENT_SAVED_FLASH, DRAFT_SAVED_FLASH, takeAgentsFlash } from './flash';
 import styles from './AgentList.module.css';
 
-type ListState = { kind: 'loading' } | { kind: 'ready'; agents: Agent[] } | { kind: 'error' };
+// The search text is built once, when the list arrives, not on every keystroke.
+type ListState =
+  | { kind: 'loading' }
+  | { kind: 'ready'; agents: Agent[]; searchable: SearchableAgent[] }
+  | { kind: 'error' };
 
 /** True after hydration, so browser storage can be read without a server/client HTML mismatch. */
 function useIsClient() {
@@ -65,13 +76,14 @@ export function AgentList() {
   const [toast, setToast] = useState<string | null>(null);
   const [flashSeen, setFlashSeen] = useState(false);
   const [query, setQuery] = useState('');
+  const searchField = useRef<HTMLInputElement>(null);
   const draft = useSyncExternalStore(subscribeWizardDraft, readWizardDraft, () => null);
 
   useEffect(() => {
     let cancelled = false;
     fetchAgents()
       .then((agents) => {
-        if (!cancelled) setState({ kind: 'ready', agents });
+        if (!cancelled) setState({ kind: 'ready', agents, searchable: toSearchableAgents(agents) });
       })
       .catch(() => {
         if (!cancelled) setState({ kind: 'error' });
@@ -94,8 +106,9 @@ export function AgentList() {
   } else if (state.kind === 'error') {
     body = <Alert severity="error">Noe gikk galt. Prøv igjen.</Alert>;
   } else {
-    const searching = query.trim() !== '';
-    const found = searchAgents(state.agents, query);
+    const words = searchWords(query);
+    const searching = words.length > 0;
+    const found = searching ? searchAgents(state.searchable, words) : state.agents;
     const sections = searching ? groupAgentsByType(found) : sectionsWithNewAgent(found);
     const starterCards = (
       <>
@@ -118,6 +131,7 @@ export function AgentList() {
             label="Søk i agenter"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
+            inputRef={searchField}
             fullWidth
             slotProps={{
               input: {
@@ -138,7 +152,14 @@ export function AgentList() {
           <div className={styles.noMatch}>
             {/* English translation: No agents match the search. */}
             <Typography>Ingen agenter passer søket.</Typography>
-            <Button variant="outlined" onClick={() => setQuery('')}>
+            <Button
+              variant="outlined"
+              onClick={() => {
+                setQuery('');
+                // The button goes away with the message, so focus goes back to the search.
+                searchField.current?.focus();
+              }}
+            >
               {/* English translation: Clear the search */}
               Tøm søket
             </Button>
