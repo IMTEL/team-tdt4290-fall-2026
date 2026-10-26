@@ -94,6 +94,13 @@ export function TemplatePicker({
     );
   }
 
+  const list = (
+    <ul className={styles.grid}>
+      {templates.map((template) => card(template, false))}
+      {savedTemplates.map((template) => card(template, true))}
+    </ul>
+  );
+
   return (
     <section aria-labelledby="template-picker-heading" className={styles.picker}>
       {!embedded && (
@@ -118,14 +125,14 @@ export function TemplatePicker({
       </h2>
       <p className={styles.lead}>{lead}</p>
 
-      <ul
-        className={styles.grid}
-        role={asRadios ? 'radiogroup' : undefined}
-        aria-labelledby="template-picker-heading"
-      >
-        {templates.map((template) => card(template, false))}
-        {savedTemplates.map((template) => card(template, true))}
-      </ul>
+      {asRadios ? (
+        // The group is around the list, so the cards are still a list and also radios.
+        <div role="radiogroup" aria-labelledby="template-picker-heading">
+          {list}
+        </div>
+      ) : (
+        list
+      )}
     </section>
   );
 }

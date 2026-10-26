@@ -30,50 +30,61 @@ export function MessageList({
   answersDisabled = false,
   parseReply,
 }: MessageListProps) {
-  const listRef = useRef<HTMLOListElement>(null);
+  const logRef = useRef<HTMLDivElement>(null);
 
   // Keep the newest message (or the typing bubble) in view.
   useEffect(() => {
-    const list = listRef.current;
-    if (list) list.scrollTop = list.scrollHeight;
+    const log = logRef.current;
+    if (log) log.scrollTop = log.scrollHeight;
   }, [messages.length, isTyping]);
 
   const last = messages.at(-1);
 
   return (
-    <ol ref={listRef} role="log" aria-live="polite" aria-label="Samtale" className={styles.list}>
-      {messages.map((m) => {
-        const reply = m.role === 'assistant' && parseReply ? parseReply(m.content) : null;
-        // Only the newest question can be answered by clicking; older options are just text.
-        const answer = m === last && !isTyping ? onAnswer : undefined;
-        const options = answer ? reply?.options : null;
+    // The log scrolls, so it takes keyboard focus to be scrolled with the arrow keys. The list
+    // inside keeps its list semantics, which role="log" on the <ol> itself would take away.
+    <div
+      ref={logRef}
+      role="log"
+      aria-live="polite"
+      aria-label="Samtale"
+      tabIndex={0}
+      className={styles.log}
+    >
+      <ol className={styles.list}>
+        {messages.map((m) => {
+          const reply = m.role === 'assistant' && parseReply ? parseReply(m.content) : null;
+          // Only the newest question can be answered by clicking; older options are just text.
+          const answer = m === last && !isTyping ? onAnswer : undefined;
+          const options = answer ? reply?.options : null;
 
-        return (
-          <Fragment key={m.id}>
-            <li data-role={m.role} className={styles.message}>
-              {/* Who is speaking, for users who can't rely on colour or position. */}
-              <span className={styles.srOnly}>{m.role === 'user' ? 'Du:' : 'Assistent:'}</span>
-              {reply ? (options ? reply.text : asText(reply)) : m.content}
-            </li>
-            {answer && options && (
-              <li className={styles.options}>
-                <QuestionOptions options={options} onAnswer={answer} disabled={answersDisabled} />
+          return (
+            <Fragment key={m.id}>
+              <li data-role={m.role} className={styles.message}>
+                {/* Who is speaking, for users who can't rely on colour or position. */}
+                <span className={styles.srOnly}>{m.role === 'user' ? 'Du:' : 'Assistent:'}</span>
+                {reply ? (options ? reply.text : asText(reply)) : m.content}
               </li>
-            )}
-          </Fragment>
-        );
-      })}
-      {isTyping && (
-        <li data-role="assistant" className={cn(styles.message, styles.typing)}>
-          <span className={styles.srOnly}>Assistenten skriver …</span>
-          <span className={styles.dots} aria-hidden="true">
-            <span />
-            <span />
-            <span />
-          </span>
-        </li>
-      )}
-    </ol>
+              {answer && options && (
+                <li className={styles.options}>
+                  <QuestionOptions options={options} onAnswer={answer} disabled={answersDisabled} />
+                </li>
+              )}
+            </Fragment>
+          );
+        })}
+        {isTyping && (
+          <li data-role="assistant" className={cn(styles.message, styles.typing)}>
+            <span className={styles.srOnly}>Assistenten skriver …</span>
+            <span className={styles.dots} aria-hidden="true">
+              <span />
+              <span />
+              <span />
+            </span>
+          </li>
+        )}
+      </ol>
+    </div>
   );
 }
 

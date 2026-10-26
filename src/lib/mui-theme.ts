@@ -12,8 +12,15 @@ const tokens = {
   background: '#F1FAEE',
   foreground: '#1D3557',
   secondaryAccent: '#A8DADC', // secondary/accent, light mode
-  destructive: '#E63946',
+  // Darker and lighter than the brand red #E63946, which is below 4.5:1 for text on both themes.
+  destructive: '#C92A37', // 5.1:1 on the light background
+  destructiveDark: '#FF7A82', // 4.9:1 on the dark background and cards
   ringSecondaryDarkChart3: '#457B9D',
+  // A shade darker than #457B9D, so light text on it reaches 4.5:1 (it was 4.3:1).
+  secondaryDark: '#3F7293',
+  // Hover on the dark theme's primary. MUI's own darker shade of #A8DADC gives 3.95:1 with the
+  // dark text on contained buttons; this gives 6.4:1.
+  primaryHoverDark: '#8CC4C6',
 
   // approximated from oklch, no hex comment in source
   muted: '#C8E9E8',
@@ -60,6 +67,20 @@ const themeOptions: ThemeOptions = {
         },
       ],
     },
+    // MUI's defaults for these are a faded grey below 4.5:1 against our backgrounds.
+    MuiToggleButton: {
+      styleOverrides: {
+        root: ({ theme }) => ({ color: theme.vars.palette.text.secondary }),
+      },
+    },
+    // The helper text of a disabled field still says something, such as why it is locked.
+    MuiFormHelperText: {
+      styleOverrides: {
+        root: ({ theme }) => ({
+          '&.Mui-disabled': { color: theme.vars.palette.text.secondary },
+        }),
+      },
+    },
   },
   colorSchemes: {
     light: {
@@ -73,7 +94,8 @@ const themeOptions: ThemeOptions = {
           contrastText: tokens.foreground,
         },
         error: {
-          main: tokens.destructive,
+          main: tokens.destructive, // #C92A37
+          contrastText: '#FFFFFF',
         },
         background: {
           default: tokens.background,
@@ -90,14 +112,16 @@ const themeOptions: ThemeOptions = {
       palette: {
         primary: {
           main: tokens.secondaryAccent, // #A8DADC, swaps role in dark mode
+          dark: tokens.primaryHoverDark,
           contrastText: tokens.foreground,
         },
         secondary: {
-          main: tokens.ringSecondaryDarkChart3, // #457B9D
+          main: tokens.secondaryDark, // #3F7293
           contrastText: tokens.background,
         },
         error: {
-          main: tokens.destructive,
+          main: tokens.destructiveDark, // #FF7A82
+          contrastText: tokens.foreground,
         },
         background: {
           default: tokens.foreground, // #1D3557

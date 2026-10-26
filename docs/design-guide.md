@@ -30,3 +30,20 @@ A size that only one component needs, such as the width of a field, goes in a na
 property at the top of that component's CSS module, not as a bare number further down.
 Media queries can't read CSS variables, so they use MUI's breakpoints (`sm` is 600px) with a
 comment.
+
+## Colours and contrast
+
+Text must have a contrast of at least 4.5:1 against its background (WCAG 2.1 AA, required by
+universell utforming), in both themes. The accessibility e2e tests
+([`docs/e2e-testing.md`](e2e-testing.md#accessibility)) fail when it doesn't.
+
+Two brand colours are too weak for text, so the app uses a shade of them instead:
+
+| Use                                                 | Brand     | Light theme | Dark theme |
+| --------------------------------------------------- | --------- | ----------- | ---------- |
+| Error and delete (`--destructive`, MUI `error`)     | `#E63946` | `#C92A37`   | `#FF7A82`  |
+| Secondary and accent in dark (`--secondary`, chips) | `#457B9D` | unchanged   | `#3F7293`  |
+
+In the dark theme the delete button has dark text (`#1D3557`) on the light red. Before you add or
+change a colour, check its contrast, for example with the
+[WebAIM contrast checker](https://webaim.org/resources/contrastchecker/).
