@@ -4,6 +4,11 @@ import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
+import Dialog from '@mui/material/Dialog';
+import DialogActions from '@mui/material/DialogActions';
+import DialogContent from '@mui/material/DialogContent';
+import DialogContentText from '@mui/material/DialogContentText';
+import DialogTitle from '@mui/material/DialogTitle';
 import Typography from '@mui/material/Typography';
 
 import { fetchAgents } from '@/app/browse-agents/api';
@@ -31,7 +36,13 @@ export function TestChat({ agentId }: { agentId: string }) {
   // A new key mounts a fresh AgentChat: the conversation goes back to the greeting, and a reply
   // still on its way is cancelled (AgentChat aborts it when it unmounts).
   const [round, setRound] = useState(0);
+  const [confirmReset, setConfirmReset] = useState(false);
   const [lookup, setLookup] = useState<Lookup | null>(null);
+
+  function startOver() {
+    setConfirmReset(false);
+    setRound((r) => r + 1);
+  }
 
   // Only the counsellor's own agents can be tested. The list has only theirs, so an id that is not
   // in it is either deleted, never existed, or belongs to someone else. Same check as AgentDetail.
@@ -82,7 +93,7 @@ export function TestChat({ agentId }: { agentId: string }) {
   return (
     <div className={styles.testChat}>
       <div className={styles.toolbar}>
-        <Button variant="outlined" size="small" onClick={() => setRound((r) => r + 1)}>
+        <Button variant="outlined" size="small" onClick={() => setConfirmReset(true)}>
           Start på nytt
         </Button>
       </div>
@@ -92,6 +103,21 @@ export function TestChat({ agentId }: { agentId: string }) {
         send={askInterviewer}
         initialMessages={initialMessages}
       />
+
+      <Dialog open={confirmReset} onClose={() => setConfirmReset(false)}>
+        <DialogTitle>Starte testen på nytt?</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Samtalen du er i forsvinner hvis du starter på nytt.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setConfirmReset(false)}>Avbryt</Button>
+          <Button variant="contained" onClick={startOver}>
+            Start på nytt
+          </Button>
+        </DialogActions>
+      </Dialog>
     </div>
   );
 }
