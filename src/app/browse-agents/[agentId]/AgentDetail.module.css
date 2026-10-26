@@ -18,6 +18,10 @@
   margin-bottom: 1.5rem;
 }
 
+.notice {
+  margin-bottom: 1.5rem;
+}
+
 .summaryLabel {
   color: var(--muted-foreground);
 }

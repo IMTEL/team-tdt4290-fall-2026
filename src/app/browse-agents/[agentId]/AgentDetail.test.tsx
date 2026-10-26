@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { fetchAgents } from '../api';
+import { setAgentHiddenFlash } from '../flash';
 import { AgentDetail } from './AgentDetail';
 
 const notFound = vi.hoisted(() => vi.fn());
@@ -43,6 +44,33 @@ describe('AgentDetail', () => {
   afterEach(() => {
     fetchAgentsMock.mockReset();
     notFound.mockClear();
+    sessionStorage.clear();
+  });
+
+  it('says once that the agent was hidden from The Candidate because it was edited', async () => {
+    fetchAgentsMock.mockResolvedValue([agent]);
+    setAgentHiddenFlash('agent-1');
+
+    const { unmount } = render(<AgentDetail agentId="agent-1" />);
+
+    expect(
+      await screen.findByText(/Agenten er gjemt fra The Candidate fordi den ble endret/),
+    ).toBeVisible();
+    unmount();
+
+    render(<AgentDetail agentId="agent-1" />);
+    await screen.findByRole('heading', { name: agent.name });
+    expect(screen.queryByText(/fordi den ble endret/)).not.toBeInTheDocument();
+  });
+
+  it('does not show the note on another agent’s page', async () => {
+    fetchAgentsMock.mockResolvedValue([agent]);
+    setAgentHiddenFlash('agent-2');
+
+    render(<AgentDetail agentId="agent-1" />);
+
+    await screen.findByRole('heading', { name: agent.name });
+    expect(screen.queryByText(/fordi den ble endret/)).not.toBeInTheDocument();
   });
 
   it('opens on the configuration tab', async () => {

@@ -147,6 +147,7 @@ describe('updateAgent', () => {
   it.each([
     [401, 'Du er logget ut. Logg inn på nytt og prøv igjen.'],
     [400, 'Endringene ble ikke godtatt. Sjekk feltene og prøv igjen.'],
+    [403, 'Bare eieren kan endre en publisert agent.'],
     [404, 'Fant ikke agenten. Den kan ha blitt slettet.'],
     [504, 'Det tok for lang tid å få svar. Prøv igjen.'],
     [502, 'Noe gikk galt. Prøv igjen.'],

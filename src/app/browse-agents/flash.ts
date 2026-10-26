@@ -12,6 +12,28 @@ export function setAgentsFlash(message: string) {
   }
 }
 
+/** One-shot note for an agent's page: it was hidden from The Candidate because it was edited. */
+const HIDDEN_KEY = 'kfi-agent-hidden';
+
+export function setAgentHiddenFlash(agentId: string) {
+  try {
+    sessionStorage.setItem(HIDDEN_KEY, agentId);
+  } catch {
+    // Private mode or full storage — skip the note; the agent is hidden all the same.
+  }
+}
+
+/** True once, on the page of the agent that was just hidden, and clears the note. */
+export function takeAgentHiddenFlash(agentId: string): boolean {
+  try {
+    if (sessionStorage.getItem(HIDDEN_KEY) !== agentId) return false;
+    sessionStorage.removeItem(HIDDEN_KEY);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 /** Reads and clears a flash message, or null if there is none. */
 export function takeAgentsFlash(): string | null {
   try {

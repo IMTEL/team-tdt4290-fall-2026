@@ -24,6 +24,7 @@ import { readStoredAnswers } from '@/domain/agentTypes/storedAnswers';
 import { formatDate } from '@/lib/format';
 
 import type { Publication } from '../api';
+import { takeAgentHiddenFlash } from '../flash';
 import { useAgent } from '../useAgent';
 import styles from './AgentDetail.module.css';
 
@@ -42,6 +43,9 @@ export function AgentDetail({ agentId }: { agentId: string }) {
   const [copyMessageOpen, setCopyMessageOpen] = useState(false);
   // Set after publishing or hiding, so the page shows the change without loading the agent again.
   const [changedPublication, setChangedPublication] = useState<Publication | null>(null);
+  // Set when the agent was just hidden from The Candidate because it was edited.
+  const [hiddenByEdit, setHiddenByEdit] = useState(false);
+  const [hiddenFlashSeen, setHiddenFlashSeen] = useState(false);
 
   if (state.kind === 'missing') notFound();
 
@@ -56,6 +60,13 @@ export function AgentDetail({ agentId }: { agentId: string }) {
   if (state.kind !== 'ready') return null;
 
   const { agent } = state;
+
+  // One-shot note from the edit page. The agent is loaded in the browser, so this runs there.
+  if (!hiddenFlashSeen) {
+    setHiddenFlashSeen(true);
+    if (takeAgentHiddenFlash(agent.id)) setHiddenByEdit(true);
+  }
+
   const agentPath = `/browse-agents/${encodeURIComponent(agent.id)}`;
   // Knows the old and the new way of storing answers, and works for every agent type.
   const stored = readStoredAnswers(agent.description);
@@ -140,6 +151,16 @@ export function AgentDetail({ agentId }: { agentId: string }) {
           </Typography>
           <Typography variant="body1">{summary}</Typography>
         </Paper>
+      )}
+
+      {/* Gone once the counsellor publishes the agent again. */}
+      {hiddenByEdit && !publication.isPublished && (
+        <div className={styles.notice}>
+          <Alert severity="info">
+            Agenten er gjemt fra The Candidate fordi den ble endret. Test den, og publiser den på
+            nytt når du er fornøyd.
+          </Alert>
+        </div>
       )}
 
       {/* Above the tabs, so the actions are seen whichever tab is open. */}

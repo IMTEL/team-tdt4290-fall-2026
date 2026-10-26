@@ -70,6 +70,12 @@ function saveErrorMessage(status: number): string {
   return GENERIC_ERROR;
 }
 
+/** The Norwegian message for a failed edit. Never the server's own text. */
+function editErrorMessage(status: number): string {
+  if (status === 403) return 'Bare eieren kan endre en publisert agent.';
+  return saveErrorMessage(status);
+}
+
 /**
  * Calls one of our agent routes. Throws Error with a Norwegian message if the server can't be
  * reached, or with `errorMessage(status)` if it answers with an error.
@@ -112,6 +118,7 @@ export async function updateAgent(
   const res = await send(
     agentUrl(id),
     withJson('PUT', { name, answers, sources, advanced, avatar }),
+    editErrorMessage,
   );
 
   const data = await res.json().catch(() => null);

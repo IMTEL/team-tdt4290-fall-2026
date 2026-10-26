@@ -13,6 +13,7 @@ import {
   isAgentOwner,
   listLanguageModels,
   RagdollError,
+  unpublishAgent,
   updateAgent,
 } from '@/server/ragdoll';
 import { DELETE, PUT } from './route';
@@ -29,6 +30,7 @@ vi.mock('@/server/ragdoll', async (importOriginal) => {
     isAgentOwner: vi.fn(),
     deleteAgent: vi.fn(),
     listLanguageModels: vi.fn(),
+    unpublishAgent: vi.fn(),
   };
 });
 
@@ -38,6 +40,7 @@ const updateAgentMock = vi.mocked(updateAgent);
 const isAgentOwnerMock = vi.mocked(isAgentOwner);
 const deleteAgentMock = vi.mocked(deleteAgent);
 const listLanguageModelsMock = vi.mocked(listLanguageModels);
+const unpublishAgentMock = vi.mocked(unpublishAgent);
 
 const answers = {
   stilling: 'Butikkmedarbeider',
@@ -86,6 +89,11 @@ beforeEach(() => {
   vi.stubEnv('IDUN_API_KEY', 'idun-key');
   isAgentOwnerMock.mockResolvedValue(true);
   deleteAgentMock.mockResolvedValue(undefined);
+  unpublishAgentMock.mockResolvedValue({
+    isPublished: false,
+    publicName: 'Kari',
+    publicDescription: '',
+  });
   // The route logs problems on purpose; keep the test output clean.
   vi.spyOn(console, 'error').mockImplementation(() => {});
 });
@@ -99,6 +107,7 @@ afterEach(() => {
   updateAgentMock.mockReset();
   isAgentOwnerMock.mockReset();
   deleteAgentMock.mockReset();
+  unpublishAgentMock.mockReset();
 });
 
 describe('PUT /api/agents/[agentId]', () => {
@@ -293,6 +302,56 @@ describe('PUT /api/agents/[agentId]', () => {
 
     expect(res.status).toBe(400);
     expect(updateAgentMock).not.toHaveBeenCalled();
+  });
+
+  describe('a published agent', () => {
+    beforeEach(() => {
+      fetchFullAgentMock.mockResolvedValue({ ...existing, is_published: true });
+    });
+
+    it('is hidden from The Candidate before the change is saved', async () => {
+      const res = await PUT(putRequest({ name: 'Nytt navn', answers: newAnswers }), params);
+
+      expect(res.status).toBe(200);
+      expect(unpublishAgentMock).toHaveBeenCalledWith('session-token', 'agent-1');
+      expect(unpublishAgentMock.mock.invocationCallOrder[0]).toBeLessThan(
+        updateAgentMock.mock.invocationCallOrder[0],
+      );
+    });
+
+    it('answers 403 and changes nothing when the user only collaborates on it', async () => {
+      isAgentOwnerMock.mockResolvedValue(false);
+
+      const res = await PUT(putRequest({ name: 'Nytt navn', answers: newAnswers }), params);
+
+      expect(res.status).toBe(403);
+      expect(unpublishAgentMock).not.toHaveBeenCalled();
+      expect(updateAgentMock).not.toHaveBeenCalled();
+    });
+
+    it('stays published when the change is not valid', async () => {
+      const res = await PUT(putRequest({ name: 'Nytt navn', answers: {} }), params);
+
+      expect(res.status).toBe(400);
+      expect(unpublishAgentMock).not.toHaveBeenCalled();
+    });
+
+    it('stays hidden and unchanged when hiding works but saving fails', async () => {
+      updateAgentMock.mockRejectedValue(new RagdollError('unreachable', 'RAGdoll is down'));
+
+      const res = await PUT(putRequest({ name: 'Nytt navn', answers: newAnswers }), params);
+
+      expect(res.status).toBe(502);
+      expect(unpublishAgentMock).toHaveBeenCalled();
+    });
+  });
+
+  it('does not hide or check the owner of an agent that is not published', async () => {
+    const res = await PUT(putRequest({ name: 'Nytt navn', answers: newAnswers }), params);
+
+    expect(res.status).toBe(200);
+    expect(isAgentOwnerMock).not.toHaveBeenCalled();
+    expect(unpublishAgentMock).not.toHaveBeenCalled();
   });
 });
 
