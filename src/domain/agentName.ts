@@ -1,5 +1,5 @@
-/** The longest name a counsellor can give an agent. */
-export const MAX_NAME_LENGTH = 100;
+/** The longest name a counsellor can give an agent. RAGdoll's public_name has the same limit. */
+export const MAX_NAME_LENGTH = 80;
 
 /** The name without spaces at the ends, or null if it is empty, too long or not text. */
 export function cleanName(value: unknown): string | null {

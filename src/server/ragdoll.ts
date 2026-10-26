@@ -91,7 +91,7 @@ async function askAt(
   return reply;
 }
 
-/** A role in a RAGdoll agent. The Candidate shows each role as an interviewer. */
+/** A role in a RAGdoll agent. The Candidate chats with a published agent through its role. */
 export type RagdollRole = {
   name: string;
   description: string;
@@ -132,6 +132,18 @@ export type RagdollAgentSummary = {
   /** Null for agents that RAGdoll returns without one. */
   temperature: number | null;
   prompt: string;
+  /** Whether The Candidate lists the agent. Optional so older summaries still fit. */
+  isPublished?: boolean;
+  /** The name and short description The Candidate shows. Kept when the agent is hidden. */
+  publicName?: string;
+  publicDescription?: string;
+};
+
+/** Whether an agent is published to The Candidate, and what The Candidate shows of it. */
+export type PublicationStatus = {
+  isPublished: boolean;
+  publicName: string;
+  publicDescription: string;
 };
 
 /** Creates an agent owned by the logged-in user and returns its new id. */
@@ -268,6 +280,33 @@ export async function isAgentOwner(sessionToken: string, agentId: string): Promi
     throw new RagdollError('bad-response', 'RAGdoll did not say who owns the agent');
   }
   return data.is_owner;
+}
+
+/**
+ * Publishes one of the logged-in user's own agents to The Candidate, with the name and short
+ * description the app's users see. Throws RagdollError.
+ */
+export async function publishAgent(
+  sessionToken: string,
+  agentId: string,
+  publicName: string,
+  publicDescription: string,
+): Promise<PublicationStatus> {
+  const path = `/agents/${encodeURIComponent(agentId)}/publish`;
+  const data = await requestAsUser(sessionToken, path, {
+    method: 'POST',
+    body: JSON.stringify({ public_name: publicName, public_description: publicDescription }),
+  });
+  return toPublicationStatus(data);
+}
+
+/** Hides one of the logged-in user's own agents from The Candidate. Throws RagdollError. */
+export async function unpublishAgent(
+  sessionToken: string,
+  agentId: string,
+): Promise<PublicationStatus> {
+  const path = `/agents/${encodeURIComponent(agentId)}/unpublish`;
+  return toPublicationStatus(await requestAsUser(sessionToken, path, { method: 'POST' }));
 }
 
 /** Deletes one of the logged-in user's own agents */
@@ -590,6 +629,26 @@ function toSummary(agent: Record<string, unknown>): RagdollAgentSummary {
     llmModel: typeof agent.llm_model === 'string' ? agent.llm_model : '',
     temperature: typeof agent.llm_temperature === 'number' ? agent.llm_temperature : null,
     prompt: typeof agent.prompt === 'string' ? agent.prompt : '',
+    // Agents saved before RAGdoll had these fields come without them.
+    isPublished: agent.is_published === true,
+    publicName: typeof agent.public_name === 'string' ? agent.public_name : '',
+    publicDescription: typeof agent.public_description === 'string' ? agent.public_description : '',
+  };
+}
+
+function toPublicationStatus(data: unknown): PublicationStatus {
+  if (
+    !isObject(data) ||
+    typeof data.is_published !== 'boolean' ||
+    typeof data.public_name !== 'string' ||
+    typeof data.public_description !== 'string'
+  ) {
+    throw new RagdollError('bad-response', 'RAGdoll did not return a publication status');
+  }
+  return {
+    isPublished: data.is_published,
+    publicName: data.public_name,
+    publicDescription: data.public_description,
   };
 }
 

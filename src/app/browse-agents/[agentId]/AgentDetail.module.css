@@ -59,7 +59,7 @@
   margin-top: 0.25rem;
 }
 
-/* Test, edit, clone and delete. They wrap to a new line on narrow screens. */
+/* Test, edit, clone, publish and delete. They wrap to a new line on narrow screens. */
 .actions {
   display: flex;
   flex-wrap: wrap;

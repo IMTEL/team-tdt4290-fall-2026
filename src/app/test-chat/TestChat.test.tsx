@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -109,13 +109,35 @@ describe('TestChat', () => {
   });
 
   it('goes back to the greeting when starting over', async () => {
+  it('asks before starting over, and keeps the chat if cancelled', async () => {
     sendMock.mockResolvedValue('Hva i CV-en din er relevant for stillingen?');
     const { user, box } = await setup();
     await user.type(box(), 'Jeg har jobbet i butikk i fem år.{Enter}');
     await screen.findByText('Hva i CV-en din er relevant for stillingen?');
 
     await user.click(screen.getByRole('button', { name: 'Start på nytt' }));
+    const dialog = screen.getByRole('dialog');
+    expect(dialog).toHaveTextContent('Samtalen du er i forsvinner');
 
+    await user.click(within(dialog).getByRole('button', { name: 'Avbryt' }));
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    expect(screen.getByText('Jeg har jobbet i butikk i fem år.')).toBeInTheDocument();
+    expect(screen.getByText('Hva i CV-en din er relevant for stillingen?')).toBeInTheDocument();
+  });
+
+  it('goes back to the greeting when starting over is confirmed', async () => {
+    sendMock.mockResolvedValue('Hva i CV-en din er relevant for stillingen?');
+    const { user, box } = await setup();
+    await user.type(box(), 'Jeg har jobbet i butikk i fem år.{Enter}');
+    await screen.findByText('Hva i CV-en din er relevant for stillingen?');
+
+    await user.click(screen.getByRole('button', { name: 'Start på nytt' }));
+    await user.click(
+      within(screen.getByRole('dialog')).getByRole('button', { name: 'Start på nytt' }),
+    );
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
     expect(screen.getByText(/fortelle litt om deg selv\?/)).toBeInTheDocument();
     expect(screen.queryByText('Jeg har jobbet i butikk i fem år.')).not.toBeInTheDocument();
     expect(
@@ -124,13 +146,16 @@ describe('TestChat', () => {
     expect(box()).toBeEnabled();
   });
 
-  it('cancels a reply still on its way when starting over', async () => {
+  it('cancels a reply still on its way when starting over is confirmed', async () => {
     sendMock.mockReturnValue(new Promise(() => {}));
     const { user, box } = await setup();
     await user.type(box(), 'Hei{Enter}');
     const signal = sendMock.mock.calls[0][2];
 
     await user.click(screen.getByRole('button', { name: 'Start på nytt' }));
+    await user.click(
+      within(screen.getByRole('dialog')).getByRole('button', { name: 'Start på nytt' }),
+    );
 
     expect(signal?.aborted).toBe(true);
     expect(screen.queryByText('Assistenten skriver …')).not.toBeInTheDocument();

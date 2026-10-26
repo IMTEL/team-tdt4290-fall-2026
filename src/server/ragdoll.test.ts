@@ -24,9 +24,11 @@ import {
   listFeedback,
   listLanguageModels,
   listTemplates,
+  publishAgent,
   RagdollError,
   saveAgent,
   saveUserSettings,
+  unpublishAgent,
   updateAgent,
   updateTemplate,
   type NewRagdollAgent,
@@ -299,9 +301,34 @@ describe('listAgents', () => {
         llmModel: 'openai/gpt-oss-120b',
         temperature: 0.7,
         prompt: 'Du er en intervjuer.',
+        isPublished: false,
+        publicName: '',
+        publicDescription: '',
       },
     ]);
     expect(JSON.stringify(agents)).not.toContain('idun-key');
+  });
+
+  it('passes on whether the agent is published to The Candidate', async () => {
+    fetchMock.mockResolvedValue(
+      Response.json([
+        {
+          ...newAgent,
+          id: 'agent-1',
+          is_published: true,
+          public_name: 'Kari',
+          public_description: 'Øv på intervju',
+        },
+      ]),
+    );
+
+    const [summary] = await listAgents(SESSION_TOKEN);
+
+    expect(summary).toMatchObject({
+      isPublished: true,
+      publicName: 'Kari',
+      publicDescription: 'Øv på intervju',
+    });
   });
 
   it('throws a bad-response error when RAGdoll does not return a list', async () => {
@@ -465,6 +492,9 @@ describe('updateAgent', () => {
       llmModel: 'openai/gpt-oss-120b',
       temperature: 0.2,
       prompt: 'Du er en intervjuer.',
+      isPublished: false,
+      publicName: '',
+      publicDescription: '',
     });
     expect(JSON.stringify(saved)).not.toContain('idun-key');
   });
@@ -473,6 +503,65 @@ describe('updateAgent', () => {
     fetchMock.mockResolvedValue(Response.json({ name: 'Butikksjef' }));
 
     await expect(updateAgent(SESSION_TOKEN, existing)).rejects.toMatchObject({
+      kind: 'bad-response',
+    });
+  });
+});
+
+describe('publishAgent and unpublishAgent', () => {
+  const fetchMock = vi.fn<typeof fetch>();
+  const status = {
+    is_published: true,
+    public_name: 'Kari',
+    public_description: 'Øv på intervju',
+    published_at: '2026-10-21T10:00:00+00:00',
+  };
+
+  beforeEach(() => {
+    vi.stubEnv('BACKEND_API_URL', BACKEND_URL);
+    vi.stubGlobal('fetch', fetchMock);
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.unstubAllGlobals();
+    fetchMock.mockReset();
+  });
+
+  it('publishes with the name and description', async () => {
+    fetchMock.mockResolvedValue(Response.json(status));
+
+    const publication = await publishAgent(SESSION_TOKEN, 'agent-1', 'Kari', 'Øv på intervju');
+
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toBe(`${BACKEND_URL}/agents/agent-1/publish`);
+    expect(init?.method).toBe('POST');
+    expect(JSON.parse(init?.body as string)).toEqual({
+      public_name: 'Kari',
+      public_description: 'Øv på intervju',
+    });
+    expect(publication).toEqual({
+      isPublished: true,
+      publicName: 'Kari',
+      publicDescription: 'Øv på intervju',
+    });
+  });
+
+  it('hides the agent', async () => {
+    fetchMock.mockResolvedValue(Response.json({ ...status, is_published: false }));
+
+    const publication = await unpublishAgent(SESSION_TOKEN, 'agent-1');
+
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toBe(`${BACKEND_URL}/agents/agent-1/unpublish`);
+    expect(init?.method).toBe('POST');
+    expect(publication.isPublished).toBe(false);
+  });
+
+  it('throws a bad-response error when RAGdoll does not return a status', async () => {
+    fetchMock.mockResolvedValue(Response.json({ detail: 'oops' }));
+
+    await expect(unpublishAgent(SESSION_TOKEN, 'agent-1')).rejects.toMatchObject({
       kind: 'bad-response',
     });
   });
