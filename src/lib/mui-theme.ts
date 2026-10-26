@@ -21,6 +21,9 @@ const tokens = {
   // Hover on the dark theme's primary. MUI's own darker shade of #A8DADC gives 3.95:1 with the
   // dark text on contained buttons; this gives 6.4:1.
   primaryHoverDark: '#8CC4C6',
+  // Hover on the dark theme's error. MUI's own darker shade of #FF7A82 gives 2.56:1 with the dark
+  // text on contained buttons; a lighter one gives 5.9:1.
+  destructiveHoverDark: '#FF959B',
 
   // approximated from oklch, no hex comment in source
   muted: '#C8E9E8',
@@ -121,6 +124,7 @@ const themeOptions: ThemeOptions = {
         },
         error: {
           main: tokens.destructiveDark, // #FF7A82
+          dark: tokens.destructiveHoverDark,
           contrastText: tokens.foreground,
         },
         background: {
