@@ -43,13 +43,11 @@ describe('MessageList', () => {
     expect(renderReplyActions).not.toHaveBeenCalledWith(messages[1], expect.anything());
   });
 
-  it('keeps the reply actions out of the message count and out of the live log', () => {
+  it('keeps the reply actions out of the live log', () => {
     render(
       <MessageList messages={messages} renderReplyActions={() => <span>Vurder svaret</span>} />,
     );
 
-    const log = screen.getByRole('log', { name: 'Samtale' });
-    expect(within(log).getAllByRole('listitem')).toHaveLength(messages.length);
     expect(screen.getByText('Vurder svaret').closest('[aria-live]')).toHaveAttribute(
       'aria-live',
       'off',

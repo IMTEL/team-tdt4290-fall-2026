@@ -36,62 +36,73 @@ export function MessageList({
   parseReply,
   renderReplyActions,
 }: MessageListProps) {
-  const listRef = useRef<HTMLOListElement>(null);
+  const logRef = useRef<HTMLDivElement>(null);
 
   // Keep the newest message (or the typing bubble) in view.
   useEffect(() => {
-    const list = listRef.current;
-    if (list) list.scrollTop = list.scrollHeight;
+    const log = logRef.current;
+    if (log) log.scrollTop = log.scrollHeight;
   }, [messages.length, isTyping]);
 
   const last = messages.at(-1);
 
   return (
-    <ol ref={listRef} role="log" aria-live="polite" aria-label="Samtale" className={styles.list}>
-      {messages.map((m, index) => {
-        const reply = m.role === 'assistant' && parseReply ? parseReply(m.content) : null;
-        // Only the newest question can be answered by clicking; older options are just text.
-        const answer = m === last && !isTyping ? onAnswer : undefined;
-        const options = answer ? reply?.options : null;
-        const previous = messages[index - 1];
-        const actions =
-          m.role === 'assistant' && renderReplyActions
-            ? renderReplyActions(m, previous?.role === 'user' ? previous : undefined)
-            : null;
+    // The log scrolls, so it takes keyboard focus to be scrolled with the arrow keys. The list
+    // inside keeps its list semantics, which role="log" on the <ol> itself would take away.
+    <div
+      ref={logRef}
+      role="log"
+      aria-live="polite"
+      aria-label="Samtale"
+      tabIndex={0}
+      className={styles.log}
+    >
+      <ol className={styles.list}>
+        {messages.map((m, index) => {
+          const reply = m.role === 'assistant' && parseReply ? parseReply(m.content) : null;
+          // Only the newest question can be answered by clicking; older options are just text.
+          const answer = m === last && !isTyping ? onAnswer : undefined;
+          const options = answer ? reply?.options : null;
+          const previous = messages[index - 1];
+          const actions =
+            m.role === 'assistant' && renderReplyActions
+              ? renderReplyActions(m, previous?.role === 'user' ? previous : undefined)
+              : null;
 
-        return (
-          <Fragment key={m.id}>
-            <li data-role={m.role} className={styles.message}>
-              {/* Who is speaking, for users who can't rely on colour or position. */}
-              <span className={styles.srOnly}>{m.role === 'user' ? 'Du:' : 'Assistent:'}</span>
-              {reply ? (options ? reply.text : asText(reply)) : m.content}
-            </li>
-            {/* Not a message: role="none" keeps it out of the list's count, and aria-live="off"
-                stops the log from reading out every change in it as new conversation. */}
-            {actions && (
-              <li role="none" className={styles.replyActions}>
-                <div aria-live="off">{actions}</div>
+          return (
+            <Fragment key={m.id}>
+              <li data-role={m.role} className={styles.message}>
+                {/* Who is speaking, for users who can't rely on colour or position. */}
+                <span className={styles.srOnly}>{m.role === 'user' ? 'Du:' : 'Assistent:'}</span>
+                {reply ? (options ? reply.text : asText(reply)) : m.content}
               </li>
-            )}
-            {answer && options && (
-              <li className={styles.options}>
-                <QuestionOptions options={options} onAnswer={answer} disabled={answersDisabled} />
-              </li>
-            )}
-          </Fragment>
-        );
-      })}
-      {isTyping && (
-        <li data-role="assistant" className={cn(styles.message, styles.typing)}>
-          <span className={styles.srOnly}>Assistenten skriver …</span>
-          <span className={styles.dots} aria-hidden="true">
-            <span />
-            <span />
-            <span />
-          </span>
-        </li>
-      )}
-    </ol>
+              {/* Not a message: aria-live="off" stops the log from reading out every change in it
+                  as new conversation. */}
+              {actions && (
+                <li className={styles.replyActions}>
+                  <div aria-live="off">{actions}</div>
+                </li>
+              )}
+              {answer && options && (
+                <li className={styles.options}>
+                  <QuestionOptions options={options} onAnswer={answer} disabled={answersDisabled} />
+                </li>
+              )}
+            </Fragment>
+          );
+        })}
+        {isTyping && (
+          <li data-role="assistant" className={cn(styles.message, styles.typing)}>
+            <span className={styles.srOnly}>Assistenten skriver …</span>
+            <span className={styles.dots} aria-hidden="true">
+              <span />
+              <span />
+              <span />
+            </span>
+          </li>
+        )}
+      </ol>
+    </div>
   );
 }
 

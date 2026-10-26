@@ -12,9 +12,15 @@ const errorResponses: Record<RagdollErrorKind, { status: number; error: string }
   rejected: { status: 502, error: 'RAGdoll rejected the request' },
 };
 
-/** Turns an error from talking to RAGdoll into a safe response for the browser, and logs it. */
+/**
+ * Turns an error from talking to RAGdoll into a safe response for the browser, and logs it.
+ * Not found is not logged: it is the browser asking for something deleted or never made, not a
+ * fault on our side, and the 404 already tells it so.
+ */
 export function ragdollErrorResponse(error: unknown): Response {
-  console.error('Error talking to RAGdoll:', error);
+  if (!(error instanceof RagdollError && error.kind === 'not-found')) {
+    console.error('Error talking to RAGdoll:', error);
+  }
   // Anything that is not a RagdollError is a bug in our code, not a RAGdoll problem.
   const { status, error: message } =
     error instanceof RagdollError

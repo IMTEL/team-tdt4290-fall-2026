@@ -108,7 +108,6 @@ describe('TestChat', () => {
     expect(screen.getByRole('button', { name: 'Dårlig' })).toBeInTheDocument();
   });
 
-  it('goes back to the greeting when starting over', async () => {
   it('asks before starting over, and keeps the chat if cancelled', async () => {
     sendMock.mockResolvedValue('Hva i CV-en din er relevant for stillingen?');
     const { user, box } = await setup();

@@ -47,3 +47,9 @@ CLAUDE.md
 .DS_Store
 Thumbs.db
 desktop.ini
+
+# Playwright
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+/playwright/.auth/

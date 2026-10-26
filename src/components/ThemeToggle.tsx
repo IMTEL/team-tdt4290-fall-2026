@@ -31,7 +31,9 @@ export function ThemeToggle() {
   );
 
   return (
-    <DropdownMenu>
+    // Not modal: a modal menu hides the rest of the page with aria-hidden while its links can
+    // still be focused, which screen readers handle badly.
+    <DropdownMenu modal={false}>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" size="icon" aria-label="Bytt tema">
           {mounted ? (

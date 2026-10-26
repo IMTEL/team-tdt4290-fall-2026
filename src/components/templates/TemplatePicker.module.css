@@ -62,7 +62,9 @@
   color: var(--primary-foreground) !important;
 }
 
-.chosen .edit {
+/* Red on the chosen card's blue is too faint to read, so Slett is light like Rediger. */
+.chosen .edit,
+.chosen .cardActions :global(.MuiButton-root) {
   color: var(--primary-foreground) !important;
 }
 

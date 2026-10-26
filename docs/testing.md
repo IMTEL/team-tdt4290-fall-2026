@@ -23,6 +23,8 @@
 - Each test may take up to 15 seconds (`testTimeout` in `vitest.config.mts`). MUI forms in jsdom
   are slow when many test files run at once, and the default of 5 seconds made tests time out on
   busy machines.
+- [Playwright](https://playwright.dev/) runs end-to-end tests in real browsers
+  (`npm run test:e2e`). Setup, running and writing them: [`e2e-testing.md`](e2e-testing.md).
 
 ## Running
 
