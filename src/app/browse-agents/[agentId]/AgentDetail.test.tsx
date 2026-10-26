@@ -1,17 +1,18 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { fetchAgents } from '../api';
+import { fetchAgents, publishAgent } from '../api';
 import { setAgentHiddenFlash } from '../flash';
 import { AgentDetail } from './AgentDetail';
 
 const notFound = vi.hoisted(() => vi.fn());
 
 vi.mock('next/navigation', () => ({ notFound, useRouter: () => ({ push: vi.fn() }) }));
-vi.mock('../api', () => ({ fetchAgents: vi.fn(), deleteAgent: vi.fn() }));
+vi.mock('../api', () => ({ fetchAgents: vi.fn(), deleteAgent: vi.fn(), publishAgent: vi.fn() }));
 
 const fetchAgentsMock = vi.mocked(fetchAgents);
+const publishAgentMock = vi.mocked(publishAgent);
 
 const configuration = {
   stilling: 'Barnehagelærer',
@@ -61,6 +62,24 @@ describe('AgentDetail', () => {
     render(<AgentDetail agentId="agent-1" />);
     await screen.findByRole('heading', { name: agent.name });
     expect(screen.queryByText(/fordi den ble endret/)).not.toBeInTheDocument();
+  });
+
+  it('removes the note when the agent is published again', async () => {
+    fetchAgentsMock.mockResolvedValue([agent]);
+    publishAgentMock.mockResolvedValue({
+      isPublished: true,
+      publicName: agent.name,
+      publicDescription: '',
+    });
+    setAgentHiddenFlash('agent-1');
+    const user = userEvent.setup();
+
+    render(<AgentDetail agentId="agent-1" />);
+    await screen.findByText(/fordi den ble endret/);
+    await user.click(screen.getByRole('button', { name: 'Publiser' }));
+    await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Publiser' }));
+
+    await waitFor(() => expect(screen.queryByText(/fordi den ble endret/)).not.toBeInTheDocument());
   });
 
   it('does not show the note on another agent’s page', async () => {

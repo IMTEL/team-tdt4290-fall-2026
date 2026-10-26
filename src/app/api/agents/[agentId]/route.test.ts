@@ -336,6 +336,15 @@ describe('PUT /api/agents/[agentId]', () => {
       expect(unpublishAgentMock).not.toHaveBeenCalled();
     });
 
+    it('answers 502 and saves nothing when hiding fails', async () => {
+      unpublishAgentMock.mockRejectedValue(new RagdollError('unreachable', 'RAGdoll is down'));
+
+      const res = await PUT(putRequest({ name: 'Nytt navn', answers: newAnswers }), params);
+
+      expect(res.status).toBe(502);
+      expect(updateAgentMock).not.toHaveBeenCalled();
+    });
+
     it('stays hidden and unchanged when hiding works but saving fails', async () => {
       updateAgentMock.mockRejectedValue(new RagdollError('unreachable', 'RAGdoll is down'));
 
