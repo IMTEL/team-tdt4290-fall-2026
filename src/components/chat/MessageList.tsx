@@ -1,6 +1,6 @@
 'use client';
 
-import { Fragment, useEffect, useRef } from 'react';
+import { Fragment, useEffect, useRef, type ReactNode } from 'react';
 
 import type { ParsedReply } from '@/domain/questionOptions';
 import { cn } from '@/lib/utils';
@@ -21,6 +21,11 @@ type MessageListProps = {
    * Without it, replies are shown as they are.
    */
   parseReply?: (content: string) => ParsedReply;
+  /**
+   * Shown under each assistant reply, e.g. buttons to rate it. Gets the reply and the user message
+   * it answered, if any. Without it, nothing is shown.
+   */
+  renderReplyActions?: (reply: ChatMessage, userMessage: ChatMessage | undefined) => ReactNode;
 };
 
 export function MessageList({
@@ -29,6 +34,7 @@ export function MessageList({
   onAnswer,
   answersDisabled = false,
   parseReply,
+  renderReplyActions,
 }: MessageListProps) {
   const logRef = useRef<HTMLDivElement>(null);
 
@@ -52,11 +58,16 @@ export function MessageList({
       className={styles.log}
     >
       <ol className={styles.list}>
-        {messages.map((m) => {
+        {messages.map((m, index) => {
           const reply = m.role === 'assistant' && parseReply ? parseReply(m.content) : null;
           // Only the newest question can be answered by clicking; older options are just text.
           const answer = m === last && !isTyping ? onAnswer : undefined;
           const options = answer ? reply?.options : null;
+          const previous = messages[index - 1];
+          const actions =
+            m.role === 'assistant' && renderReplyActions
+              ? renderReplyActions(m, previous?.role === 'user' ? previous : undefined)
+              : null;
 
           return (
             <Fragment key={m.id}>
@@ -65,6 +76,13 @@ export function MessageList({
                 <span className={styles.srOnly}>{m.role === 'user' ? 'Du:' : 'Assistent:'}</span>
                 {reply ? (options ? reply.text : asText(reply)) : m.content}
               </li>
+              {/* Not a message: aria-live="off" stops the log from reading out every change in it
+                  as new conversation. */}
+              {actions && (
+                <li className={styles.replyActions}>
+                  <div aria-live="off">{actions}</div>
+                </li>
+              )}
               {answer && options && (
                 <li className={styles.options}>
                   <QuestionOptions options={options} onAnswer={answer} disabled={answersDisabled} />

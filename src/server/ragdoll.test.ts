@@ -3,7 +3,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   askAgent,
+  createFeedback,
   createProfile,
+  deleteFeedback,
   deleteProfile,
   getProfile,
   listProfiles,
@@ -19,6 +21,7 @@ import {
   getUserSettings,
   isAgentOwner,
   listAgents,
+  listFeedback,
   listLanguageModels,
   listTemplates,
   publishAgent,
@@ -998,5 +1001,97 @@ describe('profiles', () => {
     fetchMock.mockResolvedValueOnce(new Response(null, { status: 204 }));
     await expect(deleteProfile(SESSION_TOKEN, 'profile-1')).resolves.toBeUndefined();
     expect(fetchMock.mock.calls[2][1]?.method).toBe('DELETE');
+  });
+});
+
+const newFeedback = {
+  rating: 'bad' as const,
+  agent_message: 'Hvorfor søker du denne stillingen?',
+  user_message: 'Hei, jeg heter Kari.',
+  comment: 'Spør om erfaring først.',
+};
+
+// What RAGdoll returns for a stored rating: also the agent, the author and the time.
+const storedFeedback = {
+  ...newFeedback,
+  id: 'feedback-1',
+  agent_id: 'agent-123',
+  author_id: 'user-1',
+  created_at: '2026-10-21T10:00:00',
+};
+
+describe('feedback', () => {
+  const fetchMock = vi.fn<typeof fetch>();
+
+  beforeEach(() => {
+    vi.stubEnv('BACKEND_API_URL', BACKEND_URL);
+    vi.stubGlobal('fetch', fetchMock);
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.unstubAllGlobals();
+    fetchMock.mockReset();
+  });
+
+  it('rates a reply as the user and returns the rating without the author', async () => {
+    fetchMock.mockResolvedValue(Response.json(storedFeedback, { status: 201 }));
+
+    const stored = await createFeedback(SESSION_TOKEN, 'agent-123', newFeedback);
+
+    expect(stored).toEqual({
+      ...newFeedback,
+      id: 'feedback-1',
+      agent_id: 'agent-123',
+      created_at: '2026-10-21T10:00:00',
+    });
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toBe(`${BACKEND_URL}/agents/agent-123/feedback`);
+    expect(init?.method).toBe('POST');
+    expect((init?.headers as Record<string, string>).Authorization).toBe(`Bearer ${SESSION_TOKEN}`);
+    expect(JSON.parse(init?.body as string)).toEqual(newFeedback);
+  });
+
+  it('throws not-found when the user has no access to the agent (404)', async () => {
+    fetchMock.mockResolvedValue(new Response('Agent not found', { status: 404 }));
+
+    await expect(createFeedback(SESSION_TOKEN, 'agent-123', newFeedback)).rejects.toMatchObject({
+      kind: 'not-found',
+    });
+  });
+
+  it('throws a bad-response error when RAGdoll does not return a rating', async () => {
+    fetchMock.mockResolvedValue(Response.json({ ...storedFeedback, rating: 'ok' }));
+
+    await expect(createFeedback(SESSION_TOKEN, 'agent-123', newFeedback)).rejects.toMatchObject({
+      kind: 'bad-response',
+    });
+  });
+
+  it('lists the agent’s ratings with a limit', async () => {
+    fetchMock.mockResolvedValue(Response.json([storedFeedback]));
+
+    await expect(listFeedback(SESSION_TOKEN, 'agent-123', 10)).resolves.toMatchObject([
+      { id: 'feedback-1', rating: 'bad' },
+    ]);
+    expect(fetchMock.mock.calls[0][0]).toBe(`${BACKEND_URL}/agents/agent-123/feedback?limit=10`);
+  });
+
+  it('throws a bad-response error when the list is not a list', async () => {
+    fetchMock.mockResolvedValue(Response.json({ items: [] }));
+
+    await expect(listFeedback(SESSION_TOKEN, 'agent-123')).rejects.toMatchObject({
+      kind: 'bad-response',
+    });
+  });
+
+  it('deletes a rating and accepts the empty answer', async () => {
+    fetchMock.mockResolvedValue(new Response(null, { status: 204 }));
+
+    await expect(deleteFeedback(SESSION_TOKEN, 'agent-123', 'feedback-1')).resolves.toBeUndefined();
+
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toBe(`${BACKEND_URL}/agents/agent-123/feedback/feedback-1`);
+    expect(init?.method).toBe('DELETE');
   });
 });
