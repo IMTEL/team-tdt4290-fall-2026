@@ -7,7 +7,7 @@ import { cleanSources, readStoredAnswers } from '@/domain/agentTypes/storedAnswe
 import { parseAvatarChoice } from '@/domain/avatars';
 import { getSessionToken } from '@/lib/session-tokens';
 import { applyEdit } from '@/server/agentMapper';
-import { ragdollErrorResponse } from '@/server/errorResponse';
+import { notOwnerResponse, ragdollErrorResponse } from '@/server/errorResponse';
 import { modelsToValidate } from '@/server/models';
 import {
   deleteAgent,
@@ -88,10 +88,7 @@ export async function PUT(req: NextRequest, { params }: Params) {
     // owner may hide an agent, so only the owner may edit a published one.
     if (existing.is_published === true) {
       if (!(await isAgentOwner(sessionToken, agentId))) {
-        return Response.json(
-          { error: 'Only the owner can edit a published agent' },
-          { status: 403 },
-        );
+        return notOwnerResponse('edit a published agent');
       }
       await unpublishAgent(sessionToken, agentId);
     }
@@ -125,7 +122,7 @@ export async function DELETE(req: NextRequest, { params }: Params) {
     await fetchFullAgent(sessionToken, agentId);
 
     if (!(await isAgentOwner(sessionToken, agentId))) {
-      return Response.json({ error: 'Only the owner can delete the agent' }, { status: 403 });
+      return notOwnerResponse('delete the agent');
     }
 
     await deleteAgent(sessionToken, agentId);

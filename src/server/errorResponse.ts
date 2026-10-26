@@ -29,6 +29,11 @@ export function ragdollErrorResponse(error: unknown): Response {
   return Response.json({ error: message }, { status });
 }
 
+/** The response when only the agent's owner may do this, e.g. `notOwnerResponse('delete the agent')`. */
+export function notOwnerResponse(action: string): Response {
+  return Response.json({ error: `Only the owner can ${action}` }, { status: 403 });
+}
+
 /** The response for a server that is missing a setting, such as an environment variable. */
 export function configErrorResponse(): Response {
   return Response.json({ error: errorResponses.config.error }, { status: 500 });
