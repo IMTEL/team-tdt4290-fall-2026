@@ -28,6 +28,9 @@ function isAgent(value: unknown): value is Agent {
     typeof agent.llmModel === 'string' &&
     (typeof agent.temperature === 'number' || agent.temperature === null) &&
     typeof agent.prompt === 'string' &&
+    (agent.isPublished === undefined || typeof agent.isPublished === 'boolean') &&
+    isOptionalText(agent.publicName) &&
+    isOptionalText(agent.publicDescription) &&
     LIST_FIELDS.every((field) => isOptionalText(agent[field]))
   );
 }
@@ -68,6 +71,31 @@ function saveErrorMessage(status: number): string {
 }
 
 /**
+ * Calls one of our agent routes. Throws Error with a Norwegian message if the server can't be
+ * reached, or with `errorMessage(status)` if it answers with an error.
+ */
+async function send(
+  url: string,
+  init: RequestInit,
+  errorMessage: (status: number) => string = saveErrorMessage,
+): Promise<Response> {
+  let res: Response;
+  try {
+    res = await fetch(url, init);
+  } catch (cause) {
+    throw new Error('Fikk ikke kontakt med serveren. Sjekk nettverket og prøv igjen.', { cause });
+  }
+  if (!res.ok) throw new Error(errorMessage(res.status));
+  return res;
+}
+
+function withJson(method: 'POST' | 'PUT', body: unknown): RequestInit {
+  return { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) };
+}
+
+const agentUrl = (id: string, path = '') => `/api/agents/${encodeURIComponent(id)}${path}`;
+
+/**
  * Saves a new name, new answers, their sources, new advanced settings and a new avatar for an
  * agent, and returns the updated agent. Without `advanced` the agent keeps the settings it has,
  * and without `avatar` it keeps its avatar. `null` gives it the default image.
@@ -81,17 +109,10 @@ export async function updateAgent(
   advanced?: AdvancedSettings,
   avatar?: string | null,
 ): Promise<Agent> {
-  let res: Response;
-  try {
-    res = await fetch(`/api/agents/${encodeURIComponent(id)}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, answers, sources, advanced, avatar }),
-    });
-  } catch (cause) {
-    throw new Error('Fikk ikke kontakt med serveren. Sjekk nettverket og prøv igjen.', { cause });
-  }
-  if (!res.ok) throw new Error(saveErrorMessage(res.status));
+  const res = await send(
+    agentUrl(id),
+    withJson('PUT', { name, answers, sources, advanced, avatar }),
+  );
 
   const data = await res.json().catch(() => null);
   if (!isAgent(data?.agent)) throw new Error(GENERIC_ERROR);
@@ -112,30 +133,59 @@ export async function cloneAgent(
   advanced?: AdvancedSettings,
   avatar?: string | null,
 ): Promise<string> {
-  let res: Response;
-  try {
-    res = await fetch(`/api/agents/${encodeURIComponent(id)}/clone`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, answers, sources, advanced, avatar }),
-    });
-  } catch (cause) {
-    throw new Error('Fikk ikke kontakt med serveren. Sjekk nettverket og prøv igjen.', { cause });
-  }
-  if (!res.ok) throw new Error(saveErrorMessage(res.status));
+  const res = await send(
+    agentUrl(id, '/clone'),
+    withJson('POST', { name, answers, sources, advanced, avatar }),
+  );
 
   const data = await res.json().catch(() => null);
   if (typeof data?.id !== 'string') throw new Error(GENERIC_ERROR);
   return data.id;
 }
 
+export type Publication = { isPublished: boolean; publicName: string; publicDescription: string };
+
+/** The Norwegian message for a failed publish or hide. Never the server's own text. */
+function publishErrorMessage(status: number): string {
+  if (status === 403) return 'Bare eieren kan publisere eller gjemme agenten.';
+  if (status === 400)
+    return 'Navnet eller beskrivelsen ble ikke godtatt. Sjekk feltene og prøv igjen.';
+  return saveErrorMessage(status);
+}
+
+async function sendPublication(id: string, init: RequestInit): Promise<Publication> {
+  const res = await send(agentUrl(id, '/publish'), init, publishErrorMessage);
+
+  const data = await res.json().catch(() => null);
+  const publication = data?.publication;
+  if (
+    typeof publication?.isPublished !== 'boolean' ||
+    typeof publication.publicName !== 'string' ||
+    typeof publication.publicDescription !== 'string'
+  ) {
+    throw new Error(GENERIC_ERROR);
+  }
+  return publication;
+}
+
+/**
+ * Makes an agent available in The Candidate, with the name and short description its users see.
+ * Throws Error with a Norwegian message that can be shown as it is.
+ */
+export async function publishAgent(
+  id: string,
+  publicName: string,
+  publicDescription: string,
+): Promise<Publication> {
+  return sendPublication(id, withJson('POST', { publicName, publicDescription }));
+}
+
+/** Hides an agent from The Candidate. Throws Error with a Norwegian message. */
+export async function unpublishAgent(id: string): Promise<Publication> {
+  return sendPublication(id, { method: 'DELETE' });
+}
+
 /** Deletes an agent */
 export async function deleteAgent(id: string): Promise<void> {
-  let res: Response;
-  try {
-    res = await fetch(`/api/agents/${encodeURIComponent(id)}`, { method: 'DELETE' });
-  } catch (cause) {
-    throw new Error('Fikk ikke kontakt med serveren. Sjekk nettverket og prøv igjen.', { cause });
-  }
-  if (!res.ok) throw new Error(saveErrorMessage(res.status));
+  await send(agentUrl(id), { method: 'DELETE' });
 }
