@@ -200,7 +200,6 @@ export async function updateAgent(
   sessionToken: string,
   agent: FullRagdollAgent,
 ): Promise<RagdollAgentSummary> {
-  
   const fields: Record<string, unknown> = { ...agent };
   delete fields.access_key;
 
