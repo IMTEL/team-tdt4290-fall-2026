@@ -22,6 +22,7 @@ import { AnswerList } from '@/components/agents/AnswerList';
 import { DEFAULT_TEMPERATURE, formatTemperature } from '@/domain/advancedSettings';
 import { readStoredAnswers } from '@/domain/agentTypes/storedAnswers';
 import { formatDate } from '@/lib/format';
+import { useOnceInBrowser } from '@/lib/useOnceInBrowser';
 
 import type { Publication } from '../api';
 import { takeAgentHiddenFlash } from '../flash';
@@ -45,7 +46,9 @@ export function AgentDetail({ agentId }: { agentId: string }) {
   const [changedPublication, setChangedPublication] = useState<Publication | null>(null);
   // Set when the agent was just hidden from The Candidate because it was edited.
   const [hiddenByEdit, setHiddenByEdit] = useState(false);
-  const [hiddenFlashSeen, setHiddenFlashSeen] = useState(false);
+  useOnceInBrowser(() => {
+    if (takeAgentHiddenFlash(agentId)) setHiddenByEdit(true);
+  });
 
   if (state.kind === 'missing') notFound();
 
@@ -60,12 +63,6 @@ export function AgentDetail({ agentId }: { agentId: string }) {
   if (state.kind !== 'ready') return null;
 
   const { agent } = state;
-
-  // One-shot note from the edit page. The agent is loaded in the browser, so this runs there.
-  if (!hiddenFlashSeen) {
-    setHiddenFlashSeen(true);
-    if (takeAgentHiddenFlash(agent.id)) setHiddenByEdit(true);
-  }
 
   const agentPath = `/browse-agents/${encodeURIComponent(agent.id)}`;
   // Knows the old and the new way of storing answers, and works for every agent type.

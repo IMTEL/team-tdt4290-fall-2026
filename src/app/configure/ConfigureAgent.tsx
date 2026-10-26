@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import Button from '@mui/material/Button';
@@ -26,6 +26,7 @@ import {
 } from '@/domain/agentTypes/registry';
 import type { AdvancedSettings } from '@/domain/advancedSettings';
 import type { AgentTypeDefinition } from '@/domain/agentTypes/types';
+import { useIsClient } from '@/lib/useOnceInBrowser';
 import {
   isPracticeChoice,
   parseOtherPractice,
@@ -47,15 +48,6 @@ import stepStyles from './StillingStep.module.css';
 
 // undefined: the counsellor hasn't chosen yet. null: they chose to continue without one.
 type Choice<T> = T | null | undefined;
-
-/** True after hydration, so a local draft can be restored without a server/client HTML mismatch. */
-function useIsClient() {
-  return useSyncExternalStore(
-    () => () => {},
-    () => true,
-    () => false,
-  );
-}
 
 /** Shows where the counsellor is, so they know what comes before the chat. */
 function Steps({ steps, active }: { steps: string[]; active: number }) {
