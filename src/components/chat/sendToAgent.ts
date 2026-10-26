@@ -2,6 +2,10 @@ import type { ChatMessage } from './types';
 
 const GENERIC_ERROR = 'Noe gikk galt. Prøv igjen.';
 
+/** Shown when the server refuses a message because too many were sent in a short time. */
+export const TOO_MANY_MESSAGES =
+  'Du har sendt mange meldinger på kort tid. Vent litt og prøv igjen.';
+
 /** An error whose `userMessage` is safe to show in the UI (Norwegian, no technical details). */
 export class ChatError extends Error {
   constructor(
@@ -46,6 +50,9 @@ export async function sendToAgent(
   }
   if (res.status === 504) {
     throw new ChatError('Assistenten brukte for lang tid på å svare. Prøv igjen.');
+  }
+  if (res.status === 429) {
+    throw new ChatError(TOO_MANY_MESSAGES);
   }
   if (!res.ok) {
     throw new ChatError(GENERIC_ERROR);

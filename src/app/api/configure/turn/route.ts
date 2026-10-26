@@ -28,6 +28,7 @@ import {
   RagdollError,
   type RagdollMessage,
 } from '@/server/ragdoll';
+import { chatRetryAfter, tooManyRequestsResponse } from '@/server/rateLimit';
 import { fromRagdollTemplate } from '@/server/templateMapper';
 
 /**
@@ -43,6 +44,10 @@ export async function POST(req: NextRequest) {
   const sessionToken = await getSessionToken(req);
   if (!sessionToken) {
     return Response.json({ error: 'Not signed in' }, { status: 401 });
+  }
+  const retryAfter = chatRetryAfter(sessionToken);
+  if (retryAfter > 0) {
+    return tooManyRequestsResponse(retryAfter);
   }
 
   let definition: AgentTypeDefinition | undefined;

@@ -10,6 +10,7 @@ import {
   RagdollError,
   type RagdollMessage,
 } from '@/server/ragdoll';
+import { chatRetryAfter, tooManyRequestsResponse } from '@/server/rateLimit';
 
 type Params = { params: Promise<{ agentId: string }> };
 
@@ -18,6 +19,10 @@ export async function POST(req: NextRequest, { params }: Params) {
   const sessionToken = await getSessionToken(req);
   if (!sessionToken) {
     return Response.json({ error: 'Not signed in' }, { status: 401 });
+  }
+  const retryAfter = chatRetryAfter(sessionToken);
+  if (retryAfter > 0) {
+    return tooManyRequestsResponse(retryAfter);
   }
 
   // A MongoDB id is 24 hex characters. Anything else cannot be an agent, so don't ask RAGdoll.

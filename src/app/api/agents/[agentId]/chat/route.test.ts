@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { getSessionToken } from '@/lib/session-tokens';
 import { askSavedAgent, getAgentRole, getChatAccessKey, RagdollError } from '@/server/ragdoll';
+import { chatRetryAfter, MAX_CHAT_REQUESTS, resetChatLimits } from '@/server/rateLimit';
 import { POST } from './route';
 
 // The adapter has its own tests. Here we only check what the route adds: the session check,
@@ -35,6 +36,7 @@ function chat(body: unknown, id = AGENT_ID) {
 }
 
 beforeEach(() => {
+  resetChatLimits();
   getSessionTokenMock.mockResolvedValue('session-token');
   getChatAccessKeyMock.mockResolvedValue('chat-key');
   getAgentRoleMock.mockResolvedValue('Butikksjef');
@@ -88,6 +90,16 @@ describe('POST /api/agents/[agentId]/chat', () => {
 
     expect(res.status).toBe(401);
     expect(getChatAccessKeyMock).not.toHaveBeenCalled();
+    expect(askSavedAgentMock).not.toHaveBeenCalled();
+  });
+
+  it('answers 429 and never calls RAGdoll when the counsellor has sent too many messages', async () => {
+    for (let i = 0; i < MAX_CHAT_REQUESTS; i++) chatRetryAfter('session-token');
+
+    const res = await chat({ messages });
+
+    expect(res.status).toBe(429);
+    expect(res.headers.get('Retry-After')).toBeTruthy();
     expect(askSavedAgentMock).not.toHaveBeenCalled();
   });
 

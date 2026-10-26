@@ -161,6 +161,20 @@ describe('sendConfigurationTurn', () => {
     });
   });
 
+  it('asks the user to wait when too many messages were sent', async () => {
+    fetchMock.mockResolvedValue(Response.json({ error: 'Too many requests' }, { status: 429 }));
+
+    await expect(
+      sendConfigurationTurn(
+        interviewer,
+        { templateId: 'teamleder', profileId: null, industryTemplateId: null },
+        messages,
+      ),
+    ).rejects.toMatchObject({
+      userMessage: expect.stringContaining('Vent litt'),
+    });
+  });
+
   it('throws a ChatError when the server cannot be reached', async () => {
     fetchMock.mockRejectedValue(new TypeError('Failed to fetch'));
 
