@@ -8,23 +8,19 @@ export const metadata: Metadata = {
   description: 'Sett opp en AI-agent, for eksempel en intervjuer, som jobbsøkere kan øve med.',
 };
 
-export default function ConfigurePage() {
-  return (
-    <div className={styles.page}>
-      <header className={styles.header}>
-        <h1 className={styles.title}>Sett opp en agent</h1>
-        <p className={styles.lead}>
-          {/* English translation: Choose what kind of agent to set up, then answer the questions
-          from the assistant, and we will create an AI agent that job seekers can practice with.
-          For an interviewer you can also choose templates for the interviewer and the industry,
-          and a job seeker profile, or let the assistant ask you about everything. */}
-          Velg hva slags agent du vil sette opp, og svar så på spørsmålene fra assistenten. Da lager
-          vi en AI-agent som jobbsøkeren kan øve med. For en intervjuer kan du også velge maler for
-          intervjueren og bransjen og en jobbsøkerprofil, eller la assistenten spørre deg om alt.
-        </p>
-      </header>
+type ConfigurePageProps = {
+  searchParams: Promise<{ type?: string | string[]; step?: string | string[] }>;
+};
 
-      <ConfigureAgent />
+/** `?type=<id>` skips the type step, as the «Ny agent» dialog on the agents page does. */
+export default async function ConfigurePage({ searchParams }: ConfigurePageProps) {
+  const { type, step } = await searchParams;
+  const typeId = typeof type === 'string' ? type : null;
+  const stepId = typeof step === 'string' ? step : null;
+
+  return (
+    <div className={typeId === 'interviewer' ? styles.wizard : styles.page}>
+      <ConfigureAgent initialTypeId={typeId} initialStep={stepId} />
     </div>
   );
 }

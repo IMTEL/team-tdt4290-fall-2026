@@ -80,6 +80,6 @@ describe('saveProfile, updateProfile and deleteProfile', () => {
   it('say so when the profile is gone (404)', async () => {
     fetchMock.mockResolvedValue(Response.json({ error: 'Not found' }, { status: 404 }));
 
-    await expect(updateProfile('profile-1', profile)).rejects.toThrow('Fant ikke profilen');
+    await expect(updateProfile('profile-1', profile)).rejects.toThrow('Fant ikke malen');
   });
 });

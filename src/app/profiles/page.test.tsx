@@ -19,16 +19,16 @@ describe('/profiles', () => {
   it('explains profiles, says they are private, and links to making a new one', async () => {
     render(<ProfilesPage />);
 
-    expect(screen.getByRole('heading', { level: 1, name: 'Jobbsøkerprofiler' })).toBeVisible();
-    expect(screen.getByText(/Bare du ser profilene dine/)).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Lag en ny profil' })).toHaveAttribute(
+    expect(screen.getByRole('heading', { level: 1, name: 'Jobbsøkermaler' })).toBeVisible();
+    expect(screen.getByText(/Bare du ser malene dine/)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Lag en ny mal' })).toHaveAttribute(
       'href',
       '/profiles/new',
     );
-    expect(await screen.findByText(/Du har ingen profiler ennå/)).toBeInTheDocument();
+    expect(await screen.findByText(/Du har ingen maler ennå/)).toBeInTheDocument();
   });
 
   it('sets a Norwegian tab title', () => {
-    expect(metadata.title).toBe('Jobbsøkerprofiler');
+    expect(metadata.title).toBe('Jobbsøkermaler');
   });
 });

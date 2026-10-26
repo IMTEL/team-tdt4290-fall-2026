@@ -5,7 +5,9 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { type AdvancedSettings, DEFAULT_ADVANCED_SETTINGS } from '@/domain/advancedSettings';
 import { interviewer } from '@/domain/agentTypes/interviewer';
 import type { AnswerSources, Answers } from '@/domain/agentTypes/types';
-import { EditAgentForm, type AnswerPreset } from './EditAgentForm';
+import { builtInLegalTemplates } from '@/data/legal-templates';
+import { describeLegalFrameworks } from '@/domain/legalTemplate';
+import { EditAgentForm, type AnswerPreset, type LegalPreset } from './EditAgentForm';
 
 const push = vi.hoisted(() => vi.fn());
 
@@ -44,7 +46,7 @@ const answers = {
 const profilePreset: AnswerPreset = {
   field: 'jobbsoker',
   kind: 'profile',
-  label: 'Jobbsøkerprofil',
+  label: 'Jobbsøkermal',
   loaded: true,
   options: [
     { id: 'profile-1', label: 'Profil A', value: 'aldersgruppe 30–39 år' },
@@ -52,7 +54,20 @@ const profilePreset: AnswerPreset = {
     { id: 'profile-2', label: 'Profil B', value: 'aldersgruppe 30–39 år' },
   ],
   manageHref: '/profiles',
-  manageLabel: 'Administrer profiler',
+  manageLabel: 'Administrer maler',
+};
+
+const savedLegal = {
+  id: 'legal-1',
+  title: 'Arbeidsmiljøloven § 9-3',
+  description: 'Helseopplysninger',
+  text: 'Ikke spør om helse.',
+  builtIn: false,
+};
+const legalPreset: LegalPreset = {
+  field: 'lovverk',
+  options: [...builtInLegalTemplates, savedLegal],
+  loaded: true,
 };
 
 type RenderOptions = {
@@ -62,6 +77,7 @@ type RenderOptions = {
   initialAvatar?: string | null;
   allowUnchanged?: boolean;
   presets?: AnswerPreset[];
+  legalPreset?: LegalPreset;
 };
 
 function renderForm({
@@ -71,6 +87,7 @@ function renderForm({
   initialAvatar = null,
   allowUnchanged = false,
   presets,
+  legalPreset,
 }: RenderOptions = {}) {
   render(
     <EditAgentForm
@@ -86,6 +103,7 @@ function renderForm({
       onSave={onSave}
       allowUnchanged={allowUnchanged}
       presets={presets}
+      legalPreset={legalPreset}
     />,
   );
 }
@@ -326,7 +344,7 @@ describe('EditAgentForm', () => {
   });
 
   describe('presets', () => {
-    const select = () => screen.getByRole('combobox', { name: 'Jobbsøkerprofil' });
+    const select = () => screen.getByRole('combobox', { name: 'Jobbsøkermal' });
     const profileAnswers = { ...answers, jobbsoker: 'aldersgruppe 30–39 år' };
 
     async function choose(user: UserEvent, option: string) {
@@ -414,7 +432,7 @@ describe('EditAgentForm', () => {
       });
 
       expect(
-        screen.getByText('Teksten kom fra en jobbsøkerprofil som ikke finnes lenger.'),
+        screen.getByText('Teksten kom fra en jobbsøkermal som ikke finnes lenger.'),
       ).toBeVisible();
     });
 
@@ -432,10 +450,115 @@ describe('EditAgentForm', () => {
     it('links to where the options are managed', () => {
       renderForm({ presets: [profilePreset] });
 
-      expect(screen.getByRole('link', { name: 'Administrer profiler' })).toHaveAttribute(
+      expect(screen.getByRole('link', { name: 'Administrer maler' })).toHaveAttribute(
         'href',
         '/profiles',
       );
+    });
+  });
+
+  describe('legal templates', () => {
+    const box = (name: string) => screen.getByRole('checkbox', { name });
+    const builtIn = builtInLegalTemplates[0];
+    const lawText = describeLegalFrameworks([builtIn, savedLegal]);
+    const lawSource = { kind: 'legal' as const, ids: [builtIn.id, 'legal-1'] };
+
+    it('ticks the templates the text came from', () => {
+      renderForm({
+        initialAnswers: { ...answers, lovverk: lawText },
+        initialSources: { lovverk: lawSource },
+        legalPreset,
+      });
+
+      expect(box(builtIn.title)).toBeChecked();
+      expect(box('Arbeidsmiljøloven § 9-3')).toBeChecked();
+    });
+
+    it('fills in Lovverk from the ticked templates, and saves the text with its source', async () => {
+      onSave.mockResolvedValue('agent-1');
+      const user = userEvent.setup();
+      renderForm({ legalPreset });
+
+      await user.click(box(builtIn.title));
+      await user.click(box('Arbeidsmiljøloven § 9-3'));
+
+      expect(field('Lovverk')).toHaveValue(lawText);
+      await user.click(saveButton());
+      expect(onSave.mock.calls[0][1].lovverk).toBe(lawText);
+      expect(onSave.mock.calls[0][2]).toEqual({ lovverk: lawSource });
+    });
+
+    it('empties Lovverk when every template that made it is unticked', async () => {
+      onSave.mockResolvedValue('agent-1');
+      const user = userEvent.setup();
+      renderForm({
+        initialAnswers: { ...answers, lovverk: lawText },
+        initialSources: { lovverk: lawSource },
+        legalPreset,
+      });
+
+      await user.click(box(builtIn.title));
+      await user.click(box('Arbeidsmiljøloven § 9-3'));
+
+      expect(field('Lovverk')).toHaveValue('');
+      await user.click(saveButton());
+      expect(onSave.mock.calls[0][2]).toEqual({});
+    });
+
+    it('puts the counsellor’s own text back when the templates are unticked again', async () => {
+      const user = userEvent.setup();
+      renderForm({ initialAnswers: { ...answers, lovverk: 'Egen regel.' }, legalPreset });
+
+      await user.click(box('Arbeidsmiljøloven § 9-3'));
+      expect(field('Lovverk')).toHaveValue('Arbeidsmiljøloven § 9-3:\nIkke spør om helse.');
+      await user.click(box('Arbeidsmiljøloven § 9-3'));
+
+      expect(field('Lovverk')).toHaveValue('Egen regel.');
+      expect(screen.getByText('Ingen endringer ennå')).toBeVisible();
+    });
+
+    it('unticks the templates when the counsellor types in Lovverk', async () => {
+      const user = userEvent.setup();
+      renderForm({
+        initialAnswers: { ...answers, lovverk: lawText },
+        initialSources: { lovverk: lawSource },
+        legalPreset,
+      });
+
+      await user.type(field('Lovverk'), ' Mer.');
+
+      expect(box(builtIn.title)).not.toBeChecked();
+    });
+
+    it('says so when a template has been changed or deleted since', () => {
+      const props = {
+        initialAnswers: { ...answers, lovverk: 'Gammel tekst' },
+        initialSources: { lovverk: lawSource },
+      };
+      renderForm({ ...props, legalPreset });
+      expect(box('Arbeidsmiljøloven § 9-3')).not.toBeChecked();
+      expect(
+        screen.getByText(/Teksten kom fra «.+», «Arbeidsmiljøloven § 9-3», som er endret siden\./),
+      ).toBeVisible();
+    });
+
+    it('says so when a template no longer exists, but not while loading', () => {
+      const props = {
+        initialAnswers: { ...answers, lovverk: lawText },
+        initialSources: { lovverk: { kind: 'legal' as const, ids: ['deleted'] } },
+      };
+      renderForm({ ...props, legalPreset: { ...legalPreset, loaded: false } });
+      expect(screen.queryByText(/finnes lenger/)).not.toBeInTheDocument();
+    });
+
+    it('says so when a template no longer exists once loaded', () => {
+      renderForm({
+        initialAnswers: { ...answers, lovverk: lawText },
+        initialSources: { lovverk: { kind: 'legal', ids: ['deleted'] } },
+        legalPreset,
+      });
+
+      expect(screen.getByText(/Teksten kom fra lovverk som ikke finnes lenger\./)).toBeVisible();
     });
   });
 });

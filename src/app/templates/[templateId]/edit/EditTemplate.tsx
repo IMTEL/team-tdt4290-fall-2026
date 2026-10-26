@@ -1,13 +1,14 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { notFound } from 'next/navigation';
+import { notFound, useRouter } from 'next/navigation';
 import Alert from '@mui/material/Alert';
 
 import { fetchTemplate, updateTemplate } from '@/components/templates/api';
 import { TemplateForm } from '@/components/templates/TemplateForm';
 import type { AgentTemplate } from '@/data/templates';
 import styles from '@/app/create-template/page.module.css';
+import { setTemplatesFlash, TEMPLATE_SAVED_FLASH } from '@/app/templates/flash';
 
 type LoadState =
   | { kind: 'loading' }
@@ -17,6 +18,7 @@ type LoadState =
 
 /** Loads one of the counsellor's saved templates and shows the form for editing it. */
 export function EditTemplate({ templateId }: { templateId: string }) {
+  const router = useRouter();
   const [state, setState] = useState<LoadState>({ kind: 'loading' });
 
   useEffect(() => {
@@ -52,7 +54,12 @@ export function EditTemplate({ templateId }: { templateId: string }) {
       {state.kind === 'ready' && (
         <TemplateForm
           initial={state.template}
+          cancelHref="/templates"
           onSave={(template) => updateTemplate(templateId, template)}
+          onSaved={() => {
+            setTemplatesFlash(TEMPLATE_SAVED_FLASH);
+            router.push('/templates');
+          }}
         />
       )}
     </div>

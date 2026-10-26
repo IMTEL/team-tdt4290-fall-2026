@@ -21,4 +21,10 @@ export interface Agent {
   stilling?: string | null;
   bransje?: string | null;
   vanskelighetsgrad?: string | null;
+  /** The interviewer's role and style, e.g. "Butikksjef, vennlig". A template may store a long text. */
+  intervjuer?: string | null;
+  /** e.g. "første intervju". */
+  intervjutype?: string | null;
+  /** The template's name, when the interviewer answer came from one. e.g. "Daglig leder". */
+  intervjuerMal?: string | null;
 }

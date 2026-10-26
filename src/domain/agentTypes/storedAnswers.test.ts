@@ -17,6 +17,7 @@ const answers = {
   vanskelighetsgrad: 'lett',
   egneSporsmal: 'ingen',
   tillegg: '',
+  lovverk: '',
 };
 
 describe('toStoredDescription and readStoredAnswers', () => {
@@ -61,6 +62,21 @@ describe('sources', () => {
       }),
     ).toEqual({ intervjuer: { kind: 'template', id: 'daglig-leder' } });
     expect(cleanSources(interviewer, 'ikke et objekt')).toEqual({});
+  });
+
+  it('keeps a list of legal templates, only for the field legal templates fill in', () => {
+    expect(
+      cleanSources(interviewer, {
+        lovverk: { kind: 'legal', ids: ['builtin-legal-hiring-rights', 'legal-1'], extra: 'borte' },
+        tillegg: { kind: 'legal', ids: ['legal-1'] },
+      }),
+    ).toEqual({ lovverk: { kind: 'legal', ids: ['builtin-legal-hiring-rights', 'legal-1'] } });
+  });
+
+  it('leaves out a legal source with no, empty, repeated or too many ids', () => {
+    for (const ids of [[], [''], ['a', 'a'], ['1', '2', '3', '4', '5', '6'], 'legal-1']) {
+      expect(cleanSources(interviewer, { lovverk: { kind: 'legal', ids } })).toEqual({});
+    }
   });
 });
 

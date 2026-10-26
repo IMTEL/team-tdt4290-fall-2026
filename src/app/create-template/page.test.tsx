@@ -5,6 +5,11 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { saveTemplate } from '@/components/templates/api';
 import CreateTemplatePage, { metadata } from './page';
 
+const push = vi.fn();
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ push }),
+}));
+
 // The form has its own tests. Here we only check that the page saves a new template.
 vi.mock('@/components/templates/api', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/components/templates/api')>()),
@@ -14,10 +19,12 @@ const saveMock = vi.mocked(saveTemplate);
 
 afterEach(() => {
   saveMock.mockReset();
+  push.mockReset();
+  sessionStorage.clear();
 });
 
 describe('/create-template', () => {
-  it('saves the form as a new template', async () => {
+  it('saves the form as a new template and goes to the templates page', async () => {
     saveMock.mockResolvedValue('template-1');
     const user = userEvent.setup();
     render(await CreateTemplatePage({ searchParams: Promise.resolve({}) }));
@@ -41,10 +48,37 @@ describe('/create-template', () => {
       focus: [],
       persona: 'Hen er butikksjef.',
     });
-    expect(await screen.findByText(/Malen «Butikksjef» er lagret/)).toBeInTheDocument();
+    await vi.waitFor(() => expect(push).toHaveBeenCalledWith('/templates'));
+    expect(sessionStorage.getItem('kfi-templates-flash')).toBe('mal-laget');
   });
 
   it('sets a Norwegian tab title', () => {
     expect(metadata.title).toBe('Lag en mal');
+  });
+
+  it('sends Avbryt back to the page that opened the form', async () => {
+    render(
+      await CreateTemplatePage({
+        searchParams: Promise.resolve({
+          agentType: 'interviewer',
+          returnTo: '/configure?type=interviewer&step=intervjuer',
+        }),
+      }),
+    );
+
+    expect(screen.getByRole('link', { name: 'Avbryt' })).toHaveAttribute(
+      'href',
+      '/configure?type=interviewer&step=intervjuer',
+    );
+  });
+
+  it('ignores a cancel target that leaves the site', async () => {
+    render(
+      await CreateTemplatePage({
+        searchParams: Promise.resolve({ returnTo: 'https://example.com' }),
+      }),
+    );
+
+    expect(screen.getByRole('link', { name: 'Avbryt' })).toHaveAttribute('href', '/templates');
   });
 });

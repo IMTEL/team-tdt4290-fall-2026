@@ -1,0 +1,38 @@
+.card {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.action {
+  display: flex;
+  flex: 1;
+  align-items: flex-start;
+  height: 100%;
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  width: 100%;
+  padding: var(--space-3);
+}
+
+.title {
+  font-weight: 600;
+}
+
+/* Only as wide as its label, not the whole card. */
+.chip {
+  align-self: flex-start;
+  margin-top: var(--space-1);
+}
+
+.line {
+  font-size: 0.95rem;
+}
+
+.detail {
+  margin-top: var(--space-2);
+}

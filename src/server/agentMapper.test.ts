@@ -23,6 +23,7 @@ const answers = {
   vanskelighetsgrad: 'lett | Antall spørsmål: 6 | Oppfølgingsspørsmål: ja',
   egneSporsmal: 'ingen',
   tillegg: '',
+  lovverk: '',
 };
 
 describe('toRagdollAgent', () => {
@@ -265,7 +266,22 @@ describe('toAgentListItem', () => {
       stilling: 'Butikkmedarbeider',
       bransje: 'Varehandel (privat)',
       vanskelighetsgrad: 'lett | Antall spørsmål: 6 | Oppfølgingsspørsmål: ja',
+      intervjuer: 'butikksjef, vennlig',
+      intervjutype: 'første intervju',
+      intervjuerMal: null,
     });
+  });
+
+  it('names the interviewer template when the answer came from one', () => {
+    const description = toStoredDescription(
+      interviewer,
+      { ...answers, intervjuer: 'Intervjueren er daglig leder i en mindre bedrift.' },
+      { intervjuer: { kind: 'template', id: 'daglig-leder' } },
+    );
+
+    const item = toAgentListItem({ ...summary, description });
+
+    expect(item.intervjuerMal).toBe('Daglig leder');
   });
 
   it('gives the avatar, or null for the default image', () => {
@@ -301,6 +317,9 @@ describe('toAgentListItem', () => {
       stilling: null,
       bransje: null,
       vanskelighetsgrad: null,
+      intervjuer: null,
+      intervjutype: null,
+      intervjuerMal: null,
     });
   });
 });

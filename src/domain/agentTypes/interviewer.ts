@@ -91,6 +91,14 @@ export const interviewer: AgentTypeDefinition = {
         'til et annet punkt.',
       optional: true,
     },
+    {
+      key: 'lovverk',
+      label: LABELS.lovverk,
+      // Never asked: the text comes from the legal templates the counsellor chose before the chat.
+      question: 'Hvilket lovverk skal intervjueren følge?',
+      optional: true,
+      presetOnly: true,
+    },
   ],
   configurator: {
     purpose: 'en AI-intervjuer som jobbsøkere skal øve jobbintervju med i VR-appen «The Candidate»',
@@ -100,6 +108,8 @@ export const interviewer: AgentTypeDefinition = {
         'vurdere kjønn, alder, helse, religion, etnisitet, seksuell orientering eller andre ' +
         'beskyttede egenskaper.',
       'Ikke finn på fakta om ekte bedrifter. Bruk bare det veilederen oppgir.',
+      'Er lovverk bestemt, ikke foreslå egne spørsmål som bryter det. Ber veilederen om et slikt ' +
+        'spørsmål, si kort hvorfor det ikke går, og be om et annet.',
     ],
   },
   presets: {
@@ -119,6 +129,7 @@ export const interviewer: AgentTypeDefinition = {
     },
     jobSeekerProfile: 'jobbsoker',
     industryTemplate: { job: 'stilling', industry: 'bransje' },
+    legalTemplates: 'lovverk',
   },
   // Safe cast: answers are checked with hasAllAnswers before a prompt is built.
   buildPrompt: (answers) => buildPrompt(answers as Configuration),

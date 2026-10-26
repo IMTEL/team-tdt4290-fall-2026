@@ -34,13 +34,26 @@ type TemplateFormProps = {
   defaultAgentType?: string | null;
   /** Saves the template. Throws Error with a Norwegian message that can be shown as it is. */
   onSave: (template: NewTemplate) => Promise<void>;
+  /**
+   * After a successful save. When set, the form does not show the success alert (e.g. the parent
+   * redirects and shows a toast on the templates page).
+   */
+  onSaved?: () => void;
+  /** Where Avbryt goes. The page you opened the form from, or /templates. */
+  cancelHref?: string;
 };
 
 /**
  * A form for a template, new or saved, for one of the agent types templates can be made for.
  * Saved templates show up on /configure for that type. The labels and help come from the type.
  */
-export function TemplateForm({ initial, defaultAgentType, onSave }: TemplateFormProps) {
+export function TemplateForm({
+  initial,
+  defaultAgentType,
+  onSave,
+  onSaved,
+  cancelHref = '/configure',
+}: TemplateFormProps) {
   const types = listTemplateAgentTypes();
   const [agentType, setAgentType] = useState(
     initial?.agentType ?? getTemplateAgentType(defaultAgentType)?.id ?? types[0]?.id ?? '',
@@ -73,6 +86,10 @@ export function TemplateForm({ initial, defaultAgentType, onSave }: TemplateForm
         focus,
         persona: persona.trim(),
       });
+      if (onSaved) {
+        onSaved();
+        return;
+      }
       setStatus({ kind: 'saved' });
     } catch (error) {
       setStatus({
@@ -83,10 +100,12 @@ export function TemplateForm({ initial, defaultAgentType, onSave }: TemplateForm
   }
 
   if (status.kind === 'saved') {
+    const backLabel = cancelHref.startsWith('/templates')
+      ? 'Se malene dine'
+      : 'Bruk den til å sette opp en agent';
     return (
       <Alert severity="success">
-        Malen «{title.trim()}» er lagret.{' '}
-        <Link href="/configure">Bruk den til å sette opp en agent</Link>
+        Malen «{title.trim()}» er lagret. <Link href={cancelHref}>{backLabel}</Link>
       </Alert>
     );
   }
@@ -173,7 +192,7 @@ export function TemplateForm({ initial, defaultAgentType, onSave }: TemplateForm
         >
           {isSaving ? 'Lagrer …' : initial ? 'Lagre endringene' : 'Lagre mal'}
         </Button>
-        <Button component={Link} href="/configure" disabled={isSaving}>
+        <Button component={Link} href={cancelHref} disabled={isSaving}>
           Avbryt
         </Button>
       </div>

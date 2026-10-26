@@ -38,7 +38,7 @@ export function EditProfile({ profileId }: { profileId: string }) {
   return (
     <div className={styles.page}>
       <header className={styles.header}>
-        <h1 className={styles.title}>Rediger jobbsøkerprofil</h1>
+        <h1 className={styles.title}>Rediger jobbsøkermal</h1>
         <p className={styles.lead}>
           {/* English translation: Changes apply to interviewers you set up from now on.
           Interviewers you have already saved stay as they are. */}
@@ -47,7 +47,7 @@ export function EditProfile({ profileId }: { profileId: string }) {
         </p>
       </header>
 
-      {state.kind === 'loading' && <p>Laster profil …</p>}
+      {state.kind === 'loading' && <p>Laster mal …</p>}
       {state.kind === 'error' && <Alert severity="error">{state.message}</Alert>}
       {state.kind === 'ready' && (
         <ProfileForm

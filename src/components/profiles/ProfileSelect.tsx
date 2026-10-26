@@ -20,13 +20,13 @@ export function ProfileSelect({ profiles, value, onChange }: ProfileSelectProps)
     <div className={styles.select}>
       <TextField
         select
-        label="Jobbsøkerprofil"
+        label="Jobbsøkermal"
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        helperText="Profilen bestemmer hvem jobbsøkeren er. Uten profil spør assistenten deg om det."
+        helperText="Malen bestemmer hvem jobbsøkeren er. Uten mal spør assistenten deg om det."
         className={styles.field}
       >
-        <MenuItem value="">Ingen profil</MenuItem>
+        <MenuItem value="">Ingen mal</MenuItem>
         {profiles.map((profile) => {
           const summary = summarizeProfile(profile);
           return (
@@ -37,7 +37,7 @@ export function ProfileSelect({ profiles, value, onChange }: ProfileSelectProps)
         })}
       </TextField>
       <Link href="/profiles" className={styles.link}>
-        Administrer profiler
+        Administrer maler
       </Link>
     </div>
   );

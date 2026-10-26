@@ -70,7 +70,12 @@ describe('ConfigurationChat', () => {
 
     const [definition, choices, history] = sendMock.mock.calls[0];
     expect(definition).toBe(interviewer);
-    expect(choices).toEqual({ templateId: 'teamleder', profileId: null, industryTemplateId: null });
+    expect(choices).toEqual({
+      templateId: 'teamleder',
+      profileId: null,
+      industryTemplateId: null,
+      legalTemplateIds: [],
+    });
     expect(history.map(({ role, content }) => ({ role, content }))).toEqual([
       { role: 'assistant', content: expect.stringContaining('Hei!') },
       { role: 'user', content: 'Butikkmedarbeider' },
@@ -123,6 +128,7 @@ describe('ConfigurationChat', () => {
       templateId: 'teamleder',
       profileId: null,
       industryTemplateId: 'helsefagarbeider',
+      legalTemplateIds: [],
     });
   });
 
@@ -139,6 +145,7 @@ describe('ConfigurationChat', () => {
       templateId: null,
       profileId: null,
       industryTemplateId: null,
+      legalTemplateIds: [],
     });
   });
 
@@ -147,7 +154,7 @@ describe('ConfigurationChat', () => {
     render(<ConfigurationChat definition={interviewer} template={template} profile={profile} />);
 
     expect(screen.getByText(/malen «Teamleder»/)).toBeInTheDocument();
-    expect(screen.getByText(/jobbsøkerprofilen «Profil A»/)).toBeInTheDocument();
+    expect(screen.getByText(/jobbsøkermalen «Profil A»/)).toBeInTheDocument();
 
     await sendMessage('Butikkmedarbeider');
     await screen.findByText('Neste spørsmål');
@@ -156,14 +163,15 @@ describe('ConfigurationChat', () => {
       templateId: 'teamleder',
       profileId: 'profile-1',
       industryTemplateId: null,
+      legalTemplateIds: [],
     });
   });
 
   it('can use a profile without a template', () => {
     render(<ConfigurationChat definition={interviewer} template={null} profile={profile} />);
 
-    expect(screen.queryByText(/malen/)).not.toBeInTheDocument();
-    expect(screen.getByText(/jobbsøkerprofilen «Profil A»/)).toBeInTheDocument();
+    expect(screen.queryByText(/valgt malen «/)).not.toBeInTheDocument();
+    expect(screen.getByText(/jobbsøkermalen «Profil A»/)).toBeInTheDocument();
   });
 
   it('does not offer to save before the configuration is finished', async () => {

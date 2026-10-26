@@ -15,6 +15,7 @@ import Typography from '@mui/material/Typography';
 
 import { AdvancedSettingsFields } from '@/components/agents/AdvancedSettingsFields';
 import { AvatarPicker } from '@/components/agents/AvatarPicker';
+import { LegalTemplateSelect } from '@/components/legalTemplates/LegalTemplateSelect';
 import { useLanguageModels } from '@/components/agents/useLanguageModels';
 import { type AdvancedSettings, advancedSettingsErrors } from '@/domain/advancedSettings';
 import { MAX_NAME_LENGTH } from '@/domain/agentName';
@@ -24,7 +25,9 @@ import type {
   AnswerSource,
   AnswerSources,
   Answers,
+  SingleAnswerSource,
 } from '@/domain/agentTypes/types';
+import { describeLegalFrameworks, type LegalTemplate } from '@/domain/legalTemplate';
 
 // Answers longer than this get a whole row and a taller field.
 const LONG_ANSWER = 60;
@@ -39,7 +42,7 @@ export type AnswerPreset = {
   /** The answer the options fill in. */
   field: string;
   /** What the options are, stored as the answer's source when one is chosen. */
-  kind: AnswerSource['kind'];
+  kind: SingleAnswerSource['kind'];
   label: string;
   options: { id: string; label: string; value: string }[];
   /** False while the options are loading, so a source is not reported missing too early. */
@@ -62,7 +65,9 @@ export function presetChoice(
   answer: string,
   source: AnswerSource | undefined,
 ): PresetChoice {
-  if (!source || source.kind !== preset.kind) return { optionId: '', note: null };
+  if (!source || source.kind === 'legal' || source.kind !== preset.kind) {
+    return { optionId: '', note: null };
+  }
 
   const option = preset.options.find(({ id }) => id === source.id);
   if (option && option.value === answer) return { optionId: option.id, note: null };
@@ -76,8 +81,48 @@ export function presetChoice(
   return { optionId: '', note: `Teksten kom fra «${option.label}», som er endret siden.` };
 }
 
+/**
+ * The legal templates an answer can be made from. Ticking them puts their text together in the
+ * field, where the counsellor can still change it.
+ */
+export type LegalPreset = {
+  /** The answer the templates fill in. */
+  field: string;
+  /** The built-in templates first, then the counsellor's own. */
+  options: LegalTemplate[];
+  /** False while the options are loading, so a source is not reported missing too early. */
+  loaded: boolean;
+};
+
+/** What the legal checkboxes show: the ticked templates, and a note about the source. */
+type LegalChoice = { ids: string[]; note: string | null };
+
+/**
+ * The legal templates the answer came from, if the agent remembers them and their text is still
+ * in the field. If one has been changed or deleted since, nothing is ticked and the note says so,
+ * the same way presetChoice does for one template or profile.
+ */
+export function legalChoice(
+  preset: LegalPreset,
+  answer: string,
+  source: AnswerSource | undefined,
+): LegalChoice {
+  if (source?.kind !== 'legal') return { ids: [], note: null };
+
+  const chosen = source.ids.flatMap((id) => preset.options.filter((option) => option.id === id));
+  if (chosen.length === source.ids.length && describeLegalFrameworks(chosen) === answer) {
+    return { ids: source.ids, note: null };
+  }
+  if (!preset.loaded) return { ids: [], note: null };
+  if (chosen.length < source.ids.length) {
+    return { ids: [], note: 'Teksten kom fra lovverk som ikke finnes lenger.' };
+  }
+  const titles = chosen.map(({ title }) => `«${title}»`).join(', ');
+  return { ids: [], note: `Teksten kom fra ${titles}, som er endret siden.` };
+}
+
 function sameSource(a: AnswerSource | undefined, b: AnswerSource | undefined): boolean {
-  return a?.kind === b?.kind && a?.id === b?.id;
+  return JSON.stringify(a) === JSON.stringify(b);
 }
 
 type EditAgentFormProps = {
@@ -108,6 +153,8 @@ type EditAgentFormProps = {
   /** True when saving is allowed without changes, as for a clone. */
   allowUnchanged?: boolean;
   presets?: AnswerPreset[];
+  /** The legal templates the type's legal field can be made from. None for a type without one. */
+  legalPreset?: LegalPreset;
 };
 
 /**
@@ -128,6 +175,7 @@ export function EditAgentForm({
   onSave,
   allowUnchanged = false,
   presets = [],
+  legalPreset,
 }: EditAgentFormProps) {
   const router = useRouter();
   const [name, setName] = useState(initialName);
@@ -162,6 +210,26 @@ export function EditAgentForm({
     }));
     setSource(preset.field, option ? { kind: preset.kind, id: option.id } : null);
   }
+
+  // Ticking none puts back the saved text as the counsellor's own, unless it came from legal
+  // templates: then none means no lovverk.
+  function chooseLegal(preset: LegalPreset, ids: string[]) {
+    const chosen = ids.flatMap((id) => preset.options.filter((option) => option.id === id));
+    const ownText =
+      initialSources[preset.field]?.kind === 'legal' ? '' : (initialAnswers[preset.field] ?? '');
+    setAnswers((current) => ({
+      ...current,
+      [preset.field]: chosen.length > 0 ? describeLegalFrameworks(chosen) : ownText,
+    }));
+    setSource(
+      preset.field,
+      chosen.length > 0 ? { kind: 'legal', ids: chosen.map(({ id }) => id) } : null,
+    );
+  }
+
+  const legal =
+    legalPreset &&
+    legalChoice(legalPreset, answers[legalPreset.field] ?? '', sources[legalPreset.field]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -286,6 +354,21 @@ export function EditAgentForm({
                 </Box>
               );
             })}
+          </Box>
+        )}
+        {legalPreset && legal && (
+          <Box sx={{ mb: 3 }}>
+            <LegalTemplateSelect
+              templates={legalPreset.options}
+              value={legal.ids}
+              onChange={(ids) => chooseLegal(legalPreset, ids)}
+              disabled={isSaving}
+              helperText={
+                legal.note ??
+                'Fyller inn Lovverk under, og erstatter teksten som står der. Du kan endre ' +
+                  'teksten etterpå.'
+              }
+            />
           </Box>
         )}
         <Box

@@ -64,7 +64,8 @@ describe('LogInPageButton', () => {
 
     render(<LogInPageButton />);
 
-    expect(screen.getByText('Kari Nordmann')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Kari Nordmann' })).toHaveAttribute('href', '/profile');
+    expect(screen.getByText('K')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Logg ut' })).toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'Logg inn' })).not.toBeInTheDocument();
   });

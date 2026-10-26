@@ -1,8 +1,33 @@
+.profile {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+  color: var(--muted-foreground);
+  text-decoration: none;
+}
+
+.avatar {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  overflow: hidden;
+  border-radius: var(--radius-full);
+  background-color: color-mix(in oklch, var(--secondary) 55%, var(--background));
+  background-position: center;
+  background-size: cover;
+  color: var(--foreground);
+  font-size: 0.8rem;
+  font-weight: 650;
+}
+
 .userName {
   max-width: 10rem;
   overflow: hidden;
   font-size: 0.875rem;
-  color: var(--muted-foreground);
   text-overflow: ellipsis;
   white-space: nowrap;
 }

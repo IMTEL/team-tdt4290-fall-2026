@@ -3,7 +3,7 @@ import type { Metadata } from 'next';
 import { EditProfile } from './EditProfile';
 
 export const metadata: Metadata = {
-  title: 'Rediger jobbsøkerprofil',
+  title: 'Rediger jobbsøkermal',
 };
 
 interface EditProfilePageProps {

@@ -9,11 +9,20 @@ export const metadata: Metadata = {
     'Lag en mal som du kan bruke når du setter opp en AI-agent, for eksempel en intervjuer.',
 };
 
-type CreateTemplatePageProps = { searchParams: Promise<{ agentType?: string | string[] }> };
+type CreateTemplatePageProps = {
+  searchParams: Promise<{ agentType?: string | string[]; returnTo?: string | string[] }>;
+};
+
+/** A path on this site. Anything else is dropped so the link cannot leave the app. */
+function returnPath(value: string | string[] | undefined): string | null {
+  const path = Array.isArray(value) ? value[0] : value;
+  if (!path || !path.startsWith('/') || path.startsWith('//') || path.includes('\\')) return null;
+  return path;
+}
 
 /** `?agentType=<id>` chooses the agent type to start with, as the link on /configure does. */
 export default async function CreateTemplatePage({ searchParams }: CreateTemplatePageProps) {
-  const { agentType } = await searchParams;
+  const { agentType, returnTo } = await searchParams;
   return (
     <div className={styles.page}>
       <header className={styles.header}>
@@ -28,7 +37,10 @@ export default async function CreateTemplatePage({ searchParams }: CreateTemplat
         </p>
       </header>
 
-      <CreateTemplateForm agentType={typeof agentType === 'string' ? agentType : null} />
+      <CreateTemplateForm
+        agentType={typeof agentType === 'string' ? agentType : null}
+        cancelHref={returnPath(returnTo) ?? '/templates'}
+      />
     </div>
   );
 }

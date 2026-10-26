@@ -17,10 +17,16 @@ type DeleteTemplateButtonProps = {
   template: AgentTemplate;
   /** Called once the template is deleted. */
   onDeleted: (id: string) => void;
+  /** Text on a card, outlined among the actions on the template's page. */
+  variant?: 'text' | 'outlined';
 };
 
 /** Deletes one of the counsellor's saved templates, after asking first. */
-export function DeleteTemplateButton({ template, onDeleted }: DeleteTemplateButtonProps) {
+export function DeleteTemplateButton({
+  template,
+  onDeleted,
+  variant = 'text',
+}: DeleteTemplateButtonProps) {
   const [open, setOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -49,7 +55,8 @@ export function DeleteTemplateButton({ template, onDeleted }: DeleteTemplateButt
   return (
     <>
       <Button
-        size="small"
+        size={variant === 'text' ? 'small' : 'medium'}
+        variant={variant}
         color="error"
         onClick={() => setOpen(true)}
         aria-label={`Slett ${template.title}`}
