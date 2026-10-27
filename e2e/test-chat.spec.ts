@@ -56,6 +56,10 @@ test('starting over clears the conversation', async ({ page }) => {
   await expect(conversation(page)).toContainText('Mock-svar: Jeg heter Ola.');
 
   await page.getByRole('button', { name: 'Start på nytt', exact: true }).click();
+  await page
+    .getByRole('dialog')
+    .getByRole('button', { name: 'Start på nytt', exact: true })
+    .click();
 
   await expect(conversation(page)).toContainText('Hei, og velkommen til intervjuet.');
   await expect(conversation(page)).not.toContainText('Jeg heter Ola.');
