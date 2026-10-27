@@ -24,6 +24,7 @@ import {
 } from '@/domain/agentList';
 import { getAgentType } from '@/domain/agentTypes/registry';
 import type { Agent } from '@/lib/types';
+import { useOnceInBrowser } from '@/lib/useOnceInBrowser';
 import { fetchAgents } from './api';
 import { AGENT_SAVED_FLASH, DRAFT_SAVED_FLASH, takeAgentsFlash } from './flash';
 import styles from './AgentList.module.css';
@@ -33,15 +34,6 @@ type ListState =
   | { kind: 'loading' }
   | { kind: 'ready'; agents: Agent[]; searchable: SearchableAgent[] }
   | { kind: 'error' };
-
-/** True after hydration, so browser storage can be read without a server/client HTML mismatch. */
-function useIsClient() {
-  return useSyncExternalStore(
-    () => () => {},
-    () => true,
-    () => false,
-  );
-}
 
 function toastFromFlash(): string | null {
   const flash = takeAgentsFlash();
@@ -71,10 +63,8 @@ function sectionsWithNewAgent(agents: Agent[]): AgentSection[] {
  * a search, only the agents that match are shown, without «Ny agent» and the utkast.
  */
 export function AgentList() {
-  const isClient = useIsClient();
   const [state, setState] = useState<ListState>({ kind: 'loading' });
   const [toast, setToast] = useState<string | null>(null);
-  const [flashSeen, setFlashSeen] = useState(false);
   const [query, setQuery] = useState('');
   const searchField = useRef<HTMLInputElement>(null);
   const draft = useSyncExternalStore(subscribeWizardDraft, readWizardDraft, () => null);
@@ -93,12 +83,11 @@ export function AgentList() {
     };
   }, []);
 
-  // One-shot flash from the previous page (save / lagre utkast). Read after hydration only.
-  if (isClient && !flashSeen) {
-    setFlashSeen(true);
+  // One-shot flash from the previous page (save / lagre utkast).
+  useOnceInBrowser(() => {
     const message = toastFromFlash();
     if (message) setToast(message);
-  }
+  });
 
   let body;
   if (state.kind === 'loading') {

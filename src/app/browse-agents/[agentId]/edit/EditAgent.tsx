@@ -13,6 +13,7 @@ import Typography from '@mui/material/Typography';
 import { settingsOf } from '@/domain/advancedSettings';
 import { readStoredAnswers } from '@/domain/agentTypes/storedAnswers';
 import { updateAgent } from '../../api';
+import { setAgentHiddenFlash } from '../../flash';
 import { useAnswerPresets, useLegalPreset } from '../../useAnswerPresets';
 import { useAgent } from '../../useAgent';
 import { EditAgentForm } from './EditAgentForm';
@@ -51,6 +52,13 @@ export function EditAgent({ agentId }: { agentId: string }) {
         {stored && <Chip label={stored.definition.label} size="small" color="secondary" />}
       </Stack>
 
+      {stored && agent.isPublished && (
+        <Alert severity="warning" sx={{ mb: 3 }}>
+          Agenten er publisert i The Candidate. Når du lagrer, blir den gjemt fra The Candidate.
+          Test den før du publiserer den på nytt.
+        </Alert>
+      )}
+
       {stored ? (
         <EditAgentForm
           agentId={agent.id}
@@ -68,7 +76,16 @@ export function EditAgent({ agentId }: { agentId: string }) {
           legalPreset={legalPreset}
           submitLabel="Lagre endringer"
           onSave={async (newName, newAnswers, newSources, newSettings, newAvatar) => {
-            await updateAgent(agent.id, newName, newAnswers, newSources, newSettings, newAvatar);
+            const updated = await updateAgent(
+              agent.id,
+              newName,
+              newAnswers,
+              newSources,
+              newSettings,
+              newAvatar,
+            );
+            // The server hides a published agent when it is edited; the agent's page says so.
+            if (agent.isPublished && !updated.isPublished) setAgentHiddenFlash(agent.id);
             return agent.id;
           }}
         />

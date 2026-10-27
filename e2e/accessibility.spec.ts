@@ -10,7 +10,7 @@ import {
   pickTemplate,
   sendMessage,
 } from './support/configure';
-import { createAgent, createProfile, createTemplate } from './support/data';
+import { createAgent, createProfile, createTemplate, publishAgent } from './support/data';
 
 // Every page, and the states a user can open on it (dialogs, menus, errors, chat), checked with
 // axe in the light and the dark theme, since the colours and so the contrast differ.
@@ -111,6 +111,35 @@ for (const colorScheme of ['light', 'dark'] as const) {
         await page.goto(`/browse-agents/${id}/edit`);
         await page.getByRole('combobox', { name: 'Intervjuermal', exact: true }).click();
         await expect(page.getByRole('listbox')).toBeVisible();
+        await expectNoAccessibilityViolations(page);
+      });
+
+      test('publish dialog', async ({ page }) => {
+        await logIn(page);
+        const id = await createAgent(page, 'Intervjuer for butikk');
+        await page.goto(`/browse-agents/${id}`);
+        await page.getByRole('button', { name: 'Publiser', exact: true }).click();
+        await expect(page.getByRole('dialog')).toBeVisible();
+        await expectNoAccessibilityViolations(page);
+      });
+
+      test('edit form of a published agent', async ({ page }) => {
+        await logIn(page);
+        const id = await createAgent(page, 'Intervjuer for butikk');
+        await publishAgent(page, id, 'Butikkintervju');
+        await page.goto(`/browse-agents/${id}/edit`);
+        await expect(page.getByText(/^Agenten er publisert i The Candidate\./)).toBeVisible();
+        await expectNoAccessibilityViolations(page);
+      });
+
+      test('agent page after a published agent was edited', async ({ page }) => {
+        await logIn(page);
+        const id = await createAgent(page, 'Intervjuer for butikk');
+        await publishAgent(page, id, 'Butikkintervju');
+        await page.goto(`/browse-agents/${id}/edit`);
+        await page.getByRole('textbox', { name: /^Vanskelighetsgrad/ }).fill('vanskelig');
+        await page.getByRole('button', { name: 'Lagre endringer', exact: true }).click();
+        await expect(page.getByText(/^Agenten er gjemt fra The Candidate/)).toBeVisible();
         await expectNoAccessibilityViolations(page);
       });
 

@@ -19,6 +19,7 @@ import { industryTemplates } from '@/data/industry-templates';
 import { builtInLegalTemplates } from '@/data/legal-templates';
 import type { JobSeekerProfile } from '@/domain/jobSeekerProfile';
 import type { LegalTemplate } from '@/domain/legalTemplate';
+import { useOnceInBrowser } from '@/lib/useOnceInBrowser';
 import {
   industryCatalog,
   jobCatalog,
@@ -53,15 +54,6 @@ type SavedState =
 
 const NEW_STILLINGSMAL_HREF =
   '/create-template?agentType=interviewer&returnTo=' + encodeURIComponent('/templates');
-
-/** True after hydration, so sessionStorage flash can be read without a mismatch. */
-function useIsClient() {
-  return useSyncExternalStore(
-    () => () => {},
-    () => true,
-    () => false,
-  );
-}
 
 function toastFromFlash(): string | null {
   const flash = takeTemplatesFlash();
@@ -127,12 +119,10 @@ function BuiltInSection({
  * with the built-in stillingsmaler, because that is where «Ny stillingsmal» creates them.
  */
 export function TemplateLibrary() {
-  const isClient = useIsClient();
   const [profiles, setProfiles] = useState<ProfileState>({ kind: 'loading' });
   const [legal, setLegal] = useState<LegalState>({ kind: 'loading' });
   const [saved, setSaved] = useState<SavedState>({ kind: 'loading' });
   const [toast, setToast] = useState<string | null>(null);
-  const [flashSeen, setFlashSeen] = useState(false);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -165,11 +155,11 @@ export function TemplateLibrary() {
     saved.kind === 'ready' ? savedTemplateCatalog(saved.templates) : [];
   const builtInJobs = jobCatalog(industryTemplates);
 
-  if (isClient && !flashSeen) {
-    setFlashSeen(true);
+  // One-shot flash from the previous page (mal laget / lagret).
+  useOnceInBrowser(() => {
     const message = toastFromFlash();
     if (message) setToast(message);
-  }
+  });
 
   return (
     <>

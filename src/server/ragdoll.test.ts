@@ -478,6 +478,23 @@ describe('updateAgent', () => {
     expect(JSON.parse(fetchMock.mock.calls[0][1]?.body as string)).not.toHaveProperty('access_key');
   });
 
+  it('never sends whether the agent is published, so an old value cannot publish it again', async () => {
+    fetchMock.mockResolvedValue(Response.json(existing));
+
+    await updateAgent(SESSION_TOKEN, {
+      ...existing,
+      is_published: true,
+      public_name: 'Kari',
+      public_description: 'Øv på intervju',
+      published_at: '2026-10-20T12:00:00Z',
+    });
+
+    const body = JSON.parse(fetchMock.mock.calls[0][1]?.body as string);
+    for (const field of ['is_published', 'public_name', 'public_description', 'published_at']) {
+      expect(body).not.toHaveProperty(field);
+    }
+  });
+
   it('returns the saved agent without the keys', async () => {
     // RAGdoll answers the owner with the decrypted keys.
     fetchMock.mockResolvedValue(Response.json(existing));

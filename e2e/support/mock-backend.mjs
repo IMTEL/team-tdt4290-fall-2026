@@ -295,6 +295,32 @@ async function handle(req, res) {
       : send(res, 404, { detail: 'Agent not found' });
   }
 
+  // Publishing to The Candidate. RAGdoll answers with the whole agent; the app reads the fields
+  // that say whether and how it is published.
+  const publication = path.match(/^\/agents\/([^/]+)\/(publish|unpublish)$/);
+  if (publication && method === 'POST') {
+    const agent = findAgent(decodeURIComponent(publication[1]));
+    if (!agent) return send(res, 404, { detail: 'Agent not found' });
+    if (publication[2] === 'publish') {
+      const body = await readBody(req);
+      Object.assign(agent, {
+        is_published: true,
+        public_name: body.public_name,
+        public_description: body.public_description,
+        published_at: now(),
+      });
+    } else {
+      // Like RAGdoll: a hidden agent keeps its public name and description.
+      Object.assign(agent, {
+        is_published: false,
+        public_name: agent.public_name ?? '',
+        public_description: agent.public_description ?? '',
+        published_at: null,
+      });
+    }
+    return send(res, 200, agent);
+  }
+
   const agentPath = path.match(/^\/agents\/([^/]+)$/);
   if (agentPath) {
     const id = decodeURIComponent(agentPath[1]);
@@ -304,12 +330,17 @@ async function handle(req, res) {
     if (method === 'POST') {
       const body = await readBody(req);
       const old = data.agents[index];
-      // Like RAGdoll: empty keys keep the stored ones.
+      // Like RAGdoll: empty keys keep the stored ones, and only publish and unpublish change
+      // whether and how the agent is published.
       data.agents[index] = {
         ...body,
         id,
         llm_api_key: body.llm_api_key || old.llm_api_key,
         embedding_api_key: body.embedding_api_key || old.embedding_api_key,
+        is_published: old.is_published,
+        public_name: old.public_name,
+        public_description: old.public_description,
+        published_at: old.published_at,
         last_updated: now(),
       };
       return send(res, 200, data.agents[index]);

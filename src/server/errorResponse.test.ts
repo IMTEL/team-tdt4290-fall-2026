@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { ragdollErrorResponse } from './errorResponse';
+import { notOwnerResponse, ragdollErrorResponse } from './errorResponse';
 import { RagdollError } from './ragdoll';
 
 describe('ragdollErrorResponse', () => {
@@ -30,5 +30,14 @@ describe('ragdollErrorResponse', () => {
 
     expect(res.status).toBe(500);
     expect(consoleError).toHaveBeenCalled();
+  });
+});
+
+describe('notOwnerResponse', () => {
+  it('answers 403 and says what only the owner may do', async () => {
+    const res = notOwnerResponse('delete the agent');
+
+    expect(res.status).toBe(403);
+    expect(await res.json()).toEqual({ error: 'Only the owner can delete the agent' });
   });
 });

@@ -22,8 +22,10 @@ import { AnswerList } from '@/components/agents/AnswerList';
 import { DEFAULT_TEMPERATURE, formatTemperature } from '@/domain/advancedSettings';
 import { readStoredAnswers } from '@/domain/agentTypes/storedAnswers';
 import { formatDate } from '@/lib/format';
+import { useOnceInBrowser } from '@/lib/useOnceInBrowser';
 
 import type { Publication } from '../api';
+import { takeAgentHiddenFlash } from '../flash';
 import { useAgent } from '../useAgent';
 import styles from './AgentDetail.module.css';
 
@@ -42,6 +44,11 @@ export function AgentDetail({ agentId }: { agentId: string }) {
   const [copyMessageOpen, setCopyMessageOpen] = useState(false);
   // Set after publishing or hiding, so the page shows the change without loading the agent again.
   const [changedPublication, setChangedPublication] = useState<Publication | null>(null);
+  // Set when the agent was just hidden from The Candidate because it was edited.
+  const [hiddenByEdit, setHiddenByEdit] = useState(false);
+  useOnceInBrowser(() => {
+    if (takeAgentHiddenFlash(agentId)) setHiddenByEdit(true);
+  });
 
   if (state.kind === 'missing') notFound();
 
@@ -56,6 +63,7 @@ export function AgentDetail({ agentId }: { agentId: string }) {
   if (state.kind !== 'ready') return null;
 
   const { agent } = state;
+
   const agentPath = `/browse-agents/${encodeURIComponent(agent.id)}`;
   // Knows the old and the new way of storing answers, and works for every agent type.
   const stored = readStoredAnswers(agent.description);
@@ -140,6 +148,16 @@ export function AgentDetail({ agentId }: { agentId: string }) {
           </Typography>
           <Typography variant="body1">{summary}</Typography>
         </Paper>
+      )}
+
+      {/* Gone once the counsellor publishes the agent again. */}
+      {hiddenByEdit && !publication.isPublished && (
+        <div className={styles.notice}>
+          <Alert severity="info">
+            Agenten er gjemt fra The Candidate fordi den ble endret. Test den, og publiser den på
+            nytt når du er fornøyd.
+          </Alert>
+        </div>
       )}
 
       {/* Above the tabs, so the actions are seen whichever tab is open. */}

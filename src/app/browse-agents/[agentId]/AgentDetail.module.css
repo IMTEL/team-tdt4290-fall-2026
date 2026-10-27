@@ -18,6 +18,10 @@
   margin-bottom: 1.5rem;
 }
 
+.notice {
+  margin-bottom: var(--space-5);
+}
+
 .summaryLabel {
   color: var(--muted-foreground);
 }

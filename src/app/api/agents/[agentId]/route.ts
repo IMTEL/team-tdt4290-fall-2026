@@ -7,9 +7,15 @@ import { cleanSources, readStoredAnswers } from '@/domain/agentTypes/storedAnswe
 import { parseAvatarChoice } from '@/domain/avatars';
 import { getSessionToken } from '@/lib/session-tokens';
 import { applyEdit } from '@/server/agentMapper';
-import { ragdollErrorResponse } from '@/server/errorResponse';
+import { notOwnerResponse, ragdollErrorResponse } from '@/server/errorResponse';
 import { modelsToValidate } from '@/server/models';
-import { deleteAgent, fetchFullAgent, isAgentOwner, updateAgent } from '@/server/ragdoll';
+import {
+  deleteAgent,
+  fetchFullAgent,
+  isAgentOwner,
+  unpublishAgent,
+  updateAgent,
+} from '@/server/ragdoll';
 
 type Params = { params: Promise<{ agentId: string }> };
 
@@ -17,7 +23,8 @@ type Params = { params: Promise<{ agentId: string }> };
  * Saves a new name, new answers and, optionally, new advanced settings and a new avatar for one of
  * the logged-in counsellor's agents. The prompt is rebuilt from the answers unless the counsellor
  * wrote it by hand, and every other field of the agent is kept. Without `avatar` the agent keeps
- * its avatar, and `null` gives it the default image.
+ * its avatar, and `null` gives it the default image. A published agent is hidden from The Candidate,
+ * so the owner tests it before publishing it again.
  */
 export async function PUT(req: NextRequest, { params }: Params) {
   const sessionToken = await getSessionToken(req);
@@ -76,6 +83,16 @@ export async function PUT(req: NextRequest, { params }: Params) {
       settings = parsed;
     }
 
+    // A published agent is hidden before the change is saved, so The Candidate never gets a version
+    // nobody has tested. If saving fails after this, the agent is hidden and unchanged. Only the
+    // owner may hide an agent, so only the owner may edit a published one.
+    if (existing.is_published === true) {
+      if (!(await isAgentOwner(sessionToken, agentId))) {
+        return notOwnerResponse('edit a published agent');
+      }
+      await unpublishAgent(sessionToken, agentId);
+    }
+
     const edited = applyEdit(
       existing,
       name,
@@ -105,7 +122,7 @@ export async function DELETE(req: NextRequest, { params }: Params) {
     await fetchFullAgent(sessionToken, agentId);
 
     if (!(await isAgentOwner(sessionToken, agentId))) {
-      return Response.json({ error: 'Only the owner can delete the agent' }, { status: 403 });
+      return notOwnerResponse('delete the agent');
     }
 
     await deleteAgent(sessionToken, agentId);

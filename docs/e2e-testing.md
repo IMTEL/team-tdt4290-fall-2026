@@ -103,7 +103,7 @@ shapes, and keeps everything in memory. It uses only Node built-ins.
 - **Every login is a new user**, with no agents, templates or profiles. So each test starts from
   an empty account, and tests running in parallel never see each other's data. A test that needs
   data creates it, through the UI or through our own API with the helpers in
-  `e2e/support/data.ts` (`createAgent`, `createTemplate`, `createProfile`).
+  `e2e/support/data.ts` (`createAgent`, `publishAgent`, `createTemplate`, `createProfile`).
 - **Chat**: no LLM. Every reply from a saved agent is `Mock-svar: <the last message you sent>`.
   The interviewer is set up in the wizard on `/configure`, without a chat, so only the test chat
   talks to the mock this way.
@@ -123,7 +123,7 @@ In `e2e/`, named `*.spec.ts`, one file per flow or page:
 | ----------------------- | ------------------------------------------------------------------ |
 | `home.spec.ts`          | Start page, navbar links, theme toggle                             |
 | `auth.spec.ts`          | Login, logout, protected pages, login errors                       |
-| `agents.spec.ts`        | Agent list, agent page, edit (with presets), clone, delete         |
+| `agents.spec.ts`        | Agent list, agent page, edit, clone, delete, publish, hide         |
 | `configure.spec.ts`     | The interviewer wizard: every step, publishing, testing and drafts |
 | `templates.spec.ts`     | Create, edit, delete and use interviewer templates                 |
 | `profiles.spec.ts`      | Create, edit, delete job seeker templates, form validation         |

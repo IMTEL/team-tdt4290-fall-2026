@@ -1,7 +1,7 @@
 import { test, expect, type Page } from '@playwright/test';
 
 import { logIn } from './support/auth';
-import { createAgent } from './support/data';
+import { createAgent, publishAgent } from './support/data';
 
 // MUI adds " *" to the label of a required field, so match the start of the label.
 const field = (page: Page, label: string) =>
@@ -161,6 +161,81 @@ test('cancelling an edit changes nothing', async ({ page }) => {
   await expect(
     page.getByRole('heading', { level: 1, name: 'Intervjuer for butikk', exact: true }),
   ).toBeVisible();
+});
+
+test('an agent can be published to The Candidate and hidden again', async ({ page }) => {
+  await logIn(page);
+  const id = await createAgent(page, 'Intervjuer for butikk');
+  await page.goto(`/browse-agents/${id}`);
+  const chip = page.getByText('Publisert i The Candidate', { exact: true });
+  await expect(chip).toBeHidden();
+
+  await page.getByRole('button', { name: 'Publiser', exact: true }).click();
+  const dialog = page.getByRole('dialog');
+  await expect(dialog.getByRole('textbox', { name: /^Navn i The Candidate/ })).toHaveValue(
+    'Intervjuer for butikk',
+  );
+  await dialog.getByRole('textbox', { name: /^Navn i The Candidate/ }).fill('Butikkintervju');
+  await dialog.getByRole('button', { name: 'Publiser', exact: true }).click();
+  await expect(chip).toBeVisible();
+
+  await page.getByRole('button', { name: 'Gjem agent', exact: true }).click();
+  await expect(page.getByRole('dialog')).toContainText('Gjemme «Butikkintervju»?');
+  await page.getByRole('dialog').getByRole('button', { name: 'Gjem agent', exact: true }).click();
+  await expect(chip).toBeHidden();
+
+  // The page still knows after loading the agent again.
+  await page.reload();
+  await expect(page.getByRole('button', { name: 'Publiser', exact: true })).toBeVisible();
+  await expect(chip).toBeHidden();
+});
+
+test('editing a published agent hides it until it is published again', async ({ page }) => {
+  await logIn(page);
+  const id = await createAgent(page, 'Intervjuer for butikk');
+  await publishAgent(page, id, 'Butikkintervju');
+  await page.goto(`/browse-agents/${id}/edit`);
+
+  await expect(page.getByText(/^Agenten er publisert i The Candidate\./)).toBeVisible();
+  await field(page, 'Vanskelighetsgrad').fill('vanskelig');
+  await page.getByRole('button', { name: 'Lagre endringer', exact: true }).click();
+
+  await expect(page).toHaveURL(new RegExp(`/browse-agents/${id}$`));
+  const notice = page.getByText(/^Agenten er gjemt fra The Candidate fordi den ble endret\./);
+  const chip = page.getByText('Publisert i The Candidate', { exact: true });
+  await expect(notice).toBeVisible();
+  await expect(chip).toBeHidden();
+  await expect(page.getByRole('definition').filter({ hasText: 'vanskelig' })).toBeVisible();
+
+  // Publishing again starts from the name and description it had.
+  await page.getByRole('button', { name: 'Publiser', exact: true }).click();
+  const dialog = page.getByRole('dialog');
+  await expect(dialog.getByRole('textbox', { name: /^Navn i The Candidate/ })).toHaveValue(
+    'Butikkintervju',
+  );
+  await expect(dialog.getByRole('textbox', { name: /^Kort beskrivelse/ })).toHaveValue(
+    'Øv på et intervju i en butikk.',
+  );
+  await dialog.getByRole('button', { name: 'Publiser', exact: true }).click();
+
+  await expect(chip).toBeVisible();
+  await expect(notice).toBeHidden();
+});
+
+test('editing an agent that is not published says nothing about The Candidate', async ({
+  page,
+}) => {
+  await logIn(page);
+  const id = await createAgent(page, 'Intervjuer for butikk');
+  await page.goto(`/browse-agents/${id}/edit`);
+
+  await expect(page.getByRole('heading', { name: 'Rediger agent', exact: true })).toBeVisible();
+  await expect(page.getByText(/^Agenten er publisert i The Candidate\./)).toBeHidden();
+  await field(page, 'Vanskelighetsgrad').fill('vanskelig');
+  await page.getByRole('button', { name: 'Lagre endringer', exact: true }).click();
+
+  await expect(page.getByRole('definition').filter({ hasText: 'vanskelig' })).toBeVisible();
+  await expect(page.getByText(/^Agenten er gjemt fra The Candidate/)).toBeHidden();
 });
 
 test('an agent can be cloned, and the original stays as it was', async ({ page }) => {

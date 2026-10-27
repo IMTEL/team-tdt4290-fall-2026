@@ -139,6 +139,9 @@ export type RagdollAgentSummary = {
   publicDescription?: string;
 };
 
+/** The agent fields that say whether and how it is published. RAGdoll has the same list. */
+const PUBLISH_FIELDS = ['is_published', 'public_name', 'public_description', 'published_at'];
+
 /** Whether an agent is published to The Candidate, and what The Candidate shows of it. */
 export type PublicationStatus = {
   isPublished: boolean;
@@ -197,10 +200,10 @@ export async function updateAgent(
   sessionToken: string,
   agent: FullRagdollAgent,
 ): Promise<RagdollAgentSummary> {
-  // Empty keys tell RAGdoll to keep the stored ones, so the keys never travel back. RAGdoll keeps
-  // the agent's access keys itself, and the list only gives us their metadata, so leave them out.
   const fields: Record<string, unknown> = { ...agent };
   delete fields.access_key;
+
+  for (const field of PUBLISH_FIELDS) delete fields[field];
   const path = `/agents/${encodeURIComponent(agent.id)}`;
   const data = await requestAsUser(sessionToken, path, {
     method: 'POST',
