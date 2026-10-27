@@ -223,7 +223,12 @@ curl.exe -H "Authorization: Bearer local-test-key" http://localhost:8000/agents/
 
 You should see your agent with **only** `agent_id`, `name` and `description`. There should be no prompt, no job-seeker answers and no keys.
 
-Also check that editing doesn't unpublish it: click **Rediger**, change something, and save. The chip is still there.
+Also check that editing hides it (#122):
+
+1. Click **Rediger**. A warning says the agent is published and will be hidden from The Candidate when you save.
+2. Change something and click **Lagre endringer**.
+3. On the agent's page, the chip is gone, and a note says the agent was hidden because it was changed. Run the `curl` command above again: the agent is no longer in the list.
+4. Click **Publiser**. The name and description are filled in from before. Click **Publiser** again. The chip is back, and the note is gone.
 
 Leave the agent **published** for the next parts.
 
