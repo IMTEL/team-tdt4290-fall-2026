@@ -47,6 +47,7 @@ describe('sendToAgent', () => {
 
   it.each([
     [504, 'Assistenten brukte for lang tid på å svare. Prøv igjen.'],
+    [429, 'Du har sendt mange meldinger på kort tid. Vent litt og prøv igjen.'],
     [502, 'Noe gikk galt. Prøv igjen.'],
     [500, 'Noe gikk galt. Prøv igjen.'],
   ])('turns a %i into a Norwegian ChatError', async (status, userMessage) => {

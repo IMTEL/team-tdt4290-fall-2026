@@ -1,4 +1,4 @@
-import { ChatError } from '@/components/chat/sendToAgent';
+import { ChatError, TOO_MANY_MESSAGES } from '@/components/chat/sendToAgent';
 import type { ChatMessage } from '@/components/chat/types';
 import type { AgentTemplate } from '@/data/templates';
 import type { AdvancedSettings } from '@/domain/advancedSettings';
@@ -39,6 +39,9 @@ function errorFor(res: Response): ChatError {
   }
   if (res.status === 504) {
     return new ChatError('Det tok for lang tid å få svar. Prøv igjen.');
+  }
+  if (res.status === 429) {
+    return new ChatError(TOO_MANY_MESSAGES);
   }
   if (res.status === 400) {
     return new ChatError('Agenten ble ikke godtatt. Sjekk navnet og de avanserte innstillingene.');

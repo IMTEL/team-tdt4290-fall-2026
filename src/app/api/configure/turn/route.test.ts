@@ -6,6 +6,7 @@ import { findIndustryTemplate, industryConfiguration } from '@/data/industry-tem
 import { findBuiltInTemplate } from '@/data/templates';
 import { getSessionToken } from '@/lib/session-tokens';
 import { askAgent, getProfile, getTemplate, RagdollError } from '@/server/ragdoll';
+import { chatRetryAfter, MAX_CHAT_REQUESTS, resetChatLimits } from '@/server/rateLimit';
 import { POST } from './route';
 
 // The adapter, buildBriefing and parseAnswers have their own tests. Here we only check what the
@@ -45,6 +46,7 @@ function turnRequest(body: unknown) {
 }
 
 beforeEach(() => {
+  resetChatLimits();
   getSessionTokenMock.mockResolvedValue('session-token');
   // Only built-in templates exist unless a test saves one.
   getTemplateMock.mockRejectedValue(new RagdollError('not-found', 'no template'));
@@ -305,6 +307,16 @@ describe('POST /api/configure/turn', () => {
     const res = await POST(turnRequest({ templateId: 'teamleder', messages }));
 
     expect(res.status).toBe(401);
+    expect(askAgentMock).not.toHaveBeenCalled();
+  });
+
+  it('answers 429 and asks nothing when the counsellor has sent too many messages', async () => {
+    for (let i = 0; i < MAX_CHAT_REQUESTS; i++) chatRetryAfter('session-token');
+
+    const res = await POST(turnRequest({ templateId: 'teamleder', messages }));
+
+    expect(res.status).toBe(429);
+    expect(res.headers.get('Retry-After')).toBeTruthy();
     expect(askAgentMock).not.toHaveBeenCalled();
   });
 
