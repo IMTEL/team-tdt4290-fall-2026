@@ -178,7 +178,6 @@ test('an agent can be published to The Candidate and hidden again', async ({ pag
   await dialog.getByRole('textbox', { name: /^Navn i The Candidate/ }).fill('Butikkintervju');
   await dialog.getByRole('button', { name: 'Publiser', exact: true }).click();
   await expect(chip).toBeVisible();
-  await expect(dialog).toBeHidden();
 
   await page.getByRole('button', { name: 'Gjem agent', exact: true }).click();
   await expect(page.getByRole('dialog')).toContainText('Gjemme «Butikkintervju»?');

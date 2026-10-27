@@ -1,4 +1,5 @@
 import { render, screen, waitFor, within } from '@testing-library/react';
+import { useState } from 'react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -56,6 +57,26 @@ describe('PublishAgentButton', () => {
     );
     await waitFor(() => expect(onChange).toHaveBeenCalledWith(published));
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+  });
+
+  it('closes without showing the hide dialog once the agent is published', async () => {
+    publishAgentMock.mockResolvedValue(published);
+    // Like the agent's page: the new publication comes back in as a prop.
+    function Page() {
+      const [publication, setPublication] = useState(hidden);
+      return (
+        <PublishAgentButton agent={agent} publication={publication} onChange={setPublication} />
+      );
+    }
+    render(<Page />);
+    const user = userEvent.setup();
+
+    await user.click(screen.getByRole('button', { name: 'Publiser' }));
+    await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Publiser' }));
+
+    expect(await screen.findByRole('button', { name: 'Gjem agent' })).toHaveFocus();
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(screen.queryByText(/^Gjemme/)).not.toBeInTheDocument();
   });
 
   it('does not publish without a name', async () => {

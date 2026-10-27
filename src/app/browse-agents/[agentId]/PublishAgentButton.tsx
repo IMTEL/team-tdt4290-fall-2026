@@ -71,7 +71,8 @@ export function PublishAgentButton({ agent, publication, onChange }: Props) {
           Gjem agent
         </Button>
 
-        <Dialog open={open} onClose={close}>
+        {/* Own keys, so the publish dialog is not reused, fading out with this text. */}
+        <Dialog key="hide" open={open} onClose={close}>
           <DialogTitle>Gjemme «{publication.publicName}»?</DialogTitle>
           <DialogContent>
             <DialogContentText>
@@ -106,7 +107,7 @@ export function PublishAgentButton({ agent, publication, onChange }: Props) {
         Publiser
       </Button>
 
-      <Dialog open={open} onClose={close} fullWidth maxWidth="sm">
+      <Dialog key="publish" open={open} onClose={close} fullWidth maxWidth="sm">
         <form onSubmit={submitPublish} noValidate>
           <DialogTitle>Publiser til The Candidate</DialogTitle>
           <DialogContent>
