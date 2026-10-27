@@ -29,6 +29,14 @@ export async function createAgent(
   return (await res.json()).id;
 }
 
+/** Publishes a saved agent to The Candidate under `publicName`. */
+export async function publishAgent(page: Page, id: string, publicName: string): Promise<void> {
+  const res = await page.request.post(`/api/agents/${id}/publish`, {
+    data: { publicName, publicDescription: 'Øv på et intervju i en butikk.' },
+  });
+  expect(res.status()).toBe(200);
+}
+
 /** Saves an interviewer template. Returns its id. */
 export async function createTemplate(
   page: Page,
