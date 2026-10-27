@@ -28,7 +28,13 @@ import {
   savedTemplateCatalog,
   type CatalogItem,
 } from '@/domain/templateCatalog';
-import { TEMPLATE_CREATED_FLASH, TEMPLATE_SAVED_FLASH, takeTemplatesFlash } from './flash';
+import {
+  PROFILE_CREATED_FLASH,
+  PROFILE_SAVED_FLASH,
+  TEMPLATE_CREATED_FLASH,
+  TEMPLATE_SAVED_FLASH,
+  takeTemplatesFlash,
+} from './flash';
 import {
   sectionOpen,
   setSectionOpen,
@@ -52,23 +58,28 @@ type SavedState =
   | { kind: 'ready'; templates: AgentTemplate[] }
   | { kind: 'error'; message: string };
 
-const NEW_STILLINGSMAL_HREF =
+const NEW_INTERVJUERMAL_HREF =
   '/create-template?agentType=interviewer&returnTo=' + encodeURIComponent('/templates');
 
 function toastFromFlash(): string | null {
   const flash = takeTemplatesFlash();
   if (flash === TEMPLATE_CREATED_FLASH) return 'Mal laget';
   if (flash === TEMPLATE_SAVED_FLASH) return 'Mal lagret';
+  if (flash === PROFILE_CREATED_FLASH) return 'Jobbsøkermal laget';
+  if (flash === PROFILE_SAVED_FLASH) return 'Jobbsøkermal lagret';
   return null;
 }
 
 function Section({
   id,
   title,
+  hint,
   children,
 }: {
   id: TemplateSectionId;
   title: string;
+  /** One short line under the title explaining what this kind of mal is for. */
+  hint: string;
   children: ReactNode;
 }) {
   const open = useSyncExternalStore(
@@ -90,7 +101,10 @@ function Section({
           {title}
         </Typography>
       </AccordionSummary>
-      <AccordionDetails className={styles.details}>{children}</AccordionDetails>
+      <AccordionDetails className={styles.details}>
+        <p className={styles.sectionHint}>{hint}</p>
+        {children}
+      </AccordionDetails>
     </Accordion>
   );
 }
@@ -98,16 +112,18 @@ function Section({
 function BuiltInSection({
   id,
   title,
+  hint,
   items,
   leading,
 }: {
   id: TemplateSectionId;
   title: string;
+  hint: string;
   items: CatalogItem[];
   leading?: ReactNode;
 }) {
   return (
-    <Section id={id} title={title}>
+    <Section id={id} title={title} hint={hint}>
       <CatalogGrid items={items} leading={leading} />
     </Section>
   );
@@ -115,8 +131,8 @@ function BuiltInSection({
 
 /**
  * Templates, job seeker profiles and legal templates, in the same card layout as the agents page.
- * Each group folds shut, so a long list does not have to stay open. Saved interviewer templates sit
- * with the built-in stillingsmaler, because that is where «Ny stillingsmal» creates them.
+ * Each group folds shut, so a long list does not have to stay open. Stillingsmaler are built-in job
+ * presets; saved interviewer templates live under Intervjuermaler.
  */
 export function TemplateLibrary() {
   const [profiles, setProfiles] = useState<ProfileState>({ kind: 'loading' });
@@ -166,11 +182,16 @@ export function TemplateLibrary() {
       <BuiltInSection
         id="bransjemaler"
         title="Bransjemaler"
+        hint="En bransjemal samler stillinger i samme bransje, for eksempel helse og omsorg."
         items={industryCatalog(industryTemplates)}
         leading={<AddCatalogCard title="Ny bransjemal" subtitle="Kommer snart" />}
       />
 
-      <Section id="jobbsokerprofiler" title="Jobbsøkermaler">
+      <Section
+        id="jobbsokerprofiler"
+        title="Jobbsøkermaler"
+        hint="En jobbsøkermal beskriver en anonym jobbsøker du øver med, uten ekte personopplysninger."
+      >
         {profiles.kind === 'loading' && <Typography>Laster maler …</Typography>}
         {profiles.kind === 'error' && <Alert severity="error">{profiles.message}</Alert>}
         {profiles.kind === 'ready' && (
@@ -187,31 +208,43 @@ export function TemplateLibrary() {
         )}
       </Section>
 
-      <Section id="stillingsmaler" title="Stillingsmaler">
+      <Section
+        id="stillingsmaler"
+        title="Stillingsmaler"
+        hint="En stillingsmal fyller inn stilling og bransje når du setter opp en intervjuer."
+      >
+        <CatalogGrid
+          items={builtInJobs}
+          leading={<AddCatalogCard title="Ny stillingsmal" subtitle="Kommer snart" />}
+        />
+      </Section>
+
+      <Section
+        id="intervjuermaler"
+        title="Intervjuermaler"
+        hint="En intervjuermal styrer hvordan intervjueren snakker og hva den legger vekt på."
+      >
         {saved.kind === 'loading' && <Typography>Laster egne maler …</Typography>}
         {saved.kind === 'error' && <Alert severity="error">{saved.message}</Alert>}
         {(saved.kind === 'ready' || saved.kind === 'error') && (
-          <div className={styles.group}>
-            <p className={styles.groupTitle}>Dine maler</p>
-            <CatalogGrid
-              items={ownTemplates}
-              leading={
-                <AddCatalogCard
-                  href={NEW_STILLINGSMAL_HREF}
-                  title="Ny stillingsmal"
-                  subtitle="Lag en mal for stillingen"
-                />
-              }
-            />
-          </div>
+          <CatalogGrid
+            items={ownTemplates}
+            leading={
+              <AddCatalogCard
+                href={NEW_INTERVJUERMAL_HREF}
+                title="Ny intervjuermal"
+                subtitle="Lag en mal for intervjueren"
+              />
+            }
+          />
         )}
-        <div className={styles.group}>
-          <p className={styles.groupTitle}>Ferdige maler</p>
-          <CatalogGrid items={builtInJobs} />
-        </div>
       </Section>
 
-      <Section id="lovverk" title="Lovverk">
+      <Section
+        id="lovverk"
+        title="Lovverk"
+        hint="Lovverk er regler intervjueren skal følge, for eksempel hva den ikke skal spørre om."
+      >
         {/* The built-in templates are shown while the counsellor's own load, or if they can't. */}
         {legal.kind === 'error' && <Alert severity="error">{legal.message}</Alert>}
         <CatalogGrid

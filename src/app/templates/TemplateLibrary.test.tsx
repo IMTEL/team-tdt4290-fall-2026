@@ -159,34 +159,76 @@ describe('TemplateLibrary', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('links Ny stillingsmal to creating a template and shows saved ones under Dine maler', async () => {
+  it('explains each kind of mal and shows a placeholder for a new stillingsmal', async () => {
+    fetchProfilesMock.mockResolvedValue([]);
+    fetchSavedTemplatesMock.mockResolvedValue([]);
+    render(<TemplateLibrary />);
+
+    expect(
+      within(section('Bransjemaler')).getByText(
+        'En bransjemal samler stillinger i samme bransje, for eksempel helse og omsorg.',
+      ),
+    ).toBeVisible();
+    expect(
+      within(section('Jobbsøkermaler')).getByText(
+        'En jobbsøkermal beskriver en anonym jobbsøker du øver med, uten ekte personopplysninger.',
+      ),
+    ).toBeVisible();
+
+    const jobs = section('Stillingsmaler');
+    expect(
+      within(jobs).getByText(
+        'En stillingsmal fyller inn stilling og bransje når du setter opp en intervjuer.',
+      ),
+    ).toBeVisible();
+    expect(
+      await within(jobs).findByRole('heading', { level: 3, name: 'Helsefagarbeider' }),
+    ).toBeVisible();
+    expect(within(jobs).getByRole('heading', { level: 3, name: 'Ny stillingsmal' })).toBeVisible();
+    expect(within(jobs).getByText('Kommer snart')).toBeVisible();
+    expect(within(jobs).queryByRole('link', { name: /Ny stillingsmal/ })).not.toBeInTheDocument();
+
+    expect(
+      within(section('Intervjuermaler')).getByText(
+        'En intervjuermal styrer hvordan intervjueren snakker og hva den legger vekt på.',
+      ),
+    ).toBeVisible();
+    expect(
+      within(section('Lovverk')).getByText(
+        'Lovverk er regler intervjueren skal følge, for eksempel hva den ikke skal spørre om.',
+      ),
+    ).toBeVisible();
+  });
+
+  it('links Ny intervjuermal to creating a template and shows saved ones under Intervjuermaler', async () => {
     fetchProfilesMock.mockResolvedValue([]);
     fetchSavedTemplatesMock.mockResolvedValue([savedTemplate]);
     render(<TemplateLibrary />);
 
-    const jobs = section('Stillingsmaler');
-    expect(await within(jobs).findByText('Dine maler')).toBeVisible();
-    expect(within(jobs).getByText('Ferdige maler')).toBeVisible();
-    expect(within(jobs).getByRole('link', { name: /Ny stillingsmal/ })).toHaveAttribute(
-      'href',
-      '/create-template?agentType=interviewer&returnTo=%2Ftemplates',
-    );
-    const saved = within(jobs).getByRole('link', { name: /Min butikksjef/ });
+    const interviewers = section('Intervjuermaler');
+    expect(
+      await within(interviewers).findByRole('link', { name: /Ny intervjuermal/ }),
+    ).toHaveAttribute('href', '/create-template?agentType=interviewer&returnTo=%2Ftemplates');
+    const saved = within(interviewers).getByRole('link', { name: /Min butikksjef/ });
     expect(saved).toHaveAttribute('href', '/templates/saved-1');
     expect(saved).toHaveTextContent('Service');
     expect(saved).toHaveTextContent('Lagret av meg.');
+    expect(
+      within(section('Stillingsmaler')).queryByRole('link', { name: /Min butikksjef/ }),
+    ).toBeNull();
   });
 
-  it('still shows built-in jobs when saved templates cannot be loaded', async () => {
+  it('still shows built-in jobs when saved interviewer templates cannot be loaded', async () => {
     fetchProfilesMock.mockResolvedValue([]);
     fetchSavedTemplatesMock.mockRejectedValue(new Error('down'));
     render(<TemplateLibrary />);
 
+    const interviewers = section('Intervjuermaler');
+    expect(await within(interviewers).findByText('Noe gikk galt. Prøv igjen.')).toBeVisible();
+    expect(within(interviewers).getByRole('link', { name: /Ny intervjuermal/ })).toBeVisible();
+
     const jobs = section('Stillingsmaler');
-    expect(await within(jobs).findByText('Noe gikk galt. Prøv igjen.')).toBeVisible();
-    expect(within(jobs).getByText('Ferdige maler')).toBeVisible();
     expect(within(jobs).getByRole('heading', { level: 3, name: 'Helsefagarbeider' })).toBeVisible();
-    expect(within(jobs).getByRole('link', { name: /Ny stillingsmal/ })).toBeVisible();
   });
 
   it('shows Mal laget when opened after creating a template', async () => {
@@ -206,6 +248,15 @@ describe('TemplateLibrary', () => {
     render(<TemplateLibrary />);
 
     expect(await screen.findByText('Mal lagret')).toBeVisible();
+  });
+
+  it('shows Jobbsøkermal laget when opened after creating a job seeker profile', async () => {
+    sessionStorage.setItem('kfi-templates-flash', 'jobbsokermal-laget');
+    fetchProfilesMock.mockResolvedValue([]);
+    fetchSavedTemplatesMock.mockResolvedValue([]);
+    render(<TemplateLibrary />);
+
+    expect(await screen.findByText('Jobbsøkermal laget')).toBeVisible();
   });
 
   it('shows the built-in and the counsellor’s own legal templates as cards that open them', async () => {

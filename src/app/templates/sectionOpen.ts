@@ -5,6 +5,7 @@ export const TEMPLATE_SECTIONS = [
   'bransjemaler',
   'jobbsokerprofiler',
   'stillingsmaler',
+  'intervjuermaler',
   'lovverk',
 ] as const;
 
@@ -17,6 +18,7 @@ function read(): Record<TemplateSectionId, boolean> {
     bransjemaler: true,
     jobbsokerprofiler: true,
     stillingsmaler: true,
+    intervjuermaler: true,
     lovverk: true,
   };
   try {

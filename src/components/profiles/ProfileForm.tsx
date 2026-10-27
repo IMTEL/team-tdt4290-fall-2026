@@ -38,10 +38,19 @@ type ProfileFormProps = {
   initial?: NewJobSeekerProfile;
   /** Saves the profile. Throws Error with a Norwegian message that can be shown as it is. */
   onSave: (profile: NewJobSeekerProfile) => Promise<void>;
+  /** Called after a successful save. When set, the form does not show the success alert. */
+  onSaved?: () => void;
+  /** Where Avbryt and the success link go. Defaults to Maler. */
+  cancelHref?: string;
 };
 
 /** A form for an anonymous job seeker profile, new or saved. */
-export function ProfileForm({ initial, onSave }: ProfileFormProps) {
+export function ProfileForm({
+  initial,
+  onSave,
+  onSaved,
+  cancelHref = '/templates',
+}: ProfileFormProps) {
   const [label, setLabel] = useState(initial?.label ?? '');
   const [ageRange, setAgeRange] = useState<string>(initial?.ageRange ?? '');
   const [experienceLevel, setExperienceLevel] = useState<string>(initial?.experienceLevel ?? '');
@@ -93,6 +102,10 @@ export function ProfileForm({ initial, onSave }: ProfileFormProps) {
         ],
         notes: notes.trim(),
       });
+      if (onSaved) {
+        onSaved();
+        return;
+      }
       setStatus({ kind: 'saved' });
     } catch (error) {
       setStatus({
@@ -105,7 +118,7 @@ export function ProfileForm({ initial, onSave }: ProfileFormProps) {
   if (status.kind === 'saved') {
     return (
       <Alert severity="success">
-        Malen «{label.trim()}» er lagret. <Link href="/profiles">Se malene dine</Link>
+        Malen «{label.trim()}» er lagret. <Link href={cancelHref}>Se malene dine</Link>
       </Alert>
     );
   }
@@ -230,7 +243,7 @@ export function ProfileForm({ initial, onSave }: ProfileFormProps) {
         <Button type="submit" variant="contained" disabled={!canSave}>
           {isSaving ? 'Lagrer …' : initial ? 'Lagre endringene' : 'Lagre mal'}
         </Button>
-        <Button component={Link} href="/profiles" disabled={isSaving}>
+        <Button component={Link} href={cancelHref} disabled={isSaving}>
           Avbryt
         </Button>
       </div>

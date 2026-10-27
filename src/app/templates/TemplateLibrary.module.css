@@ -30,3 +30,9 @@
   font-size: 0.95rem;
   font-weight: 600;
 }
+
+.sectionHint {
+  margin: 0 0 var(--space-3);
+  color: var(--mui-palette-text-secondary);
+  font-size: 0.95rem;
+}

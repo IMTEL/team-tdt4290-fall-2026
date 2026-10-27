@@ -274,6 +274,9 @@ export function StillingStep({
             Stillingsmaler
             <RequiredMark />
           </p>
+          <p className={styles.hint}>
+            En stillingsmal fyller inn stilling og bransje for deg. Du kan også skrive dem selv.
+          </p>
           <div className={styles.pills} role="group" aria-labelledby="job-templates-label">
             <Button
               type="button"
