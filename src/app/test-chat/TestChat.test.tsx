@@ -4,10 +4,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { fetchAgents } from '@/app/browse-agents/api';
 import { sendToAgent } from '@/components/chat/sendToAgent';
+import { requestObserverFeedback } from './api';
 import { TestChat } from './TestChat';
 
 // The chat itself is tested in AgentChat.test.tsx. Here we only check what this page adds:
-// that the agent is the counsellor's, the greeting, which agent answers, and starting over.
+// that the agent is the counsellor's, the greeting, which agent answers, starting over, and the
+// observer's feedback.
 vi.mock('@/app/browse-agents/api', () => ({ fetchAgents: vi.fn() }));
 const fetchAgentsMock = vi.mocked(fetchAgents);
 
@@ -27,6 +29,22 @@ vi.mock('@/components/chat/sendToAgent', async (importOriginal) => ({
 }));
 const sendMock = vi.mocked(sendToAgent);
 
+vi.mock('./api', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('./api')>()),
+  requestObserverFeedback: vi.fn(),
+}));
+const observerMock = vi.mocked(requestObserverFeedback);
+
+const observerFeedback = {
+  kind: 'feedback' as const,
+  wentWell: [
+    { quote: 'fem år i butikk', comment: 'Du viste erfaring.', tip: 'Gi et konkret eksempel.' },
+  ],
+  toImprove: [
+    { quote: 'vet ikke', comment: 'Svaret ble vagt.', tip: 'Si hva du liker med jobben.' },
+  ],
+};
+
 // Renders the chat for agent-1 and waits until the agent has been found.
 async function setup() {
   const user = userEvent.setup();
@@ -44,6 +62,7 @@ describe('TestChat', () => {
   afterEach(() => {
     sendMock.mockReset();
     fetchAgentsMock.mockReset();
+    observerMock.mockReset();
   });
 
   it('says the interviewer was not found when it is not among the counsellor’s agents', async () => {
@@ -172,5 +191,76 @@ describe('TestChat', () => {
     await screen.findByRole('textbox', { name: 'Melding' });
     await user.type(box(), 'Hei{Enter}');
     expect(sendMock.mock.calls.at(-1)?.[0]).toBe('agent-2');
+  });
+
+  it('shows the observer’s points, each with the candidate’s words and a tip', async () => {
+    sendMock.mockResolvedValue('Hvorfor søker du her?');
+    observerMock.mockResolvedValue(observerFeedback);
+    const { user, box } = await setup();
+    await user.type(box(), 'Jeg har vært fem år i butikk.{Enter}');
+    await screen.findByText('Hvorfor søker du her?');
+
+    await user.click(screen.getByRole('button', { name: 'Be om tilbakemelding' }));
+
+    const wentWell = await screen.findByRole('region', { name: 'Dette gikk bra' });
+    expect(wentWell).toHaveTextContent('«fem år i butikk»');
+    expect(wentWell).toHaveTextContent('Tips: Gi et konkret eksempel.');
+    expect(screen.getByRole('region', { name: 'Dette kan bli bedre' })).toHaveTextContent(
+      '«vet ikke»',
+    );
+    // The observer reads the whole conversation, greeting included.
+    expect(observerMock.mock.calls[0][0].map(({ content }) => content)).toEqual([
+      expect.stringContaining('velkommen til intervjuet'),
+      'Jeg har vært fem år i butikk.',
+      'Hvorfor søker du her?',
+    ]);
+  });
+
+  it('can’t ask for feedback while the interviewer is still answering', async () => {
+    sendMock.mockReturnValue(new Promise(() => {}));
+    const { user, box } = await setup();
+
+    await user.type(box(), 'Hei{Enter}');
+
+    expect(screen.getByRole('button', { name: 'Be om tilbakemelding' })).toBeDisabled();
+  });
+
+  it('says why when the chat is too short for feedback', async () => {
+    observerMock.mockResolvedValue({ kind: 'too-short', reason: 'Samtalen er for kort.' });
+    const { user } = await setup();
+
+    await user.click(screen.getByRole('button', { name: 'Be om tilbakemelding' }));
+
+    expect(await screen.findByText('Samtalen er for kort.')).toBeInTheDocument();
+  });
+
+  it('shows the error and asks again on "Prøv igjen"', async () => {
+    observerMock
+      .mockRejectedValueOnce(new Error('Kunne ikke lage en tilbakemelding. Prøv igjen.'))
+      .mockResolvedValueOnce(observerFeedback);
+    const { user } = await setup();
+
+    await user.click(screen.getByRole('button', { name: 'Be om tilbakemelding' }));
+    await screen.findByText('Kunne ikke lage en tilbakemelding. Prøv igjen.');
+    await user.click(screen.getByRole('button', { name: 'Prøv igjen' }));
+
+    expect(await screen.findByRole('region', { name: 'Dette gikk bra' })).toBeInTheDocument();
+    expect(observerMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('clears the feedback when starting over', async () => {
+    observerMock.mockResolvedValue(observerFeedback);
+    const { user } = await setup();
+    await user.click(screen.getByRole('button', { name: 'Be om tilbakemelding' }));
+    await screen.findByRole('region', { name: 'Dette gikk bra' });
+
+    await user.click(screen.getByRole('button', { name: 'Start på nytt' }));
+    await user.click(
+      within(screen.getByRole('dialog')).getByRole('button', { name: 'Start på nytt' }),
+    );
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    expect(screen.queryByRole('region', { name: 'Dette gikk bra' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Be om tilbakemelding' })).toBeEnabled();
   });
 });

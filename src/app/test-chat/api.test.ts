@@ -1,7 +1,8 @@
 // @vitest-environment node
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { rateReply, undoRating } from './api';
+import { TOO_MANY_MESSAGES } from '@/components/chat/sendToAgent';
+import { rateReply, requestObserverFeedback, undoRating } from './api';
 
 const feedback = {
   rating: 'good' as const,
@@ -100,6 +101,46 @@ describe('undoRating', () => {
 
     await expect(undoRating('agent-1', 'feedback-1')).rejects.toThrow(
       'Kunne ikke angre vurderingen. Prøv igjen.',
+    );
+  });
+});
+
+describe('requestObserverFeedback', () => {
+  const messages = [
+    { id: 'greeting', role: 'assistant' as const, content: 'Fortell om deg selv.' },
+    { id: 'm1', role: 'user' as const, content: 'Jeg heter Kari.' },
+  ];
+
+  it('sends only role and content, and returns the feedback', async () => {
+    const tooShort = { kind: 'too-short', reason: 'For kort.' };
+    fetchMock.mockResolvedValue(Response.json({ feedback: tooShort }));
+
+    await expect(requestObserverFeedback(messages)).resolves.toEqual(tooShort);
+
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toBe('/api/test-chat/observer');
+    expect(JSON.parse(init?.body as string)).toEqual({
+      messages: [
+        { role: 'assistant', content: 'Fortell om deg selv.' },
+        { role: 'user', content: 'Jeg heter Kari.' },
+      ],
+    });
+  });
+
+  it('fails with a Norwegian message, never the server’s', async () => {
+    fetchMock.mockResolvedValueOnce(Response.json({ error: 'Too many requests' }, { status: 429 }));
+    await expect(requestObserverFeedback(messages)).rejects.toThrow(TOO_MANY_MESSAGES);
+
+    fetchMock.mockResolvedValueOnce(
+      Response.json({ error: 'Invalid response from RAGdoll API' }, { status: 502 }),
+    );
+    await expect(requestObserverFeedback(messages)).rejects.toThrow(
+      'Kunne ikke lage en tilbakemelding. Prøv igjen.',
+    );
+
+    fetchMock.mockResolvedValueOnce(Response.json({ feedback: { kind: 'feedback' } }));
+    await expect(requestObserverFeedback(messages)).rejects.toThrow(
+      'Kunne ikke lage en tilbakemelding. Prøv igjen.',
     );
   });
 });
