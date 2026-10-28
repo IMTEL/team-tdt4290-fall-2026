@@ -312,6 +312,21 @@ for (const colorScheme of ['light', 'dark'] as const) {
         await expect(page.getByRole('log')).toContainText('Mock-svar: Jeg heter Ola.');
         await expectNoAccessibilityViolations(page);
       });
+
+      test('observer feedback', async ({ page }) => {
+        await logIn(page);
+        const id = await createAgent(page, 'Intervjuer for butikk');
+        await page.goto(`/test-chat?agent=${id}`);
+        await sendMessage(page, 'Jeg heter Ola.');
+        await expect(page.getByRole('log')).toContainText('Mock-svar: Jeg heter Ola.');
+        await sendMessage(page, 'Jeg liker å hjelpe kunder.');
+        await expect(page.getByRole('log')).toContainText('Mock-svar: Jeg liker å hjelpe kunder.');
+        await page.getByRole('button', { name: 'Be om tilbakemelding', exact: true }).click();
+        await expect(
+          page.getByRole('region', { name: 'Dette gikk bra', exact: true }),
+        ).toBeVisible();
+        await expectNoAccessibilityViolations(page);
+      });
     });
   });
 }
