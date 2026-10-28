@@ -224,6 +224,19 @@
   padding-top: var(--space-4);
 }
 
+/* How the answers shape the interviewer, on the last step. */
+.effects {
+  padding: var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background-color: var(--muted);
+}
+
+.effectsHeading {
+  margin: 0 0 var(--space-3);
+  font-size: 1rem;
+}
+
 .under {
   display: flex;
   flex-direction: column;

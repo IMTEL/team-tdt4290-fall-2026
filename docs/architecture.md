@@ -450,6 +450,15 @@ kind of interview it is (type and level of difficulty) and who it is made for (t
 cut after a whole part if it is long). A sentence is left out when its answers are empty, and no
 summary is shown for an agent we did not make. The summary describes the answers, so it does not
 follow a system prompt that was edited by hand.
+
+Under the sentences, and on the wizard's last step, **«Slik former svarene dine agenten»** lists
+which answers change how the agent behaves, and how. It comes from the definition's
+`explainAnswers`. For the interviewer, `interviewerAdaptations.ts` has one rule per answer, and
+each rule gives both the line it adds to the prompt and the sentence the counsellor sees. The
+prompt's «Slik gjennomfører du intervjuet» section is built from the same rules, so the list
+never promises a change the prompt does not make; a test checks that every instruction is in the
+prompt. Answers that change nothing, such as «ingen» own questions, are left out. When the system
+prompt was written by hand, the list is replaced by a note that the answers change nothing.
 `avatar` is the id of the agent's avatar, such as `ugle`. IDUN has no model that makes images, so
 the counsellor picks one of the ready-made images in `public/avatars/`, listed in
 `src/domain/avatars.ts`, and only the id is saved. RAGdoll has no field for it, but it keeps

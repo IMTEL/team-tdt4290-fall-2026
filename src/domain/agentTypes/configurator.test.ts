@@ -27,6 +27,7 @@ const teacher: AgentTypeDefinition = {
   },
   buildPrompt: (answers) => `Du er lærer i ${answers.fag}.`,
   buildSummary: (answers) => `En lærer i ${answers.fag}.`,
+  explainAnswers: () => [],
   buildRoles: (name) => [{ name, description: 'Lærer' }],
   defaultName: (answers) => `Lærer i ${answers.fag}`,
 };

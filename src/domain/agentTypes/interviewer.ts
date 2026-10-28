@@ -1,4 +1,5 @@
 import { LABELS, type Configuration } from '../configuration';
+import { explainInterviewer } from '../interviewerAdaptations';
 import { buildPrompt } from '../interviewerPrompt';
 import { buildInterviewerSummary } from '../interviewerSummary';
 import type { AgentTypeDefinition } from './types';
@@ -134,6 +135,8 @@ export const interviewer: AgentTypeDefinition = {
   // Safe cast: answers are checked with hasAllAnswers before a prompt is built.
   buildPrompt: (answers) => buildPrompt(answers as Configuration),
   buildSummary: buildInterviewerSummary,
+  // Safe cast: stored answers and the wizard's answers have every field, empty when not given.
+  explainAnswers: (answers) => explainInterviewer(answers as Configuration),
   // One role: The Candidate chats with a published agent as its first role.
   buildRoles: (name, answers) => [{ name, description: answers.intervjuer }],
   // Only the job title: an industry template puts a whole job description after it, which would

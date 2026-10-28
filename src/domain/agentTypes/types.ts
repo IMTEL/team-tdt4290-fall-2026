@@ -37,6 +37,9 @@ export type AgentField = {
   presetOnly?: boolean;
 };
 
+/** How one answer changes the agent's behaviour, in sentences for the counsellor. */
+export type AnswerEffect = { key: string; label: string; effects: string[] };
+
 /** A role. The mapper turns it into a RAGdoll role. */
 export type AgentRole = { name: string; description: string };
 
@@ -106,6 +109,11 @@ export type AgentTypeDefinition = {
    * from the answers only. Returns "" if there is nothing to say.
    */
   buildSummary: (answers: Answers) => string;
+  /**
+   * Which answers change how the agent behaves, and how, in the order of the fields. Only effects
+   * the prompt from buildPrompt really has. Answers that change nothing are left out.
+   */
+  explainAnswers: (answers: Answers) => AnswerEffect[];
   buildRoles: (name: string, answers: Answers) => AgentRole[];
   defaultName: (answers: Answers) => string;
 };

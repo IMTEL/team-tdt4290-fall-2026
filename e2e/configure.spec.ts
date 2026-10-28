@@ -88,12 +88,30 @@ test('a finished interviewer can be published and is listed under Agenter', asyn
   await expect(page.getByText('Agent lagret', { exact: true })).toBeVisible();
   await page.getByRole('link', { name: /Intervjuer for Butikkmedarbeider/ }).click();
   await expect(
-    page.getByRole('definition').filter({ hasText: /^Butikkmedarbeider\. / }),
+    page
+      .getByRole('tabpanel')
+      .getByRole('definition')
+      .filter({ hasText: /^Butikkmedarbeider\. / }),
   ).toBeVisible();
   await expect(
-    page.getByRole('definition').filter({ hasText: 'Varehandel (privat)' }),
+    page.getByRole('tabpanel').getByRole('definition').filter({ hasText: 'Varehandel (privat)' }),
   ).toBeVisible();
-  await expect(page.getByRole('definition').filter({ hasText: 'første intervju' })).toBeVisible();
+  await expect(
+    page.getByRole('tabpanel').getByRole('definition').filter({ hasText: 'første intervju' }),
+  ).toBeVisible();
+});
+
+test('the last step says how the answers shape the interviewer', async ({ page }) => {
+  await logIn(page, '/configure');
+  await goToFinish(page);
+
+  const effects = page.getByRole('region', { name: 'Slik former svarene dine agenten' });
+  await expect(
+    effects.getByRole('definition').filter({ hasText: 'Ingen mal er valgt' }),
+  ).toBeVisible();
+  await expect(
+    effects.getByRole('definition').filter({ hasText: '5–6 spørsmål i alt' }),
+  ).toBeVisible();
 });
 
 test('the last step shows what was chosen, and a section can be opened again', async ({ page }) => {
@@ -128,9 +146,17 @@ test('the chosen templates fill in the answers, and the agent remembers them', a
   await page.getByRole('link', { name: /Intervjuer for Butikkmedarbeider/ }).click();
 
   await expect(
-    page.getByRole('definition').filter({ hasText: /^Intervjueren er daglig leder/ }),
+    page
+      .getByRole('tabpanel')
+      .getByRole('definition')
+      .filter({ hasText: /^Intervjueren er daglig leder/ }),
   ).toBeVisible();
-  await expect(page.getByRole('definition').filter({ hasText: /30–39 år/ })).toBeVisible();
+  await expect(
+    page
+      .getByRole('tabpanel')
+      .getByRole('definition')
+      .filter({ hasText: /30–39 år/ }),
+  ).toBeVisible();
 
   // The agent remembers where the answers came from.
   await page.getByRole('link', { name: 'Rediger', exact: true }).click();
@@ -161,7 +187,9 @@ test('the language model can be chosen in the settings', async ({ page }) => {
   await page.getByRole('link', { name: /Intervjuer for Butikkmedarbeider/ }).click();
 
   await page.getByRole('tab', { name: 'Avanserte innstillinger', exact: true }).click();
-  await expect(page.getByRole('definition').filter({ hasText: 'mock/test-model' })).toBeVisible();
+  await expect(
+    page.getByRole('tabpanel').getByRole('definition').filter({ hasText: 'mock/test-model' }),
+  ).toBeVisible();
 });
 
 test('the agent can be tested straight from the last step', async ({ page }) => {

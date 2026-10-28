@@ -26,6 +26,15 @@
   color: var(--muted-foreground);
 }
 
+/* Which answers change the agent, under the sentences. */
+.effects {
+  margin-top: var(--space-4);
+}
+
+.effectsHeading {
+  margin-bottom: var(--space-2);
+}
+
 /* Hidden visually but still read by screen readers. */
 .srOnly {
   position: absolute;
