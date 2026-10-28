@@ -72,7 +72,8 @@ export async function POST(req: NextRequest) {
     const reply = await askAgent({ id, accessKey }, [{ role: 'user', content: transcript }]);
     const parsed = parseObserverReply(reply);
     if (!parsed) {
-      const start = reply.slice(0, LOGGED_REPLY_LENGTH);
+      // An empty reply usually means the model spent its llm_max_tokens on reasoning.
+      const start = reply.trim() ? reply.slice(0, LOGGED_REPLY_LENGTH) : '(empty reply)';
       throw new RagdollError('bad-response', `The observer's reply is not feedback: ${start}`);
     }
     const feedback = keepGroundedPoints(parsed, messages);

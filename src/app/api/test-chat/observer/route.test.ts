@@ -56,10 +56,11 @@ afterEach(() => {
 describe('POST /api/test-chat/observer', () => {
   it('sends the whole chat as one transcript and returns only the points it quotes', async () => {
     askAgentMock.mockResolvedValue(
-      JSON.stringify({
-        wentWell: [point('i tre år'), point('Jeg er en lagspiller')],
-        toImprove: [point('jeg vet ikke helt')],
-      }),
+      [
+        'Bra: i tre år | Kommentar | Tips',
+        'Bra: Jeg er en lagspiller | Kommentar | Tips',
+        'Bedre: jeg vet ikke helt | Kommentar | Tips',
+      ].join('\n'),
     );
 
     const res = await POST(observerRequest({ messages }));
@@ -93,7 +94,7 @@ describe('POST /api/test-chat/observer', () => {
   });
 
   it('passes on the observer saying there is too little to judge', async () => {
-    askAgentMock.mockResolvedValue('{"tooShort": true, "reason": "Svarene er for korte."}');
+    askAgentMock.mockResolvedValue('For kort: Svarene er for korte.');
 
     const res = await POST(observerRequest({ messages }));
 
@@ -111,9 +112,7 @@ describe('POST /api/test-chat/observer', () => {
   });
 
   it('answers 502 when every quote is invented, so there is nothing true to show', async () => {
-    askAgentMock.mockResolvedValue(
-      JSON.stringify({ wentWell: [point('Jeg elsker kunder')], toImprove: [] }),
-    );
+    askAgentMock.mockResolvedValue('Bra: Jeg elsker kunder | Kommentar | Tips');
 
     const res = await POST(observerRequest({ messages }));
 
@@ -167,7 +166,7 @@ describe('POST /api/test-chat/observer', () => {
   });
 
   it('takes a long chat with many turns that fits in the limit', async () => {
-    askAgentMock.mockResolvedValue('{"tooShort": true, "reason": "For lite."}');
+    askAgentMock.mockResolvedValue('For kort: For lite.');
     const turns = Array.from({ length: 75 }, () => messages).flat();
 
     const res = await POST(observerRequest({ messages: turns }));

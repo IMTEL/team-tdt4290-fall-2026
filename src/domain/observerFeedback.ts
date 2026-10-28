@@ -49,31 +49,32 @@ export function formatTranscript(messages: TranscriptMessage[]): string {
 }
 
 /**
- * Reads the observer's JSON reply, also inside a ```json fence or with text around it.
- * Null if it is not JSON or any field is missing or of the wrong type.
+ * Reads the observer's reply: one line per point, `Bra: sitat | kommentar | tips` for what went
+ * well and `Bedre: …` for what to improve, or one line `For kort: grunn`. Text, not JSON: RAGdoll
+ * asks every agent for its own JSON shape and keeps only its `message`, so the reply arrives as
+ * that text. A line that doesn't have all three parts is skipped. Null if nothing is left.
  */
 export function parseObserverReply(text: string): ObserverFeedback | null {
-  const start = text.indexOf('{');
-  const end = text.lastIndexOf('}');
-  if (start === -1 || end < start) return null;
+  const wentWell: ObserverPoint[] = [];
+  const toImprove: ObserverPoint[] = [];
+  for (const line of text.split('\n').map((l) => l.trim())) {
+    // Markdown bold or a list marker around the label is allowed: «- **Bra:** …».
+    const tooShort = line.match(/^[-*\s]*for kort\**:\**\s*(.+)$/i);
+    if (tooShort) return { kind: 'too-short', reason: tooShort[1].trim() };
 
-  let data: unknown;
-  try {
-    data = JSON.parse(text.slice(start, end + 1));
-  } catch {
-    return null;
+    const point = line.match(/^[-*\s]*(bra|bedre)\**:\**\s*(.+)$/i);
+    if (!point) continue;
+    const parts = point[2].split('|').map((part) => part.replace(LABEL, '').trim());
+    if (parts.length !== 3 || parts.some((part) => !part)) continue;
+    const [quote, comment, tip] = parts;
+    const list = point[1].toLowerCase() === 'bra' ? wentWell : toImprove;
+    list.push({ quote: quote.replace(/^["«“']+|["»”']+$/g, ''), comment, tip });
   }
-  if (typeof data !== 'object' || data === null) return null;
-  const reply = data as Record<string, unknown>;
-
-  if (reply.tooShort === true) {
-    return typeof reply.reason === 'string' ? { kind: 'too-short', reason: reply.reason } : null;
-  }
-  const wentWell = toPoints(reply.wentWell);
-  const toImprove = toPoints(reply.toImprove);
-  if (!wentWell || !toImprove) return null;
-  return { kind: 'feedback', wentWell, toImprove };
+  return wentWell.length || toImprove.length ? { kind: 'feedback', wentWell, toImprove } : null;
 }
+
+// The observer may name each part, as in «Sitat: … | Kommentar: … | Tips: …».
+const LABEL = /^\s*(sitat|kommentar|tips)\s*:\s*/i;
 
 /** True if `value` is feedback as our server sends it, so the browser can show it safely. */
 export function isObserverFeedback(value: unknown): value is ObserverFeedback {

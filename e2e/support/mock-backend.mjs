@@ -47,16 +47,14 @@ const INVENTED_QUOTE = 'Jeg er verdens beste selger';
 function observerReply(chatLog = []) {
   const transcript = chatLog[0]?.content ?? '';
   const firstAnswer = transcript.match(/^Kandidat: (.*)$/m)?.[1] ?? '';
-  const point = (quote) => ({ quote, comment: 'Mock-kommentar.', tip: 'Mock-tips.' });
+  // The text RAGdoll hands on: the `message` of its JSON contract, in prompts/observer.nb.md's format.
+  const point = (label, quote) => `${label}: ${quote} | Mock-kommentar. | Mock-tips.`;
   return {
     response: {
       id: randomUUID(),
       model: 'mock',
       context_used: [],
-      response: JSON.stringify({
-        wentWell: [point(firstAnswer)],
-        toImprove: [point(INVENTED_QUOTE)],
-      }),
+      response: [point('Bra', firstAnswer), point('Bedre', INVENTED_QUOTE)].join('\n'),
     },
   };
 }

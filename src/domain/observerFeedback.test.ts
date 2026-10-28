@@ -43,36 +43,42 @@ describe('formatTranscript', () => {
 });
 
 describe('parseObserverReply', () => {
-  const json = JSON.stringify({
-    wentWell: [point('i tre år')],
-    toImprove: [point('jeg vet ikke helt')],
-  });
+  it('reads one point per line into what went well and what to improve, with text around', () => {
+    const reply =
+      'TILBAKEMELDING\n' +
+      'Bra: i tre år | Kommentar | Tips\n' +
+      'Bedre: jeg vet ikke helt | Kommentar | Tips\n' +
+      'Lykke til!';
 
-  it('reads the feedback inside a code fence and with text around it', () => {
-    expect(parseObserverReply('Her er tilbakemeldingen:\n```json\n' + json + '\n```')).toEqual({
+    expect(parseObserverReply(reply)).toEqual({
       kind: 'feedback',
       wentWell: [point('i tre år')],
       toImprove: [point('jeg vet ikke helt')],
     });
   });
 
+  it('takes named parts, quote marks and list markers the model may add', () => {
+    const reply = '- **Bedre:** Sitat: «jeg vet ikke helt» | Kommentar: Kommentar | Tips: Tips';
+
+    expect(parseObserverReply(reply)).toEqual({
+      kind: 'feedback',
+      wentWell: [],
+      toImprove: [point('jeg vet ikke helt')],
+    });
+  });
+
   it('reads the observer saying the conversation is too short', () => {
-    expect(parseObserverReply('{"tooShort": true, "reason": "For lite å gå på."}')).toEqual({
+    expect(parseObserverReply('For kort: For lite å gå på.')).toEqual({
       kind: 'too-short',
       reason: 'For lite å gå på.',
     });
   });
 
-  it('rejects a reply that is not JSON', () => {
+  it('skips a point without all three parts, and is null when no point is left', () => {
+    expect(parseObserverReply('Bra: i tre år | Kommentar')).toBeNull();
+    expect(parseObserverReply('Bra: i tre år | Kommentar |  ')).toBeNull();
     expect(parseObserverReply('Kandidaten gjorde det bra.')).toBeNull();
-    expect(parseObserverReply('{ wentWell: [] }')).toBeNull();
-  });
-
-  it('rejects a point with a missing tip or a list of the wrong type', () => {
-    const noTip = { wentWell: [{ quote: 'tre år', comment: 'Bra' }], toImprove: [] };
-    expect(parseObserverReply(JSON.stringify(noTip))).toBeNull();
-    expect(parseObserverReply(JSON.stringify({ wentWell: 'bra', toImprove: [] }))).toBeNull();
-    expect(parseObserverReply('{"tooShort": true}')).toBeNull();
+    expect(parseObserverReply('')).toBeNull();
   });
 });
 
