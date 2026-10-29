@@ -332,6 +332,18 @@ export function ConfigureAgent({
     ? legalIds.flatMap((id) => legalOptions.filter((item) => item.id === id))
     : [];
 
+  /** The answers the wizard's choices are saved as, or null while a required choice is missing. */
+  function builtConfiguration() {
+    return wizardConfiguration({
+      workplace,
+      interviewer: choice ?? null,
+      profile: (profileId && profiles.find((item) => item.id === profileId)) || null,
+      practiceAreas: chosenPractice,
+      legalTemplates,
+      settings,
+    });
+  }
+
   /** Creates the agent, or updates it when this wizard has already saved one. */
   async function persist(): Promise<string | null> {
     if (!definition || savingLock.current) return savedAgent?.id ?? null;
@@ -340,14 +352,7 @@ export function ConfigureAgent({
       setSaveError('Agenten trenger et navn.');
       return null;
     }
-    const built = wizardConfiguration({
-      workplace,
-      interviewer: choice ?? null,
-      profile: (profileId && profiles.find((item) => item.id === profileId)) || null,
-      practiceAreas: chosenPractice,
-      legalTemplates,
-      settings,
-    });
+    const built = builtConfiguration();
     if (!built) {
       setSaveError('Noen obligatoriske felt mangler. Gå tilbake og fyll dem ut.');
       return null;
@@ -548,6 +553,8 @@ export function ConfigureAgent({
   }
 
   if (definition.id === 'interviewer' && (wizardStep === 3 || wizardStep === 4)) {
+    // Only the last step shows how the answers shape the interviewer.
+    const built = wizardStep === 4 ? builtConfiguration() : null;
     return (
       <SettingsStep
         value={settings}
@@ -566,6 +573,7 @@ export function ConfigureAgent({
           practiceAreas: chosenPractice,
           settings,
         }}
+        effects={built ? definition.explainAnswers(built.answers) : []}
         avatar={avatar}
         onAvatarChange={setAvatar}
         name={name}

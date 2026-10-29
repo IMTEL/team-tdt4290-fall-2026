@@ -1,0 +1,35 @@
+/* The space on the right keeps the text clear of the scrollbar. */
+.area {
+  overflow-y: auto;
+  padding-right: var(--space-3);
+}
+
+.area:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+/*
+ * A styled scrollbar is always shown, even where the system hides scrollbars until one scrolls
+ * (macOS), so it is clear there is more. Chromium ignores these if scrollbar-color is set, so that
+ * is only for browsers without them (Firefox).
+ */
+.area::-webkit-scrollbar {
+  width: 8px;
+}
+
+.area::-webkit-scrollbar-track {
+  background-color: transparent;
+}
+
+.area::-webkit-scrollbar-thumb {
+  background-color: var(--muted-foreground);
+  border-radius: 4px;
+}
+
+@supports not selector(::-webkit-scrollbar) {
+  .area {
+    scrollbar-width: thin;
+    scrollbar-color: var(--muted-foreground) transparent;
+  }
+}

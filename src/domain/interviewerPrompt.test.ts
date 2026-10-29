@@ -45,6 +45,40 @@ describe('buildPrompt', () => {
     expect(buildPrompt(configuration)).not.toContain('## Lovverk');
   });
 
+  it('stops follow-up questions when the counsellor said no to them', () => {
+    const prompt = buildPrompt({
+      ...configuration,
+      vanskelighetsgrad: 'lett | Antall spørsmål: 6 | Oppfølgingsspørsmål: nei',
+    });
+    expect(prompt).toContain('- Ikke still oppfølgingsspørsmål.');
+    expect(prompt).not.toContain('kan du stille ett kort oppfølgingsspørsmål');
+    expect(buildPrompt(configuration)).toContain('kan du stille ett kort oppfølgingsspørsmål');
+  });
+
+  it('asks the number of questions the counsellor chose', () => {
+    expect(buildPrompt(configuration)).toContain('- Still 6 spørsmål i alt.');
+  });
+
+  it('changes how the interviewer behaves with the difficulty and the interview type', () => {
+    const easy = buildPrompt(configuration);
+    const hard = buildPrompt({
+      ...configuration,
+      intervjutype: 'andre intervju',
+      vanskelighetsgrad: 'krevende | Antall spørsmål: 6 | Oppfølgingsspørsmål: ja',
+    });
+    expect(easy).toContain('Vanskelighetsgraden er lett');
+    expect(easy).toContain('Dette er et første intervju');
+    expect(hard).toContain('Vanskelighetsgraden er krevende');
+    expect(hard).toContain('Dette er et andre intervju');
+  });
+
+  it('asks the questions the counsellor wrote, and leaves the line out when there are none', () => {
+    expect(buildPrompt({ ...configuration, egneSporsmal: 'Hvorfor vil du jobbe her?' })).toContain(
+      'Still spørsmålene under «Egne spørsmål»',
+    );
+    expect(buildPrompt(configuration)).not.toContain('Still spørsmålene under «Egne spørsmål»');
+  });
+
   it('does not contain the hand-written example', () => {
     expect(buildPrompt(configuration)).not.toContain('Nordby kommune');
   });

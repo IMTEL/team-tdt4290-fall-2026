@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest';
 
-import { difficultyLevel } from './difficulty';
+import { difficultyLevel, followUpOf, questionCountOf } from './difficulty';
 
 describe('difficultyLevel', () => {
   it('is the level alone, capitalised', () => {
@@ -18,5 +18,29 @@ describe('difficultyLevel', () => {
     expect(difficultyLevel('')).toBe('');
     expect(difficultyLevel(null)).toBe('');
     expect(difficultyLevel(undefined)).toBe('');
+  });
+});
+
+describe('questionCountOf', () => {
+  it('is the number of questions the wizard wrote', () => {
+    expect(questionCountOf('lett | Antall spørsmål: 5–6 | Oppfølgingsspørsmål: ja')).toBe('5–6');
+    expect(questionCountOf('lett | Antall spørsmål: 12')).toBe('12');
+  });
+
+  it('is empty when the answer has no number of questions', () => {
+    expect(questionCountOf('lett')).toBe('');
+    expect(questionCountOf(undefined)).toBe('');
+  });
+});
+
+describe('followUpOf', () => {
+  it('reads yes and no', () => {
+    expect(followUpOf('lett | Antall spørsmål: 6 | Oppfølgingsspørsmål: ja')).toBe('ja');
+    expect(followUpOf('lett | Antall spørsmål: 6 | Oppfølgingsspørsmål: Nei')).toBe('nei');
+  });
+
+  it('is null when the answer says neither', () => {
+    expect(followUpOf('lett | Antall spørsmål: 6')).toBeNull();
+    expect(followUpOf(null)).toBeNull();
   });
 });

@@ -5,9 +5,11 @@ import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
 import TextField from '@mui/material/TextField';
 
+import { AnswerEffects } from '@/components/agents/AnswerEffects';
 import { AvatarPicker } from '@/components/agents/AvatarPicker';
 import { formatTemperature } from '@/domain/advancedSettings';
 import { MAX_NAME_LENGTH } from '@/domain/agentName';
+import type { AnswerEffect } from '@/domain/agentTypes/types';
 import { practiceChoiceLabel } from '@/domain/jobSeekerProfile';
 import { SECTOR_LABELS, type IndustryTemplate } from '@/data/industry-templates';
 import stepStyles from './StillingStep.module.css';
@@ -115,6 +117,8 @@ export function configurationLines(overview: FinishOverview): { label: string; v
 export function FinishActions({
   intro,
   onBack,
+  effects,
+  customPrompt,
   avatar,
   onAvatarChange,
   name,
@@ -126,6 +130,10 @@ export function FinishActions({
 }: {
   intro: ReactNode;
   onBack: () => void;
+  /** How the answers shape the interviewer. */
+  effects: AnswerEffect[];
+  /** The counsellor wrote the system prompt by hand, so the answers change nothing. */
+  customPrompt: boolean;
   /** Null is the default image, which starts out chosen. */
   avatar: string | null;
   onAvatarChange: (avatar: string | null) => void;
@@ -143,6 +151,15 @@ export function FinishActions({
       {intro}
       <h2 className={stepStyles.question}>Fullføre</h2>
       <p className={stepStyles.hint}>Trykk på et steg over for å endre det som står der.</p>
+      {(effects.length > 0 || customPrompt) && (
+        <section aria-labelledby="effects-heading" className={stepStyles.effects}>
+          {/* English translation: How your answers shape the agent */}
+          <h3 id="effects-heading" className={stepStyles.effectsHeading}>
+            Slik former svarene dine agenten
+          </h3>
+          <AnswerEffects effects={effects} customPrompt={customPrompt} />
+        </section>
+      )}
       <div className={stepStyles.avatars}>
         <p className={stepStyles.avatarLabel}>Velg en avatar for intervjueren</p>
         <AvatarPicker value={avatar} onChange={onAvatarChange} disabled={saving} />

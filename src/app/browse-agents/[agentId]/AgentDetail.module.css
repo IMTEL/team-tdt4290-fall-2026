@@ -14,8 +14,13 @@
 /* The summary box at the top of the page. MUI's Paper gives it the border and radius. */
 .summary {
   background-color: var(--muted);
-  padding: 1rem;
-  margin-bottom: 1.5rem;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+}
+
+/* Five lines, then the sentences scroll, so the buttons and the tabs are seen without scrolling. */
+.summaryText {
+  max-height: 7.5rem;
 }
 
 .notice {
@@ -24,6 +29,12 @@
 
 .summaryLabel {
   color: var(--muted-foreground);
+}
+
+/* Which answers change the agent, in a box of its own under the summary. */
+.effects {
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
 }
 
 /* Hidden visually but still read by screen readers. */

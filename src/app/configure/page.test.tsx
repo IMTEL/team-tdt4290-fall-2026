@@ -244,6 +244,20 @@ describe('/configure', () => {
     expect(screen.getByRole('button', { name: 'Publiser' })).toBeVisible();
   });
 
+  it('shows on the last step how the answers shape the interviewer', async () => {
+    const user = await openAsInterviewer();
+
+    await skipTemplate(user);
+    await skipProfile(user);
+    await skipSettings(user);
+
+    const effects = screen.getByRole('region', { name: 'Slik former svarene dine agenten' });
+    expect(within(effects).getByText('Intervjuer').nextElementSibling).toHaveTextContent(
+      'Ingen mal er valgt, så intervjueren er nøytral og profesjonell.',
+    );
+    expect(within(effects).getByText('Stilling')).toBeVisible();
+  });
+
   it('saves the interviewer from the last step and opens the test with that agent', async () => {
     const savedAgent = {
       id: 'agent-1',

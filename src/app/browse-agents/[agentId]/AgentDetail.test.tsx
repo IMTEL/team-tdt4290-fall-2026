@@ -102,9 +102,12 @@ describe('AgentDetail', () => {
       'aria-selected',
       'true',
     );
-    expect(screen.getByRole('tabpanel', { name: 'Konfigurasjon' })).toBeVisible();
-    expect(screen.getByText('Stilling').nextElementSibling).toHaveTextContent('Barnehagelærer');
-    expect(screen.getByText('Bransje').nextElementSibling).toHaveTextContent(
+    const panel = screen.getByRole('tabpanel', { name: 'Konfigurasjon' });
+    expect(panel).toBeVisible();
+    expect(within(panel).getByText('Stilling').nextElementSibling).toHaveTextContent(
+      'Barnehagelærer',
+    );
+    expect(within(panel).getByText('Bransje').nextElementSibling).toHaveTextContent(
       'Barnehage (offentlig)',
     );
     expect(screen.queryByText('Språkmodell')).not.toBeInTheDocument();
@@ -127,7 +130,7 @@ describe('AgentDetail', () => {
       'openai/gpt-oss-120b',
     );
     expect(screen.getByText('Temperatur').nextElementSibling).toHaveTextContent('0,3');
-    expect(screen.queryByText('Stilling')).not.toBeInTheDocument();
+    expect(within(screen.getByRole('tabpanel')).queryByText('Stilling')).not.toBeInTheDocument();
 
     await user.click(screen.getByRole('tab', { name: 'Systemprompt' }));
 
@@ -276,8 +279,9 @@ describe('AgentDetail', () => {
           'Jobbsøkeren er beskrevet slik: under 25, lite erfaring.',
       );
       // The summary comes before the first field of the list.
+      const panel = screen.getByRole('tabpanel', { name: 'Konfigurasjon' });
       expect(
-        summary.compareDocumentPosition(screen.getByText('Stilling')) &
+        summary.compareDocumentPosition(within(panel).getByText('Stilling')) &
           Node.DOCUMENT_POSITION_FOLLOWING,
       ).toBeTruthy();
     });
@@ -289,8 +293,51 @@ describe('AgentDetail', () => {
       render(<AgentDetail agentId="agent-1" />);
 
       const summary = await screen.findByRole('region', { name: 'Oppsummering' });
-      expect(summary).toHaveTextContent(/barnehage \(offentlig\)\. Vanskelighetsgraden er lett\.$/);
-      expect(summary).not.toHaveTextContent('Jobbsøkeren');
+      expect(within(summary).getByText(/^Dette er en intervjuer/)).toHaveTextContent(
+        /barnehage \(offentlig\)\. Vanskelighetsgraden er lett\.$/,
+      );
+      expect(summary).not.toHaveTextContent('Jobbsøkeren er beskrevet');
+    });
+
+    it('says which answers shape the interviewer, and how', async () => {
+      fetchAgentsMock.mockResolvedValue([agent]);
+
+      render(<AgentDetail agentId="agent-1" />);
+
+      const effects = await screen.findByRole('region', {
+        name: 'Slik former svarene dine agenten',
+      });
+      expect(within(effects).getByText('Vanskelighetsgrad').nextElementSibling).toHaveTextContent(
+        'Enkle og åpne spørsmål, og en tålmodig intervjuer.',
+      );
+      // «ingen» own questions change nothing, so they are not listed.
+      expect(within(effects).queryByText('Egne spørsmål')).not.toBeInTheDocument();
+      // In a box of its own, under the summary.
+      const summary = screen.getByRole('region', { name: 'Oppsummering' });
+      expect(summary).not.toContainElement(effects);
+      expect(
+        summary.compareDocumentPosition(effects) & Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+    });
+
+    it('says the answers change nothing when the prompt was written by hand', async () => {
+      const description = JSON.stringify({
+        type: 'interviewer',
+        version: 1,
+        answers: configuration,
+        customPrompt: true,
+      });
+      fetchAgentsMock.mockResolvedValue([{ ...agent, description }]);
+
+      render(<AgentDetail agentId="agent-1" />);
+
+      const effects = await screen.findByRole('region', {
+        name: 'Slik former svarene dine agenten',
+      });
+      expect(effects).toHaveTextContent(
+        'Systemprompten er skrevet for hånd, så svarene endrer ikke hvordan agenten oppfører seg.',
+      );
+      expect(within(effects).queryByText('Vanskelighetsgrad')).not.toBeInTheDocument();
     });
 
     it('is left out for an agent that was not made in this app', async () => {
@@ -300,6 +347,9 @@ describe('AgentDetail', () => {
 
       expect(await screen.findByText('En vanlig beskrivelse')).toBeVisible();
       expect(screen.queryByRole('region', { name: 'Oppsummering' })).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('region', { name: 'Slik former svarene dine agenten' }),
+      ).not.toBeInTheDocument();
     });
   });
 
@@ -338,8 +388,10 @@ describe('AgentDetail', () => {
 
     render(<AgentDetail agentId="agent-1" />);
 
-    expect(await screen.findByText('Stilling')).toBeVisible();
-    expect(screen.getByText('Stilling').nextElementSibling).toHaveTextContent('Barnehagelærer');
+    const panel = await screen.findByRole('tabpanel', { name: 'Konfigurasjon' });
+    expect(within(panel).getByText('Stilling').nextElementSibling).toHaveTextContent(
+      'Barnehagelærer',
+    );
     expect(screen.queryByText(/"type":"interviewer"/)).not.toBeInTheDocument();
   });
 

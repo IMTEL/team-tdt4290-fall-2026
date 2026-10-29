@@ -18,7 +18,9 @@ import Tabs from '@mui/material/Tabs';
 import Typography from '@mui/material/Typography';
 
 import { AgentAvatar } from '@/components/agents/AgentAvatar';
+import { AnswerEffects } from '@/components/agents/AnswerEffects';
 import { AnswerList } from '@/components/agents/AnswerList';
+import { ScrollArea } from '@/components/ui/ScrollArea';
 import { DEFAULT_TEMPERATURE, formatTemperature } from '@/domain/advancedSettings';
 import { readStoredAnswers } from '@/domain/agentTypes/storedAnswers';
 import { formatDate } from '@/lib/format';
@@ -69,6 +71,10 @@ export function AgentDetail({ agentId }: { agentId: string }) {
   const stored = readStoredAnswers(agent.description);
   // Empty if the answers say too little to write a sentence about.
   const summary = stored ? stored.definition.buildSummary(stored.answers) : '';
+  // Which answers change the agent's behaviour, and how. Only for agents made in this app.
+  const effects = stored ? stored.definition.explainAnswers(stored.answers) : [];
+  const customPrompt = stored?.customPrompt ?? false;
+  const showEffects = effects.length > 0 || customPrompt;
   // RAGdoll can send a value that is not a date; then the date is left out.
   const hasLastUpdated = !Number.isNaN(new Date(agent.lastUpdated).getTime());
   const prompt = agent.prompt;
@@ -146,7 +152,30 @@ export function AgentDetail({ agentId }: { agentId: string }) {
           >
             Oppsummering
           </Typography>
-          <Typography variant="body1">{summary}</Typography>
+          <ScrollArea className={styles.summaryText}>
+            <Typography variant="body1">{summary}</Typography>
+          </ScrollArea>
+        </Paper>
+      )}
+
+      {/* A box of its own under the summary, as the list scrolls when it is long. */}
+      {showEffects && (
+        <Paper
+          component="section"
+          variant="outlined"
+          aria-labelledby="effects-heading"
+          className={styles.effects}
+        >
+          {/* English translation: How your answers shape the agent */}
+          <Typography
+            id="effects-heading"
+            variant="overline"
+            component="h2"
+            className={styles.summaryLabel}
+          >
+            Slik former svarene dine agenten
+          </Typography>
+          <AnswerEffects effects={effects} customPrompt={customPrompt} />
         </Paper>
       )}
 

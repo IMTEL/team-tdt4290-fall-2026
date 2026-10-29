@@ -67,8 +67,12 @@ test('the agent page shows the configuration and the system prompt', async ({ pa
   await expect(
     page.getByRole('heading', { level: 1, name: 'Intervjuer for butikk', exact: true }),
   ).toBeVisible();
-  await expect(page.getByRole('definition').filter({ hasText: 'Butikkmedarbeider' })).toBeVisible();
-  await expect(page.getByRole('definition').filter({ hasText: 'En matbutikk' })).toBeVisible();
+  await expect(
+    page.getByRole('tabpanel').getByRole('definition').filter({ hasText: 'Butikkmedarbeider' }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('tabpanel').getByRole('definition').filter({ hasText: 'En matbutikk' }),
+  ).toBeVisible();
   await expect(page.getByRole('main')).toContainText(/Agenttype:\s*Intervjuer/);
   await expect(page.getByRole('region', { name: 'Oppsummering', exact: true })).toBeVisible();
 
@@ -78,13 +82,26 @@ test('the agent page shows the configuration and the system prompt', async ({ pa
   await advanced.click();
   await expect(advanced).toHaveAttribute('aria-selected', 'true');
   await expect(
-    page.getByRole('definition').filter({ hasText: 'openai/gpt-oss-120b' }),
+    page.getByRole('tabpanel').getByRole('definition').filter({ hasText: 'openai/gpt-oss-120b' }),
   ).toBeVisible();
 
   await page.getByRole('tab', { name: 'Systemprompt', exact: true }).click();
   await expect(page.getByRole('tabpanel', { name: 'Systemprompt', exact: true })).toContainText(
     'Butikkmedarbeider',
   );
+});
+
+test('the agent page says how the answers shape the interviewer', async ({ page }) => {
+  await logIn(page);
+  const id = await createAgent(page, 'Intervjuer for butikk', {
+    vanskelighetsgrad: 'krevende | Antall spørsmål: 5–6 | Oppfølgingsspørsmål: nei',
+  });
+  await page.goto(`/browse-agents/${id}`);
+
+  const effects = page.getByRole('region', { name: 'Slik former svarene dine agenten' });
+  await expect(effects).toBeVisible();
+  await expect(effects).toContainText('Mer utfordrende spørsmål');
+  await expect(effects).toContainText('Ingen oppfølgingsspørsmål');
 });
 
 test('an agent that does not exist shows the not found page', async ({ page }) => {
@@ -123,7 +140,9 @@ test('an agent can be edited', async ({ page }) => {
   await expect(
     page.getByRole('heading', { level: 1, name: 'Krevende butikkintervju', exact: true }),
   ).toBeVisible();
-  await expect(page.getByRole('definition').filter({ hasText: 'vanskelig' })).toBeVisible();
+  await expect(
+    page.getByRole('tabpanel').getByRole('definition').filter({ hasText: 'vanskelig' }),
+  ).toBeVisible();
 });
 
 test('an edit can fill in the interviewer from a template', async ({ page }) => {
@@ -139,7 +158,10 @@ test('an edit can fill in the interviewer from a template', async ({ page }) => 
 
   await expect(page).toHaveURL(new RegExp(`/browse-agents/${id}$`));
   await expect(
-    page.getByRole('definition').filter({ hasText: /^Intervjueren er daglig leder/ }),
+    page
+      .getByRole('tabpanel')
+      .getByRole('definition')
+      .filter({ hasText: /^Intervjueren er daglig leder/ }),
   ).toBeVisible();
 
   // The edit form remembers which template the text came from.
@@ -205,7 +227,9 @@ test('editing a published agent hides it until it is published again', async ({ 
   const chip = page.getByText('Publisert i The Candidate', { exact: true });
   await expect(notice).toBeVisible();
   await expect(chip).toBeHidden();
-  await expect(page.getByRole('definition').filter({ hasText: 'vanskelig' })).toBeVisible();
+  await expect(
+    page.getByRole('tabpanel').getByRole('definition').filter({ hasText: 'vanskelig' }),
+  ).toBeVisible();
 
   // Publishing again starts from the name and description it had.
   await page.getByRole('button', { name: 'Publiser', exact: true }).click();
@@ -234,7 +258,9 @@ test('editing an agent that is not published says nothing about The Candidate', 
   await field(page, 'Vanskelighetsgrad').fill('vanskelig');
   await page.getByRole('button', { name: 'Lagre endringer', exact: true }).click();
 
-  await expect(page.getByRole('definition').filter({ hasText: 'vanskelig' })).toBeVisible();
+  await expect(
+    page.getByRole('tabpanel').getByRole('definition').filter({ hasText: 'vanskelig' }),
+  ).toBeVisible();
   await expect(page.getByText(/^Agenten er gjemt fra The Candidate/)).toBeHidden();
 });
 
@@ -254,10 +280,14 @@ test('an agent can be cloned, and the original stays as it was', async ({ page }
     page.getByRole('heading', { level: 1, name: 'Intervjuer for butikk (kopi)', exact: true }),
   ).toBeVisible();
   await expect(page).not.toHaveURL(new RegExp(`/browse-agents/${id}$`));
-  await expect(page.getByRole('definition').filter({ hasText: 'Kassemedarbeider' })).toBeVisible();
+  await expect(
+    page.getByRole('tabpanel').getByRole('definition').filter({ hasText: 'Kassemedarbeider' }),
+  ).toBeVisible();
 
   await page.goto(`/browse-agents/${id}`);
-  await expect(page.getByRole('definition').filter({ hasText: 'Butikkmedarbeider' })).toBeVisible();
+  await expect(
+    page.getByRole('tabpanel').getByRole('definition').filter({ hasText: 'Butikkmedarbeider' }),
+  ).toBeVisible();
 
   await page.goto('/browse-agents');
   await expect(page.getByRole('heading', { level: 3 })).toHaveText([

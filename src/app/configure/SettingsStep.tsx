@@ -14,6 +14,7 @@ import {
   DEFAULT_MODEL,
   DEFAULT_TEMPERATURE,
 } from '@/domain/advancedSettings';
+import type { AnswerEffect } from '@/domain/agentTypes/types';
 import stepStyles from './StillingStep.module.css';
 import { WizardFrame } from './StillingStep';
 import { FinishActions, configurationLines, type FinishOverview } from './FinishStep';
@@ -70,6 +71,8 @@ type SettingsStepProps = {
   /** Closes the last step and shows the settings form again. */
   onFinishBack?: () => void;
   overview: FinishOverview;
+  /** How the answers shape the interviewer, shown on the last step. */
+  effects: AnswerEffect[];
   /** Null is the default image. */
   avatar: string | null;
   onAvatarChange: (avatar: string | null) => void;
@@ -96,6 +99,7 @@ export function SettingsStep({
   expanded = false,
   onFinishBack = () => {},
   overview,
+  effects,
   avatar,
   onAvatarChange,
   name,
@@ -125,6 +129,8 @@ export function SettingsStep({
         <FinishActions
           intro={intro}
           onBack={onFinishBack}
+          effects={effects}
+          customPrompt={Boolean(value.customPrompt?.trim())}
           avatar={avatar}
           onAvatarChange={onAvatarChange}
           name={name}
