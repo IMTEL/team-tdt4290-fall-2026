@@ -113,9 +113,9 @@ function Section({
 
 /**
  * Templates, job seeker profiles and legal templates, in the same card layout as the agents page.
- * Each group folds shut, so a long list does not have to stay open. Stillingsmaler are the built-in
- * ones plus the counsellor's own, and bransjemaler are the industries they name; saved interviewer
- * templates live under Intervjuermaler.
+ * Each group folds shut, so a long list does not have to stay open. Bransjemaler and stillingsmaler
+ * are the built-in ones plus the counsellor's own; saved interviewer templates live under
+ * Intervjuermaler.
  */
 export function TemplateLibrary() {
   const [profiles, setProfiles] = useState<ProfileState>({ kind: 'loading' });
@@ -170,8 +170,14 @@ export function TemplateLibrary() {
       >
         {workplace.error && <Alert severity="error">{workplace.error}</Alert>}
         <CatalogGrid
-          items={industryCatalog(workplace.jobs)}
-          leading={<AddCatalogCard title="Ny bransjemal" subtitle="Kommer snart" />}
+          items={industryCatalog(workplace.jobs, workplace.industries)}
+          leading={
+            <AddCatalogCard
+              href="/templates/industries/new"
+              title="Ny bransjemal"
+              subtitle="Legg til en bransje"
+            />
+          }
         />
       </Section>
 

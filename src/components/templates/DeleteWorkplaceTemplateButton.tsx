@@ -12,22 +12,25 @@ import DialogTitle from '@mui/material/DialogTitle';
 import styles from './TemplatePicker.module.css';
 
 type DeleteWorkplaceTemplateButtonProps = {
-  /** The stillingsmal's name. */
+  /** The stillingsmal's or bransjemal's name. */
   name: string;
-  /** «stillingsmalen». Kept apart so other kinds of mal can use the button too. */
+  /** «stillingsmalen» or «bransjemalen». */
   noun: string;
   /** Deletes it. Throws Error with a Norwegian message that can be shown as it is. */
   onDelete: () => Promise<void>;
   /** Called once it is deleted. */
   onDeleted: () => void;
+  /** One more sentence for the dialog, about what else is or is not deleted. */
+  note?: string;
 };
 
-/** Deletes one of the counsellor's stillingsmaler, after asking first. */
+/** Deletes one of the counsellor's stillingsmaler or bransjemaler, after asking first. */
 export function DeleteWorkplaceTemplateButton({
   name,
   noun,
   onDelete,
   onDeleted,
+  note,
 }: DeleteWorkplaceTemplateButtonProps) {
   const [open, setOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -72,6 +75,7 @@ export function DeleteWorkplaceTemplateButton({
         <DialogContent>
           <DialogContentText>
             Malen blir borte for godt. Intervjuere du allerede har laget med den, blir som de er.
+            {note && ` ${note}`}
           </DialogContentText>
           {error && (
             <Alert severity="error" className={styles.dialogError}>

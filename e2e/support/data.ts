@@ -94,3 +94,15 @@ export async function createJobTemplate(
   expect(res.status()).toBe(201);
   return (await res.json()).template.id;
 }
+
+/** Saves a bransjemal. Returns its id. */
+export async function createIndustryTemplate(
+  page: Page,
+  industry: { name: string; description?: string },
+): Promise<string> {
+  const res = await page.request.post('/api/industry-templates', {
+    data: { description: 'Lager og transport.', ...industry },
+  });
+  expect(res.status()).toBe(201);
+  return (await res.json()).template.id;
+}

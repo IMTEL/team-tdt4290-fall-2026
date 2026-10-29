@@ -129,7 +129,7 @@ export function ConfigureAgent({
   const usesProfiles = Boolean(presets.jobSeekerProfile);
   const usesIndustries = Boolean(presets.industryTemplate);
   const usesLegal = Boolean(presets.legalTemplates);
-  // The built-in stillingsmaler, and the counsellor's own once they have loaded.
+  // The built-in stillingsmaler and bransjemaler, and the counsellor's own once they have loaded.
   const workplaceTemplates = useWorkplaceTemplates(
     definition?.id === 'interviewer' || usesIndustries,
   );
@@ -481,7 +481,7 @@ export function ConfigureAgent({
       <StillingStep
         value={workplace}
         templates={jobTemplates}
-        industries={industryNames(jobTemplates)}
+        industries={industryNames(jobTemplates, workplaceTemplates.industries)}
         onChange={setWorkplace}
         onNext={() => goTo(1)}
         onGoTo={goTo}

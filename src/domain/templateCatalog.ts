@@ -2,7 +2,7 @@ import { SECTOR_LABELS, type IndustryTemplate } from '@/data/industry-templates'
 import type { AgentTemplate } from '@/data/templates';
 import { summarizeProfile, type JobSeekerProfile } from '@/domain/jobSeekerProfile';
 import type { LegalTemplate } from '@/domain/legalTemplate';
-import { isBuiltInJob } from '@/domain/workplaceTemplate';
+import { isBuiltInJob, type IndustryTemplateEntry } from '@/domain/workplaceTemplate';
 
 /** One card on the templates page: a title, one short line, and one sentence. */
 export type CatalogItem = {
@@ -15,7 +15,7 @@ export type CatalogItem = {
   chip?: string;
 };
 
-/** The pill on a stillingsmal the counsellor made, and on an industry only theirs are in. */
+/** The pill on a stillingsmal or bransjemal the counsellor made. */
 export const OWN_TEMPLATE_LABEL = 'Egen mal';
 
 function sentence(text: string): string {
@@ -32,14 +32,21 @@ export function industrySlug(industry: string): string {
     .replace(/^-|-$/g, '');
 }
 
-/** One industry: its name and its stillingsmaler. */
-export type IndustryGroup = { industry: string; jobs: IndustryTemplate[] };
+/** One industry: its name, its stillingsmaler, and the bransjemal if the counsellor made it. */
+export type IndustryGroup = {
+  industry: string;
+  jobs: IndustryTemplate[];
+  entry?: IndustryTemplateEntry;
+};
 
 /**
- * Every industry the stillingsmaler name, with its jobs, in their order. Names that differ only in
- * case are one industry.
+ * Every industry, with its jobs: those named by a stillingsmal first, in their order, then the
+ * bransjemaler that have no stillingsmaler yet. Names that differ only in case are one industry.
  */
-export function industryGroups(templates: IndustryTemplate[]): IndustryGroup[] {
+export function industryGroups(
+  templates: IndustryTemplate[],
+  entries: IndustryTemplateEntry[] = [],
+): IndustryGroup[] {
   const groups = new Map<string, IndustryGroup>();
   for (const template of templates) {
     const key = industrySlug(template.industry);
@@ -47,20 +54,28 @@ export function industryGroups(templates: IndustryTemplate[]): IndustryGroup[] {
     group.jobs.push(template);
     groups.set(key, group);
   }
+  for (const entry of entries) {
+    const key = industrySlug(entry.name);
+    const group = groups.get(key);
+    // The bransjemal's own spelling of the name wins over the stillingsmaler's.
+    if (group) groups.set(key, { ...group, industry: entry.name, entry });
+    else groups.set(key, { industry: entry.name, jobs: [], entry });
+  }
   return [...groups.values()];
 }
 
-/** True for an industry that comes with the app: it has a built-in job. */
+/** True for an industry that comes with the app: it has a built-in job and no bransjemal. */
 export function isBuiltInIndustry(group: IndustryGroup): boolean {
-  return group.jobs.some((job) => isBuiltInJob(job.id));
+  return !group.entry && group.jobs.some((job) => isBuiltInJob(job.id));
 }
 
 /** The industry with this slug and its jobs, or undefined if there is none. */
 export function findIndustry(
   templates: IndustryTemplate[],
   slug: string,
+  entries: IndustryTemplateEntry[] = [],
 ): IndustryGroup | undefined {
-  return industryGroups(templates).find((group) => industrySlug(group.industry) === slug);
+  return industryGroups(templates, entries).find((group) => industrySlug(group.industry) === slug);
 }
 
 /** The page of one industry. */
@@ -71,17 +86,25 @@ export const industryHref = (industry: string) =>
 export const jobHref = (id: string) => `/templates/jobs/${encodeURIComponent(id)}`;
 
 /**
- * One card per industry, opening its page. The sentence names the jobs in that industry. An
- * industry only the counsellor's own stillingsmaler are in is marked as theirs.
+ * One card per industry, opening its page. The sentence names the jobs in that industry, or for a
+ * bransjemal with none yet, says what the industry is.
  */
-export function industryCatalog(templates: IndustryTemplate[]): CatalogItem[] {
-  return industryGroups(templates).map((group) => {
+export function industryCatalog(
+  templates: IndustryTemplate[],
+  entries: IndustryTemplateEntry[] = [],
+): CatalogItem[] {
+  return industryGroups(templates, entries).map((group) => {
     const sectors = [...new Set(group.jobs.map((job) => SECTOR_LABELS[job.sector]))];
     return {
       id: group.industry,
       title: group.industry,
-      line: sectors.join(' · '),
-      detail: sentence(group.jobs.map((job) => job.title).join(', ')),
+      // English translation: No job templates yet
+      line: sectors.join(' · ') || 'Ingen stillingsmaler ennå',
+      detail: sentence(
+        group.jobs.length > 0
+          ? group.jobs.map((job) => job.title).join(', ')
+          : (group.entry?.description ?? ''),
+      ),
       href: industryHref(group.industry),
       ...(isBuiltInIndustry(group) ? {} : { chip: OWN_TEMPLATE_LABEL }),
     };

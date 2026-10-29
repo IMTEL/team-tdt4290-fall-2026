@@ -2,6 +2,7 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 
+import { IndustryTemplateForm } from './IndustryTemplateForm';
 import { JobTemplateForm } from './JobTemplateForm';
 
 describe('JobTemplateForm', () => {
@@ -60,5 +61,27 @@ describe('JobTemplateForm', () => {
 
     expect(await screen.findByText('Stillingsmalen ble ikke godtatt.')).toBeVisible();
     expect(screen.getByRole('button', { name: 'Lagre endringene' })).toBeEnabled();
+  });
+});
+
+describe('IndustryTemplateForm', () => {
+  it('does not save a name another industry already has', async () => {
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    const user = userEvent.setup();
+    render(
+      <IndustryTemplateForm takenNames={['Varehandel']} onSave={onSave} cancelHref="/templates" />,
+    );
+
+    await user.type(screen.getByRole('textbox', { name: 'Bransje' }), 'varehandel');
+    await user.type(screen.getByRole('textbox', { name: 'Kort beskrivelse' }), 'Butikker.');
+
+    expect(screen.getByText('Det finnes allerede en bransje med dette navnet.')).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Lagre bransjemal' })).toBeDisabled();
+
+    await user.clear(screen.getByRole('textbox', { name: 'Bransje' }));
+    await user.type(screen.getByRole('textbox', { name: 'Bransje' }), 'Logistikk');
+    await user.click(screen.getByRole('button', { name: 'Lagre bransjemal' }));
+
+    expect(onSave).toHaveBeenCalledWith({ name: 'Logistikk', description: 'Butikker.' });
   });
 });

@@ -2,8 +2,11 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  fromRagdollIndustryTemplate,
   fromRagdollJobTemplate,
+  parseNewIndustryTemplate,
   parseNewJobTemplate,
+  toRagdollIndustryTemplate,
   toRagdollJobTemplate,
 } from './workplaceTemplateMapper';
 
@@ -59,5 +62,32 @@ describe('stillingsmaler in RAGdoll', () => {
     expect(
       fromRagdollJobTemplate({ ...stored, content: { ...stored.content, tasks: [1] } }),
     ).toBeNull();
+  });
+});
+
+describe('bransjemaler', () => {
+  it('keeps the name and the description, trimmed', () => {
+    expect(parseNewIndustryTemplate({ name: ' Logistikk ', description: 'Lager.', x: 1 })).toEqual({
+      name: 'Logistikk',
+      description: 'Lager.',
+    });
+    expect(parseNewIndustryTemplate({ name: '', description: 'Lager.' })).toBeNull();
+    expect(
+      parseNewIndustryTemplate({ name: 'Logistikk', description: 'x'.repeat(301) }),
+    ).toBeNull();
+  });
+
+  it('reads back what it stores, and only its own type', () => {
+    const stored = {
+      id: 'industry-1',
+      ...toRagdollIndustryTemplate({ name: 'Logistikk', description: 'Lager.' }),
+    };
+    expect(stored.type).toBe('industry-template');
+    expect(fromRagdollIndustryTemplate(stored)).toEqual({
+      id: 'industry-1',
+      name: 'Logistikk',
+      description: 'Lager.',
+    });
+    expect(fromRagdollIndustryTemplate({ ...stored, type: 'job-template' })).toBeNull();
   });
 });

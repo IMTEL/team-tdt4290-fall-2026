@@ -6,8 +6,8 @@ import { getSessionToken } from '@/lib/session-tokens';
 import { createTemplate, listTemplates } from '@/server/ragdoll';
 import { GET, POST } from './route';
 
-// The routes are made by the shared functions in savedTemplateRoutes.ts. These tests check what
-// they add for stillingsmaler: the session check, the body, the type and the status codes.
+// The routes for stillingsmaler and bransjemaler are made by the same functions. These tests check
+// what they add for stillingsmaler: the session check, the body, the type and the status codes.
 vi.mock('@/lib/session-tokens', () => ({ getSessionToken: vi.fn() }));
 vi.mock('@/server/ragdoll', async (importOriginal) => {
   const original = await importOriginal<typeof import('@/server/ragdoll')>();
