@@ -344,6 +344,7 @@ export function ConfigureAgent({
     return wizardConfiguration({
       workplace,
       jobTemplates,
+      industryTemplates: workplaceTemplates.industries,
       interviewer: choice ?? null,
       profile: (profileId && profiles.find((item) => item.id === profileId)) || null,
       practiceAreas: chosenPractice,

@@ -66,13 +66,20 @@ describe('/templates/industries/[industry]', () => {
 
   it('shows the counsellor’s own industry with buttons to edit and delete it', async () => {
     fetchIndustryTemplatesMock.mockResolvedValue([
-      { id: 'industry-1', name: 'Logistikk', description: 'Lager og transport.' },
+      {
+        id: 'industry-1',
+        name: 'Logistikk',
+        description: 'Lager og transport.',
+        context: 'Truckførerbevis er vanlig.',
+      },
     ]);
     await renderPage('logistikk');
 
     expect(await screen.findByRole('heading', { level: 1, name: 'Logistikk' })).toBeVisible();
     expect(screen.getByText('Egen mal')).toBeVisible();
     expect(screen.getByText('Lager og transport.')).toBeVisible();
+    expect(screen.getByText('Dette får intervjueren vite om bransjen')).toBeVisible();
+    expect(screen.getByText('Truckførerbevis er vanlig.')).toBeVisible();
     expect(screen.getByRole('link', { name: 'Rediger' })).toHaveAttribute(
       'href',
       '/templates/industries/logistikk/edit',

@@ -24,7 +24,7 @@ const stored = {
   type: 'industry-template',
   name: 'Logistikk',
   description: 'Lager og transport.',
-  content: {},
+  content: { context: 'Truckførerbevis er vanlig.' },
 };
 const params = { params: Promise.resolve({ templateId: 'industry-1' }) };
 
@@ -53,7 +53,12 @@ describe('/api/industry-templates/[templateId]', () => {
 
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({
-      template: { id: 'industry-1', name: 'Logistikk', description: 'Lager og transport.' },
+      template: {
+        id: 'industry-1',
+        name: 'Logistikk',
+        description: 'Lager og transport.',
+        context: 'Truckførerbevis er vanlig.',
+      },
     });
   });
 
@@ -65,7 +70,7 @@ describe('/api/industry-templates/[templateId]', () => {
       type: 'industry-template',
       name: 'Lager',
       description: 'Ny.',
-      content: {},
+      content: { context: '' },
     });
   });
 

@@ -23,6 +23,7 @@ export const JOB_TEMPLATE_LIMITS = {
 export const INDUSTRY_TEMPLATE_LIMITS = {
   name: 100,
   description: 300,
+  context: 2000,
 } as const;
 
 /** A stillingsmal as the counsellor writes it. The saved one has the same shape as a built-in. */
@@ -34,6 +35,11 @@ export type IndustryTemplateEntry = {
   name: string;
   /** One line about the industry. Shown on the card and the industry's page. */
   description: string;
+  /**
+   * What every interviewer set up in this industry is told about it, such as what employers look
+   * for and common certificates. Empty if the counsellor wrote nothing.
+   */
+  context: string;
 };
 
 export type NewIndustryTemplate = Omit<IndustryTemplateEntry, 'id'>;
@@ -57,6 +63,12 @@ export function industryNames(
     if (key && !names.has(key)) names.set(key, name.trim());
   }
   return [...names.values()];
+}
+
+/** What the interviewer is told about the industry with this name, whatever its case, or "". */
+export function industryContext(name: string, industries: IndustryTemplateEntry[]): string {
+  const key = name.trim().toLowerCase();
+  return industries.find((entry) => entry.name.trim().toLowerCase() === key)?.context ?? '';
 }
 
 /** True if another industry already has this name, whatever its case. */

@@ -82,7 +82,12 @@ describe('industrySlug and findIndustry', () => {
 
 describe('the counsellor’s own industries and jobs', () => {
   const ownJob: IndustryTemplate = { ...butikk, id: 'job-1', title: 'Kassemedarbeider' };
-  const logistikk = { id: 'industry-1', name: 'Logistikk', description: 'Lager og transport.' };
+  const logistikk = {
+    id: 'industry-1',
+    name: 'Logistikk',
+    description: 'Lager og transport.',
+    context: '',
+  };
 
   it('adds a bransjemal without jobs as a card of its own, marked as the counsellor’s', () => {
     expect(industryCatalog([helse], [logistikk])[1]).toEqual({

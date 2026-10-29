@@ -3,6 +3,7 @@ import type { AgentTemplate } from '@/data/templates';
 import { MAX_NAME_LENGTH } from '@/domain/agentName';
 import type { Configuration } from '@/domain/configuration';
 import type { AnswerSources } from '@/domain/agentTypes/types';
+import { industryContext, type IndustryTemplateEntry } from '@/domain/workplaceTemplate';
 import {
   describeJobSeeker,
   isPracticeChoice,
@@ -18,6 +19,8 @@ export type WizardDraft = {
   workplace: Workplace;
   /** The stillingsmaler to find the chosen one in: the counsellor's own and the built-in ones. */
   jobTemplates: IndustryTemplate[];
+  /** The counsellor's bransjemaler, for what the interviewer is told about the chosen industry. */
+  industryTemplates: IndustryTemplateEntry[];
   /** The interviewer template, or null when the counsellor continued without one. */
   interviewer: AgentTemplate | null;
   /** The job seeker profile, or null when the counsellor continued without one. */
@@ -66,7 +69,7 @@ export function wizardConfiguration(draft: WizardDraft): WizardConfiguration | n
   return {
     answers: {
       stilling: stillingOf(workplace, draft.jobTemplates),
-      bransje: bransjeOf(workplace),
+      bransje: bransjeOf(workplace, draft.industryTemplates),
       bedrift: workplace.company.trim() || 'ikke oppgitt',
       intervjutype: settings.interviewType,
       intervjuer: draft.interviewer?.persona ?? 'Ingen mal',
@@ -102,8 +105,11 @@ function stillingOf(workplace: Workplace, jobTemplates: IndustryTemplate[]): str
   return template ? `${title}. ${template.jobDescription}` : title;
 }
 
-/** Industry and employer in the one line the saved Bransje field uses. */
-function bransjeOf(workplace: Workplace): string {
+/**
+ * Industry and employer in the one line the saved Bransje field uses, with what the bransjemal
+ * tells the interviewer after a «|», as Bedrift has its values.
+ */
+function bransjeOf(workplace: Workplace, industryTemplates: IndustryTemplateEntry[]): string {
   const industry =
     workplace.industry === NO_TEMPLATE || workplace.industry.trim() === ''
       ? 'Ingen bransje'
@@ -112,7 +118,8 @@ function bransjeOf(workplace: Workplace): string {
     workplace.sector === 'offentlig' || workplace.sector === 'privat'
       ? workplace.sector
       : 'ikke oppgitt';
-  return `${industry} (${sector})`;
+  const context = industryContext(workplace.industry, industryTemplates);
+  return context ? `${industry} (${sector}) | Om bransjen: ${context}` : `${industry} (${sector})`;
 }
 
 /** The range, or the number written for 10+. Null when that choice is not finished. */

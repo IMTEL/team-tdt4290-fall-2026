@@ -80,8 +80,16 @@ describe('IndustryTemplateForm', () => {
 
     await user.clear(screen.getByRole('textbox', { name: 'Bransje' }));
     await user.type(screen.getByRole('textbox', { name: 'Bransje' }), 'Logistikk');
+    await user.type(
+      screen.getByRole('textbox', { name: /Dette får intervjueren vite om bransjen/ }),
+      ' Truckførerbevis er vanlig. ',
+    );
     await user.click(screen.getByRole('button', { name: 'Lagre bransjemal' }));
 
-    expect(onSave).toHaveBeenCalledWith({ name: 'Logistikk', description: 'Butikker.' });
+    expect(onSave).toHaveBeenCalledWith({
+      name: 'Logistikk',
+      description: 'Butikker.',
+      context: 'Truckførerbevis er vanlig.',
+    });
   });
 });

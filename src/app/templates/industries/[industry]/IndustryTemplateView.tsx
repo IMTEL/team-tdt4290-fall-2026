@@ -87,6 +87,10 @@ export function IndustryTemplateView({ slug }: { slug: string }) {
         },
         // English translation: Typical tasks
         { label: 'Typiske oppgaver', chips: tasks },
+        // English translation: What the interviewer is told about the industry
+        ...(entry?.context
+          ? [{ label: 'Dette får intervjueren vite om bransjen', text: entry.context }]
+          : []),
       ]}
     />
   );

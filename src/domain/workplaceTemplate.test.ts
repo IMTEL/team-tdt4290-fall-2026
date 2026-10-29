@@ -2,7 +2,12 @@
 import { describe, expect, it } from 'vitest';
 
 import { industryTemplates } from '@/data/industry-templates';
-import { industryNames, industryNameTaken, isBuiltInJob } from './workplaceTemplate';
+import {
+  industryContext,
+  industryNames,
+  industryNameTaken,
+  isBuiltInJob,
+} from './workplaceTemplate';
 
 const ownJob = { ...industryTemplates[0], id: 'job-1', industry: 'Logistikk' };
 
@@ -12,11 +17,21 @@ describe('industryNames', () => {
       industryNames(
         [ownJob, industryTemplates[0], industryTemplates[0]],
         [
-          { id: 'i-1', name: 'logistikk', description: '' },
-          { id: 'i-2', name: 'Renhold', description: '' },
+          { id: 'i-1', name: 'logistikk', description: '', context: '' },
+          { id: 'i-2', name: 'Renhold', description: '', context: '' },
         ],
       ),
     ).toEqual(['Logistikk', 'Helse og omsorg', 'Renhold']);
+  });
+});
+
+describe('industryContext', () => {
+  it('finds the bransjemal’s text by name, whatever its case', () => {
+    const industries = [
+      { id: 'i-1', name: 'Logistikk', description: '', context: 'Truckførerbevis er vanlig.' },
+    ];
+    expect(industryContext(' logistikk ', industries)).toBe('Truckførerbevis er vanlig.');
+    expect(industryContext('Renhold', industries)).toBe('');
   });
 });
 

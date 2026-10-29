@@ -170,7 +170,7 @@ describe('TemplateLibrary', () => {
   it('shows the counsellor’s own industries and jobs next to the built-in ones', async () => {
     fetchProfilesMock.mockResolvedValue([]);
     fetchIndustryTemplatesMock.mockResolvedValue([
-      { id: 'industry-1', name: 'Logistikk', description: 'Lager og transport.' },
+      { id: 'industry-1', name: 'Logistikk', description: 'Lager og transport.', context: '' },
     ]);
     fetchJobTemplatesMock.mockResolvedValue([
       {

@@ -12,12 +12,17 @@ test('a counsellor can add a bransjemal and a stillingsmal in it, and choose the
   await logIn(page, '/templates');
 
   await page.getByRole('link', { name: /Ny bransjemal/ }).click();
-  await page.getByRole('textbox', { name: 'Bransje' }).fill('Logistikk');
+  await page.getByRole('textbox', { name: 'Bransje', exact: true }).fill('Logistikk');
   await page.getByRole('textbox', { name: 'Kort beskrivelse' }).fill('Lager og transport.');
+  await page
+    .getByRole('textbox', { name: /Dette får intervjueren vite om bransjen/ })
+    .fill('Truckførerbevis er vanlig.');
   await page.getByRole('button', { name: 'Lagre bransjemal' }).click();
   await expect(page).toHaveURL(/\/templates$/);
   await expect(page.getByText('Mal laget')).toBeVisible();
-  await expect(page.getByRole('link', { name: /^Logistikk/ })).toBeVisible();
+  await page.getByRole('link', { name: /^Logistikk/ }).click();
+  await expect(page.getByText('Truckførerbevis er vanlig.')).toBeVisible();
+  await page.goto('/templates');
 
   await page.getByRole('link', { name: /Ny stillingsmal/ }).click();
   await page.getByRole('textbox', { name: 'Stilling', exact: true }).fill('Lagermedarbeider natt');
@@ -81,7 +86,7 @@ test('a renamed bransjemal keeps its stillingsmaler', async ({ page }) => {
   await page.goto('/templates/industries/logistikk');
 
   await page.getByRole('link', { name: 'Rediger' }).click();
-  await page.getByRole('textbox', { name: 'Bransje' }).fill('Lager og transport');
+  await page.getByRole('textbox', { name: 'Bransje', exact: true }).fill('Lager og transport');
   await page.getByRole('button', { name: 'Lagre endringene' }).click();
   await expect(page.getByText('Mal lagret')).toBeVisible();
 
@@ -95,7 +100,7 @@ test('a renamed bransjemal keeps its stillingsmaler', async ({ page }) => {
 test('a bransjemal cannot have the name of another industry', async ({ page }) => {
   await logIn(page, '/templates/industries/new');
 
-  await page.getByRole('textbox', { name: 'Bransje' }).fill('varehandel');
+  await page.getByRole('textbox', { name: 'Bransje', exact: true }).fill('varehandel');
   await page.getByRole('textbox', { name: 'Kort beskrivelse' }).fill('Butikker.');
 
   await expect(page.getByText('Det finnes allerede en bransje med dette navnet.')).toBeVisible();

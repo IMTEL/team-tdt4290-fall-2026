@@ -92,7 +92,10 @@ export function fromRagdollJobTemplate(stored: RagdollTemplate): IndustryTemplat
   };
 }
 
-/** The bransjemal from a request body, with spaces trimmed. Null if a field is missing or too long. */
+/**
+ * The bransjemal from a request body, with spaces trimmed. Null if the name or line is missing, or
+ * a field is too long. The text for the interviewer may be left out or empty.
+ */
 export function parseNewIndustryTemplate(body: unknown): NewIndustryTemplate | null {
   if (typeof body !== 'object' || body === null) return null;
   const b = body as Record<string, unknown>;
@@ -101,23 +104,37 @@ export function parseNewIndustryTemplate(body: unknown): NewIndustryTemplate | n
   const description = cleanText(b.description, INDUSTRY_TEMPLATE_LIMITS.description);
   if (!name || !description) return null;
 
-  return { name, description };
+  const context = b.context === undefined ? '' : b.context;
+  if (typeof context !== 'string' || context.trim().length > INDUSTRY_TEMPLATE_LIMITS.context) {
+    return null;
+  }
+
+  return { name, description, context: context.trim() };
 }
 
-/** The bransjemal as we store it in RAGdoll's templates. It has nothing beyond its name and line. */
+/** The bransjemal as we store it in RAGdoll's templates. */
 export function toRagdollIndustryTemplate(template: NewIndustryTemplate): NewRagdollTemplate {
   return {
     type: INDUSTRY_TEMPLATE_TYPE,
     name: template.name,
     description: template.description,
-    content: {},
+    content: { context: template.context },
   };
 }
 
-/** The bransjemal from what RAGdoll stores, or null if it is a template of another type. */
+/**
+ * The bransjemal from what RAGdoll stores, or null if it is a template of another type. One saved
+ * before bransjemaler had a text for the interviewer gets an empty one.
+ */
 export function fromRagdollIndustryTemplate(stored: RagdollTemplate): IndustryTemplateEntry | null {
   if (stored.type !== INDUSTRY_TEMPLATE_TYPE || !stored.name) return null;
-  return { id: stored.id, name: stored.name, description: stored.description };
+  const { context } = stored.content;
+  return {
+    id: stored.id,
+    name: stored.name,
+    description: stored.description,
+    context: typeof context === 'string' ? context : '',
+  };
 }
 
 /** Stillingsmaler, for the routes under /api/job-templates. */

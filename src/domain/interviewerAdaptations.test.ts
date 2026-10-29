@@ -78,6 +78,16 @@ describe('explainInterviewer', () => {
     expect(effectsFor({ bransje: 'Ingen bransje (privat)' }, 'bransje')).toEqual([]);
   });
 
+  it('uses what a bransjemal says about the industry', () => {
+    const bransje = 'Logistikk (privat) | Om bransjen: Truckførerbevis er vanlig.';
+    expect(effectsFor({ bransje }, 'bransje')).toEqual([
+      'Spørsmålene er tilpasset bransjen logistikk og det bransjemalen sier om den.',
+    ]);
+    const prompt = buildPrompt({ ...configuration, bransje });
+    expect(prompt).toContain(`Bransje: ${bransje}`);
+    expect(prompt).toContain('bruk det som står om bransjen i konfigurasjonen');
+  });
+
   it('never makes up a company name when none is given', () => {
     expect(effectsFor({ bedrift: 'ikke oppgitt' }, 'bedrift')).toEqual([
       'Ingen bedrift er oppgitt, så intervjueren finner ikke på et bedriftsnavn.',

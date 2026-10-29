@@ -229,7 +229,7 @@ for (const colorScheme of ['light', 'dark'] as const) {
 
       test('new bransjemal form with an error', async ({ page }) => {
         await logIn(page, '/templates/industries/new');
-        await page.getByRole('textbox', { name: 'Bransje' }).fill('Varehandel');
+        await page.getByRole('textbox', { name: 'Bransje', exact: true }).fill('Varehandel');
         await expect(
           page.getByText('Det finnes allerede en bransje med dette navnet.'),
         ).toBeVisible();

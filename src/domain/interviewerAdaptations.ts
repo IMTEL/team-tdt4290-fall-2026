@@ -64,15 +64,22 @@ function position(c: Configuration): Adaptation[] {
 }
 
 function industry(c: Configuration): Adaptation[] {
-  // Saved as «Varehandel (privat)», or «Ingen bransje (…)» when the wizard had none.
-  const name = cleanAnswer(c.bransje.replace(/\s*\([^)]*\)\s*$/, ''));
+  // Saved as «Varehandel (privat)», or «Ingen bransje (…)» when the wizard had none. A bransjemal
+  // adds «| Om bransjen: …».
+  const [line, ...rest] = c.bransje.split('|');
+  const name = cleanAnswer(line.replace(/\s*\([^)]*\)\s*$/, ''));
   if (!name || /^ingen bransje$/i.test(name)) return [];
+  const about = cleanAnswer(rest.join('|').replace(/^\s*Om bransjen:\s*/i, ''));
 
   return [
     {
       key: 'bransje',
-      instruction: `Still spørsmål som passer for bransjen (${name}), om det som er vanlig å gjøre og kunne der.`,
-      effect: `Spørsmålene er tilpasset bransjen ${lowerFirst(name)}.`,
+      instruction: about
+        ? `Still spørsmål som passer for bransjen (${name}), og bruk det som står om bransjen i konfigurasjonen.`
+        : `Still spørsmål som passer for bransjen (${name}), om det som er vanlig å gjøre og kunne der.`,
+      effect: about
+        ? `Spørsmålene er tilpasset bransjen ${lowerFirst(name)} og det bransjemalen sier om den.`
+        : `Spørsmålene er tilpasset bransjen ${lowerFirst(name)}.`,
     },
   ];
 }

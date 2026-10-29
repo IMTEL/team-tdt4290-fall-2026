@@ -39,6 +39,7 @@ function draft(overrides: Partial<WizardDraft> = {}): WizardDraft {
   return {
     workplace,
     jobTemplates: industryTemplates,
+    industryTemplates: [],
     interviewer: null,
     profile: null,
     practiceAreas: [],
@@ -116,6 +117,32 @@ describe('wizardConfiguration', () => {
     expect(saved?.answers.egneSporsmal).toBe('Hvorfor oss?');
     expect(saved?.answers.tillegg).toBe('Rolig tempo');
     expect(saved?.sources).toEqual({});
+  });
+
+  it('adds what the bransjemal tells the interviewer to Bransje', () => {
+    const logistikk = {
+      id: 'industry-1',
+      name: 'Logistikk',
+      description: 'Lager og transport.',
+      context: 'Truckførerbevis er vanlig.',
+    };
+    const saved = wizardConfiguration(
+      draft({
+        workplace: { ...workplace, industry: 'logistikk', sector: 'privat' },
+        industryTemplates: [logistikk],
+      }),
+    );
+    expect(saved?.answers.bransje).toBe(
+      'logistikk (privat) | Om bransjen: Truckførerbevis er vanlig.',
+    );
+
+    const withoutText = wizardConfiguration(
+      draft({
+        workplace: { ...workplace, industry: 'Logistikk', sector: 'privat' },
+        industryTemplates: [{ ...logistikk, context: '' }],
+      }),
+    );
+    expect(withoutText?.answers.bransje).toBe('Logistikk (privat)');
   });
 
   it('uses the chosen practice areas when there is no profile', () => {
