@@ -75,3 +75,22 @@ export async function createProfile(
   expect(res.status()).toBe(201);
   return (await res.json()).profile.id;
 }
+
+/** Saves a stillingsmal. Returns its id. */
+export async function createJobTemplate(
+  page: Page,
+  job: { title: string; industry?: string; sector?: 'offentlig' | 'privat' },
+): Promise<string> {
+  const res = await page.request.post('/api/job-templates', {
+    data: {
+      industry: 'Logistikk',
+      sector: 'privat',
+      description: 'Plukk og pakking på et lager.',
+      tasks: ['Plukking'],
+      jobDescription: 'Jobber på et stort lager med plukking og pakking av varer.',
+      ...job,
+    },
+  });
+  expect(res.status()).toBe(201);
+  return (await res.json()).template.id;
+}

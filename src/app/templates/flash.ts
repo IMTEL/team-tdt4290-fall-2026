@@ -5,6 +5,7 @@ const FLASH_KEY = 'kfi-templates-flash';
 
 export const TEMPLATE_CREATED_FLASH = 'mal-laget';
 export const TEMPLATE_SAVED_FLASH = 'mal-lagret';
+export const TEMPLATE_DELETED_FLASH = 'mal-slettet';
 export const PROFILE_CREATED_FLASH = 'jobbsokermal-laget';
 export const PROFILE_SAVED_FLASH = 'jobbsokermal-lagret';
 

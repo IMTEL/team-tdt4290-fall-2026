@@ -16,6 +16,7 @@ import { ProfileSelect } from '@/components/profiles/ProfileSelect';
 import { IndustryPicker } from '@/components/templates/IndustryPicker';
 import { IndustryPreview } from '@/components/templates/IndustryPreview';
 import { TemplatePicker } from '@/components/templates/TemplatePicker';
+import { useWorkplaceTemplates } from '@/components/templates/useWorkplaceTemplates';
 import { industryTemplates, type IndustryTemplate } from '@/data/industry-templates';
 import { builtInLegalTemplates } from '@/data/legal-templates';
 import { builtInTemplates, type AgentTemplate } from '@/data/templates';
@@ -34,6 +35,7 @@ import {
   type JobSeekerProfile,
 } from '@/domain/jobSeekerProfile';
 import type { LegalTemplate } from '@/domain/legalTemplate';
+import { industryNames } from '@/domain/workplaceTemplate';
 import { updateAgent } from '../browse-agents/api';
 import { AGENT_SAVED_FLASH, DRAFT_SAVED_FLASH, setAgentsFlash } from '../browse-agents/flash';
 import { fetchSavedTemplates, saveConfiguredAgent } from './api';
@@ -127,6 +129,11 @@ export function ConfigureAgent({
   const usesProfiles = Boolean(presets.jobSeekerProfile);
   const usesIndustries = Boolean(presets.industryTemplate);
   const usesLegal = Boolean(presets.legalTemplates);
+  // The built-in stillingsmaler, and the counsellor's own once they have loaded.
+  const workplaceTemplates = useWorkplaceTemplates(
+    definition?.id === 'interviewer' || usesIndustries,
+  );
+  const jobTemplates = workplaceTemplates.jobs;
 
   // Restore once after hydration (setState during render when the client flag flips).
   if (isClient && !draftReady) {
@@ -336,6 +343,7 @@ export function ConfigureAgent({
   function builtConfiguration() {
     return wizardConfiguration({
       workplace,
+      jobTemplates,
       interviewer: choice ?? null,
       profile: (profileId && profiles.find((item) => item.id === profileId)) || null,
       practiceAreas: chosenPractice,
@@ -472,7 +480,8 @@ export function ConfigureAgent({
     return (
       <StillingStep
         value={workplace}
-        templates={industryTemplates}
+        templates={jobTemplates}
+        industries={industryNames(jobTemplates)}
         onChange={setWorkplace}
         onNext={() => goTo(1)}
         onGoTo={goTo}
@@ -565,7 +574,7 @@ export function ConfigureAgent({
         expanded={wizardStep === 4}
         overview={{
           workplace,
-          jobTemplates: industryTemplates,
+          jobTemplates,
           interviewerTitle: choice ? choice.title : null,
           profileLabel:
             (profileId && profiles.find((item) => item.id === profileId)?.label) || null,
@@ -688,6 +697,7 @@ export function ConfigureAgent({
         <Steps steps={steps} active={steps.length - 2} />
         {chosenType}
         {chosenPresets}
+        {/* The chat's server route only knows the built-in stillingsmaler. */}
         <IndustryPicker templates={industryTemplates} onSelect={setIndustry} />
       </>
     );

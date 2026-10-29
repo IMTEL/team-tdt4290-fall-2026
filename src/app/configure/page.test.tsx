@@ -24,18 +24,33 @@ const profile = {
   notes: '',
 };
 
-/** Answers the page's two loads: saved templates and job seeker profiles. */
+/** Answers the page's loads: saved templates, job seeker profiles and stillingsmaler. */
 function respondWith({
   templates = [],
   profiles = [],
+  jobTemplates = [],
 }: {
   templates?: unknown[];
   profiles?: unknown[];
+  jobTemplates?: unknown[];
 }) {
-  fetchMock.mockImplementation(async (url) =>
-    String(url) === '/api/profiles' ? Response.json({ profiles }) : Response.json({ templates }),
-  );
+  fetchMock.mockImplementation(async (url) => {
+    const path = String(url);
+    if (path === '/api/profiles') return Response.json({ profiles });
+    if (path === '/api/job-templates') return Response.json({ templates: jobTemplates });
+    return Response.json({ templates });
+  });
 }
+
+const ownJob = {
+  id: 'job-1',
+  title: 'Lagermedarbeider natt',
+  industry: 'Logistikk',
+  sector: 'privat',
+  description: 'Plukk og pakking om natten.',
+  tasks: [],
+  jobDescription: 'Jobber på et stort lager om natten.',
+};
 
 beforeEach(() => {
   // By default the counsellor has no saved templates and no profiles.
@@ -150,6 +165,79 @@ describe('/configure', () => {
     expect(
       screen.queryByRole('heading', { name: 'Hva slags agent vil du sette opp?' }),
     ).not.toBeInTheDocument();
+  });
+
+  it('fills in the job title, industry and employer from the chosen stillingsmal', async () => {
+    const user = userEvent.setup();
+    await renderPage('interviewer');
+
+    await user.click(screen.getByRole('button', { name: 'Butikkmedarbeider' }));
+
+    expect(screen.getByRole('textbox', { name: /Stilling/ })).toHaveValue('Butikkmedarbeider');
+    expect(screen.getByRole('button', { name: 'Varehandel' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    expect(screen.getByRole('button', { name: 'Privat' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: 'Neste' })).toBeEnabled();
+
+    // Another stillingsmal replaces the title the first one filled in.
+    await user.click(screen.getByRole('button', { name: 'Helsefagarbeider' }));
+    expect(screen.getByRole('textbox', { name: /Stilling/ })).toHaveValue('Helsefagarbeider');
+    expect(screen.getByRole('button', { name: 'Offentlig' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+  });
+
+  it('keeps a job title the counsellor wrote when a stillingsmal is chosen', async () => {
+    const user = userEvent.setup();
+    await renderPage('interviewer');
+
+    await user.click(screen.getByRole('textbox', { name: /Stilling/ }));
+    await user.paste('Butikkansatt deltid');
+    await user.click(screen.getByRole('button', { name: 'Butikkmedarbeider' }));
+
+    expect(screen.getByRole('textbox', { name: /Stilling/ })).toHaveValue('Butikkansatt deltid');
+    expect(screen.getByRole('button', { name: 'Varehandel' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+  });
+
+  it('offers the counsellor’s own stillingsmaler and their industries, and saves the job description', async () => {
+    respondWith({ jobTemplates: [ownJob] });
+    const post = vi.fn(async () => Response.json({ id: 'agent-1' }));
+    const load = fetchMock.getMockImplementation()!;
+    fetchMock.mockImplementation(async (url, init) =>
+      String(url) === '/api/agents' && init?.method === 'POST' ? post() : load(url, init),
+    );
+    const user = userEvent.setup();
+    await renderPage('interviewer');
+
+    // The counsellor's own come first, so they are among the suggestions.
+    await user.click(await screen.findByRole('button', { name: 'Lagermedarbeider natt' }));
+    const industries = screen.getByRole('group', { name: /^Bransje/ });
+    expect(within(industries).getByRole('button', { name: 'Logistikk' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Neste' }));
+    await skipTemplate(user);
+    await skipProfile(user);
+    await skipSettings(user);
+    await user.click(screen.getByRole('button', { name: 'Publiser' }));
+
+    await waitFor(() => expect(post).toHaveBeenCalled());
+    const call = fetchMock.mock.calls.find(
+      ([url, init]) => String(url) === '/api/agents' && init?.method === 'POST',
+    );
+    const body = JSON.parse(String(call?.[1]?.body));
+    expect(body.configuration.stilling).toBe(
+      'Lagermedarbeider natt. Jobber på et stort lager om natten.',
+    );
+    expect(body.configuration.bransje).toBe('Logistikk (privat)');
   });
 
   it('asks for the type when the link names a type that does not exist', async () => {

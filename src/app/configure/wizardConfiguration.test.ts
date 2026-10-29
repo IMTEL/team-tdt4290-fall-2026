@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { findIndustryTemplate } from '@/data/industry-templates';
+import { findIndustryTemplate, industryTemplates } from '@/data/industry-templates';
 import { findBuiltInTemplate } from '@/data/templates';
 import type { JobSeekerProfile } from '@/domain/jobSeekerProfile';
 import { EMPTY_INTERVIEW_SETTINGS, type InterviewSettings } from './SettingsStep';
@@ -38,6 +38,7 @@ const profile: JobSeekerProfile = {
 function draft(overrides: Partial<WizardDraft> = {}): WizardDraft {
   return {
     workplace,
+    jobTemplates: industryTemplates,
     interviewer: null,
     profile: null,
     practiceAreas: [],
