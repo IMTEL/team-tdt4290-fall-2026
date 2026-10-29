@@ -51,8 +51,22 @@ describe('ProfileForm for a new profile', () => {
     expect(await screen.findByText(/Malen «Profil A» er lagret/)).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Se malene dine' })).toHaveAttribute(
       'href',
-      '/profiles',
+      '/templates',
     );
+  });
+
+  it('calls onSaved instead of showing the success alert', async () => {
+    const user = userEvent.setup();
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    const onSaved = vi.fn();
+    render(<ProfileForm onSave={onSave} onSaved={onSaved} />);
+
+    await user.type(screen.getByRole('textbox', { name: /Navn på malen/ }), 'Profil A');
+    await user.click(screen.getByRole('button', { name: 'Lagre mal' }));
+
+    expect(onSave).toHaveBeenCalled();
+    expect(onSaved).toHaveBeenCalled();
+    expect(screen.queryByText(/er lagret/)).not.toBeInTheDocument();
   });
 
   it('needs only a name, and saves the rest as not given', async () => {
@@ -94,10 +108,10 @@ describe('ProfileForm for a new profile', () => {
     expect(field(/Navn på malen/)).toHaveValue('Profil A');
   });
 
-  it('has a cancel link back to the profiles', () => {
+  it('has a cancel link back to the templates', () => {
     setup();
 
-    expect(screen.getByRole('link', { name: 'Avbryt' })).toHaveAttribute('href', '/profiles');
+    expect(screen.getByRole('link', { name: 'Avbryt' })).toHaveAttribute('href', '/templates');
   });
 });
 

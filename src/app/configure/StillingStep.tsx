@@ -34,6 +34,8 @@ export type Workplace = {
 type StillingStepProps = {
   value: Workplace;
   templates: IndustryTemplate[];
+  /** The industries to choose from: those of the stillingsmaler and the counsellor's own. */
+  industries: string[];
   onChange: (value: Workplace) => void;
   onNext: () => void;
   /** Opens a section the counsellor has already been to. */
@@ -41,12 +43,6 @@ type StillingStepProps = {
   reached?: number;
   onSaveDraft?: () => void;
 };
-
-function industriesOf(templates: IndustryTemplate[]): string[] {
-  const seen = new Set<string>();
-  for (const template of templates) seen.add(template.industry);
-  return [...seen];
-}
 
 /** The shared frame: title, and the section list down the side. `current` is the open section. */
 export function WizardFrame({
@@ -232,6 +228,7 @@ function RequiredMark() {
 export function StillingStep({
   value,
   templates,
+  industries,
   onChange,
   onNext,
   onGoTo,
@@ -240,12 +237,29 @@ export function StillingStep({
 }: StillingStepProps) {
   const [showAllJobs, setShowAllJobs] = useState(false);
   const [showAllIndustries, setShowAllIndustries] = useState(false);
-  const industries = industriesOf(templates);
   const suggestions = showAllJobs ? templates : templates.slice(0, SUGGESTION_COUNT);
-  const shownIndustries = showAllIndustries ? industries : industries.slice(0, SUGGESTION_COUNT);
+  // The chosen industry stays in view, also when a stillingsmal chose one further down the list.
+  const shownIndustries = showAllIndustries
+    ? industries
+    : industries.filter(
+        (industry, index) => index < SUGGESTION_COUNT || industry === value.industry,
+      );
 
+  /**
+   * Chooses the stillingsmal and fills in its job title, industry and employer. A job title the
+   * counsellor wrote themselves is kept; one a stillingsmal filled in is replaced.
+   */
   function pickTemplate(template: IndustryTemplate) {
-    onChange({ ...value, templateId: template.id });
+    const previous = templates.find((item) => item.id === value.templateId);
+    const title = value.jobTitle.trim();
+    const ownTitle = title !== '' && title !== previous?.title;
+    onChange({
+      ...value,
+      templateId: template.id,
+      jobTitle: ownTitle ? value.jobTitle : template.title,
+      industry: template.industry,
+      sector: template.sector,
+    });
   }
 
   return (
@@ -273,6 +287,10 @@ export function StillingStep({
           <p className={styles.suggestionLabel} id="job-templates-label">
             Stillingsmaler
             <RequiredMark />
+          </p>
+          <p className={styles.hint}>
+            En stillingsmal fyller inn stilling, bransje og arbeidsgiver for deg. Du kan endre dem
+            etterpå.
           </p>
           <div className={styles.pills} role="group" aria-labelledby="job-templates-label">
             <Button

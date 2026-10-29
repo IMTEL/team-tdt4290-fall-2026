@@ -1,4 +1,4 @@
-import { findIndustryTemplate } from '@/data/industry-templates';
+import type { IndustryTemplate } from '@/data/industry-templates';
 import type { AgentTemplate } from '@/data/templates';
 import { MAX_NAME_LENGTH } from '@/domain/agentName';
 import type { Configuration } from '@/domain/configuration';
@@ -16,6 +16,8 @@ import { NO_TEMPLATE, type Workplace } from './StillingStep';
 /** What the last step has decided, in the shape the wizard keeps it. */
 export type WizardDraft = {
   workplace: Workplace;
+  /** The stillingsmaler to find the chosen one in: the counsellor's own and the built-in ones. */
+  jobTemplates: IndustryTemplate[];
   /** The interviewer template, or null when the counsellor continued without one. */
   interviewer: AgentTemplate | null;
   /** The job seeker profile, or null when the counsellor continued without one. */
@@ -63,7 +65,7 @@ export function wizardConfiguration(draft: WizardDraft): WizardConfiguration | n
 
   return {
     answers: {
-      stilling: stillingOf(workplace),
+      stilling: stillingOf(workplace, draft.jobTemplates),
       bransje: bransjeOf(workplace),
       bedrift: workplace.company.trim() || 'ikke oppgitt',
       intervjutype: settings.interviewType,
@@ -91,11 +93,11 @@ function jobSeekerOf(profile: JobSeekerProfile | null, practiceAreas: string[]):
 }
 
 /** The job title, with the stillingsmal's description after it when one was chosen. */
-function stillingOf(workplace: Workplace): string {
+function stillingOf(workplace: Workplace, jobTemplates: IndustryTemplate[]): string {
   const title = workplace.jobTitle.trim();
   const template =
     workplace.templateId && workplace.templateId !== NO_TEMPLATE
-      ? findIndustryTemplate(workplace.templateId)
+      ? jobTemplates.find((item) => item.id === workplace.templateId)
       : undefined;
   return template ? `${title}. ${template.jobDescription}` : title;
 }

@@ -6,7 +6,11 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { fetchProfile, updateProfile } from '@/components/profiles/api';
 import { EditProfile } from './EditProfile';
 
-vi.mock('next/navigation', () => ({ notFound: vi.fn() }));
+const push = vi.fn();
+vi.mock('next/navigation', () => ({
+  notFound: vi.fn(),
+  useRouter: () => ({ push }),
+}));
 vi.mock('@/components/profiles/api', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/components/profiles/api')>()),
   fetchProfile: vi.fn(),
@@ -30,7 +34,9 @@ const profile = {
 afterEach(() => {
   fetchMock.mockReset();
   updateMock.mockReset();
+  push.mockReset();
   vi.mocked(notFound).mockReset();
+  sessionStorage.clear();
 });
 
 describe('EditProfile', () => {
@@ -46,6 +52,8 @@ describe('EditProfile', () => {
 
     const { id, ...fields } = profile;
     expect(updateMock).toHaveBeenCalledWith(id, { ...fields, label: 'Profil A ny' });
+    expect(sessionStorage.getItem('kfi-templates-flash')).toBe('jobbsokermal-lagret');
+    expect(push).toHaveBeenCalledWith('/templates');
   });
 
   it('shows the not-found page when the counsellor has no such profile', async () => {

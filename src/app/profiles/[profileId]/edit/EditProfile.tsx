@@ -1,12 +1,13 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { notFound } from 'next/navigation';
+import { notFound, useRouter } from 'next/navigation';
 import Alert from '@mui/material/Alert';
 
 import { fetchProfile, updateProfile } from '@/components/profiles/api';
 import { ProfileForm } from '@/components/profiles/ProfileForm';
 import type { JobSeekerProfile } from '@/domain/jobSeekerProfile';
+import { PROFILE_SAVED_FLASH, setTemplatesFlash } from '@/app/templates/flash';
 import styles from '../../page.module.css';
 
 type LoadState =
@@ -17,6 +18,7 @@ type LoadState =
 
 /** Loads one of the counsellor's profiles and shows the form for editing it. */
 export function EditProfile({ profileId }: { profileId: string }) {
+  const router = useRouter();
   const [state, setState] = useState<LoadState>({ kind: 'loading' });
 
   useEffect(() => {
@@ -53,6 +55,10 @@ export function EditProfile({ profileId }: { profileId: string }) {
         <ProfileForm
           initial={state.profile}
           onSave={(profile) => updateProfile(profileId, profile)}
+          onSaved={() => {
+            setTemplatesFlash(PROFILE_SAVED_FLASH);
+            router.push('/templates');
+          }}
         />
       )}
     </div>

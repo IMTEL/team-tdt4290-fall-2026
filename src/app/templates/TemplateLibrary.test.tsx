@@ -6,15 +6,18 @@ import { fetchSavedTemplates } from '@/app/configure/api';
 import type { JobSeekerProfile } from '@/domain/jobSeekerProfile';
 import { fetchLegalTemplates } from '@/components/legalTemplates/api';
 import { fetchProfiles } from '@/components/profiles/api';
+import { fetchJobTemplates } from '@/components/templates/workplaceApi';
 import { TemplateLibrary } from './TemplateLibrary';
 
 vi.mock('@/components/profiles/api', () => ({ fetchProfiles: vi.fn() }));
 vi.mock('@/components/legalTemplates/api', () => ({ fetchLegalTemplates: vi.fn() }));
 vi.mock('@/app/configure/api', () => ({ fetchSavedTemplates: vi.fn() }));
+vi.mock('@/components/templates/workplaceApi', () => ({ fetchJobTemplates: vi.fn() }));
 
 const fetchProfilesMock = vi.mocked(fetchProfiles);
 const fetchLegalTemplatesMock = vi.mocked(fetchLegalTemplates);
 const fetchSavedTemplatesMock = vi.mocked(fetchSavedTemplates);
+const fetchJobTemplatesMock = vi.mocked(fetchJobTemplates);
 
 const profile: JobSeekerProfile = {
   id: 'profile-1',
@@ -47,12 +50,14 @@ function section(name: string): HTMLElement {
 beforeEach(() => {
   fetchLegalTemplatesMock.mockResolvedValue([]);
   fetchSavedTemplatesMock.mockResolvedValue([]);
+  fetchJobTemplatesMock.mockResolvedValue([]);
 });
 
 afterEach(() => {
   fetchProfilesMock.mockReset();
   fetchLegalTemplatesMock.mockReset();
   fetchSavedTemplatesMock.mockReset();
+  fetchJobTemplatesMock.mockReset();
   localStorage.clear();
 });
 
@@ -144,49 +149,121 @@ describe('TemplateLibrary', () => {
     expect(screen.queryByRole('link', { name: /Ny jobbsøkermal/ })).not.toBeInTheDocument();
   });
 
-  it('shows a placeholder for a new industry', () => {
+  it('links to the form for a new job, and shows a placeholder for a new industry', () => {
     fetchProfilesMock.mockResolvedValue([]);
-    fetchSavedTemplatesMock.mockResolvedValue([]);
     render(<TemplateLibrary />);
 
     const industries = section('Bransjemaler');
-    expect(
-      within(industries).getByRole('heading', { level: 3, name: 'Ny bransjemal' }),
-    ).toBeVisible();
     expect(within(industries).getByText('Kommer snart')).toBeVisible();
     expect(
       within(industries).queryByRole('link', { name: /Ny bransjemal/ }),
     ).not.toBeInTheDocument();
+    expect(
+      within(section('Stillingsmaler')).getByRole('link', { name: /Ny stillingsmal/ }),
+    ).toHaveAttribute('href', '/templates/jobs/new');
   });
 
-  it('links Ny stillingsmal to creating a template and shows saved ones under Dine maler', async () => {
+  it('shows the counsellor’s own jobs and their industries next to the built-in ones', async () => {
+    fetchProfilesMock.mockResolvedValue([]);
+    fetchJobTemplatesMock.mockResolvedValue([
+      {
+        id: 'job-1',
+        title: 'Lagermedarbeider natt',
+        industry: 'Logistikk',
+        sector: 'privat',
+        description: 'Plukk og pakking om natten.',
+        tasks: [],
+        jobDescription: 'Jobber på et lager om natten.',
+      },
+    ]);
+    render(<TemplateLibrary />);
+
+    const industry = await within(section('Bransjemaler')).findByRole('link', {
+      name: /Logistikk/,
+    });
+    expect(industry).toHaveAttribute('href', '/templates/industries/logistikk');
+    expect(within(industry).getByText('Egen mal')).toBeVisible();
+    const job = within(section('Stillingsmaler')).getByRole('link', {
+      name: /Lagermedarbeider natt/,
+    });
+    expect(job).toHaveAttribute('href', '/templates/jobs/job-1');
+    expect(within(job).getByText('Egen mal')).toBeVisible();
+    // The built-in ones are still there.
+    expect(
+      within(section('Stillingsmaler')).getByRole('heading', {
+        level: 3,
+        name: 'Helsefagarbeider',
+      }),
+    ).toBeVisible();
+  });
+
+  it('explains each kind of mal', async () => {
+    fetchProfilesMock.mockResolvedValue([]);
+    fetchSavedTemplatesMock.mockResolvedValue([]);
+    render(<TemplateLibrary />);
+
+    expect(
+      within(section('Bransjemaler')).getByText(
+        'En bransjemal samler stillinger i samme bransje, for eksempel helse og omsorg.',
+      ),
+    ).toBeVisible();
+    expect(
+      within(section('Jobbsøkermaler')).getByText(
+        'En jobbsøkermal beskriver en anonym jobbsøker du øver med, uten ekte personopplysninger.',
+      ),
+    ).toBeVisible();
+
+    const jobs = section('Stillingsmaler');
+    expect(
+      within(jobs).getByText(
+        'En stillingsmal fyller inn stilling og bransje når du setter opp en intervjuer.',
+      ),
+    ).toBeVisible();
+    expect(
+      await within(jobs).findByRole('heading', { level: 3, name: 'Helsefagarbeider' }),
+    ).toBeVisible();
+
+    expect(
+      within(section('Intervjuermaler')).getByText(
+        'En intervjuermal styrer hvordan intervjueren snakker og hva den legger vekt på.',
+      ),
+    ).toBeVisible();
+    expect(
+      within(section('Lovverk')).getByText(
+        'Lovverk er regler intervjueren skal følge, for eksempel hva den ikke skal spørre om.',
+      ),
+    ).toBeVisible();
+  });
+
+  it('links Ny intervjuermal to creating a template and shows saved ones under Intervjuermaler', async () => {
     fetchProfilesMock.mockResolvedValue([]);
     fetchSavedTemplatesMock.mockResolvedValue([savedTemplate]);
     render(<TemplateLibrary />);
 
-    const jobs = section('Stillingsmaler');
-    expect(await within(jobs).findByText('Dine maler')).toBeVisible();
-    expect(within(jobs).getByText('Ferdige maler')).toBeVisible();
-    expect(within(jobs).getByRole('link', { name: /Ny stillingsmal/ })).toHaveAttribute(
-      'href',
-      '/create-template?agentType=interviewer&returnTo=%2Ftemplates',
-    );
-    const saved = within(jobs).getByRole('link', { name: /Min butikksjef/ });
+    const interviewers = section('Intervjuermaler');
+    expect(
+      await within(interviewers).findByRole('link', { name: /Ny intervjuermal/ }),
+    ).toHaveAttribute('href', '/create-template?agentType=interviewer&returnTo=%2Ftemplates');
+    const saved = within(interviewers).getByRole('link', { name: /Min butikksjef/ });
     expect(saved).toHaveAttribute('href', '/templates/saved-1');
     expect(saved).toHaveTextContent('Service');
     expect(saved).toHaveTextContent('Lagret av meg.');
+    expect(
+      within(section('Stillingsmaler')).queryByRole('link', { name: /Min butikksjef/ }),
+    ).toBeNull();
   });
 
-  it('still shows built-in jobs when saved templates cannot be loaded', async () => {
+  it('still shows built-in jobs when saved interviewer templates cannot be loaded', async () => {
     fetchProfilesMock.mockResolvedValue([]);
     fetchSavedTemplatesMock.mockRejectedValue(new Error('down'));
     render(<TemplateLibrary />);
 
+    const interviewers = section('Intervjuermaler');
+    expect(await within(interviewers).findByText('Noe gikk galt. Prøv igjen.')).toBeVisible();
+    expect(within(interviewers).getByRole('link', { name: /Ny intervjuermal/ })).toBeVisible();
+
     const jobs = section('Stillingsmaler');
-    expect(await within(jobs).findByText('Noe gikk galt. Prøv igjen.')).toBeVisible();
-    expect(within(jobs).getByText('Ferdige maler')).toBeVisible();
     expect(within(jobs).getByRole('heading', { level: 3, name: 'Helsefagarbeider' })).toBeVisible();
-    expect(within(jobs).getByRole('link', { name: /Ny stillingsmal/ })).toBeVisible();
   });
 
   it('shows Mal laget when opened after creating a template', async () => {
@@ -206,6 +283,15 @@ describe('TemplateLibrary', () => {
     render(<TemplateLibrary />);
 
     expect(await screen.findByText('Mal lagret')).toBeVisible();
+  });
+
+  it('shows Jobbsøkermal laget when opened after creating a job seeker profile', async () => {
+    sessionStorage.setItem('kfi-templates-flash', 'jobbsokermal-laget');
+    fetchProfilesMock.mockResolvedValue([]);
+    fetchSavedTemplatesMock.mockResolvedValue([]);
+    render(<TemplateLibrary />);
+
+    expect(await screen.findByText('Jobbsøkermal laget')).toBeVisible();
   });
 
   it('shows the built-in and the counsellor’s own legal templates as cards that open them', async () => {

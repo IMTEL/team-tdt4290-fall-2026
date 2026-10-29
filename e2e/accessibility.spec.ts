@@ -221,6 +221,12 @@ for (const colorScheme of ['light', 'dark'] as const) {
         await expectNoAccessibilityViolations(page);
       });
 
+      test('new stillingsmal form', async ({ page }) => {
+        await logIn(page, '/templates/jobs/new');
+        await expect(page.getByRole('combobox', { name: 'Bransje' })).toBeVisible();
+        await expectNoAccessibilityViolations(page);
+      });
+
       test('new template form with an error', async ({ page }) => {
         await logIn(page, '/create-template');
         await page

@@ -11,11 +11,12 @@ test('a counsellor can create and delete a job seeker template', async ({ page }
   await page.getByRole('textbox', { name: 'Navn på malen', exact: true }).fill('Profil A');
   await page.getByRole('textbox', { name: 'Språk', exact: true }).fill('Norsk B1, Arabisk');
   await page.getByRole('button', { name: 'Lagre mal', exact: true }).click();
-  await expect(page.getByText('Malen «Profil A» er lagret.')).toBeVisible();
 
-  await page.getByRole('link', { name: 'Se malene dine', exact: true }).click();
+  await expect(page).toHaveURL('/templates');
+  await expect(page.getByText('Jobbsøkermal laget', { exact: true })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Profil A', exact: true })).toBeVisible();
 
+  await page.goto('/profiles');
   await page.getByRole('button', { name: 'Slett Profil A', exact: true }).click();
   await page.getByRole('dialog').getByRole('button', { name: 'Slett', exact: true }).click();
   await expect(page.getByText('Du har ingen maler ennå.')).toBeVisible();
@@ -32,9 +33,12 @@ test('a job seeker template shows its age, experience and what to practise', asy
   await page.getByRole('checkbox', { name: 'Mestre nervøsitet', exact: true }).check();
   await page.getByRole('textbox', { name: 'Annet', exact: true }).fill('Håndtrykk');
   await page.getByRole('button', { name: 'Lagre mal', exact: true }).click();
-  await page.getByRole('link', { name: 'Se malene dine', exact: true }).click();
 
+  await expect(page).toHaveURL('/templates');
+  await expect(page.getByText('Jobbsøkermal laget', { exact: true })).toBeVisible();
   await expect(page.getByText('25–29 år · Noe (1–5 år)')).toBeVisible();
+
+  await page.goto('/profiles');
   const chips = page.getByLabel('Vil øve på');
   await expect(chips).toContainText('Mestre nervøsitet');
   await expect(chips).toContainText('Håndtrykk');
@@ -68,9 +72,9 @@ test('a job seeker template can be edited', async ({ page }) => {
   await page.getByRole('combobox', { name: 'Aldersgruppe', exact: true }).click();
   await page.getByRole('option', { name: '30–39 år', exact: true }).click();
   await page.getByRole('button', { name: 'Lagre endringene', exact: true }).click();
-  await expect(page.getByText('Malen «Profil A» er lagret.')).toBeVisible();
 
-  await page.getByRole('link', { name: 'Se malene dine', exact: true }).click();
+  await expect(page).toHaveURL('/templates');
+  await expect(page.getByText('Jobbsøkermal lagret', { exact: true })).toBeVisible();
   await expect(page.getByText('30–39 år')).toBeVisible();
 });
 

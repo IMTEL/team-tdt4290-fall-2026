@@ -2,6 +2,7 @@ import { SECTOR_LABELS, type IndustryTemplate } from '@/data/industry-templates'
 import type { AgentTemplate } from '@/data/templates';
 import { summarizeProfile, type JobSeekerProfile } from '@/domain/jobSeekerProfile';
 import type { LegalTemplate } from '@/domain/legalTemplate';
+import { isBuiltInJob } from '@/domain/workplaceTemplate';
 
 /** One card on the templates page: a title, one short line, and one sentence. */
 export type CatalogItem = {
@@ -13,6 +14,9 @@ export type CatalogItem = {
   /** A short label shown as a pill under the title, such as «Følger med appen». */
   chip?: string;
 };
+
+/** The pill on a stillingsmal the counsellor made, and on an industry only theirs are in. */
+export const OWN_TEMPLATE_LABEL = 'Egen mal';
 
 function sentence(text: string): string {
   const trimmed = text.trim();
@@ -28,13 +32,35 @@ export function industrySlug(industry: string): string {
     .replace(/^-|-$/g, '');
 }
 
+/** One industry: its name and its stillingsmaler. */
+export type IndustryGroup = { industry: string; jobs: IndustryTemplate[] };
+
+/**
+ * Every industry the stillingsmaler name, with its jobs, in their order. Names that differ only in
+ * case are one industry.
+ */
+export function industryGroups(templates: IndustryTemplate[]): IndustryGroup[] {
+  const groups = new Map<string, IndustryGroup>();
+  for (const template of templates) {
+    const key = industrySlug(template.industry);
+    const group = groups.get(key) ?? { industry: template.industry, jobs: [] };
+    group.jobs.push(template);
+    groups.set(key, group);
+  }
+  return [...groups.values()];
+}
+
+/** True for an industry that comes with the app: it has a built-in job. */
+export function isBuiltInIndustry(group: IndustryGroup): boolean {
+  return group.jobs.some((job) => isBuiltInJob(job.id));
+}
+
 /** The industry with this slug and its jobs, or undefined if there is none. */
 export function findIndustry(
   templates: IndustryTemplate[],
   slug: string,
-): { industry: string; jobs: IndustryTemplate[] } | undefined {
-  const jobs = templates.filter((template) => industrySlug(template.industry) === slug);
-  return jobs.length > 0 ? { industry: jobs[0].industry, jobs } : undefined;
+): IndustryGroup | undefined {
+  return industryGroups(templates).find((group) => industrySlug(group.industry) === slug);
 }
 
 /** The page of one industry. */
@@ -44,23 +70,20 @@ export const industryHref = (industry: string) =>
 /** The page of one job. */
 export const jobHref = (id: string) => `/templates/jobs/${encodeURIComponent(id)}`;
 
-/** One card per industry, opening its page. The sentence names the jobs in that industry. */
+/**
+ * One card per industry, opening its page. The sentence names the jobs in that industry. An
+ * industry only the counsellor's own stillingsmaler are in is marked as theirs.
+ */
 export function industryCatalog(templates: IndustryTemplate[]): CatalogItem[] {
-  const groups = new Map<string, IndustryTemplate[]>();
-  for (const template of templates) {
-    const jobs = groups.get(template.industry) ?? [];
-    jobs.push(template);
-    groups.set(template.industry, jobs);
-  }
-
-  return [...groups.entries()].map(([industry, jobs]) => {
-    const sectors = [...new Set(jobs.map((job) => SECTOR_LABELS[job.sector]))];
+  return industryGroups(templates).map((group) => {
+    const sectors = [...new Set(group.jobs.map((job) => SECTOR_LABELS[job.sector]))];
     return {
-      id: industry,
-      title: industry,
+      id: group.industry,
+      title: group.industry,
       line: sectors.join(' · '),
-      detail: sentence(jobs.map((job) => job.title).join(', ')),
-      href: industryHref(industry),
+      detail: sentence(group.jobs.map((job) => job.title).join(', ')),
+      href: industryHref(group.industry),
+      ...(isBuiltInIndustry(group) ? {} : { chip: OWN_TEMPLATE_LABEL }),
     };
   });
 }
@@ -76,6 +99,7 @@ export function jobCatalog(templates: IndustryTemplate[]): CatalogItem[] {
     line: `${template.industry} · ${SECTOR_LABELS[template.sector]}`,
     detail: sentence(template.description),
     href: jobHref(template.id),
+    ...(isBuiltInJob(template.id) ? {} : { chip: OWN_TEMPLATE_LABEL }),
   }));
 }
 

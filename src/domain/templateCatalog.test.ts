@@ -80,6 +80,28 @@ describe('industrySlug and findIndustry', () => {
   });
 });
 
+describe('the counsellor’s own jobs', () => {
+  const ownJob: IndustryTemplate = { ...butikk, id: 'job-1', title: 'Kassemedarbeider' };
+
+  it('puts them in a built-in industry, which stays built in', () => {
+    const [varehandel] = industryCatalog([butikk, ownJob]);
+    expect(varehandel.detail).toBe('Butikkmedarbeider, Kassemedarbeider.');
+    expect(varehandel.chip).toBeUndefined();
+    expect(findIndustry([butikk, ownJob], 'varehandel')?.jobs).toEqual([butikk, ownJob]);
+  });
+
+  it('marks an industry only they are in, and the jobs themselves', () => {
+    const logistikk = { ...ownJob, industry: 'Logistikk' };
+    expect(industryCatalog([logistikk])[0]).toMatchObject({
+      title: 'Logistikk',
+      href: '/templates/industries/logistikk',
+      chip: 'Egen mal',
+    });
+    expect(jobCatalog([ownJob])[0].chip).toBe('Egen mal');
+    expect(jobCatalog([helse])[0].chip).toBeUndefined();
+  });
+});
+
 describe('jobCatalog', () => {
   it('shows the job, the industry and one sentence', () => {
     expect(jobCatalog([helse])[0]).toEqual({
