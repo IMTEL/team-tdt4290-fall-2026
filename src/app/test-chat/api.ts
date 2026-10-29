@@ -1,9 +1,12 @@
+import { TOO_MANY_MESSAGES } from '@/components/chat/sendToAgent';
+import type { ChatMessage } from '@/components/chat/types';
 import {
   FEEDBACK_LIMITS,
   isRating,
   type MessageFeedback,
   type NewMessageFeedback,
 } from '@/domain/messageFeedback';
+import { isObserverFeedback, type ObserverFeedback } from '@/domain/observerFeedback';
 
 const NETWORK_ERROR = 'Fikk ikke kontakt med serveren. Sjekk nettverket og prøv igjen.';
 
@@ -83,4 +86,42 @@ export async function undoRating(agentId: string, feedbackId: string): Promise<v
   }
   if (res.ok) return;
   throw new Error(errorMessage(res.status, 'Kunne ikke angre vurderingen. Prøv igjen.'));
+}
+
+/**
+ * Asks the observer for feedback on the test chat so far. The server checks the quotes and says
+ * when the chat is too short. Throws Error with a Norwegian message. If `signal` is aborted, the
+ * fetch's AbortError is rethrown as is.
+ */
+export async function requestObserverFeedback(
+  messages: ChatMessage[],
+  signal?: AbortSignal,
+): Promise<ObserverFeedback> {
+  const fallback = 'Kunne ikke lage en tilbakemelding. Prøv igjen.';
+  let res: Response;
+  try {
+    res = await fetch('/api/test-chat/observer', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      // The observer only needs role and content, not our UI ids.
+      body: JSON.stringify({ messages: messages.map(({ role, content }) => ({ role, content })) }),
+      signal,
+    });
+  } catch (cause) {
+    if (signal?.aborted) throw cause;
+    throw new Error(NETWORK_ERROR, { cause });
+  }
+  if (res.status === 401) throw new Error(errorMessage(401, fallback));
+  if (res.status === 429) throw new Error(TOO_MANY_MESSAGES);
+  if (res.status === 413) {
+    throw new Error('Samtalen er for lang til å gi tilbakemelding. Start på nytt med en kortere.');
+  }
+  if (res.status === 504) {
+    throw new Error('Tilbakemeldingen tok for lang tid å lage. Prøv igjen.');
+  }
+  if (!res.ok) throw new Error(fallback);
+
+  const data = await res.json().catch(() => null);
+  if (!isObserverFeedback(data?.feedback)) throw new Error(fallback);
+  return data.feedback;
 }

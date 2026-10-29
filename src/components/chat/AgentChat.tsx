@@ -1,6 +1,6 @@
 'use client';
 
-import type { ReactNode } from 'react';
+import { useEffect, type ReactNode } from 'react';
 import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
 
@@ -20,6 +20,8 @@ type AgentChatProps = {
   parseReply?: (content: string) => ParsedReply;
   /** Shown under each assistant reply, e.g. buttons to rate it. See MessageList. */
   renderReplyActions?: (reply: ChatMessage, userMessage: ChatMessage | undefined) => ReactNode;
+  /** Called with the conversation whenever it changes, for a page that does more with it. */
+  onMessagesChange?: (messages: ChatMessage[]) => void;
 };
 
 export function AgentChat({
@@ -27,8 +29,13 @@ export function AgentChat({
   initialMessages,
   parseReply,
   renderReplyActions,
+  onMessagesChange,
 }: AgentChatProps) {
   const { messages, isWaiting, error, sendMessage, retry } = useChat(send, initialMessages);
+
+  useEffect(() => {
+    onMessagesChange?.(messages);
+  }, [messages, onMessagesChange]);
 
   return (
     <div className={styles.chat}>

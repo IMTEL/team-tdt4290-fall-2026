@@ -52,6 +52,8 @@ export default defineConfig({
         RAGDOLL_API_URL: mockUrl,
         RAGDOLL_CONFIGURATOR_AGENT_ID: 'mock-configurator',
         RAGDOLL_CONFIGURATOR_ACCESS_KEY: 'mock-access-key',
+        RAGDOLL_OBSERVER_AGENT_ID: 'mock-observer',
+        RAGDOLL_OBSERVER_ACCESS_KEY: 'mock-access-key',
         NEXTAUTH_URL: appUrl,
         NEXTAUTH_SECRET: 'e2e-only-secret-not-used-anywhere-else',
         KEYCLOAK_CLIENT_ID: 'ragdoll-config',

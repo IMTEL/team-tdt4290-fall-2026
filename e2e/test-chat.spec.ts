@@ -64,3 +64,36 @@ test('starting over clears the conversation', async ({ page }) => {
   await expect(conversation(page)).toContainText('Hei, og velkommen til intervjuet.');
   await expect(conversation(page)).not.toContainText('Jeg heter Ola.');
 });
+
+test('the observer gives feedback that only quotes what the candidate said', async ({ page }) => {
+  await logIn(page);
+  const id = await createAgent(page, 'Intervjuer for butikk');
+  await page.goto(`/test-chat?agent=${id}`);
+  for (const answer of ['Jeg har jobbet i butikk i tre år.', 'Jeg liker å hjelpe kunder.']) {
+    await messageBox(page).fill(answer);
+    await messageBox(page).press('Enter');
+    await expect(conversation(page)).toContainText(`Mock-svar: ${answer}`);
+  }
+
+  await page.getByRole('button', { name: 'Be om tilbakemelding', exact: true }).click();
+
+  // The mock observer quotes the first answer, and makes up a quote the app must drop.
+  const wentWell = page.getByRole('region', { name: 'Dette gikk bra', exact: true });
+  await expect(wentWell).toContainText('«Jeg har jobbet i butikk i tre år.»');
+  await expect(wentWell).toContainText('Tips: Mock-tips.');
+  await expect(page.getByText('Jeg er verdens beste selger')).toBeHidden();
+  await expect(page.getByRole('region', { name: 'Dette kan bli bedre', exact: true })).toBeHidden();
+});
+
+test('the observer says when the conversation is too short', async ({ page }) => {
+  await logIn(page);
+  const id = await createAgent(page, 'Intervjuer for butikk');
+  await page.goto(`/test-chat?agent=${id}`);
+  await messageBox(page).fill('Jeg heter Ola.');
+  await messageBox(page).press('Enter');
+  await expect(conversation(page)).toContainText('Mock-svar: Jeg heter Ola.');
+
+  await page.getByRole('button', { name: 'Be om tilbakemelding', exact: true }).click();
+
+  await expect(page.getByText('Samtalen er for kort til å gi tilbakemelding.')).toBeVisible();
+});

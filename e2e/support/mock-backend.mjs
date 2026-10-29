@@ -37,6 +37,28 @@ const REFRESH_TTL_S = 24 * 60 * 60;
 /** Every chat reply starts with this, followed by the last user message. Tests look for it. */
 const CHAT_REPLY_PREFIX = 'Mock-svar:';
 
+/** A quote the observer makes up. The app must never show it, since the candidate never said it. */
+const INVENTED_QUOTE = 'Jeg er verdens beste selger';
+
+/**
+ * The observer's reply: one point quoting the candidate's first answer in the transcript, and one
+ * with an invented quote.
+ */
+function observerReply(chatLog = []) {
+  const transcript = chatLog[0]?.content ?? '';
+  const firstAnswer = transcript.match(/^Kandidat: (.*)$/m)?.[1] ?? '';
+  // The text RAGdoll hands on: the `message` of its JSON contract, in prompts/observer.nb.md's format.
+  const point = (label, quote) => `${label}: ${quote} | Mock-kommentar. | Mock-tips.`;
+  return {
+    response: {
+      id: randomUUID(),
+      model: 'mock',
+      context_used: [],
+      response: [point('Bra', firstAnswer), point('Bedre', INVENTED_QUOTE)].join('\n'),
+    },
+  };
+}
+
 // --- Keycloak --------------------------------------------------------------------------------
 
 const { privateKey, publicKey } = generateKeyPairSync('rsa', { modulusLength: 2048 });
@@ -246,6 +268,7 @@ async function handle(req, res) {
 
   if (path === '/api/chat/ask' && method === 'POST') {
     const body = await readBody(req);
+    if (body.agent_id === 'mock-observer') return send(res, 200, observerReply(body.chat_log));
     const lastUserMessage = [...(body.chat_log ?? [])].reverse().find((m) => m.role === 'user');
     return send(res, 200, {
       response: {

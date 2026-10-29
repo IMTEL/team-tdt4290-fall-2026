@@ -15,6 +15,7 @@ import { fetchAgents } from '@/app/browse-agents/api';
 import { AgentChat } from '@/components/chat/AgentChat';
 import { sendToAgent } from '@/components/chat/sendToAgent';
 import type { ChatMessage, SendMessages } from '@/components/chat/types';
+import { ObserverPanel } from './ObserverPanel';
 import { RateReply } from './RateReply';
 import styles from './TestChat.module.css';
 
@@ -39,6 +40,9 @@ export function TestChat({ agentId }: { agentId: string }) {
   const [round, setRound] = useState(0);
   const [confirmReset, setConfirmReset] = useState(false);
   const [lookup, setLookup] = useState<Lookup | null>(null);
+  // The conversation, for the observer. AgentChat keeps it and reports it here, also when a new
+  // AgentChat mounts with the greeting again.
+  const [messages, setMessages] = useState<ChatMessage[]>(initialMessages);
 
   function startOver() {
     setConfirmReset(false);
@@ -114,6 +118,14 @@ export function TestChat({ agentId }: { agentId: string }) {
         send={askInterviewer}
         initialMessages={initialMessages}
         renderReplyActions={renderRating}
+        onMessagesChange={setMessages}
+      />
+      {/* A new round mounts a new panel too, so starting over clears the feedback. The chat is
+      ready to judge only after the interviewer's reply, not while it is on its way or failed. */}
+      <ObserverPanel
+        key={`observer-${agentId}-${round}`}
+        messages={messages}
+        disabled={messages.at(-1)?.role !== 'assistant'}
       />
 
       <Dialog open={confirmReset} onClose={() => setConfirmReset(false)}>
