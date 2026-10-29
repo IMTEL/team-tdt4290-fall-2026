@@ -1,5 +1,6 @@
 import Typography from '@mui/material/Typography';
 
+import { ScrollArea } from '@/components/ui/ScrollArea';
 import type { AnswerEffect } from '@/domain/agentTypes/types';
 import styles from './AnswerEffects.module.css';
 
@@ -21,25 +22,27 @@ export function AnswerEffects({ effects, customPrompt }: AnswerEffectsProps) {
   }
 
   return (
-    <dl className={styles.list}>
-      {effects.map(({ key, label, effects: lines }) => (
-        <div key={key}>
-          <Typography component="dt" variant="subtitle2">
-            {label}
-          </Typography>
-          <Typography component="dd" variant="body2" sx={{ m: 0 }}>
-            {lines.length === 1 ? (
-              lines[0]
-            ) : (
-              <ul className={styles.effects}>
-                {lines.map((line) => (
-                  <li key={line}>{line}</li>
-                ))}
-              </ul>
-            )}
-          </Typography>
-        </div>
-      ))}
-    </dl>
+    <ScrollArea className={styles.area}>
+      <dl className={styles.list}>
+        {effects.map(({ key, label, effects: lines }) => (
+          <div key={key}>
+            <Typography component="dt" variant="subtitle2">
+              {label}
+            </Typography>
+            <Typography component="dd" variant="body2" sx={{ m: 0 }}>
+              {lines.length === 1 ? (
+                lines[0]
+              ) : (
+                <ul className={styles.effects}>
+                  {lines.map((line) => (
+                    <li key={line}>{line}</li>
+                  ))}
+                </ul>
+              )}
+            </Typography>
+          </div>
+        ))}
+      </dl>
+    </ScrollArea>
   );
 }

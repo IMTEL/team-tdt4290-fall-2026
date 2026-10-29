@@ -20,6 +20,7 @@ import Typography from '@mui/material/Typography';
 import { AgentAvatar } from '@/components/agents/AgentAvatar';
 import { AnswerEffects } from '@/components/agents/AnswerEffects';
 import { AnswerList } from '@/components/agents/AnswerList';
+import { ScrollArea } from '@/components/ui/ScrollArea';
 import { DEFAULT_TEMPERATURE, formatTemperature } from '@/domain/advancedSettings';
 import { readStoredAnswers } from '@/domain/agentTypes/storedAnswers';
 import { formatDate } from '@/lib/format';
@@ -135,7 +136,7 @@ export function AgentDetail({ agentId }: { agentId: string }) {
         </div>
       </div>
 
-      {(summary || showEffects) && (
+      {summary && (
         <Paper
           component="section"
           variant="outlined"
@@ -151,16 +152,30 @@ export function AgentDetail({ agentId }: { agentId: string }) {
           >
             Oppsummering
           </Typography>
-          {summary && <Typography variant="body1">{summary}</Typography>}
-          {showEffects && (
-            <div className={styles.effects}>
-              {/* English translation: How your answers shape the agent */}
-              <Typography variant="subtitle1" component="h3" className={styles.effectsHeading}>
-                Slik former svarene dine agenten
-              </Typography>
-              <AnswerEffects effects={effects} customPrompt={customPrompt} />
-            </div>
-          )}
+          <ScrollArea className={styles.summaryText}>
+            <Typography variant="body1">{summary}</Typography>
+          </ScrollArea>
+        </Paper>
+      )}
+
+      {/* A box of its own under the summary, as the list scrolls when it is long. */}
+      {showEffects && (
+        <Paper
+          component="section"
+          variant="outlined"
+          aria-labelledby="effects-heading"
+          className={styles.effects}
+        >
+          {/* English translation: How your answers shape the agent */}
+          <Typography
+            id="effects-heading"
+            variant="overline"
+            component="h2"
+            className={styles.summaryLabel}
+          >
+            Slik former svarene dine agenten
+          </Typography>
+          <AnswerEffects effects={effects} customPrompt={customPrompt} />
         </Paper>
       )}
 

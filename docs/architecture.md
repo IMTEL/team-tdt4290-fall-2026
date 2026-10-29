@@ -451,7 +451,7 @@ cut after a whole part if it is long). A sentence is left out when its answers a
 summary is shown for an agent we did not make. The summary describes the answers, so it does not
 follow a system prompt that was edited by hand.
 
-Under the sentences, and on the wizard's last step, **«Slik former svarene dine agenten»** lists
+In a box under the summary, and on the wizard's last step, **«Slik former svarene dine agenten»** lists
 which answers change how the agent behaves, and how. It comes from the definition's
 `explainAnswers`. For the interviewer, `interviewerAdaptations.ts` has one rule per answer, and
 each rule gives both the line it adds to the prompt and the sentence the counsellor sees. The

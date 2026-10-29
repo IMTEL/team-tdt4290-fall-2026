@@ -304,15 +304,20 @@ describe('AgentDetail', () => {
 
       render(<AgentDetail agentId="agent-1" />);
 
-      const summary = await screen.findByRole('region', { name: 'Oppsummering' });
-      expect(
-        within(summary).getByRole('heading', { name: 'Slik former svarene dine agenten' }),
-      ).toBeVisible();
-      expect(within(summary).getByText('Vanskelighetsgrad').nextElementSibling).toHaveTextContent(
+      const effects = await screen.findByRole('region', {
+        name: 'Slik former svarene dine agenten',
+      });
+      expect(within(effects).getByText('Vanskelighetsgrad').nextElementSibling).toHaveTextContent(
         'Enkle og åpne spørsmål, og en tålmodig intervjuer.',
       );
       // «ingen» own questions change nothing, so they are not listed.
-      expect(within(summary).queryByText('Egne spørsmål')).not.toBeInTheDocument();
+      expect(within(effects).queryByText('Egne spørsmål')).not.toBeInTheDocument();
+      // In a box of its own, under the summary.
+      const summary = screen.getByRole('region', { name: 'Oppsummering' });
+      expect(summary).not.toContainElement(effects);
+      expect(
+        summary.compareDocumentPosition(effects) & Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
     });
 
     it('says the answers change nothing when the prompt was written by hand', async () => {
@@ -326,11 +331,13 @@ describe('AgentDetail', () => {
 
       render(<AgentDetail agentId="agent-1" />);
 
-      const summary = await screen.findByRole('region', { name: 'Oppsummering' });
-      expect(summary).toHaveTextContent(
+      const effects = await screen.findByRole('region', {
+        name: 'Slik former svarene dine agenten',
+      });
+      expect(effects).toHaveTextContent(
         'Systemprompten er skrevet for hånd, så svarene endrer ikke hvordan agenten oppfører seg.',
       );
-      expect(within(summary).queryByText('Vanskelighetsgrad')).not.toBeInTheDocument();
+      expect(within(effects).queryByText('Vanskelighetsgrad')).not.toBeInTheDocument();
     });
 
     it('is left out for an agent that was not made in this app', async () => {
@@ -340,6 +347,9 @@ describe('AgentDetail', () => {
 
       expect(await screen.findByText('En vanlig beskrivelse')).toBeVisible();
       expect(screen.queryByRole('region', { name: 'Oppsummering' })).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('region', { name: 'Slik former svarene dine agenten' }),
+      ).not.toBeInTheDocument();
     });
   });
 

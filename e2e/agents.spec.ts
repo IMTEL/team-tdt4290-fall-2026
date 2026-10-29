@@ -98,12 +98,10 @@ test('the agent page says how the answers shape the interviewer', async ({ page 
   });
   await page.goto(`/browse-agents/${id}`);
 
-  const summary = page.getByRole('region', { name: 'Oppsummering' });
-  await expect(
-    summary.getByRole('heading', { name: 'Slik former svarene dine agenten', exact: true }),
-  ).toBeVisible();
-  await expect(summary).toContainText('Mer utfordrende spørsmål');
-  await expect(summary).toContainText('Ingen oppfølgingsspørsmål');
+  const effects = page.getByRole('region', { name: 'Slik former svarene dine agenten' });
+  await expect(effects).toBeVisible();
+  await expect(effects).toContainText('Mer utfordrende spørsmål');
+  await expect(effects).toContainText('Ingen oppfølgingsspørsmål');
 });
 
 test('an agent that does not exist shows the not found page', async ({ page }) => {

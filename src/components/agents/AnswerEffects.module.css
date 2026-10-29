@@ -1,3 +1,8 @@
+/* About five lines, then the list scrolls inside its box, so what is under it is still seen. */
+.area {
+  max-height: 8rem;
+}
+
 .list {
   display: flex;
   flex-direction: column;
