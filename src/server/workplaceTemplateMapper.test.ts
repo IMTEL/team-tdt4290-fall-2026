@@ -2,8 +2,11 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  fromRagdollIndustryTemplate,
   fromRagdollJobTemplate,
+  parseNewIndustryTemplate,
   parseNewJobTemplate,
+  toRagdollIndustryTemplate,
   toRagdollJobTemplate,
 } from './workplaceTemplateMapper';
 
@@ -59,5 +62,58 @@ describe('stillingsmaler in RAGdoll', () => {
     expect(
       fromRagdollJobTemplate({ ...stored, content: { ...stored.content, tasks: [1] } }),
     ).toBeNull();
+  });
+});
+
+describe('bransjemaler', () => {
+  it('keeps the name, the description and the text for the interviewer, trimmed', () => {
+    expect(
+      parseNewIndustryTemplate({
+        name: ' Logistikk ',
+        description: 'Lager.',
+        context: ' Truckførerbevis er vanlig. ',
+        x: 1,
+      }),
+    ).toEqual({ name: 'Logistikk', description: 'Lager.', context: 'Truckførerbevis er vanlig.' });
+    expect(parseNewIndustryTemplate({ name: 'Logistikk', description: 'Lager.' })).toEqual({
+      name: 'Logistikk',
+      description: 'Lager.',
+      context: '',
+    });
+    expect(
+      parseNewIndustryTemplate({
+        name: 'Logistikk',
+        description: 'Lager.',
+        context: 'x'.repeat(2001),
+      }),
+    ).toBeNull();
+    expect(
+      parseNewIndustryTemplate({ name: 'Logistikk', description: 'Lager.', context: 1 }),
+    ).toBeNull();
+    expect(parseNewIndustryTemplate({ name: '', description: 'Lager.' })).toBeNull();
+    expect(
+      parseNewIndustryTemplate({ name: 'Logistikk', description: 'x'.repeat(301) }),
+    ).toBeNull();
+  });
+
+  it('reads back what it stores, and only its own type', () => {
+    const stored = {
+      id: 'industry-1',
+      ...toRagdollIndustryTemplate({
+        name: 'Logistikk',
+        description: 'Lager.',
+        context: 'Truckførerbevis er vanlig.',
+      }),
+    };
+    expect(stored.type).toBe('industry-template');
+    expect(fromRagdollIndustryTemplate(stored)).toEqual({
+      id: 'industry-1',
+      name: 'Logistikk',
+      description: 'Lager.',
+      context: 'Truckførerbevis er vanlig.',
+    });
+    // Saved before bransjemaler had a text for the interviewer.
+    expect(fromRagdollIndustryTemplate({ ...stored, content: {} })?.context).toBe('');
+    expect(fromRagdollIndustryTemplate({ ...stored, type: 'job-template' })).toBeNull();
   });
 });

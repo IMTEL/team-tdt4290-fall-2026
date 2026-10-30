@@ -21,7 +21,8 @@ export function buildInterviewerSummary(answers: Answers): string {
 /** "Dette er en intervjuer for stillingen butikkmedarbeider i bransjen varehandel (privat)." */
 function whoSentence(answers: Answers): string {
   const position = clean(answers.stilling);
-  const industry = clean(answers.bransje);
+  // Only the name and employer; a bransjemal's text after «|» is too long for the summary.
+  const industry = clean(answers.bransje?.split('|')[0]);
   if (!position && !industry) return '';
 
   const forPosition = position ? ` for stillingen ${lowerFirst(position)}` : '';

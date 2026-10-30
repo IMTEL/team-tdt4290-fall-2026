@@ -24,20 +24,23 @@ const profile = {
   notes: '',
 };
 
-/** Answers the page's loads: saved templates, job seeker profiles and stillingsmaler. */
+/** Answers the page's loads: saved templates, job seeker profiles, stillingsmaler and bransjer. */
 function respondWith({
   templates = [],
   profiles = [],
   jobTemplates = [],
+  industryTemplates = [],
 }: {
   templates?: unknown[];
   profiles?: unknown[];
   jobTemplates?: unknown[];
+  industryTemplates?: unknown[];
 }) {
   fetchMock.mockImplementation(async (url) => {
     const path = String(url);
     if (path === '/api/profiles') return Response.json({ profiles });
     if (path === '/api/job-templates') return Response.json({ templates: jobTemplates });
+    if (path === '/api/industry-templates') return Response.json({ templates: industryTemplates });
     return Response.json({ templates });
   });
 }
@@ -205,8 +208,11 @@ describe('/configure', () => {
     );
   });
 
-  it('offers the counsellor’s own stillingsmaler and their industries, and saves the job description', async () => {
-    respondWith({ jobTemplates: [ownJob] });
+  it('offers the counsellor’s own stillingsmaler and bransjer, and saves the job description', async () => {
+    respondWith({
+      jobTemplates: [ownJob],
+      industryTemplates: [{ id: 'industry-1', name: 'Renhold', description: 'Vask.' }],
+    });
     const post = vi.fn(async () => Response.json({ id: 'agent-1' }));
     const load = fetchMock.getMockImplementation()!;
     fetchMock.mockImplementation(async (url, init) =>
@@ -222,6 +228,8 @@ describe('/configure', () => {
       'aria-pressed',
       'true',
     );
+    await user.click(within(industries).getByRole('button', { name: 'Se alle maler' }));
+    expect(within(industries).getByRole('button', { name: 'Renhold' })).toBeVisible();
 
     await user.click(screen.getByRole('button', { name: 'Neste' }));
     await skipTemplate(user);

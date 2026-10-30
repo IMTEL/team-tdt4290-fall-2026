@@ -63,6 +63,14 @@ describe('buildInterviewerSummary', () => {
       );
     });
 
+    it('leaves out what a bransjemal tells the interviewer', () => {
+      const summary = buildInterviewerSummary(
+        withChanges({ bransje: 'Logistikk (privat) | Om bransjen: Truckførerbevis er vanlig.' }),
+      );
+      expect(summary).toContain('i bransjen logistikk (privat).');
+      expect(summary).not.toContain('Truckførerbevis');
+    });
+
     it('does not count "ingen" or "ikke oppgitt" as an answer', () => {
       const summary = buildInterviewerSummary(
         withChanges({ stilling: 'Ikke oppgitt', bransje: 'Ingen' }),

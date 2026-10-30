@@ -11,11 +11,11 @@ import { setTemplatesFlash, TEMPLATE_CREATED_FLASH } from '../../flash';
 /** The form for a new stillingsmal. Saving goes back to the templates. */
 export function CreateJobTemplate() {
   const router = useRouter();
-  const { jobs } = useWorkplaceTemplates();
+  const { jobs, industries } = useWorkplaceTemplates();
 
   return (
     <JobTemplateForm
-      industries={industryNames(jobs)}
+      industries={industryNames(jobs, industries)}
       cancelHref="/templates"
       onSave={async (template) => {
         await saveJobTemplate(template);

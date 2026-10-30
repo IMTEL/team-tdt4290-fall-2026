@@ -80,23 +80,42 @@ describe('industrySlug and findIndustry', () => {
   });
 });
 
-describe('the counsellor’s own jobs', () => {
+describe('the counsellor’s own industries and jobs', () => {
   const ownJob: IndustryTemplate = { ...butikk, id: 'job-1', title: 'Kassemedarbeider' };
+  const logistikk = {
+    id: 'industry-1',
+    name: 'Logistikk',
+    description: 'Lager og transport.',
+    context: '',
+  };
 
-  it('puts them in a built-in industry, which stays built in', () => {
+  it('adds a bransjemal without jobs as a card of its own, marked as the counsellor’s', () => {
+    expect(industryCatalog([helse], [logistikk])[1]).toEqual({
+      id: 'Logistikk',
+      title: 'Logistikk',
+      line: 'Ingen stillingsmaler ennå',
+      detail: 'Lager og transport.',
+      href: '/templates/industries/logistikk',
+      chip: 'Egen mal',
+    });
+  });
+
+  it('puts the counsellor’s jobs in a built-in industry, which stays built in', () => {
     const [varehandel] = industryCatalog([butikk, ownJob]);
     expect(varehandel.detail).toBe('Butikkmedarbeider, Kassemedarbeider.');
     expect(varehandel.chip).toBeUndefined();
     expect(findIndustry([butikk, ownJob], 'varehandel')?.jobs).toEqual([butikk, ownJob]);
   });
 
-  it('marks an industry only they are in, and the jobs themselves', () => {
-    const logistikk = { ...ownJob, industry: 'Logistikk' };
-    expect(industryCatalog([logistikk])[0]).toMatchObject({
-      title: 'Logistikk',
-      href: '/templates/industries/logistikk',
-      chip: 'Egen mal',
+  it('finds a bransjemal by its slug', () => {
+    expect(findIndustry([helse], 'logistikk', [logistikk])).toEqual({
+      industry: 'Logistikk',
+      jobs: [],
+      entry: logistikk,
     });
+  });
+
+  it('marks the counsellor’s jobs', () => {
     expect(jobCatalog([ownJob])[0].chip).toBe('Egen mal');
     expect(jobCatalog([helse])[0].chip).toBeUndefined();
   });

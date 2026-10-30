@@ -1,13 +1,16 @@
 import type { IndustryTemplate } from '@/data/industry-templates';
-import type { NewJobTemplate } from '@/domain/workplaceTemplate';
+import type {
+  IndustryTemplateEntry,
+  NewIndustryTemplate,
+  NewJobTemplate,
+} from '@/domain/workplaceTemplate';
 
 const GENERIC_ERROR = 'Noe gikk galt. Prøv igjen.';
 
-/** One kind of saved template: where its routes are, and how to name it in an error. Only
- * stillingsmaler so far. */
+/** One kind of saved template: where its routes are, and how to name it in an error. */
 type Kind<Saved> = {
   url: string;
-  /** «Stillingsmalen», as it starts a sentence. */
+  /** «Stillingsmalen» or «Bransjemalen», as it starts a sentence. */
   noun: string;
   isSaved: (value: unknown) => value is Saved;
 };
@@ -95,6 +98,16 @@ const JOBS: Kind<IndustryTemplate> = {
     typeof value.jobDescription === 'string',
 };
 
+const INDUSTRIES: Kind<IndustryTemplateEntry> = {
+  url: '/api/industry-templates',
+  noun: 'Bransjemalen',
+  isSaved: (value): value is IndustryTemplateEntry =>
+    isRecord(value) &&
+    typeof value.id === 'string' &&
+    typeof value.name === 'string' &&
+    typeof value.description === 'string',
+};
+
 /** The stillingsmaler the counsellor has saved, newest first. Not the built-in ones. */
 export const fetchJobTemplates = (signal?: AbortSignal) => list(JOBS, signal);
 /** One of the counsellor's stillingsmaler, or null if they have none with this id. */
@@ -104,3 +117,13 @@ export const saveJobTemplate = (template: NewJobTemplate) => create(JOBS, templa
 export const updateJobTemplate = (id: string, template: NewJobTemplate) =>
   update(JOBS, id, template);
 export const deleteJobTemplate = (id: string) => remove(JOBS, id);
+
+/** The bransjemaler the counsellor has saved, newest first. */
+export const fetchIndustryTemplates = (signal?: AbortSignal) => list(INDUSTRIES, signal);
+/** One of the counsellor's bransjemaler, or null if they have none with this id. */
+export const fetchIndustryTemplate = (id: string) => get(INDUSTRIES, id);
+/** Saves a new bransjemal and returns its id. */
+export const saveIndustryTemplate = (template: NewIndustryTemplate) => create(INDUSTRIES, template);
+export const updateIndustryTemplate = (id: string, template: NewIndustryTemplate) =>
+  update(INDUSTRIES, id, template);
+export const deleteIndustryTemplate = (id: string) => remove(INDUSTRIES, id);

@@ -6,18 +6,22 @@ import { fetchSavedTemplates } from '@/app/configure/api';
 import type { JobSeekerProfile } from '@/domain/jobSeekerProfile';
 import { fetchLegalTemplates } from '@/components/legalTemplates/api';
 import { fetchProfiles } from '@/components/profiles/api';
-import { fetchJobTemplates } from '@/components/templates/workplaceApi';
+import { fetchIndustryTemplates, fetchJobTemplates } from '@/components/templates/workplaceApi';
 import { TemplateLibrary } from './TemplateLibrary';
 
 vi.mock('@/components/profiles/api', () => ({ fetchProfiles: vi.fn() }));
 vi.mock('@/components/legalTemplates/api', () => ({ fetchLegalTemplates: vi.fn() }));
 vi.mock('@/app/configure/api', () => ({ fetchSavedTemplates: vi.fn() }));
-vi.mock('@/components/templates/workplaceApi', () => ({ fetchJobTemplates: vi.fn() }));
+vi.mock('@/components/templates/workplaceApi', () => ({
+  fetchJobTemplates: vi.fn(),
+  fetchIndustryTemplates: vi.fn(),
+}));
 
 const fetchProfilesMock = vi.mocked(fetchProfiles);
 const fetchLegalTemplatesMock = vi.mocked(fetchLegalTemplates);
 const fetchSavedTemplatesMock = vi.mocked(fetchSavedTemplates);
 const fetchJobTemplatesMock = vi.mocked(fetchJobTemplates);
+const fetchIndustryTemplatesMock = vi.mocked(fetchIndustryTemplates);
 
 const profile: JobSeekerProfile = {
   id: 'profile-1',
@@ -51,6 +55,7 @@ beforeEach(() => {
   fetchLegalTemplatesMock.mockResolvedValue([]);
   fetchSavedTemplatesMock.mockResolvedValue([]);
   fetchJobTemplatesMock.mockResolvedValue([]);
+  fetchIndustryTemplatesMock.mockResolvedValue([]);
 });
 
 afterEach(() => {
@@ -58,6 +63,7 @@ afterEach(() => {
   fetchLegalTemplatesMock.mockReset();
   fetchSavedTemplatesMock.mockReset();
   fetchJobTemplatesMock.mockReset();
+  fetchIndustryTemplatesMock.mockReset();
   localStorage.clear();
 });
 
@@ -149,22 +155,23 @@ describe('TemplateLibrary', () => {
     expect(screen.queryByRole('link', { name: /Ny jobbsøkermal/ })).not.toBeInTheDocument();
   });
 
-  it('links to the form for a new job, and shows a placeholder for a new industry', () => {
+  it('links to the forms for a new industry and a new job', () => {
     fetchProfilesMock.mockResolvedValue([]);
     render(<TemplateLibrary />);
 
-    const industries = section('Bransjemaler');
-    expect(within(industries).getByText('Kommer snart')).toBeVisible();
     expect(
-      within(industries).queryByRole('link', { name: /Ny bransjemal/ }),
-    ).not.toBeInTheDocument();
+      within(section('Bransjemaler')).getByRole('link', { name: /Ny bransjemal/ }),
+    ).toHaveAttribute('href', '/templates/industries/new');
     expect(
       within(section('Stillingsmaler')).getByRole('link', { name: /Ny stillingsmal/ }),
     ).toHaveAttribute('href', '/templates/jobs/new');
   });
 
-  it('shows the counsellor’s own jobs and their industries next to the built-in ones', async () => {
+  it('shows the counsellor’s own industries and jobs next to the built-in ones', async () => {
     fetchProfilesMock.mockResolvedValue([]);
+    fetchIndustryTemplatesMock.mockResolvedValue([
+      { id: 'industry-1', name: 'Logistikk', description: 'Lager og transport.', context: '' },
+    ]);
     fetchJobTemplatesMock.mockResolvedValue([
       {
         id: 'job-1',

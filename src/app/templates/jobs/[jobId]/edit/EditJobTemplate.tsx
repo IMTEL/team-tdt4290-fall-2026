@@ -25,7 +25,7 @@ type LoadState =
  */
 export function EditJobTemplate({ jobId }: { jobId: string }) {
   const router = useRouter();
-  const { jobs } = useWorkplaceTemplates();
+  const { jobs, industries } = useWorkplaceTemplates();
   const [state, setState] = useState<LoadState>({ kind: 'loading' });
 
   useEffect(() => {
@@ -61,7 +61,7 @@ export function EditJobTemplate({ jobId }: { jobId: string }) {
       {state.kind === 'ready' && (
         <JobTemplateForm
           initial={state.job}
-          industries={industryNames(jobs)}
+          industries={industryNames(jobs, industries)}
           cancelHref={jobHref(jobId)}
           onSave={async (template) => {
             await updateJobTemplate(jobId, template);

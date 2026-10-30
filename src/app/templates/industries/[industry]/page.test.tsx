@@ -1,15 +1,20 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { fetchJobTemplates } from '@/components/templates/workplaceApi';
+import { fetchIndustryTemplates, fetchJobTemplates } from '@/components/templates/workplaceApi';
 import IndustryTemplatePage, { generateMetadata } from './page';
 
-const { notFound } = vi.hoisted(() => ({ notFound: vi.fn() }));
+const { notFound, push } = vi.hoisted(() => ({ notFound: vi.fn(), push: vi.fn() }));
 
-vi.mock('next/navigation', () => ({ notFound }));
-vi.mock('@/components/templates/workplaceApi', () => ({ fetchJobTemplates: vi.fn() }));
+vi.mock('next/navigation', () => ({ notFound, useRouter: () => ({ push }) }));
+vi.mock('@/components/templates/workplaceApi', () => ({
+  fetchJobTemplates: vi.fn(),
+  fetchIndustryTemplates: vi.fn(),
+  deleteIndustryTemplate: vi.fn(),
+}));
 
 const fetchJobTemplatesMock = vi.mocked(fetchJobTemplates);
+const fetchIndustryTemplatesMock = vi.mocked(fetchIndustryTemplates);
 
 const ownJob = {
   id: 'job-1',
@@ -27,6 +32,7 @@ async function renderPage(industry: string) {
 
 beforeEach(() => {
   fetchJobTemplatesMock.mockResolvedValue([]);
+  fetchIndustryTemplatesMock.mockResolvedValue([]);
 });
 
 afterEach(() => {
@@ -58,14 +64,27 @@ describe('/templates/industries/[industry]', () => {
     );
   });
 
-  it('shows an industry only the counsellor’s own job templates name', async () => {
-    fetchJobTemplatesMock.mockResolvedValue([{ ...ownJob, industry: 'Logistikk' }]);
+  it('shows the counsellor’s own industry with buttons to edit and delete it', async () => {
+    fetchIndustryTemplatesMock.mockResolvedValue([
+      {
+        id: 'industry-1',
+        name: 'Logistikk',
+        description: 'Lager og transport.',
+        context: 'Truckførerbevis er vanlig.',
+      },
+    ]);
     await renderPage('logistikk');
 
     expect(await screen.findByRole('heading', { level: 1, name: 'Logistikk' })).toBeVisible();
     expect(screen.getByText('Egen mal')).toBeVisible();
-    expect(screen.getByRole('link', { name: 'Kassemedarbeider' })).toBeVisible();
-    expect(screen.queryByRole('link', { name: 'Rediger' })).not.toBeInTheDocument();
+    expect(screen.getByText('Lager og transport.')).toBeVisible();
+    expect(screen.getByText('Dette får intervjueren vite om bransjen')).toBeVisible();
+    expect(screen.getByText('Truckførerbevis er vanlig.')).toBeVisible();
+    expect(screen.getByRole('link', { name: 'Rediger' })).toHaveAttribute(
+      'href',
+      '/templates/industries/logistikk/edit',
+    );
+    expect(screen.getByRole('button', { name: 'Slett Logistikk' })).toBeVisible();
   });
 
   it('also finds the industry from an encoded address', async () => {

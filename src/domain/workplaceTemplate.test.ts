@@ -2,15 +2,43 @@
 import { describe, expect, it } from 'vitest';
 
 import { industryTemplates } from '@/data/industry-templates';
-import { industryNames, isBuiltInJob } from './workplaceTemplate';
+import {
+  industryContext,
+  industryNames,
+  industryNameTaken,
+  isBuiltInJob,
+} from './workplaceTemplate';
 
 const ownJob = { ...industryTemplates[0], id: 'job-1', industry: 'Logistikk' };
 
 describe('industryNames', () => {
-  it('lists the stillingsmaler’s industries in their order, each once whatever its case', () => {
+  it('lists the stillingsmaler’s industries, then the bransjemaler without any, each once', () => {
     expect(
-      industryNames([ownJob, industryTemplates[0], { ...ownJob, industry: 'logistikk' }]),
-    ).toEqual(['Logistikk', 'Helse og omsorg']);
+      industryNames(
+        [ownJob, industryTemplates[0], industryTemplates[0]],
+        [
+          { id: 'i-1', name: 'logistikk', description: '', context: '' },
+          { id: 'i-2', name: 'Renhold', description: '', context: '' },
+        ],
+      ),
+    ).toEqual(['Logistikk', 'Helse og omsorg', 'Renhold']);
+  });
+});
+
+describe('industryContext', () => {
+  it('finds the bransjemal’s text by name, whatever its case', () => {
+    const industries = [
+      { id: 'i-1', name: 'Logistikk', description: '', context: 'Truckførerbevis er vanlig.' },
+    ];
+    expect(industryContext(' logistikk ', industries)).toBe('Truckførerbevis er vanlig.');
+    expect(industryContext('Renhold', industries)).toBe('');
+  });
+});
+
+describe('industryNameTaken', () => {
+  it('compares names without case or spaces at the ends', () => {
+    expect(industryNameTaken(' varehandel ', ['Varehandel'])).toBe(true);
+    expect(industryNameTaken('Logistikk', ['Varehandel'])).toBe(false);
   });
 });
 

@@ -1,7 +1,11 @@
 import type { IndustryTemplate, Sector } from '@/data/industry-templates';
 import {
+  INDUSTRY_TEMPLATE_LIMITS,
+  INDUSTRY_TEMPLATE_TYPE,
   JOB_TEMPLATE_LIMITS,
   JOB_TEMPLATE_TYPE,
+  type IndustryTemplateEntry,
+  type NewIndustryTemplate,
   type NewJobTemplate,
 } from '@/domain/workplaceTemplate';
 import type { NewRagdollTemplate, RagdollTemplate } from './ragdoll';
@@ -88,10 +92,63 @@ export function fromRagdollJobTemplate(stored: RagdollTemplate): IndustryTemplat
   };
 }
 
+/**
+ * The bransjemal from a request body, with spaces trimmed. Null if the name or line is missing, or
+ * a field is too long. The text for the interviewer may be left out or empty.
+ */
+export function parseNewIndustryTemplate(body: unknown): NewIndustryTemplate | null {
+  if (typeof body !== 'object' || body === null) return null;
+  const b = body as Record<string, unknown>;
+
+  const name = cleanText(b.name, INDUSTRY_TEMPLATE_LIMITS.name);
+  const description = cleanText(b.description, INDUSTRY_TEMPLATE_LIMITS.description);
+  if (!name || !description) return null;
+
+  const context = b.context === undefined ? '' : b.context;
+  if (typeof context !== 'string' || context.trim().length > INDUSTRY_TEMPLATE_LIMITS.context) {
+    return null;
+  }
+
+  return { name, description, context: context.trim() };
+}
+
+/** The bransjemal as we store it in RAGdoll's templates. */
+export function toRagdollIndustryTemplate(template: NewIndustryTemplate): NewRagdollTemplate {
+  return {
+    type: INDUSTRY_TEMPLATE_TYPE,
+    name: template.name,
+    description: template.description,
+    content: { context: template.context },
+  };
+}
+
+/**
+ * The bransjemal from what RAGdoll stores, or null if it is a template of another type. One saved
+ * before bransjemaler had a text for the interviewer gets an empty one.
+ */
+export function fromRagdollIndustryTemplate(stored: RagdollTemplate): IndustryTemplateEntry | null {
+  if (stored.type !== INDUSTRY_TEMPLATE_TYPE || !stored.name) return null;
+  const { context } = stored.content;
+  return {
+    id: stored.id,
+    name: stored.name,
+    description: stored.description,
+    context: typeof context === 'string' ? context : '',
+  };
+}
+
 /** Stillingsmaler, for the routes under /api/job-templates. */
 export const jobTemplateKind: SavedTemplateKind<NewJobTemplate, IndustryTemplate> = {
   type: JOB_TEMPLATE_TYPE,
   parse: parseNewJobTemplate,
   toRagdoll: toRagdollJobTemplate,
   fromRagdoll: fromRagdollJobTemplate,
+};
+
+/** Bransjemaler, for the routes under /api/industry-templates. */
+export const industryTemplateKind: SavedTemplateKind<NewIndustryTemplate, IndustryTemplateEntry> = {
+  type: INDUSTRY_TEMPLATE_TYPE,
+  parse: parseNewIndustryTemplate,
+  toRagdoll: toRagdollIndustryTemplate,
+  fromRagdoll: fromRagdollIndustryTemplate,
 };
