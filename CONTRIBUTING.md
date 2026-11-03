@@ -147,7 +147,7 @@ A user story is **done** when every box holds. Tasks use the first four.
 - [ ] CI is green (build, lint, tests)
 - [ ] Automated tests cover the new behaviour where it is reasonable to test <!-- TODO: agree the test scope (unit / integration / e2e) -->
 - [ ] No known technical debt hidden — if something is left, it is written as an issue
-- [ ] Documentation touched by the change is updated (README, docs/, code comments). A change counsellors see updates [`docs/user-guide.md`](docs/user-guide.md); a new way to extend the app updates [`docs/extending.md`](docs/extending.md)
+- [ ] Documentation touched by the change is updated (README, docs/, code comments). A change counselors see updates [`docs/user-guide.md`](docs/user-guide.md); a new way to extend the app updates [`docs/extending.md`](docs/extending.md)
 - [ ] Deployed to the test environment <!-- TODO: depends on IMTEL infrastructure being ready; until then, "runs locally with docker compose" -->
 - [ ] Every "resolved when" criterion in the issue is checked by someone other than the author
 - [ ] The story can be demoed following its "How to demo" text
@@ -177,7 +177,7 @@ Read [`docs/design-guide.md`](docs/design-guide.md) before writing UI. In short:
 There are two kinds of prompt, kept in different places:
 
 - **The shared agents' prompts** are in `prompts/`: `configurator.nb.md` (the configuration chat on `/configure`) and `observer.nb.md` (the test chat's «Be om tilbakemelding»). Each file explains the agent and its settings; the prompt itself is the ` ```text ` block.
-- **The prompts of the agents counsellors make** are built in code when the agent is saved, from the agent type's definition. For the interviewer that is `src/domain/interviewerPrompt.ts` and `src/domain/interviewerAdaptations.ts`. See [Change a prompt](docs/extending.md#change-a-prompt).
+- **The prompts of the agents counselors make** are built in code when the agent is saved, from the agent type's definition. For the interviewer that is `src/domain/interviewerPrompt.ts` and `src/domain/interviewerAdaptations.ts`. See [Change a prompt](docs/extending.md#change-a-prompt).
 
 The prompt text itself is in Norwegian (bokmål), because that is what the agents answer in. These rules apply to people and to AI coding assistants alike:
 
