@@ -73,11 +73,15 @@ test('a saved template can be edited', async ({ page }) => {
   await expect(description).toHaveValue('Gammel beskrivelse.');
 
   await description.fill('Ny beskrivelse.');
+  await expect(page.getByRole('link', { name: 'Avbryt', exact: true })).toHaveAttribute(
+    'href',
+    /\/configure\?type=interviewer&step=intervjuer/,
+  );
   await page.getByRole('button', { name: 'Lagre endringene', exact: true }).click();
-  await expect(page).toHaveURL('/templates');
-  await expect(page.getByText('Mal lagret', { exact: true })).toBeVisible();
-
-  await page.goto(INTERVIEWER_STEP);
+  await expect(page).toHaveURL(/\/configure\?type=interviewer&step=intervjuer/);
+  await expect(
+    page.getByRole('heading', { level: 2, name: 'Velg en mal', exact: true }),
+  ).toBeVisible();
   await expect(page.getByText('Ny beskrivelse.')).toBeVisible();
   await expect(page.getByText('Gammel beskrivelse.')).toBeHidden();
 });
@@ -106,4 +110,27 @@ test('a template that does not exist shows the not found page', async ({ page })
   await logIn(page, '/templates/000000000000000000000000/edit');
 
   await expect(page.getByText('This page could not be found.')).toBeVisible();
+});
+
+test('administering lovverk jumps to that group on Maler', async ({ page }) => {
+  await logIn(page, INTERVIEWER_STEP);
+  await page.getByRole('link', { name: 'Administrer lovverk', exact: true }).click();
+
+  await expect(page).toHaveURL(/\/templates\?seksjon=lovverk/);
+  const lovverk = page.getByRole('button', { name: 'Lovverk', exact: true });
+  await expect(lovverk).toHaveAttribute('aria-expanded', 'true');
+  await expect(lovverk).toBeInViewport();
+  await expect(
+    page.getByRole('link', { name: /Rettigheter i ansettelsesprosessen/ }),
+  ).toBeInViewport();
+});
+
+test('the old lovverk page jumps to that group on Maler', async ({ page }) => {
+  await logIn(page, '/legal-templates');
+
+  await expect(page).toHaveURL(/\/templates\?seksjon=lovverk/);
+  await expect(page.getByRole('button', { name: 'Lovverk', exact: true })).toBeInViewport();
+  await expect(
+    page.getByRole('link', { name: /Rettigheter i ansettelsesprosessen/ }),
+  ).toBeInViewport();
 });

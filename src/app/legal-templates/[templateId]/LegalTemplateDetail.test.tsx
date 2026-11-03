@@ -48,7 +48,7 @@ describe('LegalTemplateDetail', () => {
     expect(screen.getByRole('button', { name: 'Slett Arbeidsmiljøloven § 9-3' })).toBeVisible();
     expect(screen.getByRole('link', { name: 'Tilbake til malene' })).toHaveAttribute(
       'href',
-      '/templates',
+      '/templates?seksjon=lovverk#lovverk',
     );
   });
 

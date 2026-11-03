@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -22,6 +22,7 @@ const fetchLegalTemplatesMock = vi.mocked(fetchLegalTemplates);
 const fetchSavedTemplatesMock = vi.mocked(fetchSavedTemplates);
 const fetchJobTemplatesMock = vi.mocked(fetchJobTemplates);
 const fetchIndustryTemplatesMock = vi.mocked(fetchIndustryTemplates);
+const originalScrollIntoView = HTMLElement.prototype.scrollIntoView;
 
 const profile: JobSeekerProfile = {
   id: 'profile-1',
@@ -65,6 +66,8 @@ afterEach(() => {
   fetchJobTemplatesMock.mockReset();
   fetchIndustryTemplatesMock.mockReset();
   localStorage.clear();
+  window.history.replaceState({}, '', '/');
+  HTMLElement.prototype.scrollIntoView = originalScrollIntoView;
 });
 
 describe('TemplateLibrary', () => {
@@ -327,6 +330,27 @@ describe('TemplateLibrary', () => {
     expect(own).toHaveTextContent('Helseopplysninger.');
     expect(within(builtIn).getByText('Følger med appen')).toHaveClass('MuiChip-label');
     expect(within(own).getByText('Eget lovverk')).toHaveClass('MuiChip-label');
+  });
+
+  it('scrolls to Lovverk when the URL names that group, and leaves the others open', async () => {
+    fetchProfilesMock.mockResolvedValue([]);
+    window.history.replaceState({}, '', '/templates?seksjon=lovverk');
+    const scrollIntoView = vi.fn();
+    HTMLElement.prototype.scrollIntoView = scrollIntoView;
+    render(<TemplateLibrary />);
+
+    expect(await screen.findByRole('button', { name: 'Lovverk' })).toHaveAttribute(
+      'aria-expanded',
+      'true',
+    );
+    expect(screen.getByRole('button', { name: 'Bransjemaler' })).toHaveAttribute(
+      'aria-expanded',
+      'true',
+    );
+    expect(
+      within(section('Lovverk')).getByRole('link', { name: /Rettigheter i ansettelsesprosessen/ }),
+    ).toBeVisible();
+    await waitFor(() => expect(scrollIntoView).toHaveBeenCalled());
   });
 
   it('still shows the built-in legal templates when the counsellor’s own cannot be loaded', async () => {

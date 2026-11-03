@@ -11,6 +11,7 @@ import Paper from '@mui/material/Paper';
 import Skeleton from '@mui/material/Skeleton';
 import Typography from '@mui/material/Typography';
 
+import { templatesSectionHref } from '@/app/templates/sectionOpen';
 import { fetchLegalTemplate } from '@/components/legalTemplates/api';
 import { DeleteLegalTemplateButton } from '@/components/legalTemplates/DeleteLegalTemplateButton';
 import { findBuiltInLegalTemplate } from '@/data/legal-templates';
@@ -57,7 +58,13 @@ export function LegalTemplateDetail({ templateId }: { templateId: string }) {
     <div className={styles.page}>
       {/* The margin is on a wrapper: MUI's own styles load after ours and reset its margin. */}
       <div className={styles.backLink}>
-        <Button component={Link} href="/templates" startIcon={<ArrowBackIcon />} size="small">
+        <Button
+          component={Link}
+          href={templatesSectionHref('lovverk')}
+          scroll={false}
+          startIcon={<ArrowBackIcon />}
+          size="small"
+        >
           {/* English translation: Back to the templates */}
           Tilbake til malene
         </Button>

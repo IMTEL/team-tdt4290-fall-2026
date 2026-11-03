@@ -8,6 +8,7 @@ import CardActions from '@mui/material/CardActions';
 import Chip from '@mui/material/Chip';
 
 import type { AgentTemplate } from '@/data/templates';
+import { withReturnTo } from '@/lib/returnTo';
 import { DeleteTemplateButton } from './DeleteTemplateButton';
 import styles from './TemplatePicker.module.css';
 
@@ -30,6 +31,8 @@ type TemplatePickerProps = {
   asRadios?: boolean;
   /** The chosen template's id, when `asRadios` is set. */
   selectedId?: string | null;
+  /** Where Rediger and Lag en ny mal send the counsellor back, when they opened this from a wizard. */
+  returnTo?: string;
 };
 
 // For an agent type without its own lead.
@@ -47,10 +50,12 @@ export function TemplatePicker({
   embedded = false,
   asRadios = false,
   selectedId = null,
+  returnTo,
 }: TemplatePickerProps) {
-  const newTemplateHref = agentType
-    ? `/create-template?agentType=${encodeURIComponent(agentType)}`
-    : '/create-template';
+  const newTemplateHref = withReturnTo(
+    agentType ? `/create-template?agentType=${encodeURIComponent(agentType)}` : '/create-template',
+    returnTo,
+  );
 
   function card(template: AgentTemplate, saved: boolean) {
     const selected = asRadios && selectedId === template.id;
@@ -79,7 +84,7 @@ export function TemplatePicker({
             <CardActions className={styles.cardActions}>
               <Button
                 component={Link}
-                href={`/templates/${encodeURIComponent(template.id)}/edit`}
+                href={withReturnTo(`/templates/${encodeURIComponent(template.id)}/edit`, returnTo)}
                 size="small"
                 className={styles.edit}
                 aria-label={`Rediger ${template.title}`}

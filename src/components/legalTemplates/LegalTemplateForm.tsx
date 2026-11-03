@@ -6,6 +6,7 @@ import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
 import TextField from '@mui/material/TextField';
 
+import { templatesSectionHref } from '@/app/templates/sectionOpen';
 import { LEGAL_TEMPLATE_LIMITS as LIMITS, type NewLegalTemplate } from '@/domain/legalTemplate';
 import styles from '@/components/profiles/ProfileForm.module.css';
 
@@ -43,7 +44,10 @@ export function LegalTemplateForm({ initial, onSave }: LegalTemplateFormProps) {
   if (status.kind === 'saved') {
     return (
       <Alert severity="success">
-        Lovverket «{title.trim()}» er lagret. <Link href="/legal-templates">Se lovverket ditt</Link>
+        Lovverket «{title.trim()}» er lagret.{' '}
+        <Link href={templatesSectionHref('lovverk')} scroll={false}>
+          Se lovverket ditt
+        </Link>
       </Alert>
     );
   }
@@ -100,7 +104,12 @@ export function LegalTemplateForm({ initial, onSave }: LegalTemplateFormProps) {
         <Button type="submit" variant="contained" disabled={!canSave}>
           {isSaving ? 'Lagrer …' : initial ? 'Lagre endringene' : 'Lagre lovverk'}
         </Button>
-        <Button component={Link} href="/legal-templates" disabled={isSaving}>
+        <Button
+          component={Link}
+          href={templatesSectionHref('lovverk')}
+          scroll={false}
+          disabled={isSaving}
+        >
           Avbryt
         </Button>
       </div>

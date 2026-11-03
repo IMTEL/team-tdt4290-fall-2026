@@ -516,6 +516,7 @@ export function ConfigureAgent({
             savedTemplates={saved}
             agentType={definition.id}
             lead={presets.template?.text.pickerLead}
+            returnTo={`/configure?type=${definition.id}&step=intervjuer`}
             onSelect={setChoice}
             onDeleted={(id) => setSaved((current) => current.filter((item) => item.id !== id))}
           />

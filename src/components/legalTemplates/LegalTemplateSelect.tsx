@@ -5,6 +5,7 @@ import Checkbox from '@mui/material/Checkbox';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import FormHelperText from '@mui/material/FormHelperText';
 
+import { templatesSectionHref } from '@/app/templates/sectionOpen';
 import { LEGAL_TEMPLATE_LIMITS, type LegalTemplate } from '@/domain/legalTemplate';
 import styles from './LegalTemplateSelect.module.css';
 
@@ -64,7 +65,7 @@ export function LegalTemplateSelect({
           .filter(Boolean)
           .join(' ')}
       </FormHelperText>
-      <Link href="/legal-templates" className={styles.link}>
+      <Link href={templatesSectionHref('lovverk')} scroll={false} className={styles.link}>
         Administrer lovverk
       </Link>
     </fieldset>

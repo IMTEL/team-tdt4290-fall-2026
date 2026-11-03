@@ -19,7 +19,7 @@ import type { AgentTemplate } from '@/data/templates';
 import { builtInLegalTemplates } from '@/data/legal-templates';
 import type { JobSeekerProfile } from '@/domain/jobSeekerProfile';
 import type { LegalTemplate } from '@/domain/legalTemplate';
-import { useOnceInBrowser } from '@/lib/useOnceInBrowser';
+import { useIsClient, useOnceInBrowser } from '@/lib/useOnceInBrowser';
 import {
   industryCatalog,
   jobCatalog,
@@ -37,6 +37,7 @@ import {
   takeTemplatesFlash,
 } from './flash';
 import {
+  sectionFromLocation,
   sectionOpen,
   setSectionOpen,
   subscribeSections,
@@ -92,6 +93,7 @@ function Section({
 
   return (
     <Accordion
+      id={id}
       expanded={open}
       onChange={(_event, next) => setSectionOpen(id, next)}
       disableGutters
@@ -122,6 +124,8 @@ export function TemplateLibrary() {
   const [legal, setLegal] = useState<LegalState>({ kind: 'loading' });
   const [saved, setSaved] = useState<SavedState>({ kind: 'loading' });
   const [toast, setToast] = useState<string | null>(null);
+  const isClient = useIsClient();
+  const target = isClient ? sectionFromLocation(window.location) : null;
 
   useEffect(() => {
     const controller = new AbortController();
@@ -154,12 +158,29 @@ export function TemplateLibrary() {
     saved.kind === 'ready' ? savedTemplateCatalog(saved.templates) : [];
   // The built-in ones are shown at once, and the counsellor's own come first when they have loaded.
   const workplace = useWorkplaceTemplates();
+  const catalogsReady = workplace.loaded && profiles.kind !== 'loading' && saved.kind !== 'loading';
 
   // One-shot flash from the previous page (mal laget / lagret).
   useOnceInBrowser(() => {
     const message = toastFromFlash();
     if (message) setToast(message);
   });
+
+  useEffect(() => {
+    if (!target) return;
+    setSectionOpen(target, true);
+  }, [target]);
+
+  // Wait until the groups above have their cards, or the jump lands too high and Lovverk slides
+  // down out of view. Next's Link also resets scroll unless the link sets scroll={false}.
+  useEffect(() => {
+    if (!target || !catalogsReady) return;
+    const id = target;
+    const scroll = () => document.getElementById(id)?.scrollIntoView({ block: 'start' });
+    scroll();
+    const frame = requestAnimationFrame(scroll);
+    return () => cancelAnimationFrame(frame);
+  }, [target, catalogsReady]);
 
   return (
     <>

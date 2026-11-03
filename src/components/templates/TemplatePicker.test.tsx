@@ -88,4 +88,30 @@ describe('TemplatePicker', () => {
     expect(screen.getAllByRole('link', { name: /^Rediger/ })).toHaveLength(1);
     expect(screen.getAllByRole('button', { name: /^Slett/ })).toHaveLength(1);
   });
+
+  it('sends Rediger back to the wizard that opened the picker', () => {
+    const saved = {
+      id: 'saved-1',
+      agentType: 'interviewer',
+      title: 'Min mal',
+      description: 'Lagret av meg.',
+      focus: [],
+      persona: 'Hen er butikksjef.',
+    };
+    render(
+      <TemplatePicker
+        templates={interviewerTemplates}
+        savedTemplates={[saved]}
+        onSelect={vi.fn()}
+        returnTo="/configure?type=interviewer&step=intervjuer"
+      />,
+    );
+
+    expect(screen.getByRole('link', { name: 'Rediger Min mal' })).toHaveAttribute(
+      'href',
+      '/templates/saved-1/edit?returnTo=%2Fconfigure%3Ftype%3Dinterviewer%26step%3Dintervjuer',
+    );
+    expect(screen.getAllByRole('link', { name: /^Rediger/ })).toHaveLength(1);
+    expect(screen.getAllByRole('button', { name: /^Slett/ })).toHaveLength(1);
+  });
 });
