@@ -94,7 +94,7 @@ async function openAsInterviewer() {
 
 /** Leaves the job seeker step without a profile, which is the step after the interviewer. */
 async function skipProfile(user: ReturnType<typeof userEvent.setup>) {
-  const without = screen.getByRole('button', { name: 'Fortsett uten mal' });
+  const without = screen.getByRole('button', { name: 'Fortsett uten jobbsøkermal' });
   await user.click(without);
   expect(without).toHaveAttribute('aria-pressed', 'true');
   await user.click(screen.getByRole('button', { name: 'Neste' }));
@@ -103,7 +103,7 @@ async function skipProfile(user: ReturnType<typeof userEvent.setup>) {
 /** Chooses an interviewer template and moves on. The card is a radio, so Neste confirms it. */
 async function pickTemplate(user: ReturnType<typeof userEvent.setup>, name: RegExp) {
   await user.click(screen.getByRole('radio', { name }));
-  expect(screen.getByRole('button', { name: 'Fortsett uten mal' })).toHaveAttribute(
+  expect(screen.getByRole('button', { name: 'Fortsett uten intervjuermal' })).toHaveAttribute(
     'aria-pressed',
     'false',
   );
@@ -112,7 +112,7 @@ async function pickTemplate(user: ReturnType<typeof userEvent.setup>, name: RegE
 
 /** Leaves the interviewer step without a template. */
 async function skipTemplate(user: ReturnType<typeof userEvent.setup>) {
-  const without = screen.getByRole('button', { name: 'Fortsett uten mal' });
+  const without = screen.getByRole('button', { name: 'Fortsett uten intervjuermal' });
   await user.click(without);
   expect(without).toHaveAttribute('aria-pressed', 'true');
   await user.click(screen.getByRole('button', { name: 'Neste' }));
@@ -298,10 +298,13 @@ describe('/configure', () => {
     await renderPage('interviewer', 'intervjuer');
 
     expect(screen.getByRole('heading', { level: 2, name: 'Velg en mal' })).toBeVisible();
-    expect(screen.getByRole('link', { name: 'Lag en ny mal' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Lag en ny intervjuermal' })).toHaveAttribute(
       'href',
       '/create-template?agentType=interviewer&returnTo=%2Fconfigure%3Ftype%3Dinterviewer%26step%3Dintervjuer',
     );
+    const skip = screen.getByRole('button', { name: 'Fortsett uten intervjuermal' });
+    const legal = screen.getByRole('group', { name: 'Lovverk' });
+    expect(skip.compareDocumentPosition(legal) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
   it('marks Intervjuer as the current section', async () => {
@@ -723,9 +726,9 @@ describe('/configure', () => {
       'true',
     );
 
-    await user.click(screen.getByRole('button', { name: 'Fortsett uten mal' }));
+    await user.click(screen.getByRole('button', { name: 'Fortsett uten jobbsøkermal' }));
 
-    expect(screen.getByRole('button', { name: 'Fortsett uten mal' })).toHaveAttribute(
+    expect(screen.getByRole('button', { name: 'Fortsett uten jobbsøkermal' })).toHaveAttribute(
       'aria-pressed',
       'true',
     );
@@ -741,10 +744,13 @@ describe('/configure', () => {
 
     await skipTemplate(user);
 
-    expect(screen.getByRole('link', { name: 'Lag en ny mal' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Lag en ny jobbsøkermal' })).toHaveAttribute(
       'href',
       '/profiles/new',
     );
+    const skip = screen.getByRole('button', { name: 'Fortsett uten jobbsøkermal' });
+    const practice = screen.getByRole('group', { name: 'Hva skal jobbsøkeren øve på?' });
+    expect(skip.compareDocumentPosition(practice) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
   it('saves an unfinished draft and goes to the agents page', async () => {

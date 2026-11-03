@@ -9,7 +9,7 @@ test('a counsellor can make a template from the wizard and choose it there', asy
   await chooseInterviewer(page);
   await fillStilling(page);
 
-  await page.getByRole('link', { name: 'Lag en ny mal', exact: true }).click();
+  await page.getByRole('link', { name: 'Lag en ny intervjuermal', exact: true }).click();
   await expect(
     page.getByRole('heading', { name: 'Lag en mal til å konfigurere en AI-agent', exact: true }),
   ).toBeVisible();

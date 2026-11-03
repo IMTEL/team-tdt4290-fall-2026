@@ -51,7 +51,7 @@ export async function pickTemplate(page: Page, title: string | null): Promise<vo
   if (title) {
     await page.getByRole('radio', { name: startsWith(title) }).click();
   } else {
-    await page.getByRole('button', { name: 'Fortsett uten mal', exact: true }).click();
+    await page.getByRole('button', { name: /^Fortsett uten/ }).click();
   }
   await page.getByRole('button', { name: 'Neste', exact: true }).click();
 }

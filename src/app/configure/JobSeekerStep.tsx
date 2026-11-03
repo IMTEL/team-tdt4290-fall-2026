@@ -25,7 +25,7 @@ type JobSeekerStepProps = {
   /** The agent-type line, same as on the interviewer step. */
   intro: ReactNode;
   onSelect: (profileId: string) => void;
-  /** The chosen profile's id, '' for «Fortsett uten mal», or null until they choose. */
+  /** The chosen profile's id, '' for «Fortsett uten jobbsøkermal», or null until they choose. */
   selectedId: string | null;
   /** Practice areas chosen for this agent, using the stored profile texts as ids. */
   practiceAreas: string[];
@@ -117,6 +117,18 @@ export function JobSeekerStep({
             </div>
           )}
         </section>
+        <div className={pageStyles.choiceActions}>
+          <Button
+            variant={selectedId === '' ? 'contained' : 'outlined'}
+            aria-pressed={selectedId === ''}
+            onClick={() => onSelect('')}
+          >
+            Fortsett uten jobbsøkermal
+          </Button>
+          <Button component={Link} href="/profiles/new" variant="outlined">
+            Lag en ny jobbsøkermal
+          </Button>
+        </div>
         <div className={stepStyles.suggestions}>
           <p className={stepStyles.practiceHeading} id="practice-heading">
             Hva skal jobbsøkeren øve på?
@@ -171,17 +183,7 @@ export function JobSeekerStep({
           )}
           <p className={stepStyles.hint}>Gjelder denne agenten. Malen endres ikke.</p>
         </div>
-        <div className={pageStyles.presetActions}>
-          <Button
-            variant={selectedId === '' ? 'contained' : 'outlined'}
-            aria-pressed={selectedId === ''}
-            onClick={() => onSelect('')}
-          >
-            Fortsett uten mal
-          </Button>
-          <Button component={Link} href="/profiles/new" variant="outlined">
-            Lag en ny mal
-          </Button>
+        <div className={stepStyles.actions}>
           <div className={stepStyles.nav}>
             <Button onClick={onBack}>Tilbake</Button>
             <Button variant="contained" onClick={onNext}>

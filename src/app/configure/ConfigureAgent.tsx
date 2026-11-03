@@ -520,24 +520,26 @@ export function ConfigureAgent({
             onSelect={setChoice}
             onDeleted={(id) => setSaved((current) => current.filter((item) => item.id !== id))}
           />
-          {usesLegal && (
-            <LegalTemplateSelect templates={legalOptions} value={legalIds} onChange={setLegalIds} />
-          )}
-          <div className={styles.presetActions}>
+          <div className={styles.choiceActions}>
             <Button
               variant={choice === null ? 'contained' : 'outlined'}
               aria-pressed={choice === null}
               onClick={() => setChoice(null)}
             >
-              Fortsett uten mal
+              Fortsett uten intervjuermal
             </Button>
             <Button
               component={Link}
               href={`/create-template?agentType=${encodeURIComponent(definition.id)}&returnTo=${encodeURIComponent(`/configure?type=${definition.id}&step=intervjuer`)}`}
               variant="outlined"
             >
-              Lag en ny mal
+              Lag en ny intervjuermal
             </Button>
+          </div>
+          {usesLegal && (
+            <LegalTemplateSelect templates={legalOptions} value={legalIds} onChange={setLegalIds} />
+          )}
+          <div className={stepStyles.actions}>
             <div className={stepStyles.nav}>
               <Button onClick={() => goTo(0)}>Tilbake</Button>
               <Button variant="contained" onClick={() => goTo(2)}>
