@@ -156,6 +156,16 @@ describe('AgentList', () => {
     expect(sessionStorage.getItem('kfi-agents-flash')).toBeNull();
   });
 
+  it('shows Agent publisert when opened after a publish', async () => {
+    sessionStorage.setItem('kfi-agents-flash', 'agent-publisert');
+    fetchAgentsMock.mockResolvedValue([]);
+
+    render(<AgentList />);
+
+    expect(await screen.findByText('Agent publisert')).toBeVisible();
+    expect(sessionStorage.getItem('kfi-agents-flash')).toBeNull();
+  });
+
   const draftJson = JSON.stringify({
     version: 1,
     agentTypeId: 'interviewer',

@@ -127,6 +127,27 @@ async function skipSettings(user: ReturnType<typeof userEvent.setup>) {
   await user.click(screen.getByRole('button', { name: 'Neste' }));
 }
 
+/** Opens Publiser on Fullføre and confirms the same dialog as on the agent's page. */
+async function confirmPublish(user: ReturnType<typeof userEvent.setup>, description = '') {
+  await user.click(screen.getByRole('button', { name: 'Publiser' }));
+  const dialog = await screen.findByRole('dialog');
+  if (description) {
+    await user.type(within(dialog).getByLabelText('Kort beskrivelse'), description);
+  }
+  await user.click(within(dialog).getByRole('button', { name: 'Publiser' }));
+}
+
+const published = {
+  isPublished: true,
+  publicName: 'Intervjuer',
+  publicDescription: '',
+};
+
+/** A successful publish, so the last step can leave the page. */
+function publicationResponse() {
+  return Response.json({ publication: published });
+}
+
 describe('/configure', () => {
   it('starts by asking what kind of agent to set up, not with templates or the chat', async () => {
     await renderPage();
@@ -215,9 +236,13 @@ describe('/configure', () => {
     });
     const post = vi.fn(async () => Response.json({ id: 'agent-1' }));
     const load = fetchMock.getMockImplementation()!;
-    fetchMock.mockImplementation(async (url, init) =>
-      String(url) === '/api/agents' && init?.method === 'POST' ? post() : load(url, init),
-    );
+    fetchMock.mockImplementation(async (url, init) => {
+      const path = String(url);
+      const method = init?.method ?? 'GET';
+      if (path === '/api/agents' && method === 'POST') return post();
+      if (path === '/api/agents/agent-1/publish' && method === 'POST') return publicationResponse();
+      return load(url, init);
+    });
     const user = userEvent.setup();
     await renderPage('interviewer');
 
@@ -235,7 +260,7 @@ describe('/configure', () => {
     await skipTemplate(user);
     await skipProfile(user);
     await skipSettings(user);
-    await user.click(screen.getByRole('button', { name: 'Publiser' }));
+    await confirmPublish(user);
 
     await waitFor(() => expect(post).toHaveBeenCalled());
     const call = fetchMock.mock.calls.find(
@@ -354,7 +379,7 @@ describe('/configure', () => {
     expect(within(effects).getByText('Stilling')).toBeVisible();
   });
 
-  it('saves the interviewer from the last step and opens the test with that agent', async () => {
+  it('publishes the interviewer from the last step and opens the agents page', async () => {
     const savedAgent = {
       id: 'agent-1',
       name: 'Intervjuer for Barnehageassistent',
@@ -368,6 +393,7 @@ describe('/configure', () => {
       const path = String(url);
       const method = init?.method ?? 'GET';
       if (path === '/api/agents' && method === 'POST') return Response.json({ id: 'agent-1' });
+      if (path === '/api/agents/agent-1/publish' && method === 'POST') return publicationResponse();
       if (path === '/api/agents/agent-1' && method === 'PUT') {
         return Response.json({ agent: savedAgent });
       }
@@ -384,10 +410,17 @@ describe('/configure', () => {
       'Intervjuer for Barnehageassistent',
     );
 
-    await user.click(screen.getByRole('button', { name: 'Publiser' }));
+    await confirmPublish(user, 'Øv på et første intervju');
 
     await waitFor(() => expect(push).toHaveBeenCalledWith('/browse-agents'));
-    expect(sessionStorage.getItem('kfi-agents-flash')).toBe('agent-lagret');
+    expect(sessionStorage.getItem('kfi-agents-flash')).toBe('agent-publisert');
+    const publishCall = fetchMock.mock.calls.find(
+      ([url, init]) => String(url) === '/api/agents/agent-1/publish' && init?.method === 'POST',
+    );
+    expect(JSON.parse(String(publishCall?.[1]?.body))).toEqual({
+      publicName: 'Intervjuer for Barnehageassistent',
+      publicDescription: 'Øv på et første intervju',
+    });
     const post = fetchMock.mock.calls.find(
       ([url, init]) => String(url) === '/api/agents' && init?.method === 'POST',
     );
@@ -408,6 +441,28 @@ describe('/configure', () => {
     });
     expect(body.configuration.stilling).toContain('Barnehageassistent.');
     expect(body.configuration.intervjuer).toContain('teamleder');
+  });
+
+  it('asks before publishing and publishes nothing when that is cancelled', async () => {
+    const user = await openAsInterviewer();
+    await skipTemplate(user);
+    await skipProfile(user);
+    await skipSettings(user);
+
+    await user.click(screen.getByRole('button', { name: 'Publiser' }));
+    const dialog = await screen.findByRole('dialog');
+    expect(
+      within(dialog).getByRole('heading', { name: 'Publiser til The Candidate' }),
+    ).toBeVisible();
+    expect(within(dialog).getByText('Ikke skriv noe om jobbsøkeren her.')).toBeVisible();
+    await user.click(within(dialog).getByRole('button', { name: 'Avbryt' }));
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    expect(fetchMock).not.toHaveBeenCalledWith(
+      '/api/agents',
+      expect.objectContaining({ method: 'POST' }),
+    );
+    expect(screen.getByRole('heading', { level: 2, name: 'Fullføre' })).toBeVisible();
   });
 
   it('saves a draft and goes to the agents page', async () => {
@@ -475,6 +530,7 @@ describe('/configure', () => {
       const path = String(url);
       const method = init?.method ?? 'GET';
       if (path === '/api/agents' && method === 'POST') return Response.json({ id: 'agent-1' });
+      if (path === '/api/agents/agent-1/publish' && method === 'POST') return publicationResponse();
       if (path === '/api/legal-templates') return Response.json({ templates: [saved] });
       if (path === '/api/profiles') return Response.json({ profiles: [] });
       return Response.json({ templates: [] });
@@ -491,7 +547,7 @@ describe('/configure', () => {
       screen.getByText('Rettigheter i ansettelsesprosessen, Arbeidsmiljøloven § 9-3'),
     ).toBeVisible();
 
-    await user.click(screen.getByRole('button', { name: 'Publiser' }));
+    await confirmPublish(user);
 
     await waitFor(() => expect(push).toHaveBeenCalledWith('/browse-agents'));
     const post = fetchMock.mock.calls.find(

@@ -34,7 +34,12 @@ import { getAgentType } from '@/domain/agentTypes/registry';
 import type { Agent } from '@/lib/types';
 import { useOnceInBrowser } from '@/lib/useOnceInBrowser';
 import { fetchAgents } from './api';
-import { AGENT_SAVED_FLASH, DRAFT_SAVED_FLASH, takeAgentsFlash } from './flash';
+import {
+  AGENT_PUBLISHED_FLASH,
+  AGENT_SAVED_FLASH,
+  DRAFT_SAVED_FLASH,
+  takeAgentsFlash,
+} from './flash';
 import styles from './AgentList.module.css';
 
 // The search text and the filter choices are built once, when the list arrives, not on every
@@ -52,6 +57,7 @@ type ListState =
 function toastFromFlash(): string | null {
   const flash = takeAgentsFlash();
   if (flash === AGENT_SAVED_FLASH) return 'Agent lagret';
+  if (flash === AGENT_PUBLISHED_FLASH) return 'Agent publisert';
   if (flash === DRAFT_SAVED_FLASH) return 'Utkast lagret';
   return null;
 }

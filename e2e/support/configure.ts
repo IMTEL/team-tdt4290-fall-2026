@@ -86,6 +86,14 @@ export async function goToFinish(
   ).toBeVisible();
 }
 
+/** Confirms Publiser on Fullføre. Same dialog as on the agent's page. */
+export async function publishFromFinish(page: Page): Promise<void> {
+  await page.getByRole('button', { name: 'Publiser', exact: true }).click();
+  const dialog = page.getByRole('dialog');
+  await expect(dialog.getByRole('heading', { name: 'Publiser til The Candidate' })).toBeVisible();
+  await dialog.getByRole('button', { name: 'Publiser', exact: true }).click();
+}
+
 /** Sends a message in the chat on the page. */
 export async function sendMessage(page: Page, text: string): Promise<void> {
   await page.getByRole('textbox', { name: 'Melding', exact: true }).fill(text);

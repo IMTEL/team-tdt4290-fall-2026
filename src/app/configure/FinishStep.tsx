@@ -1,12 +1,13 @@
 'use client';
 
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
 import TextField from '@mui/material/TextField';
 
 import { AnswerEffects } from '@/components/agents/AnswerEffects';
 import { AvatarPicker } from '@/components/agents/AvatarPicker';
+import { PublishToCandidateDialog } from '@/components/agents/PublishToCandidateDialog';
 import { formatTemperature } from '@/domain/advancedSettings';
 import { MAX_NAME_LENGTH } from '@/domain/agentName';
 import type { AnswerEffect } from '@/domain/agentTypes/types';
@@ -126,6 +127,7 @@ export function FinishActions({
   saving,
   error,
   onSave,
+  onPublish,
   onTest,
 }: {
   intro: ReactNode;
@@ -141,10 +143,46 @@ export function FinishActions({
   onNameChange: (name: string) => void;
   saving: boolean;
   error: string | null;
+  /** Saves the agent without publishing it. */
   onSave: () => void;
+  /** Saves the agent, then publishes it to The Candidate with this public name and description. */
+  onPublish: (publicName: string, publicDescription: string) => Promise<void>;
   onTest: () => void;
 }) {
-  const canSave = name.trim() !== '' && !saving;
+  const [publishOpen, setPublishOpen] = useState(false);
+  const [publicName, setPublicName] = useState('');
+  const [description, setDescription] = useState('');
+  const [publishing, setPublishing] = useState(false);
+  const [publishError, setPublishError] = useState<string | null>(null);
+  const busy = saving || publishing;
+  const canSave = name.trim() !== '' && !busy;
+
+  function openPublish() {
+    if (!canSave) return;
+    setPublicName(name.trim().slice(0, MAX_NAME_LENGTH));
+    setDescription('');
+    setPublishError(null);
+    setPublishOpen(true);
+  }
+
+  function closePublish() {
+    if (publishing) return;
+    setPublishOpen(false);
+    setPublishError(null);
+  }
+
+  async function publish() {
+    setPublishing(true);
+    setPublishError(null);
+    try {
+      await onPublish(publicName.trim(), description.trim());
+      setPublishOpen(false);
+    } catch (err) {
+      setPublishError(err instanceof Error ? err.message : 'Noe gikk galt. Prøv igjen.');
+    } finally {
+      setPublishing(false);
+    }
+  }
 
   return (
     <div className={stepStyles.finishActions}>
@@ -162,7 +200,7 @@ export function FinishActions({
       )}
       <div className={stepStyles.avatars}>
         <p className={stepStyles.avatarLabel}>Velg en avatar for intervjueren</p>
-        <AvatarPicker value={avatar} onChange={onAvatarChange} disabled={saving} />
+        <AvatarPicker value={avatar} onChange={onAvatarChange} disabled={busy} />
       </div>
       <TextField
         label="Navn på agenten"
@@ -170,14 +208,14 @@ export function FinishActions({
         onChange={(event) => onNameChange(event.target.value)}
         required
         fullWidth
-        disabled={saving}
+        disabled={busy}
         helperText={`${name.length}/${MAX_NAME_LENGTH} tegn`}
         slotProps={{ htmlInput: { maxLength: MAX_NAME_LENGTH } }}
       />
       {error && <Alert severity="error">{error}</Alert>}
       <div className={stepStyles.finishButtons}>
-        <Button type="button" variant="contained" onClick={onSave} disabled={!canSave}>
-          {saving ? 'Lagrer …' : 'Publiser'}
+        <Button type="button" variant="contained" onClick={openPublish} disabled={!canSave}>
+          Publiser
         </Button>
         <Button type="button" variant="outlined" onClick={onSave} disabled={!canSave}>
           {saving ? 'Lagrer …' : 'Lagre som utkast'}
@@ -186,11 +224,24 @@ export function FinishActions({
           {saving ? 'Lagrer …' : 'Test agenten'}
         </Button>
         <div className={stepStyles.back}>
-          <Button type="button" onClick={onBack} disabled={saving}>
+          <Button type="button" onClick={onBack} disabled={busy}>
             Gå tilbake
           </Button>
         </div>
       </div>
+      <PublishToCandidateDialog
+        open={publishOpen}
+        name={publicName}
+        description={description}
+        sending={publishing}
+        error={publishError}
+        onNameChange={setPublicName}
+        onDescriptionChange={setDescription}
+        onClose={closePublish}
+        onSubmit={() => {
+          void publish();
+        }}
+      />
     </div>
   );
 }

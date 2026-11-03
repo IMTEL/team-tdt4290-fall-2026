@@ -81,6 +81,8 @@ type SettingsStepProps = {
   saving: boolean;
   saveError: string | null;
   onSave: () => void;
+  /** Saves the agent, then publishes it to The Candidate. */
+  onPublish: (publicName: string, publicDescription: string) => Promise<void>;
   onTest: () => void;
   /** Opens an earlier section from the list on the side. */
   onGoTo?: (index: number) => void;
@@ -107,6 +109,7 @@ export function SettingsStep({
   saving,
   saveError,
   onSave,
+  onPublish,
   onTest,
   reached,
   onSaveDraft,
@@ -138,6 +141,7 @@ export function SettingsStep({
           saving={saving}
           error={saveError}
           onSave={onSave}
+          onPublish={onPublish}
           onTest={onTest}
         />
       }

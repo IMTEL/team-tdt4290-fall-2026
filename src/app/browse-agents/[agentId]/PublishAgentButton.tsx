@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, type FormEvent } from 'react';
+import { useState } from 'react';
 import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
 import Dialog from '@mui/material/Dialog';
@@ -8,10 +8,9 @@ import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import DialogContentText from '@mui/material/DialogContentText';
 import DialogTitle from '@mui/material/DialogTitle';
-import TextField from '@mui/material/TextField';
 
+import { PublishToCandidateDialog } from '@/components/agents/PublishToCandidateDialog';
 import { MAX_NAME_LENGTH } from '@/domain/agentName';
-import { MAX_PUBLIC_DESCRIPTION_LENGTH } from '@/domain/publication';
 import type { Agent } from '@/lib/types';
 import { publishAgent, unpublishAgent, type Publication } from '../api';
 
@@ -58,12 +57,6 @@ export function PublishAgentButton({ agent, publication, onChange }: Props) {
     }
   }
 
-  function submitPublish(event: FormEvent) {
-    event.preventDefault();
-    if (nameMissing) return;
-    send(() => publishAgent(agent.id, name.trim(), description.trim()));
-  }
-
   if (publication.isPublished) {
     return (
       <>
@@ -107,56 +100,20 @@ export function PublishAgentButton({ agent, publication, onChange }: Props) {
         Publiser
       </Button>
 
-      <Dialog key="publish" open={open} onClose={close} fullWidth maxWidth="sm">
-        <form onSubmit={submitPublish} noValidate>
-          <DialogTitle>Publiser til The Candidate</DialogTitle>
-          <DialogContent>
-            <DialogContentText>
-              Alle som bruker The Candidate kan velge agenten. De ser bare navnet og beskrivelsen
-              under, ikke svarene om jobbsøkeren eller systemprompten.
-            </DialogContentText>
-            <Alert severity="warning" sx={{ mt: 2 }}>
-              Ikke skriv noe om jobbsøkeren her.
-            </Alert>
-            <TextField
-              label="Navn i The Candidate"
-              value={name}
-              onChange={(event) => setName(event.target.value)}
-              required
-              error={nameMissing}
-              helperText={nameMissing ? 'Skriv et navn.' : `${name.length}/${MAX_NAME_LENGTH} tegn`}
-              slotProps={{ htmlInput: { maxLength: MAX_NAME_LENGTH } }}
-              fullWidth
-              margin="normal"
-              autoFocus
-            />
-            <TextField
-              label="Kort beskrivelse"
-              value={description}
-              onChange={(event) => setDescription(event.target.value)}
-              helperText={`${description.length}/${MAX_PUBLIC_DESCRIPTION_LENGTH}`}
-              slotProps={{ htmlInput: { maxLength: MAX_PUBLIC_DESCRIPTION_LENGTH } }}
-              fullWidth
-              multiline
-              minRows={2}
-              margin="normal"
-            />
-            {error && (
-              <Alert severity="error" sx={{ mt: 1 }}>
-                {error}
-              </Alert>
-            )}
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={close} disabled={sending}>
-              Avbryt
-            </Button>
-            <Button type="submit" variant="contained" disabled={sending || nameMissing}>
-              {sending ? 'Publiserer …' : 'Publiser'}
-            </Button>
-          </DialogActions>
-        </form>
-      </Dialog>
+      <PublishToCandidateDialog
+        open={open}
+        name={name}
+        description={description}
+        sending={sending}
+        error={error}
+        onNameChange={setName}
+        onDescriptionChange={setDescription}
+        onClose={close}
+        onSubmit={() => {
+          if (nameMissing) return;
+          send(() => publishAgent(agent.id, name.trim(), description.trim()));
+        }}
+      />
     </>
   );
 }

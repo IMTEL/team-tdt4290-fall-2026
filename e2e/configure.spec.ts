@@ -7,6 +7,7 @@ import {
   fillStilling,
   goToFinish,
   pickTemplate,
+  publishFromFinish,
 } from './support/configure';
 import { createProfile } from './support/data';
 
@@ -82,11 +83,15 @@ test('a finished interviewer can be published and is listed under Agenter', asyn
   await expect(page.getByRole('textbox', { name: /^Navn på agenten/ })).toHaveValue(
     'Intervjuer for Butikkmedarbeider',
   );
-  await page.getByRole('button', { name: 'Publiser', exact: true }).click();
+  await publishFromFinish(page);
 
   await expect(page).toHaveURL(/\/browse-agents$/);
-  await expect(page.getByText('Agent lagret', { exact: true })).toBeVisible();
-  await page.getByRole('link', { name: /Intervjuer for Butikkmedarbeider/ }).click();
+  await expect(page.getByText('Agent publisert', { exact: true })).toBeVisible();
+  const card = page.getByRole('link', { name: /Intervjuer for Butikkmedarbeider/ });
+  await expect(card).toContainText('Publisert');
+  await expect(card).not.toContainText('Privat');
+  await card.click();
+  await expect(page.getByText('Publisert i The Candidate', { exact: true })).toBeVisible();
   await expect(
     page
       .getByRole('tabpanel')
@@ -142,7 +147,7 @@ test('the chosen templates fill in the answers, and the agent remembers them', a
   await page.goto('/configure');
   await goToFinish(page, { interviewer: 'Daglig leder', jobSeeker: 'Profil A' });
 
-  await page.getByRole('button', { name: 'Publiser', exact: true }).click();
+  await publishFromFinish(page);
   await page.getByRole('link', { name: /Intervjuer for Butikkmedarbeider/ }).click();
 
   await expect(
@@ -183,7 +188,7 @@ test('the language model can be chosen in the settings', async ({ page }) => {
   await expect(
     sections(page).getByRole('definition').filter({ hasText: 'mock/test-model' }),
   ).toBeVisible();
-  await page.getByRole('button', { name: 'Publiser', exact: true }).click();
+  await publishFromFinish(page);
   await page.getByRole('link', { name: /Intervjuer for Butikkmedarbeider/ }).click();
 
   await page.getByRole('tab', { name: 'Avanserte innstillinger', exact: true }).click();

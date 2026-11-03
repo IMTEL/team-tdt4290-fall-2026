@@ -13,7 +13,7 @@ const STEPS = [
   },
   {
     title: 'Publiser agenten',
-    text: 'Trykk på «Publiser» for å lagre agenten. Du finner den igjen under Agenter.',
+    text: 'Trykk på «Publiser» og skriv navn og en kort beskrivelse. Da blir agenten tilgjengelig i The Candidate, og du finner den under Agenter.',
   },
 ] as const;
 

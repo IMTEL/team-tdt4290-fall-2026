@@ -36,8 +36,13 @@ import {
 } from '@/domain/jobSeekerProfile';
 import type { LegalTemplate } from '@/domain/legalTemplate';
 import { industryNames } from '@/domain/workplaceTemplate';
-import { updateAgent } from '../browse-agents/api';
-import { AGENT_SAVED_FLASH, DRAFT_SAVED_FLASH, setAgentsFlash } from '../browse-agents/flash';
+import { publishAgent, updateAgent } from '../browse-agents/api';
+import {
+  AGENT_PUBLISHED_FLASH,
+  AGENT_SAVED_FLASH,
+  DRAFT_SAVED_FLASH,
+  setAgentsFlash,
+} from '../browse-agents/flash';
 import { fetchSavedTemplates, saveConfiguredAgent } from './api';
 import { ConfigurationChat } from './ConfigurationChat';
 import { JobSeekerStep } from './JobSeekerStep';
@@ -354,17 +359,21 @@ export function ConfigureAgent({
   }
 
   /** Creates the agent, or updates it when this wizard has already saved one. */
-  async function persist(): Promise<string | null> {
-    if (!definition || savingLock.current) return savedAgent?.id ?? null;
+  async function persist(): Promise<{ id: string } | { error: string }> {
+    if (!definition || savingLock.current) {
+      return savedAgent ? { id: savedAgent.id } : { error: 'Noe gikk galt. Prøv igjen.' };
+    }
     const trimmed = name.trim();
     if (!trimmed) {
-      setSaveError('Agenten trenger et navn.');
-      return null;
+      const message = 'Agenten trenger et navn.';
+      setSaveError(message);
+      return { error: message };
     }
     const built = builtConfiguration();
     if (!built) {
-      setSaveError('Noen obligatoriske felt mangler. Gå tilbake og fyll dem ut.');
-      return null;
+      const message = 'Noen obligatoriske felt mangler. Gå tilbake og fyll dem ut.';
+      setSaveError(message);
+      return { error: message };
     }
 
     savingLock.current = true;
@@ -397,10 +406,11 @@ export function ConfigureAgent({
           );
       setSavedAgent({ id, name: trimmed });
       clearWizardDraft();
-      return id;
+      return { id };
     } catch (error) {
-      setSaveError(error instanceof Error ? error.message : 'Noe gikk galt. Prøv igjen.');
-      return null;
+      const message = error instanceof Error ? error.message : 'Noe gikk galt. Prøv igjen.';
+      setSaveError(message);
+      return { error: message };
     } finally {
       savingLock.current = false;
       setSaving(false);
@@ -594,15 +604,28 @@ export function ConfigureAgent({
         saving={saving}
         saveError={saveError}
         onSave={() => {
-          void persist().then((id) => {
-            if (!id) return;
+          void persist().then((result) => {
+            if (!('id' in result)) return;
             setAgentsFlash(AGENT_SAVED_FLASH);
             router.push('/browse-agents');
           });
         }}
+        onPublish={async (publicName, publicDescription) => {
+          const result = await persist();
+          if (!('id' in result)) throw new Error(result.error);
+          try {
+            await publishAgent(result.id, publicName, publicDescription);
+          } catch (error) {
+            const message = error instanceof Error ? error.message : 'Noe gikk galt. Prøv igjen.';
+            setSaveError(message);
+            throw new Error(message);
+          }
+          setAgentsFlash(AGENT_PUBLISHED_FLASH);
+          router.push('/browse-agents');
+        }}
         onTest={() => {
-          void persist().then((id) => {
-            if (id) router.push(`/test-chat?agent=${encodeURIComponent(id)}`);
+          void persist().then((result) => {
+            if ('id' in result) router.push(`/test-chat?agent=${encodeURIComponent(result.id)}`);
           });
         }}
         onBack={() => goTo(2)}
