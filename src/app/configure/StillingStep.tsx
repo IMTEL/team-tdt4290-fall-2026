@@ -7,6 +7,8 @@ import TextField from '@mui/material/TextField';
 import ToggleButton from '@mui/material/ToggleButton';
 import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
 
+import { FieldHelp } from '@/components/ui/FieldHelp';
+import helpStyles from '@/components/ui/FieldHelp.module.css';
 import { SECTOR_LABELS, type IndustryTemplate, type Sector } from '@/data/industry-templates';
 import { FORM_SECTIONS, formSectionHelpHref } from './formSections';
 import styles from './StillingStep.module.css';
@@ -285,10 +287,16 @@ export function StillingStep({
         />
 
         <div className={styles.suggestions}>
-          <p className={styles.suggestionLabel} id="job-templates-label">
-            Stillingsmaler
-            <RequiredMark />
-          </p>
+          <div className={helpStyles.row}>
+            <p className={styles.suggestionLabel} id="job-templates-label">
+              Stillingsmaler
+              <RequiredMark />
+            </p>
+            <FieldHelp
+              label="Stillingsmaler"
+              description="En stillingsmal fyller inn stilling, bransje og arbeidsgiver. Du kan endre dem etterpå."
+            />
+          </div>
           <p className={styles.hint}>
             En stillingsmal fyller inn stilling, bransje og arbeidsgiver for deg. Du kan endre dem
             etterpå.
@@ -334,10 +342,16 @@ export function StillingStep({
         </div>
 
         <div className={styles.suggestions}>
-          <p className={styles.suggestionLabel} id="industry-label">
-            Bransje
-            <RequiredMark />
-          </p>
+          <div className={helpStyles.row}>
+            <p className={styles.suggestionLabel} id="industry-label">
+              Bransje
+              <RequiredMark />
+            </p>
+            <FieldHelp
+              label="Bransje"
+              description="Hvilken bransje stillingen er i, for eksempel helse eller varehandel."
+            />
+          </div>
           <div className={styles.pills} role="group" aria-labelledby="industry-label">
             <Button
               type="button"
@@ -379,10 +393,16 @@ export function StillingStep({
         </div>
 
         <div className={styles.employer}>
-          <span className={styles.suggestionLabel} id="employer-label">
-            Arbeidsgiver
-            <RequiredMark />
-          </span>
+          <div className={helpStyles.row}>
+            <span className={styles.suggestionLabel} id="employer-label">
+              Arbeidsgiver
+              <RequiredMark />
+            </span>
+            <FieldHelp
+              label="Arbeidsgiver"
+              description="Om arbeidsgiveren er offentlig, privat, eller ikke oppgitt."
+            />
+          </div>
           <ToggleButtonGroup
             exclusive
             size="small"
@@ -399,13 +419,19 @@ export function StillingStep({
           </ToggleButtonGroup>
         </div>
 
-        <TextField
-          label="Bedrift (valgfritt)"
-          value={value.company}
-          onChange={(event) => onChange({ ...value, company: event.target.value })}
-          helperText="Du kan hoppe over dette. Intervjueren bruker da en generell bedrift."
-          fullWidth
-        />
+        <div className={styles.fieldWithHelp}>
+          <TextField
+            label="Bedrift (valgfritt)"
+            value={value.company}
+            onChange={(event) => onChange({ ...value, company: event.target.value })}
+            helperText="Du kan hoppe over dette. Intervjueren bruker da en generell bedrift."
+            fullWidth
+          />
+          <FieldHelp
+            label="Bedrift"
+            description="Navnet på bedriften intervjuet er hos. Valgfritt. Uten navn bruker intervjueren en generell bedrift."
+          />
+        </div>
 
         <div className={styles.actions}>
           <div className={styles.nav}>

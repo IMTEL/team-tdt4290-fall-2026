@@ -382,7 +382,7 @@ export function ConfigureAgent({
     const advanced: AdvancedSettings = {
       model: settings.model,
       temperature: settings.temperature,
-      customPrompt: settings.customPrompt?.trim() ? settings.customPrompt : null,
+      customPrompt: null,
     };
     try {
       const id = savedAgent

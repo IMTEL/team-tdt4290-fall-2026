@@ -9,6 +9,8 @@ import Chip from '@mui/material/Chip';
 import TextField from '@mui/material/TextField';
 
 import cardStyles from '@/components/templates/TemplatePicker.module.css';
+import { FieldHelp } from '@/components/ui/FieldHelp';
+import helpStyles from '@/components/ui/FieldHelp.module.css';
 import {
   parseOtherPractice,
   PRACTICE_CHOICES,
@@ -68,9 +70,15 @@ export function JobSeekerStep({
       <div className={stepStyles.form}>
         {intro}
         <section aria-labelledby="profile-picker-heading" className={cardStyles.picker}>
-          <h2 id="profile-picker-heading" className={cardStyles.heading}>
-            Velg en jobbsøkermal
-          </h2>
+          <div className={helpStyles.row}>
+            <h2 id="profile-picker-heading" className={cardStyles.heading}>
+              Velg en jobbsøkermal
+            </h2>
+            <FieldHelp
+              label="Jobbsøkermal"
+              description="En mal som beskriver en anonym jobbsøker. Uten mal blir du spurt om hvem jobbsøkeren er senere."
+            />
+          </div>
           <p className={cardStyles.lead}>
             Malen bestemmer hvem jobbsøkeren er. Uten mal spør assistenten deg om det.
           </p>
@@ -130,14 +138,20 @@ export function JobSeekerStep({
           </Button>
         </div>
         <div className={stepStyles.suggestions}>
-          <p className={stepStyles.practiceHeading} id="practice-heading">
-            Hva skal jobbsøkeren øve på?
-            {practiceCount(practiceAreas, otherOpen, otherPractice) > 0 && (
-              <span className={stepStyles.countBadge}>
-                {practiceCount(practiceAreas, otherOpen, otherPractice)}
-              </span>
-            )}
-          </p>
+          <div className={helpStyles.row}>
+            <p className={stepStyles.practiceHeading} id="practice-heading">
+              Hva skal jobbsøkeren øve på?
+              {practiceCount(practiceAreas, otherOpen, otherPractice) > 0 && (
+                <span className={stepStyles.countBadge}>
+                  {practiceCount(practiceAreas, otherOpen, otherPractice)}
+                </span>
+              )}
+            </p>
+            <FieldHelp
+              label="øvingsområder"
+              description="Tema jobbsøkeren skal øve på i dette intervjuet. Gjelder bare denne agenten, ikke malen."
+            />
+          </div>
           <div className={stepStyles.pills} role="group" aria-labelledby="practice-heading">
             {PRACTICE_CHOICES.map((choice) => {
               const selected = practiceAreas.includes(choice.id);
@@ -172,14 +186,20 @@ export function JobSeekerStep({
             </Button>
           </div>
           {otherOpen && (
-            <TextField
-              label="Andre områder"
-              value={otherPractice}
-              onChange={(event) => onOtherPracticeChange(event.target.value)}
-              fullWidth
-              helperText="Skriv komma mellom hver ting."
-              slotProps={{ formHelperText: { className: stepStyles.commaHint } }}
-            />
+            <div className={stepStyles.fieldWithHelp}>
+              <TextField
+                label="Andre områder"
+                value={otherPractice}
+                onChange={(event) => onOtherPracticeChange(event.target.value)}
+                fullWidth
+                helperText="Skriv komma mellom hver ting."
+                slotProps={{ formHelperText: { className: stepStyles.commaHint } }}
+              />
+              <FieldHelp
+                label="Andre områder"
+                description="Egne tema jobbsøkeren skal øve på, i tillegg til valgene over. Skill med komma."
+              />
+            </div>
           )}
           <p className={stepStyles.hint}>Gjelder denne agenten. Malen endres ikke.</p>
         </div>

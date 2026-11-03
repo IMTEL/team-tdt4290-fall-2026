@@ -10,6 +10,8 @@ import DialogContentText from '@mui/material/DialogContentText';
 import DialogTitle from '@mui/material/DialogTitle';
 import TextField from '@mui/material/TextField';
 
+import { FieldHelp } from '@/components/ui/FieldHelp';
+import helpStyles from '@/components/ui/FieldHelp.module.css';
 import { MAX_NAME_LENGTH } from '@/domain/agentName';
 import { MAX_PUBLIC_DESCRIPTION_LENGTH } from '@/domain/publication';
 
@@ -60,29 +62,41 @@ export function PublishToCandidateDialog({
           <Alert severity="warning" sx={{ mt: 2 }}>
             Ikke skriv noe om jobbsøkeren her.
           </Alert>
-          <TextField
-            label="Navn i The Candidate"
-            value={name}
-            onChange={(event) => onNameChange(event.target.value)}
-            required
-            error={nameMissing}
-            helperText={nameMissing ? 'Skriv et navn.' : `${name.length}/${MAX_NAME_LENGTH} tegn`}
-            slotProps={{ htmlInput: { maxLength: MAX_NAME_LENGTH } }}
-            fullWidth
-            margin="normal"
-            autoFocus
-          />
-          <TextField
-            label="Kort beskrivelse"
-            value={description}
-            onChange={(event) => onDescriptionChange(event.target.value)}
-            helperText={`${description.length}/${MAX_PUBLIC_DESCRIPTION_LENGTH}`}
-            slotProps={{ htmlInput: { maxLength: MAX_PUBLIC_DESCRIPTION_LENGTH } }}
-            fullWidth
-            multiline
-            minRows={2}
-            margin="normal"
-          />
+          <div className={helpStyles.besideInput}>
+            <TextField
+              label="Navn i The Candidate"
+              value={name}
+              onChange={(event) => onNameChange(event.target.value)}
+              required
+              error={nameMissing}
+              helperText={nameMissing ? 'Skriv et navn.' : `${name.length}/${MAX_NAME_LENGTH} tegn`}
+              slotProps={{ htmlInput: { maxLength: MAX_NAME_LENGTH } }}
+              fullWidth
+              margin="normal"
+              autoFocus
+            />
+            <FieldHelp
+              label="Navn i The Candidate"
+              description="Navnet jobbsøkere ser når de velger intervjuer i The Candidate."
+            />
+          </div>
+          <div className={helpStyles.besideInput}>
+            <TextField
+              label="Kort beskrivelse"
+              value={description}
+              onChange={(event) => onDescriptionChange(event.target.value)}
+              helperText={`${description.length}/${MAX_PUBLIC_DESCRIPTION_LENGTH}`}
+              slotProps={{ htmlInput: { maxLength: MAX_PUBLIC_DESCRIPTION_LENGTH } }}
+              fullWidth
+              multiline
+              minRows={2}
+              margin="normal"
+            />
+            <FieldHelp
+              label="Kort beskrivelse"
+              description="En kort tekst jobbsøkere ser sammen med navnet. Ikke skriv noe om jobbsøkeren."
+            />
+          </div>
           {error && (
             <Alert severity="error" sx={{ mt: 1 }}>
               {error}

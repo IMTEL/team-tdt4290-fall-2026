@@ -80,7 +80,7 @@ test('a saved template can be edited', async ({ page }) => {
   await page.getByRole('button', { name: 'Lagre endringene', exact: true }).click();
   await expect(page).toHaveURL(/\/configure\?type=interviewer&step=intervjuer/);
   await expect(
-    page.getByRole('heading', { level: 2, name: 'Velg en mal', exact: true }),
+    page.getByRole('heading', { level: 2, name: 'Velg en intervjuermal', exact: true }),
   ).toBeVisible();
   await expect(page.getByText('Ny beskrivelse.')).toBeVisible();
   await expect(page.getByText('Gammel beskrivelse.')).toBeHidden();
@@ -101,7 +101,7 @@ test('a saved template can be deleted after confirming', async ({ page }) => {
   await expect(card).toBeHidden();
   await page.reload();
   await expect(
-    page.getByRole('heading', { level: 2, name: 'Velg en mal', exact: true }),
+    page.getByRole('heading', { level: 2, name: 'Velg en intervjuermal', exact: true }),
   ).toBeVisible();
   await expect(card).toBeHidden();
 });

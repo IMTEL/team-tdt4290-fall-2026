@@ -157,7 +157,9 @@ describe('/configure', () => {
       screen.getByRole('heading', { level: 2, name: 'Hva slags agent vil du sette opp?' }),
     ).toBeVisible();
     expect(screen.getByRole('button', { name: /^Intervjuer/ })).toBeInTheDocument();
-    expect(screen.queryByRole('heading', { name: 'Velg en mal' })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('heading', { name: 'Velg en intervjuermal' }),
+    ).not.toBeInTheDocument();
     expect(screen.queryByRole('log', { name: 'Samtale' })).not.toBeInTheDocument();
   });
 
@@ -183,9 +185,15 @@ describe('/configure', () => {
     expect(within(jobs).getAllByRole('button')[0]).toHaveAccessibleName('Ingen mal');
     expect(within(industries).getAllByRole('button')[0]).toHaveAccessibleName('Ingen bransje');
     expect(screen.getByRole('button', { name: 'Neste' })).toBeDisabled();
-    expect(screen.getByText(/Stillingsmaler/)).toHaveTextContent('*');
-    expect(screen.getByText(/^Bransje/)).toHaveTextContent('*');
-    expect(screen.getByText(/Arbeidsgiver/)).toHaveTextContent('*');
+    expect(document.getElementById('job-templates-label')).toHaveTextContent('*');
+    expect(document.getElementById('industry-label')).toHaveTextContent('*');
+    expect(document.getElementById('employer-label')).toHaveTextContent('*');
+    await userEvent
+      .setup()
+      .hover(screen.getByRole('button', { name: 'Hva betyr Stillingsmaler?' }));
+    expect(
+      await screen.findByRole('tooltip', { name: /En stillingsmal fyller inn/ }),
+    ).toBeVisible();
     expect(
       screen.queryByRole('heading', { name: 'Hva slags agent vil du sette opp?' }),
     ).not.toBeInTheDocument();
@@ -285,7 +293,7 @@ describe('/configure', () => {
     const user = await openAsInterviewer();
 
     expect(screen.getByText('Intervjuer', { selector: 'strong' })).toBeVisible();
-    expect(screen.getByRole('heading', { level: 2, name: 'Velg en mal' })).toBeVisible();
+    expect(screen.getByRole('heading', { level: 2, name: 'Velg en intervjuermal' })).toBeVisible();
 
     await user.click(screen.getByRole('button', { name: 'Bytt agenttype' }));
 
@@ -297,7 +305,7 @@ describe('/configure', () => {
   it('returns to the interviewer step when the link asks for it', async () => {
     await renderPage('interviewer', 'intervjuer');
 
-    expect(screen.getByRole('heading', { level: 2, name: 'Velg en mal' })).toBeVisible();
+    expect(screen.getByRole('heading', { level: 2, name: 'Velg en intervjuermal' })).toBeVisible();
     expect(screen.getByRole('link', { name: 'Lag en ny intervjuermal' })).toHaveAttribute(
       'href',
       '/create-template?agentType=interviewer&returnTo=%2Fconfigure%3Ftype%3Dinterviewer%26step%3Dintervjuer',
@@ -350,7 +358,7 @@ describe('/configure', () => {
 
     await user.click(screen.getByRole('button', { name: 'Intervjuer' }));
 
-    expect(screen.getByRole('heading', { level: 2, name: 'Velg en mal' })).toBeVisible();
+    expect(screen.getByRole('heading', { level: 2, name: 'Velg en intervjuermal' })).toBeVisible();
     expect(screen.getByRole('radio', { name: /Teamleder/ })).toBeChecked();
     // Jumping back must not reset the side progress or clear later section marks.
     expect(screen.getByText('4 av 5 seksjoner')).toBeVisible();
@@ -639,7 +647,7 @@ describe('/configure', () => {
     await openAsInterviewer();
 
     const saved = await screen.findByRole('radio', { name: /^Min butikksjef/ });
-    const picker = screen.getByRole('region', { name: 'Velg en mal' });
+    const picker = screen.getByRole('region', { name: 'Velg en intervjuermal' });
     const cards = within(picker).getAllByRole('listitem');
     expect(cards.at(-1)).toContainElement(saved);
     expect(screen.getByRole('radio', { name: /Teamleder/ })).toBeInTheDocument();
@@ -804,7 +812,9 @@ describe('/configure', () => {
 
     await renderPage('interviewer');
 
-    expect(await screen.findByRole('heading', { level: 2, name: 'Velg en mal' })).toBeVisible();
+    expect(
+      await screen.findByRole('heading', { level: 2, name: 'Velg en intervjuermal' }),
+    ).toBeVisible();
     await userEvent.setup().click(screen.getByRole('button', { name: 'Stilling og arbeidsplass' }));
     expect(screen.getByRole('textbox', { name: /Stilling/ })).toHaveValue('Barnehageassistent');
   });

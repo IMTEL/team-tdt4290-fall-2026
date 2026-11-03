@@ -8,6 +8,8 @@ import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
 
 import { AdvancedSettingsFields } from '@/components/agents/AdvancedSettingsFields';
 import { useLanguageModels } from '@/components/agents/useLanguageModels';
+import { FieldHelp } from '@/components/ui/FieldHelp';
+import helpStyles from '@/components/ui/FieldHelp.module.css';
 import {
   type AdvancedSettings,
   advancedSettingsErrors,
@@ -118,7 +120,7 @@ export function SettingsStep({
   const advanced: AdvancedSettings = {
     model: value.model,
     temperature: value.temperature,
-    customPrompt: value.customPrompt,
+    customPrompt: null,
   };
 
   return (
@@ -133,7 +135,7 @@ export function SettingsStep({
           intro={intro}
           onBack={onFinishBack}
           effects={effects}
-          customPrompt={Boolean(value.customPrompt?.trim())}
+          customPrompt={false}
           avatar={avatar}
           onAvatarChange={onAvatarChange}
           name={name}
@@ -162,6 +164,7 @@ export function SettingsStep({
         <Pills
           required
           label="Intervjutype"
+          help="Første intervju er kort og bli-kjent. Andre intervju er mer faglig og dyptgående."
           value={value.interviewType}
           options={INTERVIEW_TYPES}
           onChange={(interviewType) =>
@@ -174,6 +177,7 @@ export function SettingsStep({
         <Pills
           required
           label="Vanskelighetsgrad"
+          help="Hvor krevende spørsmålene skal være for jobbsøkeren."
           value={value.difficulty}
           options={DIFFICULTIES}
           onChange={(difficulty) =>
@@ -183,6 +187,7 @@ export function SettingsStep({
         <Pills
           required
           label="Antall spørsmål"
+          help="Hvor mange spørsmål intervjueren skal stille i intervjuet."
           value={value.questionCount}
           options={QUESTION_COUNTS.map((count) => ({ id: count, label: count }))}
           onChange={(questionCount) =>
@@ -193,22 +198,36 @@ export function SettingsStep({
           }
         >
           {value.questionCount === '10+' && (
-            <TextField
-              label="Spesifiser antall"
-              value={value.questionCountDetail}
-              onChange={(event) => onChange({ ...value, questionCountDetail: event.target.value })}
-              helperText="Skriv hvor mange spørsmål, for eksempel 12."
-              required
-              fullWidth
-            />
+            <div className={stepStyles.fieldWithHelp}>
+              <TextField
+                label="Spesifiser antall"
+                value={value.questionCountDetail}
+                onChange={(event) =>
+                  onChange({ ...value, questionCountDetail: event.target.value })
+                }
+                helperText="Skriv hvor mange spørsmål, for eksempel 12."
+                required
+                fullWidth
+              />
+              <FieldHelp
+                label="Spesifiser antall"
+                description="Det nøyaktige antallet spørsmål når du velger 10 eller flere."
+              />
+            </div>
           )}
         </Pills>
 
         <div className={stepStyles.employer}>
-          <span className={stepStyles.suggestionLabel} id="follow-up-label">
-            Oppfølgingsspørsmål
-            <RequiredMark />
-          </span>
+          <div className={helpStyles.row}>
+            <span className={stepStyles.suggestionLabel} id="follow-up-label">
+              Oppfølgingsspørsmål
+              <RequiredMark />
+            </span>
+            <FieldHelp
+              label="Oppfølgingsspørsmål"
+              description="Om intervjueren skal stille oppfølgingsspørsmål etter jobbsøkerens svar."
+            />
+          </div>
           <ToggleButtonGroup
             exclusive
             size="small"
@@ -224,31 +243,44 @@ export function SettingsStep({
           </ToggleButtonGroup>
         </div>
 
-        <TextField
-          label="Egne spørsmål"
-          value={value.ownQuestions}
-          onChange={(event) => onChange({ ...value, ownQuestions: event.target.value })}
-          helperText="Spørsmål som må være med. Du kan hoppe over dette."
-          multiline
-          minRows={2}
-          fullWidth
-        />
-        <TextField
-          label="Tillegg"
-          value={value.extra}
-          onChange={(event) => onChange({ ...value, extra: event.target.value })}
-          helperText="Noe mer du vil legge til. Du kan hoppe over dette."
-          multiline
-          minRows={2}
-          fullWidth
-        />
+        <div className={stepStyles.fieldWithHelp}>
+          <TextField
+            label="Egne spørsmål"
+            value={value.ownQuestions}
+            onChange={(event) => onChange({ ...value, ownQuestions: event.target.value })}
+            helperText="Spørsmål som må være med. Du kan hoppe over dette."
+            multiline
+            minRows={2}
+            fullWidth
+          />
+          <FieldHelp
+            label="Egne spørsmål"
+            description="Spørsmål som må være med i intervjuet. Valgfritt."
+          />
+        </div>
+        <div className={stepStyles.fieldWithHelp}>
+          <TextField
+            label="Tillegg"
+            value={value.extra}
+            onChange={(event) => onChange({ ...value, extra: event.target.value })}
+            helperText="Noe mer du vil legge til. Du kan hoppe over dette."
+            multiline
+            minRows={2}
+            fullWidth
+          />
+          <FieldHelp
+            label="Tillegg"
+            description="Noe mer intervjueren skal vite eller gjøre. Valgfritt."
+          />
+        </div>
 
         <AdvancedSettingsFields
           value={advanced}
-          onChange={(next) => onChange({ ...value, ...next })}
+          onChange={(next) => onChange({ ...value, ...next, customPrompt: null })}
           builtPrompt=""
           languageModels={languageModels}
           errors={advancedSettingsErrors(advanced, languageModels.models)}
+          allowCustomPrompt={false}
         />
 
         <div className={stepStyles.actions}>
@@ -289,6 +321,7 @@ function RequiredMark() {
 
 function Pills({
   label,
+  help,
   options,
   value,
   onChange,
@@ -296,6 +329,7 @@ function Pills({
   required = false,
 }: {
   label: string;
+  help: string;
   options: readonly { id: string; label: string }[];
   value: string | null;
   onChange: (id: string) => void;
@@ -304,10 +338,13 @@ function Pills({
 }) {
   return (
     <div className={stepStyles.suggestions}>
-      <p className={stepStyles.suggestionLabel}>
-        {label}
-        {required && <RequiredMark />}
-      </p>
+      <div className={helpStyles.row}>
+        <p className={stepStyles.suggestionLabel}>
+          {label}
+          {required && <RequiredMark />}
+        </p>
+        <FieldHelp label={label} description={help} />
+      </div>
       <div className={stepStyles.pills}>
         {options.map((option) => {
           const selected = value === option.id;

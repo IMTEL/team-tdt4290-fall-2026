@@ -113,11 +113,12 @@ export function SaveAgentForm({
             </div>
             <AdvancedSettingsFields
               value={settings}
-              onChange={setSettings}
+              onChange={(next) => setSettings({ ...next, customPrompt: null })}
               builtPrompt={definition.buildPrompt(configuration)}
               languageModels={languageModels}
               errors={settingsErrors}
               disabled={isSaving}
+              allowCustomPrompt={false}
             />
           </>
         )}

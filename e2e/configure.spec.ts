@@ -53,7 +53,7 @@ test('the stilling step needs a job title, a job template, an industry and an em
 
   await next.click();
   await expect(
-    page.getByRole('heading', { level: 2, name: 'Velg en mal', exact: true }),
+    page.getByRole('heading', { level: 2, name: 'Velg en intervjuermal', exact: true }),
   ).toBeVisible();
 });
 
@@ -222,7 +222,7 @@ test('an unfinished interviewer can be saved as a draft and continued', async ({
 
   await draft.click();
   await expect(
-    page.getByRole('heading', { level: 2, name: 'Velg en mal', exact: true }),
+    page.getByRole('heading', { level: 2, name: 'Velg en intervjuermal', exact: true }),
   ).toBeVisible();
   await sections(page)
     .getByRole('button', { name: 'Stilling og arbeidsplass', exact: true })

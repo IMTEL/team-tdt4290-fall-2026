@@ -22,10 +22,12 @@ function Harness({
   initial = DEFAULT_ADVANCED_SETTINGS,
   models = languageModels,
   onChange = () => {},
+  allowCustomPrompt = true,
 }: {
   initial?: AdvancedSettings;
   models?: LanguageModels;
   onChange?: (settings: AdvancedSettings) => void;
+  allowCustomPrompt?: boolean;
 }) {
   const [value, setValue] = useState(initial);
   return (
@@ -38,6 +40,7 @@ function Harness({
       builtPrompt="Du er en intervjuer bygget fra svarene."
       languageModels={models}
       errors={advancedSettingsErrors(value, models.models)}
+      allowCustomPrompt={allowCustomPrompt}
     />
   );
 }
@@ -123,6 +126,22 @@ describe('AdvancedSettingsFields', () => {
 
     expect(onChange).toHaveBeenLastCalledWith(DEFAULT_ADVANCED_SETTINGS);
     expect(screen.getByRole('textbox', { name: 'Verdi' })).toHaveValue('0,7');
+  });
+
+  it('hides the hand-written prompt when configuring a new agent', async () => {
+    const user = userEvent.setup();
+    render(<Harness allowCustomPrompt={false} />);
+
+    expect(screen.getByText('openai/gpt-oss-120b · temperatur 0,7')).toBeVisible();
+    expect(screen.queryByText(/prompt fra svarene/)).not.toBeInTheDocument();
+
+    await open(user);
+
+    expect(
+      screen.queryByRole('switch', { name: 'Skriv systemprompten selv' }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByRole('textbox', { name: 'Systemprompt' })).not.toBeInTheDocument();
+    expect(screen.queryByText('Du er en intervjuer bygget fra svarene.')).not.toBeInTheDocument();
   });
 
   it('says when the list of models could not be loaded', async () => {

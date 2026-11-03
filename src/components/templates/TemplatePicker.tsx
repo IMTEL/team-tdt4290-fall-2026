@@ -7,6 +7,8 @@ import CardActionArea from '@mui/material/CardActionArea';
 import CardActions from '@mui/material/CardActions';
 import Chip from '@mui/material/Chip';
 
+import { FieldHelp } from '@/components/ui/FieldHelp';
+import helpStyles from '@/components/ui/FieldHelp.module.css';
 import type { AgentTemplate } from '@/data/templates';
 import { withReturnTo } from '@/lib/returnTo';
 import { DeleteTemplateButton } from './DeleteTemplateButton';
@@ -125,9 +127,15 @@ export function TemplatePicker({
         </>
       )}
 
-      <h2 id="template-picker-heading" className={styles.heading}>
-        Velg en mal
-      </h2>
+      <div className={helpStyles.row}>
+        <h2 id="template-picker-heading" className={styles.heading}>
+          {agentType === 'interviewer' ? 'Velg en intervjuermal' : 'Velg en mal'}
+        </h2>
+        <FieldHelp
+          label="Intervjuermal"
+          description="Hvem som intervjuer jobbsøkeren, og hvordan hen er. Uten mal blir du spurt om dette senere."
+        />
+      </div>
       <p className={styles.lead}>{lead}</p>
 
       {asRadios ? (

@@ -1,11 +1,13 @@
 'use client';
 
+import { useId } from 'react';
 import Link from 'next/link';
 import Checkbox from '@mui/material/Checkbox';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import FormHelperText from '@mui/material/FormHelperText';
 
 import { templatesSectionHref } from '@/app/templates/sectionOpen';
+import { FieldHelp } from '@/components/ui/FieldHelp';
 import { LEGAL_TEMPLATE_LIMITS, type LegalTemplate } from '@/domain/legalTemplate';
 import styles from './LegalTemplateSelect.module.css';
 
@@ -28,6 +30,7 @@ export function LegalTemplateSelect({
   helperText,
   disabled = false,
 }: LegalTemplateSelectProps) {
+  const labelId = useId();
   const full = value.length >= LEGAL_TEMPLATE_LIMITS.perAgent;
 
   function toggle(id: string, checked: boolean) {
@@ -35,8 +38,14 @@ export function LegalTemplateSelect({
   }
 
   return (
-    <fieldset className={styles.fieldset} disabled={disabled}>
-      <legend className={styles.legend}>Lovverk</legend>
+    <fieldset className={styles.fieldset} disabled={disabled} aria-labelledby={labelId}>
+      <legend className={styles.legend}>
+        <span id={labelId}>Lovverk</span>
+        <FieldHelp
+          label="Lovverk"
+          description="Lover og regler intervjueren skal følge, for eksempel hva den ikke skal spørre om. Valgfritt."
+        />
+      </legend>
       <div className={styles.options}>
         {templates.map((template) => {
           const checked = value.includes(template.id);

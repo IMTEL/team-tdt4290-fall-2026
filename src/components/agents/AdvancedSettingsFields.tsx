@@ -15,6 +15,8 @@ import Switch from '@mui/material/Switch';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 
+import { FieldHelp } from '@/components/ui/FieldHelp';
+import helpStyles from '@/components/ui/FieldHelp.module.css';
 import {
   type AdvancedSettings,
   type AdvancedSettingsErrors,
@@ -35,11 +37,16 @@ type AdvancedSettingsFieldsProps = {
   languageModels: LanguageModels;
   errors: AdvancedSettingsErrors;
   disabled?: boolean;
+  /**
+   * Off on /configure: the prompt always comes from the answers. On while editing a saved agent.
+   */
+  allowCustomPrompt?: boolean;
 };
 
 /**
- * "Advanced settings" for experienced counsellors: the language model, the temperature and a
- * system prompt written by hand. Closed until opened, so other counsellors are not bothered.
+ * "Advanced settings" for experienced counsellors: the language model, the temperature and, when
+ * editing, a system prompt written by hand. Closed until opened, so other counsellors are not
+ * bothered.
  */
 export function AdvancedSettingsFields({
   value,
@@ -48,6 +55,7 @@ export function AdvancedSettingsFields({
   languageModels,
   errors,
   disabled = false,
+  allowCustomPrompt = true,
 }: AdvancedSettingsFieldsProps) {
   const modelLabelId = useId();
   // The text in the number field, kept apart so "0," can be typed on the way to "0,5".
@@ -90,7 +98,7 @@ export function AdvancedSettingsFields({
             {hasErrors
               ? // English translation: Something in the settings needs fixing
                 'Noe i innstillingene må rettes'
-              : summaryText(value)}
+              : summaryText(value, allowCustomPrompt)}
           </Typography>
         </div>
       </AccordionSummary>
@@ -101,36 +109,48 @@ export function AdvancedSettingsFields({
           For erfarne brukere. Standardverdiene fungerer godt for de fleste intervjuer.
         </Typography>
 
-        <FormControl fullWidth disabled={disabled} error={Boolean(errors.model)}>
-          {/* English translation: Language model */}
-          <InputLabel id={modelLabelId}>Språkmodell</InputLabel>
-          <Select
-            labelId={modelLabelId}
+        <div className={styles.fieldWithHelp}>
+          <FormControl fullWidth disabled={disabled} error={Boolean(errors.model)}>
+            {/* English translation: Language model */}
+            <InputLabel id={modelLabelId}>Språkmodell</InputLabel>
+            <Select
+              labelId={modelLabelId}
+              label="Språkmodell"
+              value={value.model}
+              onChange={(event) => onChange({ ...value, model: event.target.value })}
+            >
+              {languageModels.models.map((model) => (
+                <MenuItem key={model} value={model}>
+                  {model}
+                </MenuItem>
+              ))}
+            </Select>
+            <FormHelperText>
+              {errors.model ??
+                (languageModels.failed
+                  ? // English translation: Could not load the list of models. You can still keep the current model.
+                    'Fikk ikke hentet listen over modeller. Du kan fortsatt beholde modellen du har.'
+                  : // English translation: The models come from IDUN, NTNU's own servers.
+                    'Modellene kommer fra IDUN, NTNUs egne servere.')}
+            </FormHelperText>
+          </FormControl>
+          <FieldHelp
             label="Språkmodell"
-            value={value.model}
-            onChange={(event) => onChange({ ...value, model: event.target.value })}
-          >
-            {languageModels.models.map((model) => (
-              <MenuItem key={model} value={model}>
-                {model}
-              </MenuItem>
-            ))}
-          </Select>
-          <FormHelperText>
-            {errors.model ??
-              (languageModels.failed
-                ? // English translation: Could not load the list of models. You can still keep the current model.
-                  'Fikk ikke hentet listen over modeller. Du kan fortsatt beholde modellen du har.'
-                : // English translation: The models come from IDUN, NTNU's own servers.
-                  'Modellene kommer fra IDUN, NTNUs egne servere.')}
-          </FormHelperText>
-        </FormControl>
+            description="Hvilken språkmodell som skriver intervjuerens svar. Modellene kjører på IDUN, NTNUs egne servere."
+          />
+        </div>
 
         <div>
-          <Typography id={`${modelLabelId}-temperature`} gutterBottom>
-            {/* English translation: Temperature */}
-            Temperatur
-          </Typography>
+          <div className={helpStyles.row}>
+            <Typography id={`${modelLabelId}-temperature`} gutterBottom>
+              {/* English translation: Temperature */}
+              Temperatur
+            </Typography>
+            <FieldHelp
+              label="Temperatur"
+              description="Hvor varierte svarene blir. Lav er mer forutsigbar, høy mer variert."
+            />
+          </div>
           <div className={styles.temperature}>
             <Slider
               aria-labelledby={`${modelLabelId}-temperature`}
@@ -164,56 +184,58 @@ export function AdvancedSettingsFields({
           </FormHelperText>
         </div>
 
-        <div>
-          <FormControlLabel
-            control={
-              <Switch
-                checked={writesPrompt}
-                disabled={disabled}
-                onChange={(event) => setWritesPrompt(event.target.checked)}
-              />
-            }
-            // English translation: Write the system prompt myself
-            label="Skriv systemprompten selv"
-          />
-          {writesPrompt ? (
-            <TextField
-              // English translation: System prompt
-              label="Systemprompt"
-              value={value.customPrompt ?? ''}
-              onChange={(event) => onChange({ ...value, customPrompt: event.target.value })}
-              multiline
-              minRows={8}
-              maxRows={20}
-              fullWidth
-              disabled={disabled}
-              error={Boolean(errors.customPrompt)}
-              helperText={
-                errors.customPrompt ??
-                // English translation: The answers no longer change the prompt. Check that it still
-                // tells the agent not to ask for personal data.
-                `Svarene endrer ikke lenger prompten. Pass på at den fortsatt ber agenten ikke spørre om personopplysninger. ${(value.customPrompt ?? '').length}/${MAX_PROMPT_LENGTH} tegn`
+        {allowCustomPrompt && (
+          <div>
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={writesPrompt}
+                  disabled={disabled}
+                  onChange={(event) => setWritesPrompt(event.target.checked)}
+                />
               }
-              className={styles.promptField}
+              // English translation: Write the system prompt myself
+              label="Skriv systemprompten selv"
             />
-          ) : builtPrompt ? (
-            <>
+            {writesPrompt ? (
+              <TextField
+                // English translation: System prompt
+                label="Systemprompt"
+                value={value.customPrompt ?? ''}
+                onChange={(event) => onChange({ ...value, customPrompt: event.target.value })}
+                multiline
+                minRows={8}
+                maxRows={20}
+                fullWidth
+                disabled={disabled}
+                error={Boolean(errors.customPrompt)}
+                helperText={
+                  errors.customPrompt ??
+                  // English translation: The answers no longer change the prompt. Check that it still
+                  // tells the agent not to ask for personal data.
+                  `Svarene endrer ikke lenger prompten. Pass på at den fortsatt ber agenten ikke spørre om personopplysninger. ${(value.customPrompt ?? '').length}/${MAX_PROMPT_LENGTH} tegn`
+                }
+                className={styles.promptField}
+              />
+            ) : builtPrompt ? (
+              <>
+                <FormHelperText>
+                  {/* English translation: The prompt is made from the answers. This is how it looks now: */}
+                  Prompten lages fra svarene. Slik ser den ut nå:
+                </FormHelperText>
+                {/* It scrolls, so it takes keyboard focus to be scrolled with the arrow keys. */}
+                <pre className={styles.prompt} tabIndex={0} role="region" aria-label="Systemprompt">
+                  {builtPrompt}
+                </pre>
+              </>
+            ) : (
               <FormHelperText>
-                {/* English translation: The prompt is made from the answers. This is how it looks now: */}
-                Prompten lages fra svarene. Slik ser den ut nå:
+                {/* English translation: The prompt is made from the answers. */}
+                Prompten lages fra svarene.
               </FormHelperText>
-              {/* It scrolls, so it takes keyboard focus to be scrolled with the arrow keys. */}
-              <pre className={styles.prompt} tabIndex={0} role="region" aria-label="Systemprompt">
-                {builtPrompt}
-              </pre>
-            </>
-          ) : (
-            <FormHelperText>
-              {/* English translation: The prompt is made from the answers. */}
-              Prompten lages fra svarene.
-            </FormHelperText>
-          )}
-        </div>
+            )}
+          </div>
+        )}
 
         <div className={styles.actions}>
           <Button onClick={reset} disabled={disabled}>
@@ -240,8 +262,10 @@ function sliderValue(temperature: number): number {
 }
 
 /** One line under the heading, so the settings can be checked without opening the section. */
-function summaryText(settings: AdvancedSettings): string {
+function summaryText(settings: AdvancedSettings, allowCustomPrompt: boolean): string {
+  const base = `${settings.model} · temperatur ${formatTemperature(settings.temperature)}`;
+  if (!allowCustomPrompt) return base;
   // English translation: <model> · temperature <t> · own system prompt / prompt from the answers
   const prompt = settings.customPrompt !== null ? 'egen systemprompt' : 'prompt fra svarene';
-  return `${settings.model} · temperatur ${formatTemperature(settings.temperature)} · ${prompt}`;
+  return `${base} · ${prompt}`;
 }

@@ -97,6 +97,21 @@
   color: var(--muted-foreground);
 }
 
+.fieldWithHelp {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-1);
+}
+
+.fieldWithHelp > :first-child {
+  flex: 1;
+  min-width: 0;
+}
+
+.fieldWithHelp > :last-child {
+  margin-top: 0.65rem;
+}
+
 .commaHint {
   color: var(--foreground) !important;
   font-size: 1rem !important;

@@ -8,6 +8,8 @@ import TextField from '@mui/material/TextField';
 import { AnswerEffects } from '@/components/agents/AnswerEffects';
 import { AvatarPicker } from '@/components/agents/AvatarPicker';
 import { PublishToCandidateDialog } from '@/components/agents/PublishToCandidateDialog';
+import { FieldHelp } from '@/components/ui/FieldHelp';
+import helpStyles from '@/components/ui/FieldHelp.module.css';
 import { formatTemperature } from '@/domain/advancedSettings';
 import { MAX_NAME_LENGTH } from '@/domain/agentName';
 import type { AnswerEffect } from '@/domain/agentTypes/types';
@@ -199,19 +201,31 @@ export function FinishActions({
         </section>
       )}
       <div className={stepStyles.avatars}>
-        <p className={stepStyles.avatarLabel}>Velg en avatar for intervjueren</p>
+        <div className={helpStyles.row}>
+          <p className={stepStyles.avatarLabel}>Velg en avatar for intervjueren</p>
+          <FieldHelp
+            label="Avatar"
+            description="Bildet som vises for intervjueren i listen og i The Candidate."
+          />
+        </div>
         <AvatarPicker value={avatar} onChange={onAvatarChange} disabled={busy} />
       </div>
-      <TextField
-        label="Navn på agenten"
-        value={name}
-        onChange={(event) => onNameChange(event.target.value)}
-        required
-        fullWidth
-        disabled={busy}
-        helperText={`${name.length}/${MAX_NAME_LENGTH} tegn`}
-        slotProps={{ htmlInput: { maxLength: MAX_NAME_LENGTH } }}
-      />
+      <div className={stepStyles.fieldWithHelp}>
+        <TextField
+          label="Navn på agenten"
+          value={name}
+          onChange={(event) => onNameChange(event.target.value)}
+          required
+          fullWidth
+          disabled={busy}
+          helperText={`${name.length}/${MAX_NAME_LENGTH} tegn`}
+          slotProps={{ htmlInput: { maxLength: MAX_NAME_LENGTH } }}
+        />
+        <FieldHelp
+          label="Navn på agenten"
+          description="Navnet du ser i listen over agenter. Jobbsøkere ser et eget navn hvis du publiserer."
+        />
+      </div>
       {error && <Alert severity="error">{error}</Alert>}
       <div className={stepStyles.finishButtons}>
         <Button type="button" variant="contained" onClick={openPublish} disabled={!canSave}>

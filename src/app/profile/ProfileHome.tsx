@@ -247,9 +247,11 @@ export function ProfileHome() {
             <label className={styles.fieldLabel} htmlFor="language">
               Språk
             </label>
-            <select id="language" className={styles.language} defaultValue="nb">
-              <option value="nb">Norsk bokmål</option>
-            </select>
+            <div className={styles.languageWrap}>
+              <select id="language" className={styles.language} defaultValue="nb">
+                <option value="nb">Norsk bokmål</option>
+              </select>
+            </div>
           </section>
         </div>
 
