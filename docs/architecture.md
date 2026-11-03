@@ -409,9 +409,11 @@ Everything that is special about one kind of agent lives in its **agent type def
 configurator asks), what the configurator needs to know about it, which fields an interviewer template, a job seeker profile
 and an industry template fill in (`presets`), how its prompt is built from the answers, how its summary is written, and its roles. The
 interviewer (`interviewer.ts`) is the only type so far. The routes, the mapper, the storage and the
-configurator's prompt never name a type or a field, so a new type that is set up through the
-configuration chat is one new file and one line in `registry.ts`. The interviewer's form wizard,
-the start page and a few lists do name `'interviewer'`; the full checklist for a new type is in
+configurator's prompt never name a type or a field. The five-step form wizard on `/configure` is
+still written for the interviewer only. Every new type should get the same five steps with its own
+content, which first needs the interviewer's steps moved behind a per-type wizard. Until then a
+new type falls back to the configuration chat. The start page and a few lists also name
+`'interviewer'`. The full checklist for a new type is in
 [`extending.md`](extending.md#add-a-new-agent-type).
 
 On `/configure` the counselor first chooses the type (`AgentTypePicker`). `registry.ts` also lists
