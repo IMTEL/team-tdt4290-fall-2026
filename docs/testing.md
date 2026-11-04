@@ -95,6 +95,11 @@ Unit and component level only:
   `localStorage` and goes to Agenter; a stored draft is restored; saved templates appear after the
   built-in ones; a deleted template disappears from the picker; the tab title.
 - `src/app/configure/wizardDraft.test.ts`: round-trip, reject bad values, and clear the draft.
+- `src/app/configure/StillingStep.test.tsx`: each wizard section links to its own part of the help
+  page, and a section the help has no part for links to the help for the whole form.
+- `src/app/help/page.test.tsx`: every entry in the contents leads to the section with that
+  heading; every wizard section has a part, with its heading, at its anchor; no anchor is used
+  twice.
 - `src/app/browse-agents/AgentList.test.tsx`: Ny agent first in the interviewer section; agents as
   cards; toast «Agent lagret» from flash; a local draft as an Utkast card; deleting the draft
   clears storage and removes the card.
