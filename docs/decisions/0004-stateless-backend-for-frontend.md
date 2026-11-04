@@ -1,4 +1,4 @@
-# 0002. Our server is a stateless backend for the frontend; RAGdoll stores everything
+# 0004. Our server is a stateless backend for the frontend; RAGdoll stores everything
 
 - **Status:** Accepted
 - **Date:** 2026-09-30
@@ -25,9 +25,9 @@ The server half of our Next.js app (`src/app/api/*`) is a backend for the fronte
 - The browser only calls our own routes. Only `src/server/ragdoll.ts` knows RAGdoll's URLs and
   data model.
 - The server is stateless: it keeps nothing between requests, neither in a database nor in memory.
-  The conversation and the finished configuration live in the browser until the counsellor saves.
+  The conversation and the finished configuration live in the browser until the counselor saves.
 - Everything that must persist (users, agents, access keys) is stored in RAGdoll.
-- Calls on the counsellor's own agents send their RAGdoll session token, so RAGdoll records them
+- Calls on the counselor's own agents send their RAGdoll session token, so RAGdoll records them
   as the owner. The shared configurator agent is reached with its access key from the server
   environment.
 - Responses to the browser never contain keys, and never RAGdoll's own error text.
@@ -39,7 +39,7 @@ returned its answer unchanged (#43).
 
 - No database to run or migrate, and no second source of truth next to RAGdoll.
 - Our server can be restarted at any time without losing anything.
-- A counsellor who reloads the page in the middle of a configuration loses the unsaved
+- A counselor who reloads the page in the middle of a configuration loses the unsaved
   conversation.
 - Each RAGdoll endpoint we use needs a small route of our own; that is where validation and key
   stripping happen.
