@@ -55,7 +55,7 @@ const original = {
   id: 'agent-1',
 };
 
-// An original with its own model, temperature and hand-written prompt.
+// An original with its own model, temperature, max tokens and hand-written prompt.
 const tunedOriginal = {
   ...toRagdollAgent(
     'Butikkintervju',
@@ -66,6 +66,7 @@ const tunedOriginal = {
     {
       model: 'old/model',
       temperature: 0.2,
+      maxTokens: 3000,
       customPrompt: 'Du er Kari.',
     },
   ),
@@ -244,7 +245,7 @@ describe('POST /api/agents/[agentId]/clone', () => {
     expect(res.status).toBe(502);
   });
 
-  it("gives the clone the original's model, temperature and hand-written prompt", async () => {
+  it("gives the clone the original's model, temperature, max tokens and hand-written prompt", async () => {
     fetchFullAgentMock.mockResolvedValue(tunedOriginal);
 
     const res = await POST(postRequest(validBody), params);
@@ -253,13 +254,19 @@ describe('POST /api/agents/[agentId]/clone', () => {
     const [, saved] = saveAgentMock.mock.calls[0];
     expect(saved.llm_model).toBe('old/model');
     expect(saved.llm_temperature).toBe(0.2);
+    expect(saved.llm_max_tokens).toBe(3000);
     expect(saved.prompt).toBe('Du er Kari.');
     expect(readStoredAnswers(saved.description)?.customPrompt).toBe(true);
     expect(listLanguageModelsMock).not.toHaveBeenCalled();
   });
 
   it('saves the advanced settings from the clone form', async () => {
-    const advanced = { model: 'meta/llama-3.3-70b', temperature: 1.1, customPrompt: null };
+    const advanced = {
+      model: 'meta/llama-3.3-70b',
+      temperature: 1.1,
+      maxTokens: 4000,
+      customPrompt: null,
+    };
 
     const res = await POST(postRequest({ ...validBody, advanced }), params);
 
@@ -267,13 +274,14 @@ describe('POST /api/agents/[agentId]/clone', () => {
     const [, saved] = saveAgentMock.mock.calls[0];
     expect(saved.llm_model).toBe('meta/llama-3.3-70b');
     expect(saved.llm_temperature).toBe(1.1);
+    expect(saved.llm_max_tokens).toBe(4000);
     expect(saved.prompt).toContain('vanskelig');
     expect(readStoredAnswers(saved.description)?.customPrompt).toBe(false);
   });
 
   it("accepts the original's model without asking RAGdoll", async () => {
     fetchFullAgentMock.mockResolvedValue(tunedOriginal);
-    const advanced = { model: 'old/model', temperature: 0.5, customPrompt: null };
+    const advanced = { model: 'old/model', temperature: 0.5, maxTokens: 1000, customPrompt: null };
 
     const res = await POST(postRequest({ ...validBody, advanced }), params);
 
@@ -283,7 +291,12 @@ describe('POST /api/agents/[agentId]/clone', () => {
 
   it('answers 502 and saves nothing when a new model cannot be checked', async () => {
     listLanguageModelsMock.mockRejectedValue(new RagdollError('unreachable', 'IDUN is down'));
-    const advanced = { model: 'meta/llama-3.3-70b', temperature: 0.7, customPrompt: null };
+    const advanced = {
+      model: 'meta/llama-3.3-70b',
+      temperature: 0.7,
+      maxTokens: 1000,
+      customPrompt: null,
+    };
 
     const res = await POST(postRequest({ ...validBody, advanced }), params);
 
@@ -292,9 +305,22 @@ describe('POST /api/agents/[agentId]/clone', () => {
   });
 
   it.each([
-    ['a model that is not offered', { model: 'gpt-5', temperature: 0.7, customPrompt: null }],
-    ['a temperature above 2', { model: DEFAULT_MODEL, temperature: 3, customPrompt: null }],
-    ['an empty hand-written prompt', { model: DEFAULT_MODEL, temperature: 0.7, customPrompt: ' ' }],
+    [
+      'a model that is not offered',
+      { model: 'gpt-5', temperature: 0.7, maxTokens: 1000, customPrompt: null },
+    ],
+    [
+      'a temperature above 1.5',
+      { model: DEFAULT_MODEL, temperature: 2, maxTokens: 1000, customPrompt: null },
+    ],
+    [
+      'too many max tokens',
+      { model: DEFAULT_MODEL, temperature: 0.7, maxTokens: 9000, customPrompt: null },
+    ],
+    [
+      'an empty hand-written prompt',
+      { model: DEFAULT_MODEL, temperature: 0.7, maxTokens: 1000, customPrompt: ' ' },
+    ],
     ['settings that are not an object', 'fast'],
   ])('answers 400 and saves nothing for %s', async (_, advanced) => {
     const res = await POST(postRequest({ ...validBody, advanced }), params);

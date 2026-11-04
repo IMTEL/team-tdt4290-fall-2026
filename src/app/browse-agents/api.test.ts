@@ -17,6 +17,7 @@ const agent = {
   lastUpdated: '2026-10-02T12:00:00.000Z',
   llmModel: 'openai/gpt-oss-120b',
   temperature: 0.7,
+  maxTokens: 1000,
   prompt: 'Du er en intervjuer.',
 };
 
@@ -117,7 +118,12 @@ describe('updateAgent', () => {
 
   it('sends the advanced settings when there are any', async () => {
     fetchMock.mockResolvedValue(Response.json({ agent }));
-    const advanced = { model: 'meta/llama-3.3-70b', temperature: 0.2, customPrompt: null };
+    const advanced = {
+      model: 'meta/llama-3.3-70b',
+      temperature: 0.2,
+      maxTokens: 1000,
+      customPrompt: null,
+    };
 
     await updateAgent('agent-1', 'Nytt navn', answers, {}, advanced);
 
@@ -190,7 +196,12 @@ describe('cloneAgent', () => {
 
   it('sends the advanced settings when there are any', async () => {
     fetchMock.mockResolvedValue(Response.json({ id: 'agent-2' }, { status: 201 }));
-    const advanced = { model: 'meta/llama-3.3-70b', temperature: 1.1, customPrompt: null };
+    const advanced = {
+      model: 'meta/llama-3.3-70b',
+      temperature: 1.1,
+      maxTokens: 1000,
+      customPrompt: null,
+    };
 
     await cloneAgent('agent-1', 'Kopi', answers, {}, advanced);
 

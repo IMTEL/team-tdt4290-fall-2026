@@ -52,7 +52,8 @@ export function toRagdollAgent(
 /**
  * The existing agent with the counsellor's new name, answers and advanced settings. Every other
  * field is kept as it is, because RAGdoll resets any field we leave out of an update to its
- * default. Without new settings, the agent keeps its model, temperature and hand-written prompt.
+ * default. Without new settings, the agent keeps its model, temperature, max tokens and hand-written
+ * prompt.
  * Without a new avatar it keeps its avatar, and null gives it the default image.
  */
 export function applyEdit(
@@ -79,6 +80,7 @@ export function currentSettings(agent: FullRagdollAgent): AdvancedSettings {
     {
       model: agent.llm_model,
       temperature: typeof agent.llm_temperature === 'number' ? agent.llm_temperature : null,
+      maxTokens: typeof agent.llm_max_tokens === 'number' ? agent.llm_max_tokens : null,
       prompt: agent.prompt,
     },
     readStoredAnswers(agent.description)?.customPrompt ?? false,
@@ -105,6 +107,7 @@ function fromChoices(
     roles: definition.buildRoles(name, answers).map(toRagdollRole),
     llm_model: settings.model,
     llm_temperature: settings.temperature,
+    llm_max_tokens: settings.maxTokens,
     last_updated: now.toISOString(),
   };
 }

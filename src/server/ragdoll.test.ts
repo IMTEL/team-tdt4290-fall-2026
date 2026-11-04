@@ -207,6 +207,7 @@ const newAgent: NewRagdollAgent = {
   llm_provider: 'idun',
   llm_model: 'openai/gpt-oss-120b',
   llm_temperature: 0.7,
+  llm_max_tokens: 1000,
   llm_api_key: 'idun-key',
   embedding_model: 'idun:Qwen/Qwen3-Embedding-8B',
   embedding_api_key: 'idun-key',
@@ -300,6 +301,7 @@ describe('listAgents', () => {
         lastUpdated: '2026-10-01T08:00:00.000Z',
         llmModel: 'openai/gpt-oss-120b',
         temperature: 0.7,
+        maxTokens: 1000,
         prompt: 'Du er en intervjuer.',
         isPublished: false,
         publicName: '',
@@ -345,6 +347,16 @@ describe('listAgents', () => {
     const [summary] = await listAgents(SESSION_TOKEN);
 
     expect(summary.temperature).toBeNull();
+  });
+
+  it('gives null as the max tokens when RAGdoll returns an agent without them', async () => {
+    const withoutMaxTokens: Record<string, unknown> = { ...newAgent, id: 'agent-1' };
+    delete withoutMaxTokens.llm_max_tokens;
+    fetchMock.mockResolvedValue(Response.json([withoutMaxTokens]));
+
+    const [summary] = await listAgents(SESSION_TOKEN);
+
+    expect(summary.maxTokens).toBeNull();
   });
 });
 
@@ -508,6 +520,7 @@ describe('updateAgent', () => {
       lastUpdated: '2026-10-01T08:00:00.000Z',
       llmModel: 'openai/gpt-oss-120b',
       temperature: 0.2,
+      maxTokens: 1000,
       prompt: 'Du er en intervjuer.',
       isPublished: false,
       publicName: '',

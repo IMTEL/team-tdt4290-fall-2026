@@ -209,7 +209,12 @@ describe('saveConfiguredAgent', () => {
 
   it('posts the advanced settings when there are any', async () => {
     fetchMock.mockResolvedValue(Response.json({ id: 'agent-1' }, { status: 201 }));
-    const advanced = { model: 'meta/llama-3.3-70b', temperature: 0.2, customPrompt: 'Du er Kari.' };
+    const advanced = {
+      model: 'meta/llama-3.3-70b',
+      temperature: 0.2,
+      maxTokens: 1000,
+      customPrompt: 'Du er Kari.',
+    };
 
     await saveConfiguredAgent('Kari', interviewer, configuration, {}, advanced);
 

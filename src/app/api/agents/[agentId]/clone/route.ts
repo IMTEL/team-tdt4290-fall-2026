@@ -16,8 +16,9 @@ type Params = { params: Promise<{ agentId: string }> };
 /**
  * Saves a new agent made from one of the logged-in counsellor's agents, with the name, answers and,
  * optionally, advanced settings from the clone form. Without new settings the clone gets the
- * original's model, temperature and hand-written prompt, and without a new `avatar` it gets the
- * original's avatar. The original agent is only read, never changed. Returns the new agent's id.
+ * original's model, temperature, max tokens and hand-written prompt, and without a new `avatar` it
+ * gets the original's avatar. The original agent is only read, never changed. Returns the new
+ * agent's id.
  */
 export async function POST(req: NextRequest, { params }: Params) {
   const sessionToken = await getSessionToken(req);

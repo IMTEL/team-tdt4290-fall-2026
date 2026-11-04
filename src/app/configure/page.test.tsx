@@ -362,6 +362,7 @@ describe('/configure', () => {
       lastUpdated: '2026-10-21T00:00:00.000Z',
       llmModel: 'openai/gpt-oss-120b',
       temperature: 0.7,
+      maxTokens: 1000,
       prompt: 'Du er en intervjuer',
     };
     fetchMock.mockImplementation(async (url, init) => {
@@ -445,6 +446,7 @@ describe('/configure', () => {
             lastUpdated: '2026-10-21T00:00:00.000Z',
             llmModel: 'openai/gpt-oss-120b',
             temperature: 0.7,
+            maxTokens: 1000,
             prompt: 'Du er en intervjuer',
           },
         });
@@ -731,6 +733,7 @@ describe('/configure', () => {
           extra: '',
           model: 'openai/gpt-oss-120b',
           temperature: 0.7,
+          maxTokens: 1000,
           customPrompt: null,
         },
         avatar: null,

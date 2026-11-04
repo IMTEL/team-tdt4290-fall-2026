@@ -11,6 +11,7 @@ import { useLanguageModels } from '@/components/agents/useLanguageModels';
 import {
   type AdvancedSettings,
   advancedSettingsErrors,
+  DEFAULT_MAX_TOKENS,
   DEFAULT_MODEL,
   DEFAULT_TEMPERATURE,
 } from '@/domain/advancedSettings';
@@ -43,6 +44,7 @@ export type InterviewSettings = {
   extra: string;
   model: string;
   temperature: number;
+  maxTokens: number;
   customPrompt: string | null;
 };
 
@@ -56,6 +58,7 @@ export const EMPTY_INTERVIEW_SETTINGS: InterviewSettings = {
   extra: '',
   model: DEFAULT_MODEL,
   temperature: DEFAULT_TEMPERATURE,
+  maxTokens: DEFAULT_MAX_TOKENS,
   customPrompt: null,
 };
 
@@ -115,6 +118,7 @@ export function SettingsStep({
   const advanced: AdvancedSettings = {
     model: value.model,
     temperature: value.temperature,
+    maxTokens: value.maxTokens,
     customPrompt: value.customPrompt,
   };
 

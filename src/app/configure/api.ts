@@ -101,8 +101,8 @@ export async function sendConfigurationTurn(
 /**
  * Saves the finished configuration as a new agent owned by the logged-in counsellor, with the
  * template and profile the interviewer and job seeker came from. Without `advanced` the server
- * uses the default model, temperature and built prompt. Without `avatar` (or with null) the agent
- * shows the default image.
+ * uses the default model, temperature, max tokens and built prompt. Without `avatar` (or with null)
+ * the agent shows the default image.
  */
 export async function saveConfiguredAgent(
   name: string,

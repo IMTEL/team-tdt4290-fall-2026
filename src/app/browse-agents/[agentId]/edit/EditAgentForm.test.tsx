@@ -208,10 +208,11 @@ describe('EditAgentForm', () => {
     renderForm();
 
     await user.click(screen.getByRole('button', { name: /Avanserte innstillinger/ }));
-    await replaceText(user, 'Verdi', '3');
+    // 2 was allowed before #132; above 1.5 the replies time out.
+    await replaceText(user, 'Verdi', '2');
 
     expect(saveButton()).toBeDisabled();
-    expect(screen.getByText(/Temperaturen må være et tall mellom 0 og 2/)).toBeVisible();
+    expect(screen.getByText(/Temperaturen må være et tall mellom 0 og 1,5/)).toBeVisible();
   });
 
   it('shows the error and keeps what was typed when saving fails', async () => {

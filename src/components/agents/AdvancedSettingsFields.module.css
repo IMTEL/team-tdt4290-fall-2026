@@ -17,6 +17,10 @@
   align-items: center;
 }
 
+.maxTokens {
+  max-width: 320px;
+}
+
 .prompt {
   margin: 0;
   max-height: 320px;

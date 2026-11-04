@@ -20,6 +20,7 @@ const myAgents = ['agent-1', 'agent-2'].map((id) => ({
   lastUpdated: '2026-10-09T10:00:00Z',
   llmModel: 'openai/gpt-oss-120b',
   temperature: 0.7,
+  maxTokens: 1000,
   prompt: 'Du er en intervjuer.',
 }));
 

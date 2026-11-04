@@ -11,6 +11,7 @@ const agent: Agent = {
   lastUpdated: '2026-10-02T12:00:00.000Z',
   llmModel: 'openai/gpt-oss-120b',
   temperature: 0.7,
+  maxTokens: 1000,
   prompt: 'Du er en intervjuer.',
   type: 'interviewer',
   typeLabel: 'Intervjuer',

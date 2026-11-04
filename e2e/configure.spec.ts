@@ -192,6 +192,38 @@ test('the language model can be chosen in the settings', async ({ page }) => {
   ).toBeVisible();
 });
 
+test('the max tokens can be chosen, with a warning that many tokens can make replies slow', async ({
+  page,
+}) => {
+  await logIn(page, '/configure');
+  await chooseInterviewer(page);
+  await fillStilling(page);
+  await pickTemplate(page, null);
+  await pickTemplate(page, null);
+
+  await page.getByRole('button', { name: /^Avanserte innstillinger/ }).click();
+  const warning = page.getByText(/kan gjøre at agenten svarer mye tregere/);
+  await expect(warning).toBeHidden();
+  await page.getByRole('textbox', { name: 'Maks antall tokens', exact: true }).fill('3000');
+  await expect(warning).toBeVisible();
+  await fillSettings(page);
+  await expect(
+    sections(page)
+      .getByRole('definition')
+      .filter({ hasText: /^3000$/ }),
+  ).toBeVisible();
+  await page.getByRole('button', { name: 'Publiser', exact: true }).click();
+  await page.getByRole('link', { name: /Intervjuer for Butikkmedarbeider/ }).click();
+
+  await page.getByRole('tab', { name: 'Avanserte innstillinger', exact: true }).click();
+  await expect(
+    page
+      .getByRole('tabpanel')
+      .getByRole('definition')
+      .filter({ hasText: /^3000$/ }),
+  ).toBeVisible();
+});
+
 test('the agent can be tested straight from the last step', async ({ page }) => {
   await logIn(page, '/configure');
   await goToFinish(page);

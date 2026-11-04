@@ -80,12 +80,13 @@ describe('toRagdollAgent', () => {
     expect(agent.last_updated).toBe('2026-10-01T08:00:00.000Z');
   });
 
-  it('uses the default model and temperature without advanced settings', () => {
+  it('uses the default model, temperature and max tokens without advanced settings', () => {
     expect(agent.llm_model).toBe(DEFAULT_MODEL);
     expect(agent.llm_temperature).toBe(0.7);
+    expect(agent.llm_max_tokens).toBe(1000);
   });
 
-  it('uses the chosen model, temperature and hand-written prompt', () => {
+  it('uses the chosen model, temperature, max tokens and hand-written prompt', () => {
     const custom = toRagdollAgent(
       'Kari',
       interviewer,
@@ -95,12 +96,14 @@ describe('toRagdollAgent', () => {
       {
         model: 'meta/llama-3.3-70b',
         temperature: 0.2,
+        maxTokens: 4000,
         customPrompt: 'Du er Kari.',
       },
     );
 
     expect(custom.llm_model).toBe('meta/llama-3.3-70b');
     expect(custom.llm_temperature).toBe(0.2);
+    expect(custom.llm_max_tokens).toBe(4000);
     expect(custom.prompt).toBe('Du er Kari.');
     expect(readStoredAnswers(custom.description)?.customPrompt).toBe(true);
   });
@@ -113,6 +116,7 @@ describe('applyEdit', () => {
     // Fields we never set ourselves, which must survive the edit.
     access_key: ['vr-key'],
     llm_temperature: 0.2,
+    llm_max_tokens: 3000,
   };
   const now = new Date('2026-10-06T12:00:00.000Z');
   const newAnswers = { ...answers, vanskelighetsgrad: 'vanskelig' };
@@ -133,6 +137,7 @@ describe('applyEdit', () => {
   it('keeps every field the edit does not touch', () => {
     expect(edited.access_key).toEqual(['vr-key']);
     expect(edited.llm_temperature).toBe(0.2);
+    expect(edited.llm_max_tokens).toBe(3000);
     expect(edited.context_aware_retrieval).toBe(false);
     expect(edited.llm_api_key).toBe('idun-key');
   });
@@ -150,18 +155,20 @@ describe('applyEdit with advanced settings', () => {
       {
         model: 'meta/llama-3.3-70b',
         temperature: 0.2,
+        maxTokens: 4000,
         customPrompt: 'Du er Kari.',
       },
     ),
     id: 'agent-1',
   };
 
-  it('keeps a hand-written prompt, model and temperature when only the answers change', () => {
+  it('keeps a hand-written prompt, model, temperature and max tokens when only the answers change', () => {
     const edited = applyEdit(handWritten, 'Kari', interviewer, newAnswers);
 
     expect(edited.prompt).toBe('Du er Kari.');
     expect(edited.llm_model).toBe('meta/llama-3.3-70b');
     expect(edited.llm_temperature).toBe(0.2);
+    expect(edited.llm_max_tokens).toBe(4000);
     expect(readStoredAnswers(edited.description)?.customPrompt).toBe(true);
   });
 
@@ -175,6 +182,7 @@ describe('applyEdit with advanced settings', () => {
       {
         model: 'meta/llama-3.3-70b',
         temperature: 0.2,
+        maxTokens: 1000,
         customPrompt: null,
       },
     );
@@ -193,6 +201,7 @@ describe('applyEdit with advanced settings', () => {
       {
         model: DEFAULT_MODEL,
         temperature: 1.1,
+        maxTokens: 1000,
         customPrompt: 'Du er Kari, men strengere.',
       },
     );
@@ -215,6 +224,7 @@ describe('currentSettings', () => {
         {
           model: 'meta/llama-3.3-70b',
           temperature: 0.2,
+          maxTokens: 1000,
           customPrompt: 'Du er Kari.',
         },
       ),
@@ -224,6 +234,7 @@ describe('currentSettings', () => {
     expect(currentSettings(agent)).toEqual({
       model: 'meta/llama-3.3-70b',
       temperature: 0.2,
+      maxTokens: 1000,
       customPrompt: 'Du er Kari.',
     });
   });
@@ -240,6 +251,13 @@ describe('currentSettings', () => {
 
     expect(currentSettings(agent).temperature).toBe(0.7);
   });
+
+  it('gives the default max tokens to an agent RAGdoll returns without them', () => {
+    const agent = { ...toRagdollAgent('Kari', interviewer, answers, 'idun-key'), id: 'agent-1' };
+    delete (agent as Record<string, unknown>).llm_max_tokens;
+
+    expect(currentSettings(agent).maxTokens).toBe(1000);
+  });
 });
 
 describe('toAgentListItem', () => {
@@ -250,6 +268,7 @@ describe('toAgentListItem', () => {
     lastUpdated: '2026-10-01',
     llmModel: DEFAULT_MODEL,
     temperature: 0.7,
+    maxTokens: 1000,
     prompt: 'Du er Kari.',
   };
 

@@ -67,7 +67,12 @@ export function EditAgent({ agentId }: { agentId: string }) {
           initialAnswers={stored.answers}
           initialSources={stored.sources}
           initialSettings={settingsOf(
-            { model: agent.llmModel, temperature: agent.temperature, prompt: agent.prompt },
+            {
+              model: agent.llmModel,
+              temperature: agent.temperature,
+              maxTokens: agent.maxTokens,
+              prompt: agent.prompt,
+            },
             stored.customPrompt,
           )}
           initialAvatar={stored.avatar}
