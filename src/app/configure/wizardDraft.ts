@@ -1,4 +1,5 @@
 import type { AgentTemplate } from '@/data/templates';
+import { DEFAULT_MAX_TOKENS, DEFAULT_TEMPERATURE } from '@/domain/advancedSettings';
 import type { InterviewSettings } from './SettingsStep';
 import type { Workplace } from './StillingStep';
 
@@ -81,7 +82,12 @@ function isSettings(value: unknown): value is InterviewSettings {
     typeof value.ownQuestions === 'string' &&
     typeof value.extra === 'string' &&
     typeof value.model === 'string' &&
-    typeof value.temperature === 'number' &&
+    // An emptied number field is NaN, which JSON stores as null. Max tokens are missing in drafts
+    // from before that setting. readWizardDraft fills in the defaults for both.
+    (value.temperature === null || typeof value.temperature === 'number') &&
+    (value.maxTokens === undefined ||
+      value.maxTokens === null ||
+      typeof value.maxTokens === 'number') &&
     (value.customPrompt === null || typeof value.customPrompt === 'string')
   );
 }
@@ -135,13 +141,30 @@ export function readWizardDraft(): WizardDraft | null {
       return null;
     }
     const parsed: unknown = JSON.parse(raw);
-    cachedDraft = isDraft(parsed) ? parsed : null;
+    cachedDraft = isDraft(parsed) ? withDefaults(parsed) : null;
     return cachedDraft;
   } catch {
     cachedRaw = undefined;
     cachedDraft = null;
     return null;
   }
+}
+
+/**
+ * The draft with the default for a number setting that has no value: the field was empty when the
+ * draft was saved, or the draft is from before the setting existed.
+ */
+function withDefaults(draft: WizardDraft): WizardDraft {
+  const { temperature, maxTokens } = draft.settings;
+  if (typeof temperature === 'number' && typeof maxTokens === 'number') return draft;
+  return {
+    ...draft,
+    settings: {
+      ...draft.settings,
+      temperature: typeof temperature === 'number' ? temperature : DEFAULT_TEMPERATURE,
+      maxTokens: typeof maxTokens === 'number' ? maxTokens : DEFAULT_MAX_TOKENS,
+    },
+  };
 }
 
 /** Remembers the wizard so far. Private mode or a full disk is ignored. */
