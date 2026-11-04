@@ -56,6 +56,28 @@ test('the stilling step needs a job title, a job template, an industry and an em
   ).toBeVisible();
 });
 
+test('a chosen stillingsmal shows a short bubble that opens the full contents', async ({
+  page,
+}) => {
+  await logIn(page, '/configure');
+  await chooseInterviewer(page);
+  await page
+    .getByRole('group', { name: 'Stillingsmaler', exact: true })
+    .getByRole('button', { name: 'Butikkmedarbeider', exact: true })
+    .click();
+
+  const peeks = page.getByRole('region', { name: 'Valgte maler', exact: true });
+  await expect(peeks).toContainText('Stillingsmal');
+  await expect(peeks).toContainText('Kundeservice, kasse og varepåfylling');
+  await expect(peeks).toContainText('Bransje');
+  await expect(peeks).toContainText('Varehandel');
+  await expect(page.getByRole('button', { name: 'Se hele', exact: true })).toBeVisible();
+
+  await peeks.getByRole('button', { name: 'Stillingsmal: Butikkmedarbeider. Se hele.' }).click();
+  const dialog = page.getByRole('dialog', { name: 'Stillingsmal: Butikkmedarbeider' });
+  await expect(dialog).toContainText('Hjelper kunder, sitter i kassen');
+});
+
 test('the settings step needs the interview type, difficulty, number of questions and follow-ups', async ({
   page,
 }) => {

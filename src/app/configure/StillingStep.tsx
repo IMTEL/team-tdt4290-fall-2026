@@ -1,6 +1,6 @@
 'use client';
 
-import { useId, useState, type ReactNode } from 'react';
+import { createContext, useContext, useId, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import Button from '@mui/material/Button';
 import TextField from '@mui/material/TextField';
@@ -11,7 +11,14 @@ import { FieldHelp } from '@/components/ui/FieldHelp';
 import helpStyles from '@/components/ui/FieldHelp.module.css';
 import { SECTOR_LABELS, type IndustryTemplate, type Sector } from '@/data/industry-templates';
 import { FORM_SECTIONS, formSectionHelpHref } from './formSections';
+import { SeeWholeTemplate, TemplatePeekList } from './TemplatePeekBubbles';
+import { peekForStep, peeksOnStep, type TemplatePeek } from './templatePeeks';
 import styles from './StillingStep.module.css';
+
+const WizardPeeksContext = createContext<{ peeks: TemplatePeek[]; current: number }>({
+  peeks: [],
+  current: 0,
+});
 
 /** How many job suggestions sit next to «Se alle maler». */
 const SUGGESTION_COUNT = 5;
@@ -40,6 +47,8 @@ type StillingStepProps = {
   onGoTo?: (index: number) => void;
   reached?: number;
   onSaveDraft?: () => void;
+  /** Short summaries of the templates already chosen, shown under the progress bar. */
+  peeks?: TemplatePeek[];
 };
 
 /** The shared frame: title, and the section list down the side. `current` is the open section. */
@@ -50,6 +59,7 @@ export function WizardFrame({
   details,
   expanded = false,
   more,
+  peeks = [],
   children,
 }: {
   current: number;
@@ -62,52 +72,58 @@ export function WizardFrame({
   /** The last step: finish in the main card, sections stay their own card. */
   expanded?: boolean;
   more?: ReactNode;
+  /** Chosen templates, as short clickable bubbles under the progress bar. */
+  peeks?: TemplatePeek[];
   children: ReactNode;
 }) {
   // Progress follows the furthest section opened, so jumping back does not empty the bar.
   const progress = Math.min(Math.max(reached ?? current, current), SECTIONS.length);
+  const shown = peeksOnStep(peeks, current);
 
   return (
-    <div className={styles.step}>
-      <p className={styles.crumb}>
-        <Link href="/browse-agents">Agenter</Link>
-        <span aria-hidden="true"> › </span>
-        Ny agent
-      </p>
-      <h1 className={styles.title}>Ny intervjuagent</h1>
-      <p className={styles.lead}>
-        Svar på noen få spørsmål. Du ser agenten ta form til høyre mens du går.{' '}
-        {/* English translation: Read the help for this part. The form is kept in this browser,
-        so the counsellor finds it again when coming back. */}
-        <Link href={formSectionHelpHref(current)} className={styles.helpLink}>
-          Les hjelpen for denne delen
-        </Link>
-      </p>
+    <WizardPeeksContext.Provider value={{ peeks: shown, current }}>
+      <div className={styles.step}>
+        <p className={styles.crumb}>
+          <Link href="/browse-agents">Agenter</Link>
+          <span aria-hidden="true"> › </span>
+          Ny agent
+        </p>
+        <h1 className={styles.title}>Ny intervjuagent</h1>
+        <p className={styles.lead}>
+          Svar på noen få spørsmål. Du ser agenten ta form til høyre mens du går.{' '}
+          {/* English translation: Read the help for this part. The form is kept in this browser,
+          so the counsellor finds it again when coming back. */}
+          <Link href={formSectionHelpHref(current)} className={styles.helpLink}>
+            Les hjelpen for denne delen
+          </Link>
+        </p>
 
-      <div className={expanded ? `${styles.layout} ${styles.layoutExpanded}` : styles.layout}>
-        <div className={styles.formSlot}>
-          {more ? <div className={styles.form}>{more}</div> : children}
+        <div className={expanded ? `${styles.layout} ${styles.layoutExpanded}` : styles.layout}>
+          <div className={styles.formSlot}>
+            {more ? <div className={styles.form}>{more}</div> : children}
+          </div>
+          <aside className={styles.side} aria-label="Seksjoner">
+            <div>
+              <p className={styles.sideLabel}>Seksjoner</p>
+              {expanded ? <p className={styles.sideHint}>Det du har fylt inn</p> : null}
+            </div>
+            <SectionMenu current={current} onGoTo={onGoTo} reached={reached} details={details} />
+            <p className={styles.count}>
+              {progress} av {SECTIONS.length} seksjoner
+            </p>
+            <div className={styles.track} aria-hidden="true">
+              <div
+                className={styles.fill}
+                style={{
+                  width: progress === 0 ? '0.6rem' : `${(progress / SECTIONS.length) * 100}%`,
+                }}
+              />
+            </div>
+            <TemplatePeekList peeks={shown} />
+          </aside>
         </div>
-        <aside className={styles.side} aria-label="Seksjoner">
-          <div>
-            <p className={styles.sideLabel}>Seksjoner</p>
-            {expanded ? <p className={styles.sideHint}>Det du har fylt inn</p> : null}
-          </div>
-          <SectionMenu current={current} onGoTo={onGoTo} reached={reached} details={details} />
-          <p className={styles.count}>
-            {progress} av {SECTIONS.length} seksjoner
-          </p>
-          <div className={styles.track} aria-hidden="true">
-            <div
-              className={styles.fill}
-              style={{
-                width: progress === 0 ? '0.6rem' : `${(progress / SECTIONS.length) * 100}%`,
-              }}
-            />
-          </div>
-        </aside>
       </div>
-    </div>
+    </WizardPeeksContext.Provider>
   );
 }
 
@@ -133,6 +149,9 @@ export function WizardNav({
   /** Writes the unfinished wizard to local storage. */
   onSaveDraft?: () => void;
 }) {
+  const { peeks, current } = useContext(WizardPeeksContext);
+  const seeWhole = peekForStep(peeks, current);
+
   return (
     <div className={styles.actions}>
       {onSaveDraft ? (
@@ -160,6 +179,7 @@ export function WizardNav({
             {extraNext.label}
           </Button>
         ) : null}
+        {seeWhole ? <SeeWholeTemplate peek={seeWhole} /> : null}
         <Button
           type={nextSubmit ? 'submit' : 'button'}
           variant="contained"
@@ -326,6 +346,7 @@ export function StillingStep({
   onGoTo,
   reached,
   onSaveDraft,
+  peeks,
 }: StillingStepProps) {
   const [showAllJobs, setShowAllJobs] = useState(false);
   const [showAllIndustries, setShowAllIndustries] = useState(false);
@@ -355,7 +376,7 @@ export function StillingStep({
   }
 
   return (
-    <WizardFrame current={0} onGoTo={onGoTo} reached={reached}>
+    <WizardFrame current={0} onGoTo={onGoTo} reached={reached} peeks={peeks}>
       <form
         className={styles.form}
         onSubmit={(event) => {

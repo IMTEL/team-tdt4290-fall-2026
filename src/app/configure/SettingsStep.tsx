@@ -13,6 +13,7 @@ import type { AnswerEffect } from '@/domain/agentTypes/types';
 import stepStyles from './StillingStep.module.css';
 import { ChoiceSummary, WizardFrame, WizardNav } from './StillingStep';
 import { FinishActions, configurationLines, type FinishOverview } from './FinishStep';
+import type { TemplatePeek } from './templatePeeks';
 
 const INTERVIEW_TYPES = [
   { id: 'første intervju', label: 'Første intervju' },
@@ -85,6 +86,7 @@ type SettingsStepProps = {
   onGoTo?: (index: number) => void;
   reached?: number;
   onSaveDraft?: () => void;
+  peeks?: TemplatePeek[];
 };
 
 /** The settings step, in the same frame as stilling, intervjuer and jobbsøker. */
@@ -111,12 +113,14 @@ export function SettingsStep({
   onTest,
   reached,
   onSaveDraft,
+  peeks,
 }: SettingsStepProps) {
   return (
     <WizardFrame
       current={expanded ? 5 : 3}
       onGoTo={onGoTo}
       reached={reached}
+      peeks={peeks}
       expanded={expanded}
       more={
         expanded ? (

@@ -260,6 +260,69 @@ describe('/configure', () => {
     );
   });
 
+  it('shows a short bubble for the chosen stillingsmal, and Se hele opens the rest', async () => {
+    const user = userEvent.setup();
+    await renderPage('interviewer');
+
+    expect(screen.queryByRole('region', { name: 'Valgte maler' })).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Butikkmedarbeider' }));
+
+    const peeks = screen.getByRole('region', { name: 'Valgte maler' });
+    expect(peeks).toHaveTextContent('Stillingsmal');
+    expect(peeks).toHaveTextContent('Kundeservice, kasse og varepåfylling');
+    expect(peeks).toHaveTextContent('Bransje');
+    expect(peeks).toHaveTextContent('Varehandel');
+    expect(
+      screen.getByRole('complementary', { name: 'Seksjoner' }).compareDocumentPosition(peeks) &
+        Node.DOCUMENT_POSITION_CONTAINED_BY,
+    ).toBeTruthy();
+
+    const seeWhole = screen.getByRole('button', { name: 'Se hele' });
+    expect(
+      seeWhole.compareDocumentPosition(screen.getByRole('button', { name: 'Neste' })) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+
+    await user.click(
+      screen.getByRole('button', { name: 'Stillingsmal: Butikkmedarbeider. Se hele.' }),
+    );
+    const dialog = await screen.findByRole('dialog', { name: 'Stillingsmal: Butikkmedarbeider' });
+    expect(dialog).toHaveTextContent('Hjelper kunder, sitter i kassen');
+    expect(dialog).toHaveTextContent('Kundeservice, Kasse, Varepåfylling');
+  });
+
+  it('opens the interviewer template contents from the bubble and from Se hele', async () => {
+    const user = await openAsInterviewer();
+
+    await user.click(screen.getByRole('radio', { name: /Teamleder/ }));
+
+    const peeks = screen.getByRole('region', { name: 'Valgte maler' });
+    expect(peeks).toHaveTextContent('Intervjuermal');
+    expect(peeks).toHaveTextContent('Praktisk og uformell');
+    expect(peeks).not.toHaveTextContent('Helsefagarbeider');
+    expect(peeks).not.toHaveTextContent('Stillingsmal');
+
+    await user.click(screen.getByRole('button', { name: 'Se hele' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Intervjuermal: Teamleder' });
+    expect(dialog).toHaveTextContent('nærmeste leder');
+    expect(dialog).toHaveTextContent('Arbeidsoppgaver, Samarbeid i teamet, Situasjoner');
+  });
+
+  it('opens the job seeker template contents from the bubble', async () => {
+    respondWith({ profiles: [profile] });
+    const user = await openAsInterviewer();
+    await skipTemplate(user);
+
+    await user.click(screen.getByRole('radio', { name: /Profil A/ }));
+
+    expect(screen.getByRole('region', { name: 'Valgte maler' })).toHaveTextContent('18–24 år');
+    await user.click(screen.getByRole('button', { name: 'Jobbsøkermal: Profil A. Se hele.' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Jobbsøkermal: Profil A' });
+    expect(dialog).toHaveTextContent('Litt (under 1 år)');
+    expect(dialog).toHaveTextContent('Nervøsitet');
+  });
+
   it('keeps a job title the counsellor wrote when a stillingsmal is chosen', async () => {
     const user = userEvent.setup();
     await renderPage('interviewer');
@@ -394,7 +457,7 @@ describe('/configure', () => {
       screen.getByRole('button', { name: 'Publiser' }),
     );
     expect(screen.getByRole('radio', { name: 'Standard' })).toBeChecked();
-    expect(screen.getByText('Teamleder')).toBeVisible();
+    expect(screen.getByText('Teamleder', { selector: 'dd' })).toBeVisible();
     expect(screen.queryByRole('heading', { name: 'Velg en bransjemal' })).not.toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Intervjuer' }));

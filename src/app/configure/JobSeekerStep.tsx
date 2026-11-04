@@ -23,6 +23,7 @@ import {
 } from '@/domain/jobSeekerProfile';
 import pageStyles from './page.module.css';
 import { ChoiceSummary, WizardFrame, WizardNav } from './StillingStep';
+import type { TemplatePeek } from './templatePeeks';
 import stepStyles from './StillingStep.module.css';
 
 type JobSeekerStepProps = {
@@ -52,6 +53,7 @@ type JobSeekerStepProps = {
   onDeleted?: (id: string) => void;
   /** Where Rediger and Lag en ny jobbsøkermal send the counsellor back. */
   returnTo?: string;
+  peeks?: TemplatePeek[];
 };
 
 /** The job seeker step, in the same frame as stilling and intervjuer. */
@@ -74,9 +76,10 @@ export function JobSeekerStep({
   onSaveDraft,
   onDeleted = () => {},
   returnTo,
+  peeks,
 }: JobSeekerStepProps) {
   return (
-    <WizardFrame current={2} onGoTo={onGoTo} reached={reached}>
+    <WizardFrame current={2} onGoTo={onGoTo} reached={reached} peeks={peeks}>
       <div className={stepStyles.form}>
         {intro}
         <section aria-labelledby="profile-picker-heading" className={cardStyles.picker}>

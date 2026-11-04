@@ -55,6 +55,7 @@ import {
   WizardNav,
   type Workplace,
 } from './StillingStep';
+import { wizardTemplatePeeks } from './templatePeeks';
 import { suggestedAgentName, wizardConfiguration } from './wizardConfiguration';
 import { clearWizardDraft, readWizardDraft, writeWizardDraft } from './wizardDraft';
 import styles from './page.module.css';
@@ -489,6 +490,14 @@ export function ConfigureAgent({
 
   const profile =
     (usesProfiles && profileId && profiles.find((item) => item.id === profileId)) || null;
+  const peeks = wizardTemplatePeeks({
+    workplace,
+    jobTemplates,
+    industryTemplates: workplaceTemplates.industries,
+    interviewer: choice ?? null,
+    profile,
+    legalTemplates,
+  });
   const template = usesTemplates ? (choice ?? null) : null;
   const choosingPresets = usesTemplates
     ? choice === undefined
@@ -505,13 +514,14 @@ export function ConfigureAgent({
         onGoTo={goTo}
         reached={furthestStep}
         onSaveDraft={saveDraftAndLeave}
+        peeks={peeks}
       />
     );
   }
 
   if (definition.id === 'interviewer' && wizardStep === 1) {
     return (
-      <WizardFrame current={1} onGoTo={goTo} reached={furthestStep}>
+      <WizardFrame current={1} onGoTo={goTo} reached={furthestStep} peeks={peeks}>
         <div className={stepStyles.form}>
           {chosenType}
           {usesIndustries && industry !== undefined && chosenIndustry}
@@ -587,6 +597,7 @@ export function ConfigureAgent({
         onNext={() => goTo(3)}
         onBack={() => goTo(1)}
         onSaveDraft={saveDraftAndLeave}
+        peeks={peeks}
         returnTo={`/configure?type=${definition.id}&step=jobbsøker`}
         onDeleted={(id) => {
           setProfiles((current) => current.filter((item) => item.id !== id));
@@ -612,6 +623,7 @@ export function ConfigureAgent({
         onBack={() => goTo(3)}
         onNext={() => goTo(5)}
         onSaveDraft={saveDraftAndLeave}
+        peeks={peeks}
       />
     );
   }
@@ -677,6 +689,7 @@ export function ConfigureAgent({
         onAiSettings={() => goTo(4)}
         onNext={() => goTo(5)}
         onSaveDraft={saveDraftAndLeave}
+        peeks={peeks}
       />
     );
   }

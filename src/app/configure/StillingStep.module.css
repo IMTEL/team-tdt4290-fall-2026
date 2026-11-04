@@ -450,3 +450,101 @@
   border-radius: inherit;
   background: var(--foreground);
 }
+
+.peekList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.peek {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.2rem;
+  width: 100%;
+  padding: 0.7rem 0.85rem;
+  border: 1px solid var(--border);
+  border-radius: 1rem 1rem 1rem 0.3rem;
+  background: color-mix(in oklch, var(--muted) 50%, var(--card));
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.peek:hover,
+.peek:focus-visible {
+  border-color: var(--foreground);
+}
+
+.peekKind {
+  color: var(--muted-foreground);
+  font-size: 0.7rem;
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.peekTitle {
+  font-size: 0.9rem;
+}
+
+.peekSummary {
+  display: -webkit-box;
+  overflow: hidden;
+  color: var(--muted-foreground);
+  font-size: 0.8rem;
+  line-height: 1.35;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.peekMore {
+  margin-top: 0.15rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+}
+
+.seeWhole {
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+}
+
+.peekPaper {
+  max-width: min(22rem, calc(100vw - 2rem));
+  max-height: 20rem;
+  padding: var(--space-4);
+  overflow: auto;
+}
+
+.peekHeading {
+  margin: 0 0 var(--space-3);
+  font-weight: 650;
+}
+
+.peekDetails {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin: 0;
+}
+
+.peekDetail {
+  margin: 0;
+}
+
+.peekDetail dt {
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
+}
+
+.peekDetail dd {
+  margin: 0.2rem 0 0;
+  font-size: 0.9rem;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}

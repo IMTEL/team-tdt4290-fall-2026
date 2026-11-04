@@ -12,6 +12,7 @@ import {
 import { ChoiceSummary, WizardFrame, WizardNav } from './StillingStep';
 import stepStyles from './StillingStep.module.css';
 import type { InterviewSettings } from './SettingsStep';
+import type { TemplatePeek } from './templatePeeks';
 
 type AiSettingsStepProps = {
   value: InterviewSettings;
@@ -22,6 +23,7 @@ type AiSettingsStepProps = {
   onGoTo?: (index: number) => void;
   reached?: number;
   onSaveDraft?: () => void;
+  peeks?: TemplatePeek[];
 };
 
 /** Optional language-model and temperature step. Defaults work, so it can be skipped. */
@@ -34,6 +36,7 @@ export function AiSettingsStep({
   onGoTo,
   reached,
   onSaveDraft,
+  peeks,
 }: AiSettingsStepProps) {
   const languageModels = useLanguageModels(value.model);
   const advanced: AdvancedSettings = {
@@ -49,7 +52,7 @@ export function AiSettingsStep({
   }
 
   return (
-    <WizardFrame current={4} onGoTo={onGoTo} reached={reached}>
+    <WizardFrame current={4} onGoTo={onGoTo} reached={reached} peeks={peeks}>
       <div className={stepStyles.form}>
         {intro}
         <h2 className={stepStyles.question}>AI-innstillinger</h2>
