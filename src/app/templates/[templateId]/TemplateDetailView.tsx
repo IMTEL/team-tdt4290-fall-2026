@@ -99,7 +99,7 @@ export function TemplateDetailView({ templateId }: { templateId: string }) {
         // English translation: Focus areas
         { label: 'Fokusområder', chips: template.focus },
         // English translation: Description of the interviewer
-        { label: 'Beskrivelse av intervjueren', text: template.persona },
+        { label: 'Beskrivelse av intervjueren', text: template.persona, boxed: true },
       ]}
     />
   );

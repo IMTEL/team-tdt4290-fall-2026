@@ -283,8 +283,10 @@ describe('/configure', () => {
     ).toBeTruthy();
 
     const seeWhole = screen.getByRole('button', { name: 'Se hele' });
+    const back = screen.getByRole('link', { name: 'Tilbake' });
+    expect(seeWhole.compareDocumentPosition(back) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(
-      seeWhole.compareDocumentPosition(screen.getByRole('button', { name: 'Neste' })) &
+      back.compareDocumentPosition(screen.getByRole('button', { name: 'Neste' })) &
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
 
@@ -294,6 +296,12 @@ describe('/configure', () => {
     const dialog = await screen.findByRole('dialog', { name: 'Stillingsmal: Butikkmedarbeider' });
     expect(dialog).toHaveTextContent('Hjelper kunder, sitter i kassen');
     expect(dialog).toHaveTextContent('Kundeservice, Kasse, Varepåfylling');
+    await user.click(within(dialog).getByRole('button', { name: 'Lukk' }));
+    await waitFor(() => {
+      expect(
+        screen.queryByRole('dialog', { name: 'Stillingsmal: Butikkmedarbeider' }),
+      ).not.toBeInTheDocument();
+    });
   });
 
   it('opens the interviewer template contents from the bubble and from Se hele', async () => {
@@ -307,7 +315,13 @@ describe('/configure', () => {
     expect(peeks).not.toHaveTextContent('Helsefagarbeider');
     expect(peeks).not.toHaveTextContent('Stillingsmal');
 
-    await user.click(screen.getByRole('button', { name: 'Se hele' }));
+    const seeWhole = screen.getByRole('button', { name: 'Se hele' });
+    expect(
+      seeWhole.compareDocumentPosition(screen.getByRole('button', { name: 'Tilbake' })) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+
+    await user.click(seeWhole);
     const dialog = await screen.findByRole('dialog', { name: 'Intervjuermal: Teamleder' });
     expect(dialog).toHaveTextContent('nærmeste leder');
     expect(dialog).toHaveTextContent('Arbeidsoppgaver, Samarbeid i teamet, Situasjoner');
@@ -946,9 +960,27 @@ describe('/configure', () => {
     expect(screen.getByRole('complementary', { name: 'Seksjoner' })).not.toContainElement(draft);
     await user.click(draft);
 
+    expect(screen.queryByRole('dialog', { name: 'Forlate uten å lagre?' })).not.toBeInTheDocument();
     await waitFor(() => expect(push).toHaveBeenCalledWith('/browse-agents'));
     expect(localStorage.getItem('kfi-configure-draft')).toContain('Barnehageassistent');
     expect(sessionStorage.getItem('kfi-agents-flash')).toBe('utkast-lagret');
+  });
+
+  it('asks before leaving the wizard without saving', async () => {
+    const user = await openAsInterviewer();
+
+    await user.click(screen.getByRole('link', { name: 'Agenter' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Forlate uten å lagre?' });
+    expect(dialog).toBeVisible();
+    expect(push).not.toHaveBeenCalled();
+
+    await user.click(screen.getByRole('button', { name: 'Avbryt' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    expect(screen.getByRole('heading', { level: 2, name: 'Velg en intervjuermal' })).toBeVisible();
+
+    await user.click(screen.getByRole('link', { name: 'Agenter' }));
+    await user.click(await screen.findByRole('button', { name: 'Forlat' }));
+    expect(push).toHaveBeenCalledWith('/browse-agents');
   });
 
   it('restores unfinished progress from local storage', async () => {

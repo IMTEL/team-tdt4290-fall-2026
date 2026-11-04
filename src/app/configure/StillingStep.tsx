@@ -11,6 +11,7 @@ import { FieldHelp } from '@/components/ui/FieldHelp';
 import helpStyles from '@/components/ui/FieldHelp.module.css';
 import { SECTOR_LABELS, type IndustryTemplate, type Sector } from '@/data/industry-templates';
 import { FORM_SECTIONS, formSectionHelpHref } from './formSections';
+import { LeaveWizardGuard } from './LeaveWizardGuard';
 import { SeeWholeTemplate, TemplatePeekList } from './TemplatePeekBubbles';
 import { peekForStep, peeksOnStep, type TemplatePeek } from './templatePeeks';
 import styles from './StillingStep.module.css';
@@ -82,6 +83,7 @@ export function WizardFrame({
 
   return (
     <WizardPeeksContext.Provider value={{ peeks: shown, current }}>
+      <LeaveWizardGuard />
       <div className={styles.step}>
         <p className={styles.crumb}>
           <Link href="/browse-agents">Agenter</Link>
@@ -160,6 +162,7 @@ export function WizardNav({
         </Button>
       ) : null}
       <div className={styles.nav}>
+        {seeWhole ? <SeeWholeTemplate peek={seeWhole} /> : null}
         {backHref ? (
           <Button component={Link} href={backHref}>
             Tilbake
@@ -179,7 +182,6 @@ export function WizardNav({
             {extraNext.label}
           </Button>
         ) : null}
-        {seeWhole ? <SeeWholeTemplate peek={seeWhole} /> : null}
         <Button
           type={nextSubmit ? 'submit' : 'button'}
           variant="contained"

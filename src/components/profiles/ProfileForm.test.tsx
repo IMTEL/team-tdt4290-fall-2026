@@ -102,7 +102,9 @@ describe('ProfileForm for a new profile', () => {
 
     const name = screen.getByRole('textbox', { name: /Navn på malen/ });
     const notes = screen.getByRole('textbox', { name: /Notater/ });
+    const notesBox = screen.getByRole('group', { name: 'Notater' });
     const practice = screen.getByRole('group', { name: 'Hva vil jobbsøkeren øve på?' });
+    expect(notesBox).toContainElement(notes);
     expect(name.compareDocumentPosition(notes) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(notes.compareDocumentPosition(practice) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });

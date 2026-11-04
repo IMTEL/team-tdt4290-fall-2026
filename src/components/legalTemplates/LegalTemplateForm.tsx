@@ -62,24 +62,26 @@ export function LegalTemplateForm({ initial, onSave }: LegalTemplateFormProps) {
       onSubmit={handleSubmit}
       aria-label={initial ? 'Rediger lovverket' : 'Legg til lovverk'}
     >
-      <TextField
-        label="Navn"
-        helperText="Loven eller regelen, for eksempel «Arbeidsmiljøloven § 9-3»."
-        value={title}
-        onChange={(event) => setTitle(event.target.value)}
-        required
-        disabled={isSaving}
-        slotProps={{ htmlInput: { maxLength: LIMITS.title } }}
-      />
-      <TextField
-        label="Kort beskrivelse"
-        helperText="Én setning om hva det gjelder. Vises på kortet."
-        value={description}
-        onChange={(event) => setDescription(event.target.value)}
-        required
-        disabled={isSaving}
-        slotProps={{ htmlInput: { maxLength: LIMITS.description } }}
-      />
+      <div className={styles.panel}>
+        <TextField
+          label="Navn"
+          helperText="Loven eller regelen, for eksempel «Arbeidsmiljøloven § 9-3»."
+          value={title}
+          onChange={(event) => setTitle(event.target.value)}
+          required
+          disabled={isSaving}
+          slotProps={{ htmlInput: { maxLength: LIMITS.title } }}
+        />
+        <TextField
+          label="Kort beskrivelse"
+          helperText="Én setning om hva det gjelder. Vises på kortet."
+          value={description}
+          onChange={(event) => setDescription(event.target.value)}
+          required
+          disabled={isSaving}
+          slotProps={{ htmlInput: { maxLength: LIMITS.description } }}
+        />
+      </div>
       <div className={styles.panel}>
         <TextField
           label="Hva intervjueren skal følge"
@@ -95,8 +97,9 @@ export function LegalTemplateForm({ initial, onSave }: LegalTemplateFormProps) {
           onChange={(event) => setText(event.target.value)}
           required
           multiline
-          minRows={4}
+          minRows={3}
           disabled={isSaving}
+          className={styles.wide}
           slotProps={{ htmlInput: { maxLength: LIMITS.text } }}
         />
       </div>

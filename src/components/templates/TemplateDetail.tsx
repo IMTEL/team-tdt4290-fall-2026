@@ -21,6 +21,8 @@ export type TemplateDetailField = {
   text?: string;
   chips?: string[];
   links?: { href: string; label: string }[];
+  /** Shown as its own box, for longer private text such as notes. */
+  boxed?: boolean;
 };
 
 type TemplateDetailProps = {
@@ -73,7 +75,10 @@ export function TemplateDetail({ title, chip, summary, actions, fields }: Templa
 
       <dl className={styles.fields}>
         {fields.map((field) => (
-          <div key={field.label}>
+          <div
+            key={field.label}
+            className={field.boxed ? styles.boxedField : field.chips ? styles.wideField : undefined}
+          >
             <Typography component="dt" variant="subtitle2">
               {field.label}
             </Typography>

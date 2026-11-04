@@ -133,96 +133,111 @@ export function ProfileForm({
       onSubmit={handleSubmit}
       aria-label={initial ? 'Rediger malen' : 'Lag en mal'}
     >
-      <TextField
-        label="Navn på malen"
-        helperText="Et navn bare du ser, for eksempel «Profil A». Ikke bruk jobbsøkerens ekte navn."
-        value={label}
-        onChange={(event) => setLabel(event.target.value)}
-        required
-        disabled={isSaving}
-        className={styles.wide}
-        slotProps={{ htmlInput: { maxLength: LIMITS.label } }}
-      />
+      <div className={styles.split}>
+        <div className={styles.panel}>
+          <TextField
+            size="small"
+            label="Navn på malen"
+            helperText="Et navn bare du ser, for eksempel «Profil A». Ikke bruk jobbsøkerens ekte navn."
+            value={label}
+            onChange={(event) => setLabel(event.target.value)}
+            required
+            disabled={isSaving}
+            className={styles.wide}
+            slotProps={{ htmlInput: { maxLength: LIMITS.label } }}
+          />
+        </div>
+
+        <fieldset className={`${styles.panel} ${styles.fieldset}`} disabled={isSaving}>
+          <legend className={styles.legend}>Notater</legend>
+          <TextField
+            size="small"
+            helperText="Bare for deg. Notatene sendes ikke til assistenten eller intervjueren."
+            value={notes}
+            onChange={(event) => setNotes(event.target.value)}
+            multiline
+            minRows={1}
+            disabled={isSaving}
+            className={styles.wide}
+            slotProps={{ htmlInput: { maxLength: LIMITS.notes, 'aria-label': 'Notater' } }}
+          />
+        </fieldset>
+      </div>
 
       <div className={styles.panel}>
+        <p className={styles.panelTitle}>Om jobbsøkeren</p>
         <TextField
-          label="Notater"
-          helperText="Bare for deg. Notatene sendes ikke til assistenten eller intervjueren."
-          value={notes}
-          onChange={(event) => setNotes(event.target.value)}
-          multiline
-          minRows={2}
+          size="small"
+          select
+          label="Aldersgruppe"
+          value={ageRange}
+          onChange={(event) => setAgeRange(event.target.value)}
           disabled={isSaving}
-          slotProps={{ htmlInput: { maxLength: LIMITS.notes } }}
+        >
+          <MenuItem value="">Ikke oppgitt</MenuItem>
+          {AGE_RANGES.map((range) => (
+            <MenuItem key={range} value={range}>
+              {range.replace('-', '–')} år
+            </MenuItem>
+          ))}
+        </TextField>
+        <TextField
+          size="small"
+          select
+          label="Arbeidserfaring"
+          value={experienceLevel}
+          onChange={(event) => setExperienceLevel(event.target.value)}
+          disabled={isSaving}
+        >
+          <MenuItem value="">Ikke oppgitt</MenuItem>
+          {Object.entries(EXPERIENCE_LEVELS).map(([level, levelLabel]) => (
+            <MenuItem key={level} value={level}>
+              {levelLabel}
+            </MenuItem>
+          ))}
+        </TextField>
+        <TextField
+          size="small"
+          label="Hva slags erfaring?"
+          helperText="Valgfritt. For eksempel «sommerjobb i butikk, frivillig i idrettslag»."
+          value={workExperience}
+          onChange={(event) => setWorkExperience(event.target.value)}
+          disabled={isSaving}
+          slotProps={{ htmlInput: { maxLength: LIMITS.workExperience } }}
+        />
+        <TextField
+          size="small"
+          label="Utdanning"
+          helperText="Høyeste eller mest relevante. For eksempel «videregående, helsefag»."
+          value={education}
+          onChange={(event) => setEducation(event.target.value)}
+          disabled={isSaving}
+          slotProps={{ htmlInput: { maxLength: LIMITS.education } }}
+        />
+        <TextField
+          size="small"
+          label="Språk"
+          helperText={
+            languagesError ?? 'Skill med komma, gjerne med nivå. For eksempel «Norsk B1, Arabisk».'
+          }
+          error={languagesError !== null}
+          value={languagesText}
+          onChange={(event) => setLanguagesText(event.target.value)}
+          disabled={isSaving}
+          className={styles.wide}
         />
       </div>
 
-      <TextField
-        select
-        label="Aldersgruppe"
-        value={ageRange}
-        onChange={(event) => setAgeRange(event.target.value)}
-        disabled={isSaving}
-      >
-        <MenuItem value="">Ikke oppgitt</MenuItem>
-        {AGE_RANGES.map((range) => (
-          <MenuItem key={range} value={range}>
-            {range.replace('-', '–')} år
-          </MenuItem>
-        ))}
-      </TextField>
-      <TextField
-        select
-        label="Arbeidserfaring"
-        value={experienceLevel}
-        onChange={(event) => setExperienceLevel(event.target.value)}
-        disabled={isSaving}
-      >
-        <MenuItem value="">Ikke oppgitt</MenuItem>
-        {Object.entries(EXPERIENCE_LEVELS).map(([level, levelLabel]) => (
-          <MenuItem key={level} value={level}>
-            {levelLabel}
-          </MenuItem>
-        ))}
-      </TextField>
-
-      <TextField
-        label="Hva slags erfaring?"
-        helperText="Valgfritt. For eksempel «sommerjobb i butikk, frivillig i idrettslag»."
-        value={workExperience}
-        onChange={(event) => setWorkExperience(event.target.value)}
-        disabled={isSaving}
-        slotProps={{ htmlInput: { maxLength: LIMITS.workExperience } }}
-      />
-      <TextField
-        label="Utdanning"
-        helperText="Høyeste eller mest relevante. For eksempel «videregående, helsefag»."
-        value={education}
-        onChange={(event) => setEducation(event.target.value)}
-        disabled={isSaving}
-        slotProps={{ htmlInput: { maxLength: LIMITS.education } }}
-      />
-      <TextField
-        label="Språk"
-        helperText={
-          languagesError ?? 'Skill med komma, gjerne med nivå. For eksempel «Norsk B1, Arabisk».'
-        }
-        error={languagesError !== null}
-        value={languagesText}
-        onChange={(event) => setLanguagesText(event.target.value)}
-        disabled={isSaving}
-        className={styles.wide}
-      />
-
-      <fieldset className={`${styles.fieldset} ${styles.panel}`} disabled={isSaving}>
+      <fieldset className={`${styles.panel} ${styles.fieldset}`} disabled={isSaving}>
         <legend className={styles.legend}>Hva vil jobbsøkeren øve på?</legend>
-        <div className={styles.checkboxes}>
+        <div className={`${styles.checkboxes} ${styles.wide}`}>
           {PRACTICE_AREAS.map((area) => (
             <FormControlLabel
               key={area}
               label={area}
               control={
                 <Checkbox
+                  size="small"
                   checked={presetAreas.includes(area)}
                   onChange={(event) => togglePreset(area, event.target.checked)}
                 />
@@ -231,12 +246,13 @@ export function ProfileForm({
           ))}
         </div>
         <TextField
+          size="small"
           label="Annet"
           helperText={otherAreasError ?? 'Valgfritt. Skill med komma.'}
           error={otherAreasError !== null}
           value={otherAreasText}
           onChange={(event) => setOtherAreasText(event.target.value)}
-          fullWidth
+          className={styles.wide}
         />
       </fieldset>
 

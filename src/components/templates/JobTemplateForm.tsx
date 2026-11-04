@@ -86,71 +86,74 @@ export function JobTemplateForm({ initial, industries, onSave, cancelHref }: Job
       onSubmit={handleSubmit}
       aria-label={initial ? 'Rediger stillingsmalen' : 'Ny stillingsmal'}
     >
-      <TextField
-        label="Stilling"
-        helperText="En vanlig stillingstittel, for eksempel «Lagermedarbeider»."
-        value={title}
-        onChange={(event) => setTitle(event.target.value)}
-        required
-        disabled={saving}
-        slotProps={{ htmlInput: { maxLength: LIMITS.title } }}
-      />
-      {/* A list to choose from, or a new industry written in. */}
-      <Autocomplete
-        freeSolo
-        options={industries}
-        inputValue={industry}
-        onInputChange={(_event, value) => setIndustry(value)}
-        disabled={saving}
-        renderInput={(params) => (
-          <TextField
-            {...params}
-            label="Bransje"
-            helperText="Velg en bransje, eller skriv en ny."
-            required
-            slotProps={{
-              ...params.slotProps,
-              htmlInput: { ...params.slotProps.htmlInput, maxLength: LIMITS.industry },
-            }}
-          />
-        )}
-      />
-      <fieldset className={styles.fieldset}>
-        <legend className={styles.legend}>Arbeidsgiver *</legend>
-        <ToggleButtonGroup
-          exclusive
-          size="small"
-          value={sector}
+      <div className={styles.panel}>
+        <TextField
+          label="Stilling"
+          helperText="En vanlig stillingstittel, for eksempel «Lagermedarbeider»."
+          value={title}
+          onChange={(event) => setTitle(event.target.value)}
+          required
           disabled={saving}
-          aria-label="Arbeidsgiver"
-          onChange={(_event, next: Sector | null) => {
-            if (next) setSector(next);
-          }}
-        >
-          <ToggleButton value="offentlig">{SECTOR_LABELS.offentlig}</ToggleButton>
-          <ToggleButton value="privat">{SECTOR_LABELS.privat}</ToggleButton>
-        </ToggleButtonGroup>
-      </fieldset>
-      <TextField
-        label="Kort beskrivelse"
-        helperText="Én setning om hvordan jobben er. Vises på kortet."
-        value={description}
-        onChange={(event) => setDescription(event.target.value)}
-        required
-        disabled={saving}
-        slotProps={{ htmlInput: { maxLength: LIMITS.description } }}
-      />
-      <TextField
-        className={styles.wide}
-        label="Typiske oppgaver (valgfritt)"
-        helperText={
-          tasksError ?? 'Skill dem med komma, for eksempel «Plukking, Truck, Varemottak».'
-        }
-        error={Boolean(tasksError)}
-        value={tasks}
-        onChange={(event) => setTasks(event.target.value)}
-        disabled={saving}
-      />
+          slotProps={{ htmlInput: { maxLength: LIMITS.title } }}
+        />
+        {/* A list to choose from, or a new industry written in. */}
+        <Autocomplete
+          freeSolo
+          options={industries}
+          inputValue={industry}
+          onInputChange={(_event, value) => setIndustry(value)}
+          disabled={saving}
+          renderInput={(params) => (
+            <TextField
+              {...params}
+              label="Bransje"
+              helperText="Velg en bransje, eller skriv en ny."
+              required
+              slotProps={{
+                ...params.slotProps,
+                htmlInput: { ...params.slotProps.htmlInput, maxLength: LIMITS.industry },
+              }}
+            />
+          )}
+        />
+        <fieldset className={`${styles.fieldset} ${styles.wide}`}>
+          <legend className={styles.legend}>Arbeidsgiver *</legend>
+          <ToggleButtonGroup
+            exclusive
+            size="small"
+            value={sector}
+            disabled={saving}
+            aria-label="Arbeidsgiver"
+            onChange={(_event, next: Sector | null) => {
+              if (next) setSector(next);
+            }}
+          >
+            <ToggleButton value="offentlig">{SECTOR_LABELS.offentlig}</ToggleButton>
+            <ToggleButton value="privat">{SECTOR_LABELS.privat}</ToggleButton>
+          </ToggleButtonGroup>
+        </fieldset>
+        <TextField
+          className={styles.wide}
+          label="Kort beskrivelse"
+          helperText="Én setning om hvordan jobben er. Vises på kortet."
+          value={description}
+          onChange={(event) => setDescription(event.target.value)}
+          required
+          disabled={saving}
+          slotProps={{ htmlInput: { maxLength: LIMITS.description } }}
+        />
+        <TextField
+          className={styles.wide}
+          label="Typiske oppgaver (valgfritt)"
+          helperText={
+            tasksError ?? 'Skill dem med komma, for eksempel «Plukking, Truck, Varemottak».'
+          }
+          error={Boolean(tasksError)}
+          value={tasks}
+          onChange={(event) => setTasks(event.target.value)}
+          disabled={saving}
+        />
+      </div>
       <div className={styles.panel}>
         <TextField
           label="Dette får intervjueren vite om stillingen"
@@ -165,8 +168,9 @@ export function JobTemplateForm({ initial, industries, onSave, cancelHref }: Job
           onChange={(event) => setJobDescription(event.target.value)}
           required
           multiline
-          minRows={4}
+          minRows={3}
           disabled={saving}
+          className={styles.wide}
           slotProps={{ htmlInput: { maxLength: LIMITS.jobDescription } }}
         />
       </div>

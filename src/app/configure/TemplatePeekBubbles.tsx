@@ -1,7 +1,9 @@
 'use client';
 
 import { useId, useState, type MouseEvent } from 'react';
+import CloseIcon from '@mui/icons-material/Close';
 import Button from '@mui/material/Button';
+import IconButton from '@mui/material/IconButton';
 import Popover from '@mui/material/Popover';
 
 import type { TemplatePeek } from './templatePeeks';
@@ -71,9 +73,16 @@ function PeekPopover({
         },
       }}
     >
-      <p id={headingId} className={styles.peekHeading}>
-        {peek.kind}: {peek.title}
-      </p>
+      <div className={styles.peekHeader}>
+        <p id={headingId} className={styles.peekHeading}>
+          {peek.kind}: {peek.title}
+        </p>
+        <span className={styles.peekClose}>
+          <IconButton type="button" size="small" aria-label="Lukk" onClick={onClose}>
+            <CloseIcon fontSize="small" />
+          </IconButton>
+        </span>
+      </div>
       <dl className={styles.peekDetails}>
         {peek.details.map((line) => (
           <div key={line.label} className={styles.peekDetail}>
@@ -98,7 +107,7 @@ export function TemplatePeekList({ peeks }: { peeks: TemplatePeek[] }) {
   );
 }
 
-/** Opens the current step's template, placed just above Neste. */
+/** Opens the current step's template, placed before Tilbake. */
 export function SeeWholeTemplate({ peek }: { peek: TemplatePeek }) {
   const [anchor, setAnchor] = useState<HTMLElement | null>(null);
   const headingId = useId();

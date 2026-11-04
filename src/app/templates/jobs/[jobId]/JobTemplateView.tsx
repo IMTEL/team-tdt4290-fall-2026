@@ -101,7 +101,11 @@ export function JobTemplateView({ jobId }: { jobId: string }) {
         // English translation: Typical tasks
         { label: 'Typiske oppgaver', chips: job.tasks },
         // English translation: What the interviewer is told about the job
-        { label: 'Dette får intervjueren vite om stillingen', text: job.jobDescription },
+        {
+          label: 'Dette får intervjueren vite om stillingen',
+          text: job.jobDescription,
+          boxed: true,
+        },
       ]}
     />
   );

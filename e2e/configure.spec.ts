@@ -299,6 +299,26 @@ test('Ny agent starts a blank wizard even when an utkast exists', async ({ page 
   await expect(page.getByRole('textbox', { name: /^Stilling/ })).toHaveValue('');
 });
 
+test('leaving the wizard without saving asks for confirmation', async ({ page }) => {
+  await logIn(page, '/configure');
+  await chooseInterviewer(page);
+  await fillStilling(page, { jobTitle: 'Kassemedarbeider' });
+
+  await page.getByRole('navigation').getByRole('link', { name: 'Agenter', exact: true }).click();
+  const dialog = page.getByRole('dialog', { name: 'Forlate uten å lagre?', exact: true });
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByRole('button', { name: 'Lagre utkast', exact: true })).toBeVisible();
+  await dialog.getByRole('button', { name: 'Avbryt', exact: true }).click();
+  await expect(dialog).toHaveCount(0);
+  await expect(
+    page.getByRole('heading', { level: 2, name: 'Velg en intervjuermal', exact: true }),
+  ).toBeVisible();
+
+  await page.getByRole('navigation').getByRole('link', { name: 'Agenter', exact: true }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Forlat', exact: true }).click();
+  await expect(page).toHaveURL(/\/browse-agents$/);
+});
+
 test('several local drafts can be stored at once', async ({ page }) => {
   await logIn(page, '/configure');
   await chooseInterviewer(page);

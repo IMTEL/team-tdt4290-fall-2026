@@ -192,7 +192,7 @@ export function peeksOnStep(peeks: TemplatePeek[], step: number): TemplatePeek[]
   return kinds ? peeks.filter((peek) => kinds.includes(peek.kind)) : [];
 }
 
-/** The first bubble on this section, so Se hele can sit next to Neste. */
+/** The first bubble on this section, so Se hele can sit before Tilbake. */
 export function peekForStep(peeks: TemplatePeek[], step: number): TemplatePeek | undefined {
   return peeksOnStep(peeks, step)[0];
 }

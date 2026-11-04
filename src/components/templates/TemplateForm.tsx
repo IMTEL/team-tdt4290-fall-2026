@@ -118,60 +118,62 @@ export function TemplateForm({
       onSubmit={handleSubmit}
       aria-label={initial ? 'Rediger malen' : 'Lag en mal'}
     >
-      <TextField
-        select
-        label="Type agent"
-        helperText={
-          initial
-            ? 'Typen kan ikke endres etter at malen er lagret.'
-            : 'Hva slags agent malen er for. Du finner den når du setter opp en slik agent.'
-        }
-        value={agentType}
-        onChange={(event) => setAgentType(event.target.value)}
-        required
-        // Agents remember which template they came from, so a saved template keeps its type.
-        disabled={isSaving || Boolean(initial)}
-      >
-        {types.map((type) => (
-          <MenuItem key={type.id} value={type.id}>
-            {type.label}
-          </MenuItem>
-        ))}
-        {listPlannedAgentTypes().map((type) => (
-          <MenuItem key={type.id} value={type.id} disabled>
-            {type.label} (kommer snart)
-          </MenuItem>
-        ))}
-      </TextField>
-      <TextField
-        label="Navn på malen"
-        helperText={text?.titleHint}
-        value={title}
-        onChange={(event) => setTitle(event.target.value)}
-        required
-        disabled={isSaving}
-        slotProps={{ htmlInput: { maxLength: TEMPLATE_LIMITS.title } }}
-      />
-      <TextField
-        label="Kort beskrivelse"
-        helperText={text?.descriptionHint}
-        value={description}
-        onChange={(event) => setDescription(event.target.value)}
-        required
-        disabled={isSaving}
-        slotProps={{ htmlInput: { maxLength: TEMPLATE_LIMITS.description } }}
-      />
-      <TextField
-        label="Fokusområder"
-        helperText={
-          focusError ??
-          `Skill med komma, for eksempel «Service, Samarbeid». Høyst ${TEMPLATE_LIMITS.focusItems}.`
-        }
-        error={focusError !== null}
-        value={focusText}
-        onChange={(event) => setFocusText(event.target.value)}
-        disabled={isSaving}
-      />
+      <div className={styles.panel}>
+        <TextField
+          select
+          label="Type agent"
+          helperText={
+            initial
+              ? 'Typen kan ikke endres etter at malen er lagret.'
+              : 'Hva slags agent malen er for. Du finner den når du setter opp en slik agent.'
+          }
+          value={agentType}
+          onChange={(event) => setAgentType(event.target.value)}
+          required
+          // Agents remember which template they came from, so a saved template keeps its type.
+          disabled={isSaving || Boolean(initial)}
+        >
+          {types.map((type) => (
+            <MenuItem key={type.id} value={type.id}>
+              {type.label}
+            </MenuItem>
+          ))}
+          {listPlannedAgentTypes().map((type) => (
+            <MenuItem key={type.id} value={type.id} disabled>
+              {type.label} (kommer snart)
+            </MenuItem>
+          ))}
+        </TextField>
+        <TextField
+          label="Navn på malen"
+          helperText={text?.titleHint}
+          value={title}
+          onChange={(event) => setTitle(event.target.value)}
+          required
+          disabled={isSaving}
+          slotProps={{ htmlInput: { maxLength: TEMPLATE_LIMITS.title } }}
+        />
+        <TextField
+          label="Kort beskrivelse"
+          helperText={text?.descriptionHint}
+          value={description}
+          onChange={(event) => setDescription(event.target.value)}
+          required
+          disabled={isSaving}
+          slotProps={{ htmlInput: { maxLength: TEMPLATE_LIMITS.description } }}
+        />
+        <TextField
+          label="Fokusområder"
+          helperText={
+            focusError ??
+            `Skill med komma, for eksempel «Service, Samarbeid». Høyst ${TEMPLATE_LIMITS.focusItems}.`
+          }
+          error={focusError !== null}
+          value={focusText}
+          onChange={(event) => setFocusText(event.target.value)}
+          disabled={isSaving}
+        />
+      </div>
       <div className={styles.panel}>
         <TextField
           label={text?.textLabel ?? 'Beskrivelse'}
@@ -180,8 +182,9 @@ export function TemplateForm({
           onChange={(event) => setPersona(event.target.value)}
           required
           multiline
-          minRows={4}
+          minRows={3}
           disabled={isSaving}
+          className={styles.wide}
           slotProps={{ htmlInput: { maxLength: TEMPLATE_LIMITS.persona } }}
         />
       </div>

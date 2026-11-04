@@ -59,27 +59,29 @@ export function IndustryTemplateForm({
       onSubmit={handleSubmit}
       aria-label={initial ? 'Rediger bransjemalen' : 'Ny bransjemal'}
     >
-      <TextField
-        label="Bransje"
-        helperText={
-          taken ? 'Det finnes allerede en bransje med dette navnet.' : 'For eksempel «Logistikk».'
-        }
-        error={taken}
-        value={name}
-        onChange={(event) => setName(event.target.value)}
-        required
-        disabled={saving}
-        slotProps={{ htmlInput: { maxLength: LIMITS.name } }}
-      />
-      <TextField
-        label="Kort beskrivelse"
-        helperText="Én setning om bransjen. Vises på kortet."
-        value={description}
-        onChange={(event) => setDescription(event.target.value)}
-        required
-        disabled={saving}
-        slotProps={{ htmlInput: { maxLength: LIMITS.description } }}
-      />
+      <div className={styles.panel}>
+        <TextField
+          label="Bransje"
+          helperText={
+            taken ? 'Det finnes allerede en bransje med dette navnet.' : 'For eksempel «Logistikk».'
+          }
+          error={taken}
+          value={name}
+          onChange={(event) => setName(event.target.value)}
+          required
+          disabled={saving}
+          slotProps={{ htmlInput: { maxLength: LIMITS.name } }}
+        />
+        <TextField
+          label="Kort beskrivelse"
+          helperText="Én setning om bransjen. Vises på kortet."
+          value={description}
+          onChange={(event) => setDescription(event.target.value)}
+          required
+          disabled={saving}
+          slotProps={{ htmlInput: { maxLength: LIMITS.description } }}
+        />
+      </div>
       <div className={styles.panel}>
         <TextField
           label="Dette får intervjueren vite om bransjen (valgfritt)"
@@ -94,8 +96,9 @@ export function IndustryTemplateForm({
           value={context}
           onChange={(event) => setContext(event.target.value)}
           multiline
-          minRows={4}
+          minRows={3}
           disabled={saving}
+          className={styles.wide}
           slotProps={{ htmlInput: { maxLength: LIMITS.context } }}
         />
       </div>

@@ -97,7 +97,7 @@ export function ProfileDetail({ profileId }: { profileId: string }) {
         // English translation: Wants to practise
         { label: 'Vil øve på', chips: profile.practiceAreas },
         // English translation: Notes, only for you
-        { label: 'Notater (bare for deg)', text: profile.notes },
+        { label: 'Notater (bare for deg)', text: profile.notes, boxed: true },
       ]}
     />
   );
