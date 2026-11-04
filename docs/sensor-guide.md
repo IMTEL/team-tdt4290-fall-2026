@@ -33,7 +33,7 @@ can be added as new _agent types_.
 | To see                                                      | Read                                                                                        |
 | ----------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
 | How the system fits together, with diagrams                 | [`architecture.md`](architecture.md)                                                        |
-| Explanation of essential choices                                 | [`decisions/`](decisions/README.md)                                                         |
+| Explanation of essential choices                            | [`decisions/`](decisions/README.md)                                                         |
 | How the app is used                                         | [`user-guide.md`](user-guide.md)                                                            |
 | How to add new things, such as a new agent type             | [`extending.md`](extending.md)                                                              |
 | How we test, and what is covered                            | [`testing.md`](testing.md), [`e2e-testing.md`](e2e-testing.md)                              |
