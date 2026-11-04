@@ -16,4 +16,19 @@ describe('LegalTemplateSelect', () => {
       templatesSectionHref('lovverk'),
     );
   });
+
+  it('offers the standard template as one choice, not each paragraph', () => {
+    render(
+      <LegalTemplateSelect templates={builtInLegalTemplates} value={[]} onChange={() => {}} />,
+    );
+
+    expect(
+      screen.getByRole('checkbox', { name: 'Rettigheter i ansettelsesprosessen' }),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('group', { name: 'Norge' })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('checkbox', { name: 'Likestillings- og diskrimineringsloven § 30' }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByText(/Vil du vrake noen, lag et eget lovverk/)).toBeInTheDocument();
+  });
 });

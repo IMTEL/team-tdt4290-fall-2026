@@ -14,8 +14,8 @@ import Typography from '@mui/material/Typography';
 import { templatesSectionHref } from '@/app/templates/sectionOpen';
 import { fetchLegalTemplate } from '@/components/legalTemplates/api';
 import { DeleteLegalTemplateButton } from '@/components/legalTemplates/DeleteLegalTemplateButton';
-import { findBuiltInLegalTemplate } from '@/data/legal-templates';
-import type { LegalTemplate } from '@/domain/legalTemplate';
+import { findBuiltInLegalTemplate, paragraphsForTemplate } from '@/data/legal-templates';
+import { LEGAL_JURISDICTION_LABELS, type LegalTemplate } from '@/domain/legalTemplate';
 import styles from './LegalTemplateDetail.module.css';
 
 type LoadState =
@@ -54,6 +54,8 @@ export function LegalTemplateDetail({ templateId }: { templateId: string }) {
 
   if (state.kind === 'missing') notFound();
 
+  const paragraphs = state.kind === 'ready' ? paragraphsForTemplate(state.template) : [];
+
   return (
     <div className={styles.page}>
       {/* The margin is on a wrapper: MUI's own styles load after ours and reset its margin. */}
@@ -85,6 +87,19 @@ export function LegalTemplateDetail({ templateId }: { templateId: string }) {
                 size="small"
                 color="secondary"
               />
+              {state.template.jurisdiction && (
+                <Chip label={LEGAL_JURISDICTION_LABELS[state.template.jurisdiction]} size="small" />
+              )}
+              {state.template.sourceUrl && (
+                <a
+                  className={styles.source}
+                  href={state.template.sourceUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Se kilden
+                </a>
+              )}
             </div>
           </div>
 
@@ -130,11 +145,36 @@ export function LegalTemplateDetail({ templateId }: { templateId: string }) {
             <Typography id="text-heading" variant="h6" component="h2" className={styles.textLabel}>
               Dette følger intervjueren
             </Typography>
-            <div className={styles.textBox}>
-              <Typography component="p" variant="body1" className={styles.text}>
-                {state.template.text}
-              </Typography>
-            </div>
+            {paragraphs.length > 0 ? (
+              <ol className={styles.paragraphs}>
+                {paragraphs.map((paragraph) => (
+                  <li key={paragraph.id} className={styles.textBox}>
+                    <Typography variant="subtitle1" component="h3">
+                      {paragraph.title}
+                    </Typography>
+                    {paragraph.sourceUrl && (
+                      <a
+                        className={styles.source}
+                        href={paragraph.sourceUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        Se kilden
+                      </a>
+                    )}
+                    <Typography component="p" variant="body1" className={styles.text}>
+                      {paragraph.text}
+                    </Typography>
+                  </li>
+                ))}
+              </ol>
+            ) : (
+              <div className={styles.textBox}>
+                <Typography component="p" variant="body1" className={styles.text}>
+                  {state.template.text}
+                </Typography>
+              </div>
+            )}
           </section>
         </>
       )}

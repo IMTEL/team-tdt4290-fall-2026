@@ -309,7 +309,7 @@ describe('TemplateLibrary', () => {
     fetchLegalTemplatesMock.mockResolvedValue([
       {
         id: 'legal-1',
-        title: 'Arbeidsmiljøloven § 9-3',
+        title: 'Intern regel om helse',
         description: 'Helseopplysninger',
         text: 'Ikke spør om helse.',
         builtIn: false,
@@ -322,10 +322,12 @@ describe('TemplateLibrary', () => {
       'href',
       '/legal-templates/new',
     );
-    const builtIn = within(legal).getByRole('link', { name: /Rettigheter i ansettelsesprosessen/ });
+    const builtIn = within(legal).getByRole('link', {
+      name: /Rettigheter i ansettelsesprosessen/,
+    });
     expect(builtIn).toHaveAttribute('href', '/legal-templates/builtin-legal-hiring-rights');
     expect(builtIn).toHaveTextContent('Følger med appen');
-    const own = await within(legal).findByRole('link', { name: /Arbeidsmiljøloven § 9-3/ });
+    const own = await within(legal).findByRole('link', { name: /Intern regel om helse/ });
     expect(own).toHaveAttribute('href', '/legal-templates/legal-1');
     expect(own).toHaveTextContent('Helseopplysninger.');
     expect(within(builtIn).getByText('Følger med appen')).toHaveClass('MuiChip-label');
@@ -348,7 +350,9 @@ describe('TemplateLibrary', () => {
       'true',
     );
     expect(
-      within(section('Lovverk')).getByRole('link', { name: /Rettigheter i ansettelsesprosessen/ }),
+      within(section('Lovverk')).getByRole('link', {
+        name: /Rettigheter i ansettelsesprosessen/,
+      }),
     ).toBeVisible();
     await waitFor(() => expect(scrollIntoView).toHaveBeenCalled());
   });

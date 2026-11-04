@@ -86,8 +86,9 @@ Unit and component level only:
   empty one.
 - `src/components/templates/TemplatePicker.test.tsx`: every template is shown, clicking one
   selects it, "Fortsett uten mal" selects none, "Lag en ny mal" links to `/create-template` (with
-  the agent type when given), the type's lead is shown, and
-  only saved templates have edit and delete.
+  the agent type when given), the type's lead is shown, only saved templates have edit and delete,
+  focus pills open editing (or the built-in page), and the interviewer text is on the card and in
+  a hover tip.
 - `src/app/configure/page.test.tsx`: the page starts by asking for the agent type, with planned
   types shown as "Kommer snart" and not choosable; `?type=interviewer` opens the wizard (stilling
   → intervjuer → jobbsøker → innstillinger → fullføre); section progress and jumping back keep

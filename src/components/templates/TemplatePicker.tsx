@@ -1,16 +1,18 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
 import CardActionArea from '@mui/material/CardActionArea';
 import CardActions from '@mui/material/CardActions';
-import Chip from '@mui/material/Chip';
+import Tooltip from '@mui/material/Tooltip';
 
 import { FieldHelp } from '@/components/ui/FieldHelp';
 import helpStyles from '@/components/ui/FieldHelp.module.css';
 import type { AgentTemplate } from '@/data/templates';
 import { withReturnTo } from '@/lib/returnTo';
+import { useIsClient } from '@/lib/useOnceInBrowser';
 import { DeleteTemplateButton } from './DeleteTemplateButton';
 import styles from './TemplatePicker.module.css';
 
@@ -54,48 +56,88 @@ export function TemplatePicker({
   selectedId = null,
   returnTo,
 }: TemplatePickerProps) {
+  // returnTo includes a draft id that exists only on the client, so links wait until after hydration.
+  const isClient = useIsClient();
+  const [backTo, setBackTo] = useState<string | undefined>(undefined);
+  if (isClient && backTo !== returnTo) {
+    setBackTo(returnTo);
+  }
+
   const newTemplateHref = withReturnTo(
     agentType ? `/create-template?agentType=${encodeURIComponent(agentType)}` : '/create-template',
-    returnTo,
+    backTo,
   );
 
   function card(template: AgentTemplate, saved: boolean) {
     const selected = asRadios && selectedId === template.id;
+    const openHref = templateOpenHref(template, saved, backTo);
+    const hoverInfo = template.persona.trim() || template.description;
     return (
       <li key={template.id}>
         <Card
           variant="outlined"
           className={selected ? `${styles.card} ${styles.chosen}` : styles.card}
         >
-          <CardActionArea
-            onClick={() => onSelect(template)}
-            className={styles.action}
-            role={asRadios ? 'radio' : undefined}
-            aria-checked={asRadios ? selected : undefined}
+          <Tooltip
+            title={hoverInfo}
+            describeChild
+            placement="top"
+            enterDelay={250}
+            enterTouchDelay={0}
+            leaveTouchDelay={4000}
+            slotProps={{
+              tooltip: { className: helpStyles.tooltip },
+              popper: { className: helpStyles.popper },
+            }}
           >
-            <h3 className={styles.title}>{template.title}</h3>
-            <p className={styles.description}>{template.description}</p>
-            <div className={styles.focus}>
-              {template.focus.map((item) => (
-                <Chip key={item} label={item} size="small" />
-              ))}
-            </div>
-          </CardActionArea>
-          {/* Outside the action area: a button inside a button is not valid HTML. */}
-          {saved && (
-            <CardActions className={styles.cardActions}>
-              <Button
-                component={Link}
-                href={withReturnTo(`/templates/${encodeURIComponent(template.id)}/edit`, returnTo)}
-                size="small"
-                className={styles.edit}
-                aria-label={`Rediger ${template.title}`}
+            <div className={styles.cardInner}>
+              <CardActionArea
+                onClick={() => onSelect(template)}
+                className={styles.action}
+                role={asRadios ? 'radio' : undefined}
+                aria-checked={asRadios ? selected : undefined}
               >
-                Rediger
-              </Button>
-              <DeleteTemplateButton template={template} onDeleted={onDeleted} />
-            </CardActions>
-          )}
+                <h3 className={styles.title}>{template.title}</h3>
+                <p className={styles.description}>{template.description}</p>
+                {template.persona.trim() !== '' && (
+                  <p className={styles.excerpt}>{template.persona}</p>
+                )}
+              </CardActionArea>
+              {/* Outside the action area: a link inside a button is not valid HTML. */}
+              {template.focus.length > 0 && (
+                <div className={styles.focus}>
+                  {template.focus.map((item) => (
+                    <Link
+                      key={item}
+                      href={openHref}
+                      className={styles.focusChip}
+                      aria-label={
+                        saved
+                          ? `${item}: rediger ${template.title}`
+                          : `${item}: se ${template.title}`
+                      }
+                    >
+                      {item}
+                    </Link>
+                  ))}
+                </div>
+              )}
+              {saved && (
+                <CardActions className={styles.cardActions}>
+                  <Button
+                    component={Link}
+                    href={openHref}
+                    size="small"
+                    className={styles.edit}
+                    aria-label={`Rediger ${template.title}`}
+                  >
+                    Rediger
+                  </Button>
+                  <DeleteTemplateButton template={template} onDeleted={onDeleted} />
+                </CardActions>
+              )}
+            </div>
+          </Tooltip>
         </Card>
       </li>
     );
@@ -148,4 +190,12 @@ export function TemplatePicker({
       )}
     </section>
   );
+}
+
+/** Saved templates open in the editor. Built-in ones can only be read. */
+function templateOpenHref(template: AgentTemplate, saved: boolean, returnTo?: string): string {
+  const path = saved
+    ? `/templates/${encodeURIComponent(template.id)}/edit`
+    : `/templates/${encodeURIComponent(template.id)}`;
+  return withReturnTo(path, returnTo);
 }

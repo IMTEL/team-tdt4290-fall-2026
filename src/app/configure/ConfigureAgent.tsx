@@ -18,7 +18,11 @@ import { IndustryPreview } from '@/components/templates/IndustryPreview';
 import { TemplatePicker } from '@/components/templates/TemplatePicker';
 import { useWorkplaceTemplates } from '@/components/templates/useWorkplaceTemplates';
 import { industryTemplates, type IndustryTemplate } from '@/data/industry-templates';
-import { builtInLegalTemplates } from '@/data/legal-templates';
+import {
+  builtInLegalTemplateIds,
+  builtInLegalTemplates,
+  normalizeLegalTemplateIds,
+} from '@/data/legal-templates';
 import { builtInTemplates, type AgentTemplate } from '@/data/templates';
 import {
   getAgentType,
@@ -115,7 +119,7 @@ export function ConfigureAgent({
   const [profileId, setProfileId] = useState<string | null>(null);
   const [practiceAreas, setPracticeAreas] = useState<string[]>([]);
   const [savedLegal, setSavedLegal] = useState<LegalTemplate[]>([]);
-  const [legalIds, setLegalIds] = useState<string[]>([]);
+  const [legalIds, setLegalIds] = useState<string[]>(builtInLegalTemplateIds);
   const [otherOpen, setOtherOpen] = useState(false);
   const [otherPractice, setOtherPractice] = useState('');
   const [settings, setSettings] = useState<InterviewSettings>(EMPTY_INTERVIEW_SETTINGS);
@@ -164,6 +168,7 @@ export function ConfigureAgent({
   if (isClient && !draftReady) {
     if (startNew) {
       setDraftId(createWizardDraftId());
+      setLegalIds(builtInLegalTemplateIds());
     } else {
       const draft = readWizardDraft(initialDraftId ?? undefined);
       if (
@@ -179,7 +184,7 @@ export function ConfigureAgent({
           setChoice(draft.hasTemplateChoice ? draft.template : undefined);
           setProfileId(draft.profileId || (draft.furthestStep >= 2 ? '' : null));
           setPracticeAreas(draft.practiceAreas);
-          setLegalIds(draft.legalIds ?? []);
+          setLegalIds(normalizeLegalTemplateIds(draft.legalIds ?? builtInLegalTemplateIds()));
           setOtherOpen(draft.otherOpen);
           setOtherPractice(draft.otherPractice);
           setSettings(draft.settings);
@@ -313,7 +318,7 @@ export function ConfigureAgent({
     setIndustry(undefined);
     setProfileId(null);
     setPracticeAreas([]);
-    setLegalIds([]);
+    setLegalIds(next?.presets?.legalTemplates ? builtInLegalTemplateIds() : []);
     setOtherOpen(false);
     setOtherPractice('');
     setProfilesLoaded(false);
@@ -375,7 +380,9 @@ export function ConfigureAgent({
   const legalOptions = [...builtInLegalTemplates, ...savedLegal];
   // In the order they were chosen. One that is no longer offered is left out.
   const legalTemplates = usesLegal
-    ? legalIds.flatMap((id) => legalOptions.filter((item) => item.id === id))
+    ? normalizeLegalTemplateIds(legalIds).flatMap((id) =>
+        legalOptions.filter((item) => item.id === id),
+      )
     : [];
 
   /** The answers the wizard's choices are saved as, or null while a required choice is missing. */

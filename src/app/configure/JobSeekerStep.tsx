@@ -170,10 +170,10 @@ export function JobSeekerStep({
             Lag en ny jobbsøkermal
           </Button>
         </div>
-        <div className={stepStyles.suggestions}>
+        <div className={`${stepStyles.suggestions} ${stepStyles.box}`}>
           <div className={helpStyles.row}>
             <p className={stepStyles.practiceHeading} id="practice-heading">
-              Hva skal jobbsøkeren øve på?
+              Dette vil jobbsøkeren øve på
               {practiceCount(practiceAreas, otherOpen, otherPractice) > 0 && (
                 <span className={stepStyles.countBadge}>
                   {practiceCount(practiceAreas, otherOpen, otherPractice)}

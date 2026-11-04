@@ -84,10 +84,27 @@ function PeekPopover({
         </span>
       </div>
       <dl className={styles.peekDetails}>
-        {peek.details.map((line) => (
-          <div key={line.label} className={styles.peekDetail}>
+        {peek.details.map((line, index) => (
+          <div key={`${line.label}-${index}`} className={styles.peekDetail}>
             <dt>{line.label}</dt>
-            <dd>{line.value}</dd>
+            <dd>
+              {line.href ? (
+                line.value === 'Se kilden' ? (
+                  <a href={line.href} target="_blank" rel="noreferrer">
+                    Se kilden
+                  </a>
+                ) : (
+                  <>
+                    {line.value}{' '}
+                    <a href={line.href} target="_blank" rel="noreferrer">
+                      Kilde
+                    </a>
+                  </>
+                )
+              ) : (
+                line.value
+              )}
+            </dd>
           </div>
         ))}
       </dl>

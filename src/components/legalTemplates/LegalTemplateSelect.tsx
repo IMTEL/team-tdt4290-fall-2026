@@ -67,8 +67,7 @@ export function LegalTemplateSelect({
       <FormHelperText>
         {[
           helperText ??
-            'Intervjueren følger lovverket du velger, og kan svare jobbsøkeren om rettighetene ' +
-              'sine. Valgfritt.',
+            'Standardmalen har alle lover. Vil du vrake noen, lag et eget lovverk. Valgfritt.',
           full && `Du kan velge høyst ${LEGAL_TEMPLATE_LIMITS.perAgent}.`,
         ]
           .filter(Boolean)

@@ -59,7 +59,7 @@ const profilePreset: AnswerPreset = {
 
 const savedLegal = {
   id: 'legal-1',
-  title: 'Arbeidsmiljøloven § 9-3',
+  title: 'Intern regel om helse',
   description: 'Helseopplysninger',
   text: 'Ikke spør om helse.',
   builtIn: false,
@@ -471,7 +471,7 @@ describe('EditAgentForm', () => {
       });
 
       expect(box(builtIn.title)).toBeChecked();
-      expect(box('Arbeidsmiljøloven § 9-3')).toBeChecked();
+      expect(box('Intern regel om helse')).toBeChecked();
     });
 
     it('fills in Lovverk from the ticked templates, and saves the text with its source', async () => {
@@ -480,7 +480,7 @@ describe('EditAgentForm', () => {
       renderForm({ legalPreset });
 
       await user.click(box(builtIn.title));
-      await user.click(box('Arbeidsmiljøloven § 9-3'));
+      await user.click(box('Intern regel om helse'));
 
       expect(field('Lovverk')).toHaveValue(lawText);
       await user.click(saveButton());
@@ -498,7 +498,7 @@ describe('EditAgentForm', () => {
       });
 
       await user.click(box(builtIn.title));
-      await user.click(box('Arbeidsmiljøloven § 9-3'));
+      await user.click(box('Intern regel om helse'));
 
       expect(field('Lovverk')).toHaveValue('');
       await user.click(saveButton());
@@ -509,9 +509,9 @@ describe('EditAgentForm', () => {
       const user = userEvent.setup();
       renderForm({ initialAnswers: { ...answers, lovverk: 'Egen regel.' }, legalPreset });
 
-      await user.click(box('Arbeidsmiljøloven § 9-3'));
-      expect(field('Lovverk')).toHaveValue('Arbeidsmiljøloven § 9-3:\nIkke spør om helse.');
-      await user.click(box('Arbeidsmiljøloven § 9-3'));
+      await user.click(box('Intern regel om helse'));
+      expect(field('Lovverk')).toHaveValue('Intern regel om helse:\nIkke spør om helse.');
+      await user.click(box('Intern regel om helse'));
 
       expect(field('Lovverk')).toHaveValue('Egen regel.');
       expect(screen.getByText('Ingen endringer ennå')).toBeVisible();
@@ -536,9 +536,9 @@ describe('EditAgentForm', () => {
         initialSources: { lovverk: lawSource },
       };
       renderForm({ ...props, legalPreset });
-      expect(box('Arbeidsmiljøloven § 9-3')).not.toBeChecked();
+      expect(box('Intern regel om helse')).not.toBeChecked();
       expect(
-        screen.getByText(/Teksten kom fra «.+», «Arbeidsmiljøloven § 9-3», som er endret siden\./),
+        screen.getByText(/Teksten kom fra «.+», «Intern regel om helse», som er endret siden\./),
       ).toBeVisible();
     });
 

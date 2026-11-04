@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { findIndustryTemplate, industryConfiguration } from '@/data/industry-templates';
 import { findBuiltInTemplate } from '@/data/templates';
+import { LEGAL_TEMPLATE_LIMITS } from '@/domain/legalTemplate';
 import { getSessionToken } from '@/lib/session-tokens';
 import { askAgent, getProfile, getTemplate, RagdollError } from '@/server/ragdoll';
 import { chatRetryAfter, MAX_CHAT_REQUESTS, resetChatLimits } from '@/server/rateLimit';
@@ -294,7 +295,12 @@ describe('POST /api/configure/turn', () => {
   });
 
   it('answers 400 for legal template ids that are not a list of distinct ids', async () => {
-    for (const legalTemplateIds of ['legal-1', [''], ['a', 'a'], ['1', '2', '3', '4', '5', '6']]) {
+    for (const legalTemplateIds of [
+      'legal-1',
+      [''],
+      ['a', 'a'],
+      Array.from({ length: LEGAL_TEMPLATE_LIMITS.perAgent + 1 }, (_, i) => `id-${i}`),
+    ]) {
       const res = await POST(turnRequest({ legalTemplateIds, messages }));
       expect(res.status).toBe(400);
     }

@@ -1,7 +1,7 @@
 import { SECTOR_LABELS, type IndustryTemplate } from '@/data/industry-templates';
 import type { AgentTemplate } from '@/data/templates';
 import { summarizeProfile, type JobSeekerProfile } from '@/domain/jobSeekerProfile';
-import type { LegalTemplate } from '@/domain/legalTemplate';
+import { LEGAL_JURISDICTION_LABELS, type LegalTemplate } from '@/domain/legalTemplate';
 import { isBuiltInJob, type IndustryTemplateEntry } from '@/domain/workplaceTemplate';
 
 /** One card on the templates page: a title, one short line, and one sentence. */
@@ -154,7 +154,11 @@ export function legalCatalog(templates: LegalTemplate[]): CatalogItem[] {
     id: template.id,
     title: template.title,
     line: '',
-    chip: template.builtIn ? 'Følger med appen' : 'Eget lovverk',
+    chip: template.jurisdiction
+      ? LEGAL_JURISDICTION_LABELS[template.jurisdiction]
+      : template.builtIn
+        ? 'Følger med appen'
+        : 'Eget lovverk',
     detail: sentence(template.description),
     href: `/legal-templates/${encodeURIComponent(template.id)}`,
   }));

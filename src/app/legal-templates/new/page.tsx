@@ -15,8 +15,8 @@ export default function NewLegalTemplatePage() {
         <p className={styles.lead}>
           {/* English translation: Write the law or rule in your own words, as the interviewer
           should follow it. Check that it is right: the interviewer only knows what you write. */}
-          Skriv loven eller regelen med egne ord, slik intervjueren skal følge den. Sjekk at det
-          stemmer: intervjueren vet bare det du skriver.
+          Huk av lovene intervjueren skal følge, og fjern krysset for det du vil vrake. Intervjueren
+          vet bare det som blir med.
         </p>
       </header>
 

@@ -97,16 +97,22 @@ describe('ProfileForm for a new profile', () => {
     ).toBeInTheDocument();
   });
 
-  it('puts notes right after the name, and practice areas in their own group', () => {
+  it('puts each section in a boxed group with the title on the frame', () => {
     setup();
 
     const name = screen.getByRole('textbox', { name: /Navn på malen/ });
     const notes = screen.getByRole('textbox', { name: /Notater/ });
+    const nameBox = screen.getByRole('group', { name: 'Navn på malen' });
     const notesBox = screen.getByRole('group', { name: 'Notater' });
-    const practice = screen.getByRole('group', { name: 'Hva vil jobbsøkeren øve på?' });
+    const about = screen.getByRole('group', { name: 'Om jobbsøkeren' });
+    const practice = screen.getByRole('group', { name: 'Dette vil jobbsøkeren øve på' });
+    expect(nameBox).toContainElement(name);
     expect(notesBox).toContainElement(notes);
-    expect(name.compareDocumentPosition(notes) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(notes.compareDocumentPosition(practice) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(
+      nameBox.compareDocumentPosition(notesBox) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(notesBox.compareDocumentPosition(about) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(about.compareDocumentPosition(practice) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
   it('shows the error and keeps what was typed when saving fails', async () => {

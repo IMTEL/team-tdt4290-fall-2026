@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { industryTemplates } from '@/data/industry-templates';
 import { interviewerTemplates } from '@/data/interviewer-templates';
-import { builtInLegalTemplates } from '@/data/legal-templates';
+import { builtInLegalParagraphs, builtInLegalTemplates } from '@/data/legal-templates';
 import type { JobSeekerProfile } from '@/domain/jobSeekerProfile';
 import { peekForStep, peeksOnStep, wizardTemplatePeeks } from './templatePeeks';
 
@@ -127,8 +127,8 @@ describe('wizardTemplatePeeks', () => {
     expect(peek.details.some((line) => line.value.includes('Skjult'))).toBe(false);
   });
 
-  it('summarises chosen legal templates', () => {
-    const [peek] = wizardTemplatePeeks({
+  it('gives the chosen legal template one bubble, and lists the paragraphs inside it', () => {
+    const peeks = wizardTemplatePeeks({
       workplace: { ...workplace, templateId: 'ingen', industry: 'ingen' },
       jobTemplates: industryTemplates,
       industryTemplates: [],
@@ -137,11 +137,24 @@ describe('wizardTemplatePeeks', () => {
       legalTemplates: builtInLegalTemplates,
     });
 
-    expect(peek).toMatchObject({
+    expect(peeks).toHaveLength(1);
+    expect(peeks[0]).toMatchObject({
       kind: 'Lovverk',
       title: 'Rettigheter i ansettelsesprosessen',
+      summary: 'Hva en arbeidsgiver ikke kan spørre om i et jobbintervju, etter norsk rett.',
     });
-    expect(peek.details.some((line) => line.value.includes('graviditet'))).toBe(true);
+    const first = peeks[0];
+    if (!first) throw new Error('missing legal peek');
+    expect(first.details.map((line) => line.label)).toEqual([
+      'Om',
+      ...builtInLegalParagraphs.map((paragraph) => paragraph.title),
+    ]);
+    expect(first.details.some((line) => line.value.includes('graviditet'))).toBe(true);
+    expect(first.details).toContainEqual({
+      label: builtInLegalParagraphs[0]?.title,
+      value: builtInLegalParagraphs[0]?.text,
+      href: builtInLegalParagraphs[0]?.sourceUrl,
+    });
   });
 });
 

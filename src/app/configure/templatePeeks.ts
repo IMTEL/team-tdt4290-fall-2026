@@ -1,4 +1,5 @@
 import type { IndustryTemplate } from '@/data/industry-templates';
+import { paragraphsForTemplate } from '@/data/legal-templates';
 import type { AgentTemplate } from '@/data/templates';
 import {
   EXPERIENCE_LEVELS,
@@ -6,7 +7,7 @@ import {
   summarizeProfile,
   type JobSeekerProfile,
 } from '@/domain/jobSeekerProfile';
-import type { LegalTemplate } from '@/domain/legalTemplate';
+import { LEGAL_JURISDICTION_LABELS, type LegalTemplate } from '@/domain/legalTemplate';
 import type { IndustryTemplateEntry } from '@/domain/workplaceTemplate';
 
 /** Same sentinel as StillingStep.NO_TEMPLATE. Kept here so this file does not import the step. */
@@ -25,7 +26,7 @@ export type TemplatePeek = {
   /** One line shown on the bubble. */
   summary: string;
   /** The full contents, shown when the bubble opens. */
-  details: { label: string; value: string }[];
+  details: { label: string; value: string; href?: string }[];
 };
 
 /** Which bubbles belong on which wizard section, so they do not follow the counsellor to the next. */
@@ -36,10 +37,14 @@ const KINDS_ON_STEP: Record<number, readonly string[]> = {
 };
 
 function lines(
-  items: { label: string; value: string | undefined | null }[],
-): { label: string; value: string }[] {
+  items: { label: string; value: string | undefined | null; href?: string }[],
+): { label: string; value: string; href?: string }[] {
   return items
-    .map((item) => ({ label: item.label, value: (item.value ?? '').trim() }))
+    .map((item) => ({
+      label: item.label,
+      value: (item.value ?? '').trim(),
+      ...(item.href ? { href: item.href } : {}),
+    }))
     .filter((item) => item.value !== '');
 }
 
@@ -138,15 +143,36 @@ export function jobSeekerTemplatePeek(profile: JobSeekerProfile): TemplatePeek {
 }
 
 export function legalTemplatePeek(template: LegalTemplate): TemplatePeek {
+  const paragraphs = paragraphsForTemplate(template);
+  const details =
+    paragraphs.length > 0
+      ? lines([
+          { label: 'Om', value: template.description },
+          ...paragraphs.map((paragraph) => ({
+            label: paragraph.title,
+            value: paragraph.text,
+            href: paragraph.sourceUrl,
+          })),
+        ])
+      : lines([
+          { label: 'Om', value: template.description },
+          { label: 'Hva intervjueren følger', value: template.text },
+          {
+            label: 'Område',
+            value: template.jurisdiction && LEGAL_JURISDICTION_LABELS[template.jurisdiction],
+          },
+          {
+            label: 'Kilde',
+            value: template.sourceUrl ? 'Se kilden' : '',
+            href: template.sourceUrl,
+          },
+        ]);
   return {
     id: `legal-${template.id}`,
     kind: 'Lovverk',
     title: template.title,
     summary: template.description,
-    details: lines([
-      { label: 'Om', value: template.description },
-      { label: 'Hva intervjueren følger', value: template.text },
-    ]),
+    details,
   };
 }
 

@@ -481,16 +481,23 @@ sources existed have none.
 
 A legal template is a law or rule about hiring, written in plain words by a counsellor: what an
 employer may not ask about in a job interview, and what rights the job seeker has. On
-`/configure` the counsellor ticks up to five of them in the wizard's intervjuer step, under the
-interviewer template. The interviewer follows them, and if the job seeker asks about their
-rights, it answers briefly from the template text only.
+`/configure` the counsellor ticks whole templates in the wizard's intervjuer step, under the
+interviewer template. A new interviewer starts with the standard template, which includes every
+built-in paragraph. To drop some laws, the counsellor makes their own template and unticks the
+ones they want to discard. The interviewer follows the chosen text, and if the job seeker asks
+about their rights, it answers briefly from that text only.
 
 - **Stored as RAGdoll templates** with the type `legal-framework`, so RAGdoll needed no change.
-  `content` is `{text}`. The routes in `/api/legal-templates` only read, change or delete
-  templates of that type, so they never touch an agent type's templates.
-- **One built-in template**, "Rettigheter i ansettelsesprosessen" (`src/data/legal-templates.ts`),
-  sums up likestillings- og diskrimineringsloven § 30 and arbeidsmiljøloven §§ 9-3, 13-1 and 13-4.
-  Built-in templates can't be edited or deleted. The wording should be checked by the customer.
+  `content` is `{text}` and may include `sourceIds` for the ticked paragraphs. The routes in
+  `/api/legal-templates` only read, change or delete templates of that type, so they never touch
+  an agent type's templates.
+- **Built-in paragraphs**, one per law (`src/data/legal-templates.ts`): Norwegian hiring rules
+  (likestillings- og diskrimineringsloven § 30 and arbeidsmiljøloven §§ 9-3, 13-1 and 13-4). Each
+  has a title as law name and paragraph, expandable plain-language text, and a link to the
+  official source. They are ticked on «Legg til lovverk», not on `/configure`. EU titles are
+  shown there as placeholders that cannot be ticked. The standard template "Rettigheter i
+  ansettelsesprosessen" has all the Norwegian paragraphs. Built-in templates can't be edited or
+  deleted. The wording should be checked by the customer.
 - **The `lovverk` answer.** The interviewer has an optional field `lovverk` with
   `presetOnly: true`: only the chosen legal templates fill it in (`presets.legalTemplates`), never
   the configurator, since legal text must not come from a language model. The configurator is

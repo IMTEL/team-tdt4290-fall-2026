@@ -2,6 +2,8 @@ import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { builtInLegalTemplateIds } from '@/data/legal-templates';
+
 import ConfigurePage, { metadata } from './page';
 
 const { push } = vi.hoisted(() => ({ push: vi.fn() }));
@@ -434,6 +436,10 @@ describe('/configure', () => {
     const skip = screen.getByRole('button', { name: 'Fortsett uten intervjuermal' });
     const legal = screen.getByRole('group', { name: 'Lovverk' });
     expect(skip.compareDocumentPosition(legal) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(
+      screen.getByRole('checkbox', { name: 'Rettigheter i ansettelsesprosessen' }),
+    ).toBeChecked();
+    expect(screen.queryByRole('group', { name: 'Norge' })).not.toBeInTheDocument();
   });
 
   it('marks Intervjuer as the current section', async () => {
@@ -697,7 +703,7 @@ describe('/configure', () => {
   it('saves the chosen legal templates, built in and saved, with the interviewer', async () => {
     const saved = {
       id: 'legal-1',
-      title: 'Arbeidsmiljøloven § 9-3',
+      title: 'Intern regel om helse',
       description: 'Helseopplysninger',
       text: 'Ikke spør om helse.',
       builtIn: false,
@@ -713,15 +719,12 @@ describe('/configure', () => {
     });
 
     const user = await openAsInterviewer();
-    await user.click(screen.getByRole('checkbox', { name: 'Rettigheter i ansettelsesprosessen' }));
-    await user.click(await screen.findByRole('checkbox', { name: 'Arbeidsmiljøloven § 9-3' }));
+    await user.click(await screen.findByRole('checkbox', { name: 'Intern regel om helse' }));
     await skipTemplate(user);
     await skipProfile(user);
     await skipSettings(user);
 
-    expect(
-      screen.getByText('Rettigheter i ansettelsesprosessen, Arbeidsmiljøloven § 9-3'),
-    ).toBeVisible();
+    expect(screen.getByText(/Intern regel om helse/)).toBeVisible();
 
     await confirmPublish(user);
 
@@ -730,12 +733,12 @@ describe('/configure', () => {
       ([url, init]) => String(url) === '/api/agents' && init?.method === 'POST',
     );
     const body = JSON.parse(String(post?.[1]?.body));
-    expect(body.sources).toEqual({
-      lovverk: { kind: 'legal', ids: ['builtin-legal-hiring-rights', 'legal-1'] },
+    expect(body.sources.lovverk).toEqual({
+      kind: 'legal',
+      ids: [...builtInLegalTemplateIds(), 'legal-1'],
     });
-    expect(body.configuration.lovverk).toMatch(
-      /^Rettigheter i ansettelsesprosessen:\n[\s\S]*\n\nArbeidsmiljøloven § 9-3:\nIkke spør om helse\.$/,
-    );
+    expect(body.configuration.lovverk).toContain('Likestillings- og diskrimineringsloven § 30:');
+    expect(body.configuration.lovverk).toContain('Intern regel om helse:\nIkke spør om helse.');
   });
 
   it('goes back from the last step to the settings', async () => {
@@ -948,7 +951,7 @@ describe('/configure', () => {
       ),
     );
     const skip = screen.getByRole('button', { name: 'Fortsett uten jobbsøkermal' });
-    const practice = screen.getByRole('group', { name: 'Hva skal jobbsøkeren øve på?' });
+    const practice = screen.getByRole('group', { name: 'Dette vil jobbsøkeren øve på' });
     expect(skip.compareDocumentPosition(practice) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 

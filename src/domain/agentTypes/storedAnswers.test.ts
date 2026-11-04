@@ -1,6 +1,7 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest';
 
+import { LEGAL_TEMPLATE_LIMITS } from '../legalTemplate';
 import { getAgentType } from './registry';
 import { cleanSources, readStoredAnswers, toStoredDescription } from './storedAnswers';
 import type { Answers } from './types';
@@ -74,7 +75,13 @@ describe('sources', () => {
   });
 
   it('leaves out a legal source with no, empty, repeated or too many ids', () => {
-    for (const ids of [[], [''], ['a', 'a'], ['1', '2', '3', '4', '5', '6'], 'legal-1']) {
+    for (const ids of [
+      [],
+      [''],
+      ['a', 'a'],
+      Array.from({ length: LEGAL_TEMPLATE_LIMITS.perAgent + 1 }, (_, i) => `id-${i}`),
+      'legal-1',
+    ]) {
       expect(cleanSources(interviewer, { lovverk: { kind: 'legal', ids } })).toEqual({});
     }
   });

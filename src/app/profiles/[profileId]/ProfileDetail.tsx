@@ -95,7 +95,7 @@ export function ProfileDetail({ profileId }: { profileId: string }) {
         // English translation: Languages
         { label: 'Språk', chips: profile.languages },
         // English translation: Wants to practise
-        { label: 'Vil øve på', chips: profile.practiceAreas },
+        { label: 'Dette vil jobbsøkeren øve på', chips: profile.practiceAreas, boxed: true },
         // English translation: Notes, only for you
         { label: 'Notater (bare for deg)', text: profile.notes, boxed: true },
       ]}
