@@ -282,11 +282,11 @@ describe('AgentList', () => {
       await user.click(await screen.findByRole('searchbox', { name: 'Søk i agenter' }));
       await user.paste('sykepleier');
 
-      expect(screen.getByText('Ingen agenter passer søket.')).toBeVisible();
+      expect(screen.getByText('Ingen agenter passer søket eller filtrene.')).toBeVisible();
       expect(screen.queryByRole('heading', { level: 2 })).not.toBeInTheDocument();
       expect(screen.getByRole('status')).toHaveTextContent('0 agenter funnet');
 
-      await user.click(screen.getByRole('button', { name: 'Tøm søket' }));
+      await user.click(screen.getByRole('button', { name: 'Nullstill søk og filtre' }));
 
       const search = screen.getByRole('searchbox', { name: 'Søk i agenter' });
       expect(search).toHaveValue('');
@@ -308,6 +308,158 @@ describe('AgentList', () => {
       expect(screen.queryByRole('searchbox')).not.toBeInTheDocument();
       expect(await screen.findByText('Noe gikk galt. Prøv igjen.')).toBeVisible();
       expect(screen.queryByRole('searchbox')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('filters', () => {
+    const agents = [
+      makeAgent({
+        id: 'kindergarten',
+        name: 'Intervjuer for Barnehagelærer',
+        bransje: 'Oppvekst og utdanning (offentlig)',
+        vanskelighetsgrad: 'lett',
+        intervjutype: 'første intervju',
+      }),
+      makeAgent({
+        id: 'nurse',
+        name: 'Intervjuer for Sykepleier',
+        bransje: 'Helse og omsorg (offentlig) | Om bransjen: Turnus.',
+        vanskelighetsgrad: 'krevende | Antall spørsmål: 6–8',
+        intervjutype: 'andre intervju',
+      }),
+      makeAgent({
+        id: 'shop',
+        name: 'Butikksjef Kari',
+        bransje: 'Varehandel (privat)',
+        vanskelighetsgrad: 'krevende',
+        intervjutype: 'første intervju',
+      }),
+    ];
+
+    /** Opens the filter with this label and picks the choice. */
+    async function choose(user: ReturnType<typeof userEvent.setup>, filter: string, label: string) {
+      await user.click(screen.getByRole('combobox', { name: filter }));
+      await user.click(screen.getByRole('option', { name: label }));
+    }
+
+    function shownNames(): string[] {
+      const heading = screen.getByRole('heading', { level: 2, name: 'Intervjuer' });
+      return cardNames(heading.closest('section')!);
+    }
+
+    it('offers only the industries and difficulties the agents have', async () => {
+      fetchAgentsMock.mockResolvedValue(agents);
+      const user = userEvent.setup();
+
+      render(<AgentList />);
+
+      await user.click(await screen.findByRole('combobox', { name: 'Bransje' }));
+      expect(screen.getAllByRole('option').map((option) => option.textContent)).toEqual([
+        'Alle',
+        'Helse og omsorg',
+        'Oppvekst og utdanning',
+        'Varehandel',
+      ]);
+      await user.keyboard('{Escape}');
+
+      await user.click(screen.getByRole('combobox', { name: 'Vanskelighetsgrad' }));
+      expect(screen.getAllByRole('option').map((option) => option.textContent)).toEqual([
+        'Alle',
+        'Lett',
+        'Krevende',
+      ]);
+    });
+
+    it('combines the filters, and hides Ny agent while filtering', async () => {
+      fetchAgentsMock.mockResolvedValue(agents);
+      const user = userEvent.setup();
+
+      render(<AgentList />);
+
+      await screen.findByRole('combobox', { name: 'Sektor' });
+      await choose(user, 'Sektor', 'Offentlig');
+      expect(shownNames()).toEqual(['Intervjuer for Barnehagelærer', 'Intervjuer for Sykepleier']);
+      expect(screen.queryByRole('button', { name: /Ny agent/ })).not.toBeInTheDocument();
+
+      await choose(user, 'Vanskelighetsgrad', 'Krevende');
+      expect(shownNames()).toEqual(['Intervjuer for Sykepleier']);
+      expect(screen.getByRole('status')).toHaveTextContent('1 agent funnet');
+
+      await choose(user, 'Intervjutype', 'Andre intervju');
+      await choose(user, 'Rolle', 'Intervjuer');
+      expect(shownNames()).toEqual(['Intervjuer for Sykepleier']);
+    });
+
+    it('combines the filters with the search', async () => {
+      fetchAgentsMock.mockResolvedValue(agents);
+      const user = userEvent.setup();
+
+      render(<AgentList />);
+
+      await user.click(await screen.findByRole('searchbox', { name: 'Søk i agenter' }));
+      await user.paste('intervjuer');
+      await choose(user, 'Bransje', 'Oppvekst og utdanning');
+
+      expect(shownNames()).toEqual(['Intervjuer for Barnehagelærer']);
+    });
+
+    it('resets every filter with one button', async () => {
+      fetchAgentsMock.mockResolvedValue(agents);
+      const user = userEvent.setup();
+
+      render(<AgentList />);
+
+      const reset = await screen.findByRole('button', { name: 'Nullstill filtre' });
+      expect(reset).toBeDisabled();
+
+      await choose(user, 'Sektor', 'Privat');
+      await choose(user, 'Intervjutype', 'Første intervju');
+      expect(shownNames()).toEqual(['Butikksjef Kari']);
+
+      await user.click(reset);
+
+      expect(reset).toBeDisabled();
+      expect(screen.getByRole('combobox', { name: 'Sektor' })).toHaveTextContent('Alle');
+      expect(shownNames()).toEqual([
+        'Ny agent',
+        'Intervjuer for Barnehagelærer',
+        'Intervjuer for Sykepleier',
+        'Butikksjef Kari',
+      ]);
+    });
+
+    it('says when no agent matches the filters', async () => {
+      fetchAgentsMock.mockResolvedValue(agents);
+      const user = userEvent.setup();
+
+      render(<AgentList />);
+
+      await screen.findByRole('combobox', { name: 'Sektor' });
+      await choose(user, 'Sektor', 'Privat');
+      await choose(user, 'Vanskelighetsgrad', 'Lett');
+
+      expect(screen.getByText('Ingen agenter passer søket eller filtrene.')).toBeVisible();
+      expect(screen.getByRole('status')).toHaveTextContent('0 agenter funnet');
+
+      await user.click(screen.getByRole('button', { name: 'Nullstill søk og filtre' }));
+
+      expect(screen.getByRole('button', { name: 'Nullstill filtre' })).toBeDisabled();
+      expect(shownNames()).toHaveLength(4);
+    });
+
+    it('turns off a filter no agent has an answer for', async () => {
+      fetchAgentsMock.mockResolvedValue([makeAgent({ bransje: null })]);
+
+      render(<AgentList />);
+
+      expect(await screen.findByRole('combobox', { name: 'Bransje' })).toHaveAttribute(
+        'aria-disabled',
+        'true',
+      );
+      expect(screen.getByRole('combobox', { name: 'Sektor' })).toHaveAttribute(
+        'aria-disabled',
+        'true',
+      );
     });
   });
 });
