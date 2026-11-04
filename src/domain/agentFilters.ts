@@ -1,6 +1,7 @@
 import { SECTOR_LABELS, type Sector } from '@/data/industry-templates';
 import type { Agent } from '@/lib/types';
 import { OTHER_SECTION } from './agentList';
+import { AGENT_STATUS_LABEL, agentStatus } from './agentStatus';
 import { getAgentType } from './agentTypes/registry';
 import { difficultyLevel } from './difficulty';
 
@@ -11,6 +12,7 @@ export type AgentFilters = {
   sector: string;
   interviewType: string;
   difficulty: string;
+  status: string;
 };
 
 export type AgentFilterKey = keyof AgentFilters;
@@ -22,6 +24,7 @@ export const EMPTY_FILTERS: AgentFilters = {
   sector: '',
   interviewType: '',
   difficulty: '',
+  status: '',
 };
 
 /** One choice in a filter. `value` is what the agent is compared with, `label` what is shown. */
@@ -47,9 +50,13 @@ export function parseBransje(answer: string | null | undefined): {
   sector: Sector | '';
 } {
   const line = answer?.split('|')[0].trim() ?? '';
-  const match = line.match(/^(.*?)\s*\(([^)]*)\)$/);
-  const industry = (match ? match[1] : line).trim();
-  const sector = match?.[2].trim().toLocaleLowerCase('nb') ?? '';
+  // The sector is the text in the last brackets, at the end. Found without a regex: the answer is
+  // untrusted text, and a regex with backtracking can take seconds on a long one.
+  const open = line.endsWith(')') ? line.lastIndexOf('(') : -1;
+  const inBrackets = open === -1 ? '' : line.slice(open + 1, -1);
+  const hasSector = open !== -1 && !inBrackets.includes(')');
+  const industry = (hasSector ? line.slice(0, open) : line).trim();
+  const sector = hasSector ? inBrackets.trim().toLocaleLowerCase('nb') : '';
   return {
     industry: industry.toLocaleLowerCase('nb') === 'ingen bransje' ? '' : industry,
     sector: sector === 'offentlig' || sector === 'privat' ? sector : '',
@@ -63,6 +70,7 @@ export function parseBransje(answer: string | null | undefined): {
 function agentChoices(agent: Agent): Record<AgentFilterKey, FilterOption | null> {
   const definition = agent.type ? getAgentType(agent.type) : undefined;
   const { industry, sector } = parseBransje(agent.bransje);
+  const status = agentStatus(agent);
   return {
     // Agents of a type we do not know are one choice, as they are one section on the page.
     role: definition
@@ -72,6 +80,7 @@ function agentChoices(agent: Agent): Record<AgentFilterKey, FilterOption | null>
     sector: sector ? { value: sector, label: SECTOR_LABELS[sector] } : null,
     interviewType: choice(agent.intervjutype),
     difficulty: choice(difficultyLevel(agent.vanskelighetsgrad)),
+    status: { value: status, label: AGENT_STATUS_LABEL[status] },
   };
 }
 
@@ -95,6 +104,7 @@ export function filterOptions(agents: Agent[]): AgentFilterOptions {
     sector: new Map(),
     interviewType: new Map(),
     difficulty: new Map(),
+    status: new Map(),
   };
   for (const agent of agents) {
     const choices = agentChoices(agent);
@@ -112,6 +122,7 @@ export function filterOptions(agents: Agent[]): AgentFilterOptions {
     sector: sorted('sector'),
     interviewType: sorted('interviewType'),
     difficulty: sorted('difficulty').sort((a, b) => difficultyRank(a) - difficultyRank(b)),
+    status: sorted('status'),
   };
 }
 

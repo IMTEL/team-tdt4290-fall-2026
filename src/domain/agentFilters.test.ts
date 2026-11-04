@@ -29,7 +29,7 @@ function makeAgent(fields: Partial<Agent> = {}): Agent {
   };
 }
 
-const shop = makeAgent({ id: 'shop' });
+const shop = makeAgent({ id: 'shop', isPublished: true });
 const nurse = makeAgent({
   id: 'nurse',
   bransje: 'Helse og omsorg (offentlig) | Om bransjen: Turnus og pasientkontakt.',
@@ -63,6 +63,24 @@ describe('parseBransje', () => {
 
   it('keeps an industry without a sector', () => {
     expect(parseBransje('Varehandel')).toEqual({ industry: 'Varehandel', sector: '' });
+  });
+
+  it('reads only the last brackets at the end as the sector', () => {
+    expect(parseBransje('Bygg (og anlegg) (privat)')).toEqual({
+      industry: 'Bygg (og anlegg)',
+      sector: 'privat',
+    });
+    expect(parseBransje('Bygg (privat) og anlegg')).toEqual({
+      industry: 'Bygg (privat) og anlegg',
+      sector: '',
+    });
+  });
+
+  it('stays fast on a long answer full of brackets', () => {
+    const start = performance.now();
+    parseBransje('('.repeat(100_000));
+    parseBransje('a('.repeat(50_000) + ')');
+    expect(performance.now() - start).toBeLessThan(100);
   });
 
   it('has no industry or sector for what was not given', () => {
@@ -102,6 +120,14 @@ describe('filterOptions', () => {
     ]);
   });
 
+  it('offers the statuses the agents have', () => {
+    expect(filterOptions(agents).status).toEqual([
+      { value: 'private', label: 'Privat' },
+      { value: 'published', label: 'Publisert' },
+    ]);
+    expect(filterOptions([nurse]).status).toEqual([{ value: 'private', label: 'Privat' }]);
+  });
+
   it('puts the difficulties from easy to hard, with only the level', () => {
     expect(filterOptions(agents).difficulty.map((option) => option.label)).toEqual([
       'Lett',
@@ -123,6 +149,7 @@ describe('filterOptions', () => {
       sector: [],
       interviewType: [],
       difficulty: [],
+      status: [],
     });
   });
 });
@@ -146,6 +173,15 @@ describe('filterAgents', () => {
     ).toEqual(['nurse']);
     expect(ids(filterAgents(agents, { ...EMPTY_FILTERS, difficulty: 'krevende' }))).toEqual([
       'nurse',
+    ]);
+  });
+
+  it('filters on whether the agent is published', () => {
+    expect(ids(filterAgents(agents, { ...EMPTY_FILTERS, status: 'published' }))).toEqual(['shop']);
+    expect(ids(filterAgents(agents, { ...EMPTY_FILTERS, status: 'private' }))).toEqual([
+      'nurse',
+      'kindergarten',
+      'unknown',
     ]);
   });
 

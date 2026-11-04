@@ -18,6 +18,7 @@ const FILTERS: { key: AgentFilterKey; label: string }[] = [
   { key: 'sector', label: 'Sektor' },
   { key: 'interviewType', label: 'Intervjutype' },
   { key: 'difficulty', label: 'Vanskelighetsgrad' },
+  { key: 'status', label: 'Status' },
 ];
 
 type Props = {

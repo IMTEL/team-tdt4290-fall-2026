@@ -333,6 +333,7 @@ describe('AgentList', () => {
         bransje: 'Varehandel (privat)',
         vanskelighetsgrad: 'krevende',
         intervjutype: 'første intervju',
+        isPublished: true,
       }),
     ];
 
@@ -388,6 +389,26 @@ describe('AgentList', () => {
       await choose(user, 'Intervjutype', 'Andre intervju');
       await choose(user, 'Rolle', 'Intervjuer');
       expect(shownNames()).toEqual(['Intervjuer for Sykepleier']);
+    });
+
+    it('shows only the published agents, with the Publisert pill', async () => {
+      fetchAgentsMock.mockResolvedValue(agents);
+      const user = userEvent.setup();
+
+      render(<AgentList />);
+
+      await screen.findByRole('combobox', { name: 'Status' });
+      await choose(user, 'Status', 'Publisert');
+
+      expect(shownNames()).toEqual(['Butikksjef Kari']);
+      // The chosen value in the dropdown says Publisert too, so look only at the cards.
+      const section = screen
+        .getByRole('heading', { level: 2, name: 'Intervjuer' })
+        .closest('section')!;
+      expect(within(section).getByText('Publisert')).toBeVisible();
+
+      await choose(user, 'Status', 'Privat');
+      expect(shownNames()).toEqual(['Intervjuer for Barnehagelærer', 'Intervjuer for Sykepleier']);
     });
 
     it('combines the filters with the search', async () => {
