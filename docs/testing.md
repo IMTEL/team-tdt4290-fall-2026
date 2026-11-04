@@ -174,9 +174,9 @@ Unit and component level only:
   logged out, deletes with 204 and 404 for an unknown template.
 - `src/app/api/user-settings/route.test.ts`: reads and replaces the settings; 400 unless the body
   has a `settings` object; 401 when logged out.
-- `src/app/api/agents/route.test.ts`: saves with the counsellor's session token and the IDUN key
+- `src/app/api/agents/route.test.ts`: saves with the counselor's session token and the IDUN key
   from the environment, as the chosen agent type (an interviewer when none is sent); 401, 400
-  (including an unknown or planned type) and 500 cases save nothing; lists the counsellor's agents.
+  (including an unknown or planned type) and 500 cases save nothing; lists the counselor's agents.
 - `src/app/api/agents/[agentId]/route.test.ts`: editing updates the same agent (same id) with the
   new name, answers and prompt, and keeps the fields the edit does not touch; ratings are written
   back into the rebuilt prompt; 401 and 400 cases
@@ -202,7 +202,7 @@ Unit and component level only:
   more than two decimals, and empty or too long prompts are rejected with Norwegian messages;
   badly shaped settings from the browser give null.
 - `src/components/agents/AdvancedSettingsFields.test.tsx`: closed by default with a one-line
-  summary; shows the built prompt until the counsellor writes one; a decimal comma is accepted;
+  summary; shows the built prompt until the counselor writes one; a decimal comma is accepted;
   errors show in the heading and under the field; reset to the defaults; a message when the
   models could not be loaded.
 - `src/app/api/models/route.test.ts`: 401 when logged out; the models RAGdoll offers with the
@@ -230,7 +230,7 @@ Unit and component level only:
   three sentences; each sentence is left out when its answers are empty; the type and level of
   difficulty (also when the chat added the number of questions); a long job seeker description is
   cut after a whole part; nothing known gives "".
-- `src/domain/agentTypes/registry.test.ts`: looking up an agent type, every counsellor having
+- `src/domain/agentTypes/registry.test.ts`: looking up an agent type, every counselor having
   every type for now, which types templates can be made for, the planned types (none has a
   definition), checking that every required field has an answer while the optional Tillegg may be
   empty or missing, the interviewer's prompt and role, and for
@@ -324,7 +324,7 @@ tests plus `prompts/configurator.nb.md` when that path is used.
 
 Run this after changes to jobbsøkermaler (`/profiles`), the Jobbsøker step on `/configure`, or how
 `Jobbsøker` is stored on an agent. The unit tests mock RAGdoll, so only this shows that the mal is
-stored, that notes never reach an agent, and that one counsellor cannot see another's maler.
+stored, that notes never reach an agent, and that one counselor cannot see another's maler.
 
 Before you start:
 

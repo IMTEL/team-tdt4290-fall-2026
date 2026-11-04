@@ -51,6 +51,8 @@ written for the interviewer only, so the first new type has to make it work for 
 type. How is described in
 [step 2 of Add a new agent type](#2-give-it-the-five-step-form-required).
 
+<!-- TODO: update this when/if config chat is removed -->
+
 Until that is done, a new type falls back to the older generic flow: optional preset pickers, then
 the configuration chat (`ConfigurationChat`), which asks the type's questions one by one. That flow
 still works, but it is not how the customer wants agents set up.
