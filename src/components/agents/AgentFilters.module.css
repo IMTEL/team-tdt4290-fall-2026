@@ -1,0 +1,21 @@
+/* The dropdowns in one row that wraps; one column on a phone. */
+.filters {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-3);
+  align-items: center;
+}
+
+@media (min-width: 600px) {
+  .filters {
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  }
+}
+
+.field {
+  min-width: 0;
+}
+
+.reset {
+  justify-self: start;
+}
