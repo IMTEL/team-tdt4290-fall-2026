@@ -1,6 +1,5 @@
 import Typography from '@mui/material/Typography';
 
-import { ScrollArea } from '@/components/ui/ScrollArea';
 import type { AnswerEffect } from '@/domain/agentTypes/types';
 import styles from './AnswerEffects.module.css';
 
@@ -9,6 +8,33 @@ type AnswerEffectsProps = {
   /** True when the counsellor wrote the system prompt by hand, so the answers change nothing. */
   customPrompt: boolean;
 };
+
+function EffectItem({ label, lines }: { label: string; lines: string[] }) {
+  return (
+    <div className={styles.item}>
+      <Typography component="dt" variant="subtitle2">
+        {label}
+      </Typography>
+      <Typography component="dd" variant="body2" sx={{ m: 0 }}>
+        {lines.length === 1 ? (
+          lines[0]
+        ) : (
+          <ul className={styles.effects}>
+            {lines.map((line) => (
+              <li key={line}>{line}</li>
+            ))}
+          </ul>
+        )}
+      </Typography>
+    </div>
+  );
+}
+
+/** Split top-to-bottom so a tall answer cannot stretch a hole beside a short one. */
+function columnsOf(effects: AnswerEffect[]): AnswerEffect[][] {
+  const mid = Math.ceil(effects.length / 2);
+  return [effects.slice(0, mid), effects.slice(mid)].filter((column) => column.length > 0);
+}
 
 /** Which of the counsellor's answers change how the agent behaves, and how. */
 export function AnswerEffects({ effects, customPrompt }: AnswerEffectsProps) {
@@ -22,27 +48,14 @@ export function AnswerEffects({ effects, customPrompt }: AnswerEffectsProps) {
   }
 
   return (
-    <ScrollArea className={styles.area}>
-      <dl className={styles.list}>
-        {effects.map(({ key, label, effects: lines }) => (
-          <div key={key}>
-            <Typography component="dt" variant="subtitle2">
-              {label}
-            </Typography>
-            <Typography component="dd" variant="body2" sx={{ m: 0 }}>
-              {lines.length === 1 ? (
-                lines[0]
-              ) : (
-                <ul className={styles.effects}>
-                  {lines.map((line) => (
-                    <li key={line}>{line}</li>
-                  ))}
-                </ul>
-              )}
-            </Typography>
-          </div>
-        ))}
-      </dl>
-    </ScrollArea>
+    <div className={styles.list}>
+      {columnsOf(effects).map((column) => (
+        <dl key={column[0].key} className={styles.column}>
+          {column.map(({ key, label, effects: lines }) => (
+            <EffectItem key={key} label={label} lines={lines} />
+          ))}
+        </dl>
+      ))}
+    </div>
   );
 }

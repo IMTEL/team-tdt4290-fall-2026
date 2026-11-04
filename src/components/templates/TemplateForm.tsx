@@ -14,7 +14,7 @@ import {
   listTemplateAgentTypes,
 } from '@/domain/agentTypes/registry';
 import type { NewTemplate } from './api';
-import styles from './TemplateForm.module.css';
+import styles from '@/components/profiles/ProfileForm.module.css';
 
 type SaveStatus =
   { kind: 'idle' } | { kind: 'saving' } | { kind: 'saved' } | { kind: 'error'; message: string };
@@ -172,18 +172,24 @@ export function TemplateForm({
         onChange={(event) => setFocusText(event.target.value)}
         disabled={isSaving}
       />
-      <TextField
-        label={text?.textLabel ?? 'Beskrivelse'}
-        helperText={text?.textHint}
-        value={persona}
-        onChange={(event) => setPersona(event.target.value)}
-        required
-        multiline
-        minRows={4}
-        disabled={isSaving}
-        slotProps={{ htmlInput: { maxLength: TEMPLATE_LIMITS.persona } }}
-      />
-      {status.kind === 'error' && <Alert severity="error">{status.message}</Alert>}
+      <div className={styles.panel}>
+        <TextField
+          label={text?.textLabel ?? 'Beskrivelse'}
+          helperText={text?.textHint}
+          value={persona}
+          onChange={(event) => setPersona(event.target.value)}
+          required
+          multiline
+          minRows={4}
+          disabled={isSaving}
+          slotProps={{ htmlInput: { maxLength: TEMPLATE_LIMITS.persona } }}
+        />
+      </div>
+      {status.kind === 'error' && (
+        <Alert severity="error" className={styles.wide}>
+          {status.message}
+        </Alert>
+      )}
       <div className={styles.actions}>
         <Button
           type="submit"

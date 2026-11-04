@@ -5,20 +5,24 @@ import Link from 'next/link';
 import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
 import CardActionArea from '@mui/material/CardActionArea';
+import CardActions from '@mui/material/CardActions';
 import Chip from '@mui/material/Chip';
 import TextField from '@mui/material/TextField';
 
+import { DeleteProfileButton } from '@/components/profiles/DeleteProfileButton';
 import cardStyles from '@/components/templates/TemplatePicker.module.css';
 import { FieldHelp } from '@/components/ui/FieldHelp';
 import helpStyles from '@/components/ui/FieldHelp.module.css';
+import { withReturnTo } from '@/lib/returnTo';
 import {
   parseOtherPractice,
+  practiceChoiceLabel,
   PRACTICE_CHOICES,
   summarizeProfile,
   type JobSeekerProfile,
 } from '@/domain/jobSeekerProfile';
 import pageStyles from './page.module.css';
-import { WizardFrame } from './StillingStep';
+import { ChoiceSummary, WizardFrame, WizardNav } from './StillingStep';
 import stepStyles from './StillingStep.module.css';
 
 type JobSeekerStepProps = {
@@ -44,6 +48,10 @@ type JobSeekerStepProps = {
   onGoTo?: (index: number) => void;
   reached?: number;
   onSaveDraft?: () => void;
+  /** Called with the id of a profile once it is deleted. */
+  onDeleted?: (id: string) => void;
+  /** Where Rediger and Lag en ny jobbsøkermal send the counsellor back. */
+  returnTo?: string;
 };
 
 /** The job seeker step, in the same frame as stilling and intervjuer. */
@@ -64,9 +72,11 @@ export function JobSeekerStep({
   onGoTo,
   reached,
   onSaveDraft,
+  onDeleted = () => {},
+  returnTo,
 }: JobSeekerStepProps) {
   return (
-    <WizardFrame current={2} onGoTo={onGoTo} reached={reached} onSaveDraft={onSaveDraft}>
+    <WizardFrame current={2} onGoTo={onGoTo} reached={reached}>
       <div className={stepStyles.form}>
         {intro}
         <section aria-labelledby="profile-picker-heading" className={cardStyles.picker}>
@@ -117,6 +127,22 @@ export function JobSeekerStep({
                             </div>
                           )}
                         </CardActionArea>
+                        {/* Outside the action area: a button inside a button is not valid HTML. */}
+                        <CardActions className={cardStyles.cardActions}>
+                          <Button
+                            component={Link}
+                            href={withReturnTo(
+                              `/profiles/${encodeURIComponent(profile.id)}/edit`,
+                              returnTo,
+                            )}
+                            size="small"
+                            className={cardStyles.edit}
+                            aria-label={`Rediger ${profile.label}`}
+                          >
+                            Rediger
+                          </Button>
+                          <DeleteProfileButton profile={profile} onDeleted={onDeleted} />
+                        </CardActions>
                       </Card>
                     </li>
                   );
@@ -133,7 +159,11 @@ export function JobSeekerStep({
           >
             Fortsett uten jobbsøkermal
           </Button>
-          <Button component={Link} href="/profiles/new" variant="outlined">
+          <Button
+            component={Link}
+            href={withReturnTo('/profiles/new', returnTo)}
+            variant="outlined"
+          >
             Lag en ny jobbsøkermal
           </Button>
         </div>
@@ -203,14 +233,16 @@ export function JobSeekerStep({
           )}
           <p className={stepStyles.hint}>Gjelder denne agenten. Malen endres ikke.</p>
         </div>
-        <div className={stepStyles.actions}>
-          <div className={stepStyles.nav}>
-            <Button onClick={onBack}>Tilbake</Button>
-            <Button variant="contained" onClick={onNext}>
-              Neste
-            </Button>
-          </div>
-        </div>
+        <ChoiceSummary
+          lines={jobSeekerChoiceLines(
+            profiles,
+            selectedId,
+            practiceAreas,
+            otherOpen,
+            otherPractice,
+          )}
+        />
+        <WizardNav onBack={onBack} onNext={onNext} onSaveDraft={onSaveDraft} />
       </div>
     </WizardFrame>
   );
@@ -218,4 +250,25 @@ export function JobSeekerStep({
 
 function practiceCount(areas: string[], otherOpen: boolean, otherPractice: string): number {
   return areas.length + (otherOpen ? parseOtherPractice(otherPractice, areas).length : 0);
+}
+
+function jobSeekerChoiceLines(
+  profiles: JobSeekerProfile[],
+  selectedId: string | null,
+  practiceAreas: string[],
+  otherOpen: boolean,
+  otherPractice: string,
+): { label: string; value: string }[] {
+  const profileLabel =
+    selectedId === ''
+      ? 'Ingen mal er valgt, så intervjueren får ingen beskrivelse av jobbsøkeren.'
+      : (profiles.find((profile) => profile.id === selectedId)?.label ?? '');
+  const practice = [
+    ...practiceAreas.map(practiceChoiceLabel),
+    ...(otherOpen ? parseOtherPractice(otherPractice, practiceAreas) : []),
+  ].join(', ');
+  return [
+    { label: 'Jobbsøkermal', value: profileLabel },
+    { label: 'Øve på', value: practice },
+  ];
 }

@@ -109,6 +109,8 @@ export function configurationLines(overview: FinishOverview): { label: string; v
       },
       { label: 'Egne spørsmål', value: text(settings.ownQuestions) },
       { label: 'Tillegg', value: text(settings.extra) },
+    ],
+    [
       { label: 'Språkmodell', value: settings.model },
       { label: 'Temperatur', value: formatTemperature(settings.temperature) },
     ],
@@ -192,13 +194,16 @@ export function FinishActions({
       <h2 className={stepStyles.question}>Fullføre</h2>
       <p className={stepStyles.hint}>Trykk på et steg over for å endre det som står der.</p>
       {(effects.length > 0 || customPrompt) && (
-        <section aria-labelledby="effects-heading" className={stepStyles.effects}>
-          {/* English translation: How your answers shape the agent */}
-          <h3 id="effects-heading" className={stepStyles.effectsHeading}>
-            Slik former svarene dine agenten
-          </h3>
-          <AnswerEffects effects={effects} customPrompt={customPrompt} />
-        </section>
+        <div className={stepStyles.effectsBlock}>
+          <p className={stepStyles.sideLabel}>Hvordan valgene former intervjueren</p>
+          <section aria-labelledby="effects-heading" className={stepStyles.effects}>
+            {/* English translation: How your answers shape the agent */}
+            <h3 id="effects-heading" className={stepStyles.effectsHeading}>
+              Slik former svarene dine agenten
+            </h3>
+            <AnswerEffects effects={effects} customPrompt={customPrompt} />
+          </section>
+        </div>
       )}
       <div className={stepStyles.avatars}>
         <div className={helpStyles.row}>
@@ -232,7 +237,7 @@ export function FinishActions({
           Publiser
         </Button>
         <Button type="button" variant="outlined" onClick={onSave} disabled={!canSave}>
-          {saving ? 'Lagrer …' : 'Lagre som utkast'}
+          {saving ? 'Lagrer …' : 'Behold som utkast'}
         </Button>
         <Button type="button" variant="outlined" onClick={onTest} disabled={!canSave}>
           {saving ? 'Lagrer …' : 'Test agenten'}

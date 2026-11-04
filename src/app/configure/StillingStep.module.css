@@ -36,39 +36,22 @@
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(16.5rem, 16.5rem);
   gap: var(--space-5);
-  align-items: center;
+  align-items: start;
   transition: grid-template-columns 0.5s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .layoutExpanded {
-  grid-template-columns: minmax(0, 0fr) minmax(16.5rem, 36rem);
-  justify-content: center;
+  grid-template-columns: minmax(0, 1fr) minmax(22rem, 28rem);
 }
 
 .formSlot {
   min-width: 0;
-  max-height: 120rem;
-  overflow: hidden;
-  opacity: 1;
-  transition:
-    opacity 0.3s ease,
-    max-height 0.5s cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-.layoutExpanded .formSlot {
-  max-height: 0;
-  opacity: 0;
-  pointer-events: none;
 }
 
 @media (max-width: 800px) {
   .layout,
   .layoutExpanded {
     grid-template-columns: 1fr;
-  }
-
-  .layoutExpanded .formSlot {
-    display: none;
   }
 }
 
@@ -183,79 +166,102 @@
   margin-top: var(--space-2);
 }
 
+.actions > :first-child:not(.nav) {
+  margin-right: auto;
+}
+
 .nav {
   display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
   gap: var(--space-2);
+}
+
+.choiceSummary {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: color-mix(in oklch, var(--muted) 40%, var(--card));
+}
+
+.choiceList {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-2) var(--space-4);
+  margin: 0;
+}
+
+@media (min-width: 801px) {
+  .choiceList {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.choiceRow {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+  margin: 0;
+}
+
+.choiceRow dt,
+.choiceRow dd {
+  margin: 0;
+}
+
+.choiceRow dt {
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
+}
+
+.choiceRow dd {
+  font-size: 0.95rem;
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+
+.choiceRowWide {
+  grid-column: 1 / -1;
 }
 
 .side {
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
-  align-self: center;
   width: 100%;
   padding: var(--space-4);
   transition: padding 0.5s cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-.layoutExpanded .side {
-  padding: var(--space-5);
-}
-
-.draft {
-  display: grid;
-  grid-template-rows: 1fr;
-  margin-top: var(--space-3);
-  opacity: 1;
-  transition:
-    grid-template-rows 0.45s cubic-bezier(0.22, 1, 0.36, 1),
-    margin-top 0.45s cubic-bezier(0.22, 1, 0.36, 1),
-    opacity 0.3s ease;
-}
-
-.layoutExpanded .draft {
-  grid-template-rows: 0fr;
-  margin-top: 0;
-  opacity: 0;
-}
-
-.clip {
-  overflow: hidden;
-  min-height: 0;
-}
-
-.extra {
-  display: grid;
-  grid-template-rows: 0fr;
-  opacity: 0;
-  transition:
-    grid-template-rows 0.45s cubic-bezier(0.22, 1, 0.36, 1),
-    opacity 0.35s ease 0.12s;
-}
-
-.extraOpen {
-  grid-template-rows: 1fr;
-  opacity: 1;
 }
 
 .finishActions {
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
-  padding-top: var(--space-4);
 }
 
-/* How the answers shape the interviewer, on the last step. */
+.effectsBlock {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+/* How the answers shape the interviewer, on the last step. Distinct from the choice list above. */
 .effects {
-  padding: var(--space-4);
+  padding: var(--space-5);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background-color: var(--muted);
+  border-left: 4px solid var(--secondary);
+  border-radius: var(--radius-lg);
+  background: color-mix(in oklch, var(--secondary) 14%, var(--card));
 }
 
 .effectsHeading {
-  margin: 0 0 var(--space-3);
-  font-size: 1rem;
+  margin: 0 0 var(--space-4);
+  font-size: 1.25rem;
+  font-weight: 650;
 }
 
 .under {
@@ -265,10 +271,25 @@
   margin: 0 var(--space-2) var(--space-2) calc(1.15rem + 2 * var(--space-2));
 }
 
+@media (min-width: 801px) {
+  .layoutExpanded .under {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    column-gap: var(--space-3);
+    row-gap: var(--space-2);
+  }
+
+  .layoutExpanded .underRow {
+    flex-direction: column;
+    gap: 0;
+  }
+}
+
 .underRow {
   display: flex;
   flex-wrap: wrap;
   gap: 0.35rem;
+  min-width: 0;
   margin: 0;
   font-size: 0.8rem;
   line-height: 1.35;
@@ -312,9 +333,7 @@
 @media (prefers-reduced-motion: reduce) {
   .layout,
   .formSlot,
-  .side,
-  .draft,
-  .extra {
+  .side {
     transition: none;
   }
 }
@@ -332,6 +351,13 @@
   font-weight: 650;
   letter-spacing: 0.06em;
   text-transform: uppercase;
+}
+
+.sideHint {
+  margin: 0.15rem 0 0;
+  color: var(--muted-foreground);
+  font-size: 0.85rem;
+  line-height: 1.3;
 }
 
 .sections {

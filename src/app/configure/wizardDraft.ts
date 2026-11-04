@@ -3,7 +3,7 @@ import type { InterviewSettings } from './SettingsStep';
 import type { Workplace } from './StillingStep';
 
 const STORAGE_KEY = 'kfi-configure-draft';
-const VERSION = 1;
+const VERSION = 2;
 
 const draftListeners = new Set<() => void>();
 
@@ -99,8 +99,19 @@ function isTemplate(value: unknown): value is AgentTemplate {
   );
 }
 
+/** Drafts from before AI-innstillinger used 4 for Fullføre. */
+function migrateDraft(draft: WizardDraft): WizardDraft {
+  if (draft.version === VERSION) return draft;
+  return {
+    ...draft,
+    version: VERSION,
+    wizardStep: draft.wizardStep >= 4 ? draft.wizardStep + 1 : draft.wizardStep,
+    furthestStep: draft.furthestStep >= 4 ? draft.furthestStep + 1 : draft.furthestStep,
+  };
+}
+
 function isDraft(value: unknown): value is WizardDraft {
-  if (!isRecord(value) || value.version !== VERSION) return false;
+  if (!isRecord(value) || (value.version !== 1 && value.version !== VERSION)) return false;
   return (
     typeof value.agentTypeId === 'string' &&
     typeof value.wizardStep === 'number' &&
@@ -135,7 +146,7 @@ export function readWizardDraft(): WizardDraft | null {
       return null;
     }
     const parsed: unknown = JSON.parse(raw);
-    cachedDraft = isDraft(parsed) ? parsed : null;
+    cachedDraft = isDraft(parsed) ? migrateDraft(parsed) : null;
     return cachedDraft;
   } catch {
     cachedRaw = undefined;

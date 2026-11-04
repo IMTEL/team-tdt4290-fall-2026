@@ -140,39 +140,51 @@ export function ProfileForm({
         onChange={(event) => setLabel(event.target.value)}
         required
         disabled={isSaving}
+        className={styles.wide}
         slotProps={{ htmlInput: { maxLength: LIMITS.label } }}
       />
 
-      <div className={styles.row}>
+      <div className={styles.panel}>
         <TextField
-          select
-          label="Aldersgruppe"
-          value={ageRange}
-          onChange={(event) => setAgeRange(event.target.value)}
+          label="Notater"
+          helperText="Bare for deg. Notatene sendes ikke til assistenten eller intervjueren."
+          value={notes}
+          onChange={(event) => setNotes(event.target.value)}
+          multiline
+          minRows={2}
           disabled={isSaving}
-        >
-          <MenuItem value="">Ikke oppgitt</MenuItem>
-          {AGE_RANGES.map((range) => (
-            <MenuItem key={range} value={range}>
-              {range.replace('-', '–')} år
-            </MenuItem>
-          ))}
-        </TextField>
-        <TextField
-          select
-          label="Arbeidserfaring"
-          value={experienceLevel}
-          onChange={(event) => setExperienceLevel(event.target.value)}
-          disabled={isSaving}
-        >
-          <MenuItem value="">Ikke oppgitt</MenuItem>
-          {Object.entries(EXPERIENCE_LEVELS).map(([level, levelLabel]) => (
-            <MenuItem key={level} value={level}>
-              {levelLabel}
-            </MenuItem>
-          ))}
-        </TextField>
+          slotProps={{ htmlInput: { maxLength: LIMITS.notes } }}
+        />
       </div>
+
+      <TextField
+        select
+        label="Aldersgruppe"
+        value={ageRange}
+        onChange={(event) => setAgeRange(event.target.value)}
+        disabled={isSaving}
+      >
+        <MenuItem value="">Ikke oppgitt</MenuItem>
+        {AGE_RANGES.map((range) => (
+          <MenuItem key={range} value={range}>
+            {range.replace('-', '–')} år
+          </MenuItem>
+        ))}
+      </TextField>
+      <TextField
+        select
+        label="Arbeidserfaring"
+        value={experienceLevel}
+        onChange={(event) => setExperienceLevel(event.target.value)}
+        disabled={isSaving}
+      >
+        <MenuItem value="">Ikke oppgitt</MenuItem>
+        {Object.entries(EXPERIENCE_LEVELS).map(([level, levelLabel]) => (
+          <MenuItem key={level} value={level}>
+            {levelLabel}
+          </MenuItem>
+        ))}
+      </TextField>
 
       <TextField
         label="Hva slags erfaring?"
@@ -199,9 +211,10 @@ export function ProfileForm({
         value={languagesText}
         onChange={(event) => setLanguagesText(event.target.value)}
         disabled={isSaving}
+        className={styles.wide}
       />
 
-      <fieldset className={styles.fieldset} disabled={isSaving}>
+      <fieldset className={`${styles.fieldset} ${styles.panel}`} disabled={isSaving}>
         <legend className={styles.legend}>Hva vil jobbsøkeren øve på?</legend>
         <div className={styles.checkboxes}>
           {PRACTICE_AREAS.map((area) => (
@@ -226,17 +239,6 @@ export function ProfileForm({
           fullWidth
         />
       </fieldset>
-
-      <TextField
-        label="Notater"
-        helperText="Bare for deg. Notatene sendes ikke til assistenten eller intervjueren."
-        value={notes}
-        onChange={(event) => setNotes(event.target.value)}
-        multiline
-        minRows={3}
-        disabled={isSaving}
-        slotProps={{ htmlInput: { maxLength: LIMITS.notes } }}
-      />
 
       {status.kind === 'error' && <Alert severity="error">{status.message}</Alert>}
       <div className={styles.actions}>

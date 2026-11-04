@@ -80,25 +80,31 @@ export function IndustryTemplateForm({
         disabled={saving}
         slotProps={{ htmlInput: { maxLength: LIMITS.description } }}
       />
-      <TextField
-        label="Dette får intervjueren vite om bransjen (valgfritt)"
-        helperText={
-          // English translation: What employers in the industry look for, common certificates, how
-          // interviews usually are, and words the job seeker should know. Every interviewer you set
-          // up in the industry gets this text.
-          `Hva arbeidsgivere i bransjen ser etter, vanlige sertifikater og kurs, hvordan intervjuer ` +
-          `pleier å være, og ord jobbsøkeren bør kjenne. Alle intervjuere du setter opp i bransjen, ` +
-          `får denne teksten. ${context.length}/${LIMITS.context} tegn.`
-        }
-        value={context}
-        onChange={(event) => setContext(event.target.value)}
-        multiline
-        minRows={5}
-        disabled={saving}
-        slotProps={{ htmlInput: { maxLength: LIMITS.context } }}
-      />
+      <div className={styles.panel}>
+        <TextField
+          label="Dette får intervjueren vite om bransjen (valgfritt)"
+          helperText={
+            // English translation: What employers in the industry look for, common certificates, how
+            // interviews usually are, and words the job seeker should know. Every interviewer you set
+            // up in the industry gets this text.
+            `Hva arbeidsgivere i bransjen ser etter, vanlige sertifikater og kurs, hvordan intervjuer ` +
+            `pleier å være, og ord jobbsøkeren bør kjenne. Alle intervjuere du setter opp i bransjen, ` +
+            `får denne teksten. ${context.length}/${LIMITS.context} tegn.`
+          }
+          value={context}
+          onChange={(event) => setContext(event.target.value)}
+          multiline
+          minRows={4}
+          disabled={saving}
+          slotProps={{ htmlInput: { maxLength: LIMITS.context } }}
+        />
+      </div>
 
-      {error && <Alert severity="error">{error}</Alert>}
+      {error && (
+        <Alert severity="error" className={styles.wide}>
+          {error}
+        </Alert>
+      )}
       <div className={styles.actions}>
         <Button type="submit" variant="contained" disabled={!canSave}>
           {saving ? 'Lagrer …' : initial ? 'Lagre endringene' : 'Lagre bransjemal'}

@@ -128,6 +128,25 @@ describe('AdvancedSettingsFields', () => {
     expect(screen.getByRole('textbox', { name: 'Verdi' })).toHaveValue('0,7');
   });
 
+  it('shows the fields without an accordion when always open', () => {
+    render(
+      <AdvancedSettingsFields
+        value={DEFAULT_ADVANCED_SETTINGS}
+        onChange={() => {}}
+        builtPrompt=""
+        languageModels={languageModels}
+        errors={{}}
+        allowCustomPrompt={false}
+        alwaysOpen
+      />,
+    );
+
+    expect(screen.getByRole('combobox', { name: 'Språkmodell' })).toBeVisible();
+    expect(
+      screen.queryByRole('button', { name: /Avanserte innstillinger/ }),
+    ).not.toBeInTheDocument();
+  });
+
   it('hides the hand-written prompt when configuring a new agent', async () => {
     const user = userEvent.setup();
     render(<Harness allowCustomPrompt={false} />);

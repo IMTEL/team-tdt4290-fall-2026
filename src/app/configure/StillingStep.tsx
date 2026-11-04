@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, type ReactNode } from 'react';
+import { useId, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import Button from '@mui/material/Button';
 import TextField from '@mui/material/TextField';
@@ -50,7 +50,6 @@ export function WizardFrame({
   details,
   expanded = false,
   more,
-  onSaveDraft,
   children,
 }: {
   current: number;
@@ -60,11 +59,9 @@ export function WizardFrame({
   reached?: number;
   /** Values shown under each section dot on the last step. */
   details?: { label: string; value: string }[][];
-  /** The same side card, a little wider, with `more` shown under the progress. */
+  /** The last step: finish in the main card, sections stay their own card. */
   expanded?: boolean;
   more?: ReactNode;
-  /** Writes the unfinished wizard to local storage. */
-  onSaveDraft?: () => void;
   children: ReactNode;
 }) {
   // Progress follows the furthest section opened, so jumping back does not empty the bar.
@@ -88,33 +85,15 @@ export function WizardFrame({
       </p>
 
       <div className={expanded ? `${styles.layout} ${styles.layoutExpanded}` : styles.layout}>
-        <div
-          className={styles.formSlot}
-          inert={expanded || undefined}
-          aria-hidden={expanded || undefined}
-        >
-          {children}
+        <div className={styles.formSlot}>
+          {more ? <div className={styles.form}>{more}</div> : children}
         </div>
         <aside className={styles.side} aria-label="Seksjoner">
-          <p className={styles.sideLabel}>Seksjoner</p>
-          <SectionMenu current={current} onGoTo={onGoTo} reached={reached} details={details} />
-          <div
-            className={styles.draft}
-            inert={expanded || undefined}
-            aria-hidden={expanded || undefined}
-          >
-            <div className={styles.clip}>
-              <Button
-                type="button"
-                variant="outlined"
-                fullWidth
-                disabled={!onSaveDraft}
-                onClick={() => onSaveDraft?.()}
-              >
-                Lagre utkast
-              </Button>
-            </div>
+          <div>
+            <p className={styles.sideLabel}>Seksjoner</p>
+            {expanded ? <p className={styles.sideHint}>Det du har fylt inn</p> : null}
           </div>
+          <SectionMenu current={current} onGoTo={onGoTo} reached={reached} details={details} />
           <p className={styles.count}>
             {progress} av {SECTIONS.length} seksjoner
           </p>
@@ -126,18 +105,103 @@ export function WizardFrame({
               }}
             />
           </div>
-          <div className={expanded ? `${styles.extra} ${styles.extraOpen}` : styles.extra}>
-            <div
-              className={styles.clip}
-              inert={expanded ? undefined : true}
-              aria-hidden={expanded ? undefined : true}
-            >
-              {more}
-            </div>
-          </div>
         </aside>
       </div>
     </div>
+  );
+}
+
+/** Tilbake, Neste and Lagre utkast on one row, so the side card only holds the sections. */
+export function WizardNav({
+  onBack,
+  backHref,
+  onNext,
+  nextDisabled,
+  nextSubmit = false,
+  nextLabel = 'Neste',
+  extraNext,
+  onSaveDraft,
+}: {
+  onBack?: () => void;
+  backHref?: string;
+  onNext?: () => void;
+  nextDisabled?: boolean;
+  nextSubmit?: boolean;
+  nextLabel?: string;
+  /** A second way forward, shown before Neste. */
+  extraNext?: { label: string; onClick: () => void };
+  /** Writes the unfinished wizard to local storage. */
+  onSaveDraft?: () => void;
+}) {
+  return (
+    <div className={styles.actions}>
+      {onSaveDraft ? (
+        <Button type="button" variant="outlined" onClick={onSaveDraft}>
+          Lagre utkast
+        </Button>
+      ) : null}
+      <div className={styles.nav}>
+        {backHref ? (
+          <Button component={Link} href={backHref}>
+            Tilbake
+          </Button>
+        ) : (
+          <Button type="button" onClick={onBack}>
+            Tilbake
+          </Button>
+        )}
+        {extraNext ? (
+          <Button
+            type="button"
+            variant="outlined"
+            disabled={nextDisabled}
+            onClick={extraNext.onClick}
+          >
+            {extraNext.label}
+          </Button>
+        ) : null}
+        <Button
+          type={nextSubmit ? 'submit' : 'button'}
+          variant="contained"
+          disabled={nextDisabled}
+          onClick={nextSubmit ? undefined : onNext}
+        >
+          {nextLabel}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+/** The choices already made on this step, shown above Neste. */
+export function ChoiceSummary({ lines }: { lines: { label: string; value: string }[] }) {
+  const headingId = useId();
+  const shown = lines.filter((line) => {
+    const value = line.value.trim();
+    return value !== '' && value !== 'Ikke valgt';
+  });
+  if (shown.length === 0) return null;
+  return (
+    <section aria-labelledby={headingId} className={styles.choiceSummary}>
+      <p id={headingId} className={styles.sideLabel}>
+        Dine valg
+      </p>
+      <dl className={styles.choiceList}>
+        {shown.map((line) => (
+          <div
+            key={line.label}
+            className={
+              line.value.length > 40
+                ? `${styles.choiceRow} ${styles.choiceRowWide}`
+                : styles.choiceRow
+            }
+          >
+            <dt>{line.label}</dt>
+            <dd>{line.value}</dd>
+          </div>
+        ))}
+      </dl>
+    </section>
   );
 }
 
@@ -215,6 +279,31 @@ function stillingComplete(value: Workplace): boolean {
   );
 }
 
+function stillingChoiceLines(
+  value: Workplace,
+  templates: IndustryTemplate[],
+): { label: string; value: string }[] {
+  const jobTemplate =
+    value.templateId === NO_TEMPLATE
+      ? 'Ingen mal er valgt, så intervjueren får ingen stillingsbeskrivelse.'
+      : (templates.find((item) => item.id === value.templateId)?.title ?? '');
+  let employer = '';
+  if (value.sector === 'ikke-oppgitt') employer = 'Ikke oppgitt';
+  else if (value.sector === 'offentlig' || value.sector === 'privat') {
+    employer = SECTOR_LABELS[value.sector];
+  }
+  return [
+    { label: 'Stilling', value: value.jobTitle.trim() },
+    { label: 'Stillingsmal', value: jobTemplate },
+    {
+      label: 'Bransje',
+      value: value.industry === NO_TEMPLATE ? 'Ingen bransje' : value.industry,
+    },
+    { label: 'Arbeidsgiver', value: employer },
+    { label: 'Bedrift', value: value.company.trim() },
+  ];
+}
+
 function RequiredMark() {
   return (
     <span className={styles.required} aria-hidden="true">
@@ -266,7 +355,7 @@ export function StillingStep({
   }
 
   return (
-    <WizardFrame current={0} onGoTo={onGoTo} reached={reached} onSaveDraft={onSaveDraft}>
+    <WizardFrame current={0} onGoTo={onGoTo} reached={reached}>
       <form
         className={styles.form}
         onSubmit={(event) => {
@@ -433,16 +522,13 @@ export function StillingStep({
           />
         </div>
 
-        <div className={styles.actions}>
-          <div className={styles.nav}>
-            <Button component={Link} href="/browse-agents">
-              Tilbake
-            </Button>
-            <Button type="submit" variant="contained" disabled={!stillingComplete(value)}>
-              Neste
-            </Button>
-          </div>
-        </div>
+        <ChoiceSummary lines={stillingChoiceLines(value, templates)} />
+        <WizardNav
+          backHref="/browse-agents"
+          nextSubmit
+          nextDisabled={!stillingComplete(value)}
+          onSaveDraft={onSaveDraft}
+        />
       </form>
     </WizardFrame>
   );

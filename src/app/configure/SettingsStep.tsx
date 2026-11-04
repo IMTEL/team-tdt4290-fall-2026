@@ -6,19 +6,12 @@ import TextField from '@mui/material/TextField';
 import ToggleButton from '@mui/material/ToggleButton';
 import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
 
-import { AdvancedSettingsFields } from '@/components/agents/AdvancedSettingsFields';
-import { useLanguageModels } from '@/components/agents/useLanguageModels';
 import { FieldHelp } from '@/components/ui/FieldHelp';
 import helpStyles from '@/components/ui/FieldHelp.module.css';
-import {
-  type AdvancedSettings,
-  advancedSettingsErrors,
-  DEFAULT_MODEL,
-  DEFAULT_TEMPERATURE,
-} from '@/domain/advancedSettings';
+import { DEFAULT_MODEL, DEFAULT_TEMPERATURE } from '@/domain/advancedSettings';
 import type { AnswerEffect } from '@/domain/agentTypes/types';
 import stepStyles from './StillingStep.module.css';
-import { WizardFrame } from './StillingStep';
+import { ChoiceSummary, WizardFrame, WizardNav } from './StillingStep';
 import { FinishActions, configurationLines, type FinishOverview } from './FinishStep';
 
 const INTERVIEW_TYPES = [
@@ -68,7 +61,9 @@ type SettingsStepProps = {
   intro: ReactNode;
   onBack: () => void;
   onNext: () => void;
-  /** The side card has grown into the last step. */
+  /** Opens the optional AI-innstillinger step. */
+  onAiSettings?: () => void;
+  /** The last step: finish in the main card, with the section list beside it. */
   expanded?: boolean;
   /** Closes the last step and shows the settings form again. */
   onFinishBack?: () => void;
@@ -99,6 +94,7 @@ export function SettingsStep({
   intro,
   onBack,
   onNext,
+  onAiSettings,
   onGoTo,
   expanded = false,
   onFinishBack = () => {},
@@ -116,36 +112,30 @@ export function SettingsStep({
   reached,
   onSaveDraft,
 }: SettingsStepProps) {
-  const languageModels = useLanguageModels(value.model);
-  const advanced: AdvancedSettings = {
-    model: value.model,
-    temperature: value.temperature,
-    customPrompt: null,
-  };
-
   return (
     <WizardFrame
-      current={expanded ? 4 : 3}
+      current={expanded ? 5 : 3}
       onGoTo={onGoTo}
       reached={reached}
       expanded={expanded}
-      onSaveDraft={onSaveDraft}
       more={
-        <FinishActions
-          intro={intro}
-          onBack={onFinishBack}
-          effects={effects}
-          customPrompt={false}
-          avatar={avatar}
-          onAvatarChange={onAvatarChange}
-          name={name}
-          onNameChange={onNameChange}
-          saving={saving}
-          error={saveError}
-          onSave={onSave}
-          onPublish={onPublish}
-          onTest={onTest}
-        />
+        expanded ? (
+          <FinishActions
+            intro={intro}
+            onBack={onFinishBack}
+            effects={effects}
+            customPrompt={false}
+            avatar={avatar}
+            onAvatarChange={onAvatarChange}
+            name={name}
+            onNameChange={onNameChange}
+            saving={saving}
+            error={saveError}
+            onSave={onSave}
+            onPublish={onPublish}
+            onTest={onTest}
+          />
+        ) : undefined
       }
       details={expanded ? configurationLines(overview) : undefined}
     >
@@ -274,28 +264,47 @@ export function SettingsStep({
           />
         </div>
 
-        <AdvancedSettingsFields
-          value={advanced}
-          onChange={(next) => onChange({ ...value, ...next, customPrompt: null })}
-          builtPrompt=""
-          languageModels={languageModels}
-          errors={advancedSettingsErrors(advanced, languageModels.models)}
-          allowCustomPrompt={false}
+        <ChoiceSummary lines={settingsChoiceLines(value)} />
+        <WizardNav
+          onBack={onBack}
+          extraNext={
+            onAiSettings ? { label: 'AI-innstillinger', onClick: onAiSettings } : undefined
+          }
+          nextSubmit
+          nextDisabled={!settingsComplete(value)}
+          onSaveDraft={onSaveDraft}
         />
-
-        <div className={stepStyles.actions}>
-          <div className={stepStyles.nav}>
-            <Button type="button" onClick={onBack}>
-              Tilbake
-            </Button>
-            <Button type="submit" variant="contained" disabled={!settingsComplete(value)}>
-              Neste
-            </Button>
-          </div>
-        </div>
       </form>
     </WizardFrame>
   );
+}
+
+function settingsChoiceLines(value: InterviewSettings): { label: string; value: string }[] {
+  const count =
+    value.questionCount === '10+' && value.questionCountDetail.trim()
+      ? `${value.questionCount} (${value.questionCountDetail.trim()})`
+      : (value.questionCount ?? '');
+  return [
+    {
+      label: 'Intervjutype',
+      value: value.interviewType ? capitalize(value.interviewType) : '',
+    },
+    {
+      label: 'Vanskelighetsgrad',
+      value: value.difficulty ? capitalize(value.difficulty) : '',
+    },
+    { label: 'Antall spørsmål', value: count },
+    {
+      label: 'Oppfølgingsspørsmål',
+      value: value.followUp ? capitalize(value.followUp) : '',
+    },
+    { label: 'Egne spørsmål', value: value.ownQuestions.trim() },
+    { label: 'Tillegg', value: value.extra.trim() },
+  ];
+}
+
+function capitalize(value: string): string {
+  return value.charAt(0).toUpperCase() + value.slice(1);
 }
 
 function settingsComplete(value: InterviewSettings): boolean {

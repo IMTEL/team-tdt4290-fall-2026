@@ -56,7 +56,7 @@ export async function pickTemplate(page: Page, title: string | null): Promise<vo
   await page.getByRole('button', { name: 'Neste', exact: true }).click();
 }
 
-/** Fills in the required settings, with the easiest choices, and goes on to the last step. */
+/** Fills in the required settings and goes straight to Fullføre, skipping AI-innstillinger. */
 export async function fillSettings(page: Page): Promise<void> {
   await page.getByRole('button', { name: 'Første intervju', exact: true }).click();
   await page.getByRole('button', { name: 'Lett', exact: true }).click();

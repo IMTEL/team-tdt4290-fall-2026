@@ -41,6 +41,8 @@ type AdvancedSettingsFieldsProps = {
    * Off on /configure: the prompt always comes from the answers. On while editing a saved agent.
    */
   allowCustomPrompt?: boolean;
+  /** Open as a page of fields, without the accordion. Used on the wizard's AI-innstillinger step. */
+  alwaysOpen?: boolean;
 };
 
 /**
@@ -56,6 +58,7 @@ export function AdvancedSettingsFields({
   errors,
   disabled = false,
   allowCustomPrompt = true,
+  alwaysOpen = false,
 }: AdvancedSettingsFieldsProps) {
   const modelLabelId = useId();
   // The text in the number field, kept apart so "0," can be typed on the way to "0,5".
@@ -88,6 +91,156 @@ export function AdvancedSettingsFields({
     onChange(DEFAULT_ADVANCED_SETTINGS);
   }
 
+  const fields = (
+    <>
+      {alwaysOpen ? null : (
+        <Typography variant="body2" color="text.secondary">
+          {/* English translation: For experienced users. The defaults work well for most interviews. */}
+          For erfarne brukere. Standardverdiene fungerer godt for de fleste intervjuer.
+        </Typography>
+      )}
+
+      <div className={styles.fieldWithHelp}>
+        <FormControl fullWidth disabled={disabled} error={Boolean(errors.model)}>
+          {/* English translation: Language model */}
+          <InputLabel id={modelLabelId}>Språkmodell</InputLabel>
+          <Select
+            labelId={modelLabelId}
+            label="Språkmodell"
+            value={value.model}
+            onChange={(event) => onChange({ ...value, model: event.target.value })}
+          >
+            {languageModels.models.map((model) => (
+              <MenuItem key={model} value={model}>
+                {model}
+              </MenuItem>
+            ))}
+          </Select>
+          <FormHelperText>
+            {errors.model ??
+              (languageModels.failed
+                ? // English translation: Could not load the list of models. You can still keep the current model.
+                  'Fikk ikke hentet listen over modeller. Du kan fortsatt beholde modellen du har.'
+                : // English translation: The models come from IDUN, NTNU's own servers.
+                  'Modellene kommer fra IDUN, NTNUs egne servere.')}
+          </FormHelperText>
+        </FormControl>
+        <FieldHelp
+          label="Språkmodell"
+          description="Hvilken språkmodell som skriver intervjuerens svar. Modellene kjører på IDUN, NTNUs egne servere."
+        />
+      </div>
+
+      <div>
+        <div className={helpStyles.row}>
+          <Typography id={`${modelLabelId}-temperature`} gutterBottom>
+            {/* English translation: Temperature */}
+            Temperatur
+          </Typography>
+          <FieldHelp
+            label="Temperatur"
+            description="Hvor varierte svarene blir. Lav er mer forutsigbar, høy mer variert."
+          />
+        </div>
+        <div className={styles.temperature}>
+          <Slider
+            aria-labelledby={`${modelLabelId}-temperature`}
+            value={sliderValue(value.temperature)}
+            min={MIN_TEMPERATURE}
+            max={MAX_TEMPERATURE}
+            step={SLIDER_STEP}
+            marks={[
+              { value: MIN_TEMPERATURE, label: MIN_TEMPERATURE },
+              { value: MAX_TEMPERATURE, label: MAX_TEMPERATURE },
+            ]}
+            valueLabelDisplay="auto"
+            disabled={disabled}
+            onChange={(_, temperature) => setTemperature(temperature as number)}
+          />
+          <TextField
+            // English translation: Value
+            label="Verdi"
+            value={temperatureText}
+            onChange={(event) => handleTemperatureText(event.target.value)}
+            size="small"
+            disabled={disabled}
+            error={Boolean(errors.temperature)}
+            slotProps={{ htmlInput: { inputMode: 'decimal' } }}
+          />
+        </div>
+        <FormHelperText error={Boolean(errors.temperature)}>
+          {errors.temperature ??
+            // English translation: Low gives more predictable answers, high gives more varied ones.
+            'Lav gir mer forutsigbare svar, høy gir mer varierte svar.'}
+        </FormHelperText>
+      </div>
+
+      {allowCustomPrompt && (
+        <div>
+          <FormControlLabel
+            control={
+              <Switch
+                checked={writesPrompt}
+                disabled={disabled}
+                onChange={(event) => setWritesPrompt(event.target.checked)}
+              />
+            }
+            // English translation: Write the system prompt myself
+            label="Skriv systemprompten selv"
+          />
+          {writesPrompt ? (
+            <TextField
+              // English translation: System prompt
+              label="Systemprompt"
+              value={value.customPrompt ?? ''}
+              onChange={(event) => onChange({ ...value, customPrompt: event.target.value })}
+              multiline
+              minRows={8}
+              maxRows={20}
+              fullWidth
+              disabled={disabled}
+              error={Boolean(errors.customPrompt)}
+              helperText={
+                errors.customPrompt ??
+                // English translation: The answers no longer change the prompt. Check that it still
+                // tells the agent not to ask for personal data.
+                `Svarene endrer ikke lenger prompten. Pass på at den fortsatt ber agenten ikke spørre om personopplysninger. ${(value.customPrompt ?? '').length}/${MAX_PROMPT_LENGTH} tegn`
+              }
+              className={styles.promptField}
+            />
+          ) : builtPrompt ? (
+            <>
+              <FormHelperText>
+                {/* English translation: The prompt is made from the answers. This is how it looks now: */}
+                Prompten lages fra svarene. Slik ser den ut nå:
+              </FormHelperText>
+              {/* It scrolls, so it takes keyboard focus to be scrolled with the arrow keys. */}
+              <pre className={styles.prompt} tabIndex={0} role="region" aria-label="Systemprompt">
+                {builtPrompt}
+              </pre>
+            </>
+          ) : (
+            <FormHelperText>
+              {/* English translation: The prompt is made from the answers. */}
+              Prompten lages fra svarene.
+            </FormHelperText>
+          )}
+        </div>
+      )}
+
+      <div className={styles.actions}>
+        <Button onClick={reset} disabled={disabled}>
+          {/* English translation: Reset to defaults */}
+          Tilbakestill til standard
+        </Button>
+      </div>
+    </>
+  );
+
+  if (alwaysOpen) {
+    return <div className={styles.fields}>{fields}</div>;
+  }
+
   return (
     <Accordion disableGutters variant="outlined">
       <AccordionSummary expandIcon={<ExpandMoreIcon />}>
@@ -102,148 +255,7 @@ export function AdvancedSettingsFields({
           </Typography>
         </div>
       </AccordionSummary>
-
-      <AccordionDetails className={styles.fields}>
-        <Typography variant="body2" color="text.secondary">
-          {/* English translation: For experienced users. The defaults work well for most interviews. */}
-          For erfarne brukere. Standardverdiene fungerer godt for de fleste intervjuer.
-        </Typography>
-
-        <div className={styles.fieldWithHelp}>
-          <FormControl fullWidth disabled={disabled} error={Boolean(errors.model)}>
-            {/* English translation: Language model */}
-            <InputLabel id={modelLabelId}>Språkmodell</InputLabel>
-            <Select
-              labelId={modelLabelId}
-              label="Språkmodell"
-              value={value.model}
-              onChange={(event) => onChange({ ...value, model: event.target.value })}
-            >
-              {languageModels.models.map((model) => (
-                <MenuItem key={model} value={model}>
-                  {model}
-                </MenuItem>
-              ))}
-            </Select>
-            <FormHelperText>
-              {errors.model ??
-                (languageModels.failed
-                  ? // English translation: Could not load the list of models. You can still keep the current model.
-                    'Fikk ikke hentet listen over modeller. Du kan fortsatt beholde modellen du har.'
-                  : // English translation: The models come from IDUN, NTNU's own servers.
-                    'Modellene kommer fra IDUN, NTNUs egne servere.')}
-            </FormHelperText>
-          </FormControl>
-          <FieldHelp
-            label="Språkmodell"
-            description="Hvilken språkmodell som skriver intervjuerens svar. Modellene kjører på IDUN, NTNUs egne servere."
-          />
-        </div>
-
-        <div>
-          <div className={helpStyles.row}>
-            <Typography id={`${modelLabelId}-temperature`} gutterBottom>
-              {/* English translation: Temperature */}
-              Temperatur
-            </Typography>
-            <FieldHelp
-              label="Temperatur"
-              description="Hvor varierte svarene blir. Lav er mer forutsigbar, høy mer variert."
-            />
-          </div>
-          <div className={styles.temperature}>
-            <Slider
-              aria-labelledby={`${modelLabelId}-temperature`}
-              value={sliderValue(value.temperature)}
-              min={MIN_TEMPERATURE}
-              max={MAX_TEMPERATURE}
-              step={SLIDER_STEP}
-              marks={[
-                { value: MIN_TEMPERATURE, label: MIN_TEMPERATURE },
-                { value: MAX_TEMPERATURE, label: MAX_TEMPERATURE },
-              ]}
-              valueLabelDisplay="auto"
-              disabled={disabled}
-              onChange={(_, temperature) => setTemperature(temperature as number)}
-            />
-            <TextField
-              // English translation: Value
-              label="Verdi"
-              value={temperatureText}
-              onChange={(event) => handleTemperatureText(event.target.value)}
-              size="small"
-              disabled={disabled}
-              error={Boolean(errors.temperature)}
-              slotProps={{ htmlInput: { inputMode: 'decimal' } }}
-            />
-          </div>
-          <FormHelperText error={Boolean(errors.temperature)}>
-            {errors.temperature ??
-              // English translation: Low gives more predictable answers, high gives more varied ones.
-              'Lav gir mer forutsigbare svar, høy gir mer varierte svar.'}
-          </FormHelperText>
-        </div>
-
-        {allowCustomPrompt && (
-          <div>
-            <FormControlLabel
-              control={
-                <Switch
-                  checked={writesPrompt}
-                  disabled={disabled}
-                  onChange={(event) => setWritesPrompt(event.target.checked)}
-                />
-              }
-              // English translation: Write the system prompt myself
-              label="Skriv systemprompten selv"
-            />
-            {writesPrompt ? (
-              <TextField
-                // English translation: System prompt
-                label="Systemprompt"
-                value={value.customPrompt ?? ''}
-                onChange={(event) => onChange({ ...value, customPrompt: event.target.value })}
-                multiline
-                minRows={8}
-                maxRows={20}
-                fullWidth
-                disabled={disabled}
-                error={Boolean(errors.customPrompt)}
-                helperText={
-                  errors.customPrompt ??
-                  // English translation: The answers no longer change the prompt. Check that it still
-                  // tells the agent not to ask for personal data.
-                  `Svarene endrer ikke lenger prompten. Pass på at den fortsatt ber agenten ikke spørre om personopplysninger. ${(value.customPrompt ?? '').length}/${MAX_PROMPT_LENGTH} tegn`
-                }
-                className={styles.promptField}
-              />
-            ) : builtPrompt ? (
-              <>
-                <FormHelperText>
-                  {/* English translation: The prompt is made from the answers. This is how it looks now: */}
-                  Prompten lages fra svarene. Slik ser den ut nå:
-                </FormHelperText>
-                {/* It scrolls, so it takes keyboard focus to be scrolled with the arrow keys. */}
-                <pre className={styles.prompt} tabIndex={0} role="region" aria-label="Systemprompt">
-                  {builtPrompt}
-                </pre>
-              </>
-            ) : (
-              <FormHelperText>
-                {/* English translation: The prompt is made from the answers. */}
-                Prompten lages fra svarene.
-              </FormHelperText>
-            )}
-          </div>
-        )}
-
-        <div className={styles.actions}>
-          <Button onClick={reset} disabled={disabled}>
-            {/* English translation: Reset to defaults */}
-            Tilbakestill til standard
-          </Button>
-        </div>
-      </AccordionDetails>
+      <AccordionDetails className={styles.fields}>{fields}</AccordionDetails>
     </Accordion>
   );
 }

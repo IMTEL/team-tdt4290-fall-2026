@@ -97,6 +97,10 @@ async function skipProfile(user: ReturnType<typeof userEvent.setup>) {
   const without = screen.getByRole('button', { name: 'Fortsett uten jobbsøkermal' });
   await user.click(without);
   expect(without).toHaveAttribute('aria-pressed', 'true');
+  expect(
+    within(screen.getByRole('region', { name: 'Dine valg' })).getByText('Jobbsøkermal')
+      .nextElementSibling,
+  ).toHaveTextContent('Ingen mal er valgt, så intervjueren får ingen beskrivelse av jobbsøkeren.');
   await user.click(screen.getByRole('button', { name: 'Neste' }));
 }
 
@@ -115,10 +119,14 @@ async function skipTemplate(user: ReturnType<typeof userEvent.setup>) {
   const without = screen.getByRole('button', { name: 'Fortsett uten intervjuermal' });
   await user.click(without);
   expect(without).toHaveAttribute('aria-pressed', 'true');
+  expect(
+    within(screen.getByRole('region', { name: 'Dine valg' })).getByText('Mal', { exact: true })
+      .nextElementSibling,
+  ).toHaveTextContent('Ingen mal er valgt, så intervjueren er nøytral og profesjonell.');
   await user.click(screen.getByRole('button', { name: 'Neste' }));
 }
 
-/** Leaves the settings step, which comes after the job seeker step. */
+/** Fills in the required settings and goes straight to Fullføre, skipping AI-innstillinger. */
 async function skipSettings(user: ReturnType<typeof userEvent.setup>) {
   await user.click(screen.getByRole('button', { name: 'Første intervju' }));
   await user.click(screen.getByRole('button', { name: 'Lett' }));
@@ -219,6 +227,36 @@ describe('/configure', () => {
     expect(screen.getByRole('button', { name: 'Offentlig' })).toHaveAttribute(
       'aria-pressed',
       'true',
+    );
+  });
+
+  it('summarises the stilling choices above Neste', async () => {
+    const user = userEvent.setup();
+    await renderPage('interviewer');
+
+    expect(screen.queryByRole('region', { name: 'Dine valg' })).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Butikkmedarbeider' }));
+
+    const summary = screen.getByRole('region', { name: 'Dine valg' });
+    expect(within(summary).getByText('Stilling').nextElementSibling).toHaveTextContent(
+      'Butikkmedarbeider',
+    );
+    expect(within(summary).getByText('Stillingsmal').nextElementSibling).toHaveTextContent(
+      'Butikkmedarbeider',
+    );
+    expect(within(summary).getByText('Bransje').nextElementSibling).toHaveTextContent('Varehandel');
+    expect(within(summary).getByText('Arbeidsgiver').nextElementSibling).toHaveTextContent(
+      'Privat',
+    );
+    expect(
+      summary.compareDocumentPosition(screen.getByRole('button', { name: 'Neste' })) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+
+    await user.click(screen.getByRole('button', { name: 'Ingen mal' }));
+    expect(within(summary).getByText('Stillingsmal').nextElementSibling).toHaveTextContent(
+      'Ingen mal er valgt, så intervjueren får ingen stillingsbeskrivelse.',
     );
   });
 
@@ -348,10 +386,13 @@ describe('/configure', () => {
 
     expect(screen.getByRole('heading', { level: 2, name: 'Fullføre' })).toBeVisible();
     expect(screen.getByRole('listitem', { current: 'step' })).toHaveTextContent('Fullføre');
-    expect(screen.getByText('4 av 5 seksjoner')).toBeVisible();
+    expect(screen.getByText('5 av 6 seksjoner')).toBeVisible();
     expect(screen.getByRole('button', { name: 'Publiser' })).toBeVisible();
-    expect(screen.getByRole('button', { name: 'Lagre som utkast' })).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Behold som utkast' })).toBeVisible();
     expect(screen.getByRole('button', { name: 'Test agenten' })).toBeVisible();
+    expect(screen.getByRole('complementary', { name: 'Seksjoner' })).not.toContainElement(
+      screen.getByRole('button', { name: 'Publiser' }),
+    );
     expect(screen.getByRole('radio', { name: 'Standard' })).toBeChecked();
     expect(screen.getByText('Teamleder')).toBeVisible();
     expect(screen.queryByRole('heading', { name: 'Velg en bransjemal' })).not.toBeInTheDocument();
@@ -361,8 +402,47 @@ describe('/configure', () => {
     expect(screen.getByRole('heading', { level: 2, name: 'Velg en intervjuermal' })).toBeVisible();
     expect(screen.getByRole('radio', { name: /Teamleder/ })).toBeChecked();
     // Jumping back must not reset the side progress or clear later section marks.
-    expect(screen.getByText('4 av 5 seksjoner')).toBeVisible();
+    expect(screen.getByText('5 av 6 seksjoner')).toBeVisible();
     expect(screen.getByRole('button', { name: 'Fullføre' })).toBeVisible();
+  });
+
+  it('opens AI-innstillinger from settings, or skips it with Neste', async () => {
+    const user = await openAsInterviewer();
+
+    await skipTemplate(user);
+    await skipProfile(user);
+    await user.click(screen.getByRole('button', { name: 'Første intervju' }));
+    await user.click(screen.getByRole('button', { name: 'Lett' }));
+    await user.click(screen.getByRole('button', { name: '5–6' }));
+    await user.click(screen.getByRole('button', { name: 'Ja' }));
+
+    const settingsSummary = screen.getByRole('region', { name: 'Dine valg' });
+    expect(within(settingsSummary).getByText('Intervjutype').nextElementSibling).toHaveTextContent(
+      'Første intervju',
+    );
+    expect(
+      within(settingsSummary).getByText('Vanskelighetsgrad').nextElementSibling,
+    ).toHaveTextContent('Lett');
+    expect(
+      settingsSummary.compareDocumentPosition(screen.getByRole('button', { name: 'Neste' })) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'AI-innstillinger' })).toBeEnabled();
+    await user.click(screen.getByRole('button', { name: 'AI-innstillinger' }));
+
+    expect(screen.getByRole('heading', { level: 2, name: 'AI-innstillinger' })).toBeVisible();
+    expect(screen.getByRole('listitem', { current: 'step' })).toHaveTextContent('AI-innstillinger');
+    expect(screen.getByRole('button', { name: 'Neste' })).toBeVisible();
+    expect(screen.getByRole('combobox', { name: 'Språkmodell' })).toBeVisible();
+    expect(screen.getByText(/Du kan hoppe over dette steget/)).toBeVisible();
+    expect(
+      within(screen.getByRole('region', { name: 'Dine valg' })).getByText('Språkmodell')
+        .nextElementSibling,
+    ).toHaveTextContent('openai/gpt-oss-120b');
+
+    await user.click(screen.getByRole('button', { name: 'Neste' }));
+
+    expect(screen.getByRole('heading', { level: 2, name: 'Fullføre' })).toBeVisible();
   });
 
   it('opens the last step when the counsellor continues without templates', async () => {
@@ -383,6 +463,8 @@ describe('/configure', () => {
     await skipProfile(user);
     await skipSettings(user);
 
+    expect(screen.getByText('Hvordan valgene former intervjueren')).toBeVisible();
+    expect(screen.getByText('Det du har fylt inn')).toBeVisible();
     const effects = screen.getByRole('region', { name: 'Slik former svarene dine agenten' });
     expect(within(effects).getByText('Intervjuer').nextElementSibling).toHaveTextContent(
       'Ingen mal er valgt, så intervjueren er nøytral og profesjonell.',
@@ -491,7 +573,7 @@ describe('/configure', () => {
     await skipProfile(user);
     await skipSettings(user);
 
-    await user.click(screen.getByRole('button', { name: 'Lagre som utkast' }));
+    await user.click(screen.getByRole('button', { name: 'Behold som utkast' }));
 
     await waitFor(() => expect(push).toHaveBeenCalledWith('/browse-agents'));
     expect(sessionStorage.getItem('kfi-agents-flash')).toBe('agent-lagret');
@@ -581,9 +663,7 @@ describe('/configure', () => {
     await skipSettings(user);
     await user.click(screen.getByRole('button', { name: 'Gå tilbake' }));
 
-    expect(
-      screen.getByRole('heading', { level: 2, name: 'Hvordan skal intervjuet være?' }),
-    ).toBeVisible();
+    expect(screen.getByRole('heading', { level: 2, name: 'AI-innstillinger' })).toBeVisible();
 
     await user.click(screen.getByRole('button', { name: 'Neste' }));
     await user.click(screen.getByRole('button', { name: 'Innstillinger' }));
@@ -709,6 +789,7 @@ describe('/configure', () => {
 
     await user.click(screen.getByRole('button', { name: 'Gå tilbake' }));
     await user.click(screen.getByRole('button', { name: 'Tilbake' }));
+    await user.click(screen.getByRole('button', { name: 'Tilbake' }));
 
     expect(screen.getByRole('radio', { name: /Profil A/ })).toBeChecked();
     expect(screen.getByRole('button', { name: 'Nervøsitet' })).toHaveAttribute(
@@ -747,6 +828,29 @@ describe('/configure', () => {
     expect(screen.queryByRole('textbox', { name: 'Andre områder' })).not.toBeInTheDocument();
   });
 
+  it('lets the counsellor edit or delete a job seeker profile from the picker', async () => {
+    fetchMock.mockImplementation(async (url, init) => {
+      const path = String(url);
+      if (init?.method === 'DELETE') return new Response(null, { status: 204 });
+      if (path === '/api/profiles') return Response.json({ profiles: [profile] });
+      return Response.json({ templates: [] });
+    });
+    const user = await openAsInterviewer();
+    await skipTemplate(user);
+
+    expect(await screen.findByRole('link', { name: 'Rediger Profil A' })).toHaveAttribute(
+      'href',
+      '/profiles/profile-1/edit?returnTo=%2Fconfigure%3Ftype%3Dinterviewer%26step%3Djobbs%C3%B8ker',
+    );
+    await user.click(screen.getByRole('button', { name: 'Slett Profil A' }));
+    await user.click(screen.getByRole('button', { name: 'Slett' }));
+
+    await waitFor(() =>
+      expect(screen.queryByRole('radio', { name: /Profil A/ })).not.toBeInTheDocument(),
+    );
+    expect(fetchMock).toHaveBeenCalledWith('/api/profiles/profile-1', { method: 'DELETE' });
+  });
+
   it('links to a new profile from the profile step', async () => {
     const user = await openAsInterviewer();
 
@@ -754,7 +858,7 @@ describe('/configure', () => {
 
     expect(screen.getByRole('link', { name: 'Lag en ny jobbsøkermal' })).toHaveAttribute(
       'href',
-      '/profiles/new',
+      '/profiles/new?returnTo=%2Fconfigure%3Ftype%3Dinterviewer%26step%3Djobbs%C3%B8ker',
     );
     const skip = screen.getByRole('button', { name: 'Fortsett uten jobbsøkermal' });
     const practice = screen.getByRole('group', { name: 'Hva skal jobbsøkeren øve på?' });
@@ -763,7 +867,11 @@ describe('/configure', () => {
 
   it('saves an unfinished draft and goes to the agents page', async () => {
     const user = await openAsInterviewer();
-    await user.click(screen.getByRole('button', { name: 'Lagre utkast' }));
+    const draft = screen.getByRole('button', { name: 'Lagre utkast' });
+    const next = screen.getByRole('button', { name: 'Neste' });
+    expect(draft.compareDocumentPosition(next) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(screen.getByRole('complementary', { name: 'Seksjoner' })).not.toContainElement(draft);
+    await user.click(draft);
 
     await waitFor(() => expect(push).toHaveBeenCalledWith('/browse-agents'));
     expect(localStorage.getItem('kfi-configure-draft')).toContain('Barnehageassistent');

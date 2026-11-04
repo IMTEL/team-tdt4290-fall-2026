@@ -80,26 +80,32 @@ export function LegalTemplateForm({ initial, onSave }: LegalTemplateFormProps) {
         disabled={isSaving}
         slotProps={{ htmlInput: { maxLength: LIMITS.description } }}
       />
-      <TextField
-        label="Hva intervjueren skal følge"
-        helperText={
-          // English translation: What the employer may not ask about or weigh, and what rights the
-          // job seeker has. Write it in plain words. The interviewer follows this text, and uses it
-          // if the job seeker asks about their rights.
-          `Hva arbeidsgiveren ikke kan spørre om eller legge vekt på, og hvilke rettigheter ` +
-          `jobbsøkeren har. Skriv det med enkle ord. Intervjueren følger teksten, og bruker den ` +
-          `hvis jobbsøkeren spør om rettighetene sine. ${text.length}/${LIMITS.text} tegn.`
-        }
-        value={text}
-        onChange={(event) => setText(event.target.value)}
-        required
-        multiline
-        minRows={6}
-        disabled={isSaving}
-        slotProps={{ htmlInput: { maxLength: LIMITS.text } }}
-      />
+      <div className={styles.panel}>
+        <TextField
+          label="Hva intervjueren skal følge"
+          helperText={
+            // English translation: What the employer may not ask about or weigh, and what rights the
+            // job seeker has. Write it in plain words. The interviewer follows this text, and uses it
+            // if the job seeker asks about their rights.
+            `Hva arbeidsgiveren ikke kan spørre om eller legge vekt på, og hvilke rettigheter ` +
+            `jobbsøkeren har. Skriv det med enkle ord. Intervjueren følger teksten, og bruker den ` +
+            `hvis jobbsøkeren spør om rettighetene sine. ${text.length}/${LIMITS.text} tegn.`
+          }
+          value={text}
+          onChange={(event) => setText(event.target.value)}
+          required
+          multiline
+          minRows={4}
+          disabled={isSaving}
+          slotProps={{ htmlInput: { maxLength: LIMITS.text } }}
+        />
+      </div>
 
-      {status.kind === 'error' && <Alert severity="error">{status.message}</Alert>}
+      {status.kind === 'error' && (
+        <Alert severity="error" className={styles.wide}>
+          {status.message}
+        </Alert>
+      )}
       <div className={styles.actions}>
         <Button type="submit" variant="contained" disabled={!canSave}>
           {isSaving ? 'Lagrer …' : initial ? 'Lagre endringene' : 'Lagre lovverk'}

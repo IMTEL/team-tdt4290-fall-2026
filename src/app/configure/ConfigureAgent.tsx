@@ -46,8 +46,15 @@ import {
 import { fetchSavedTemplates, saveConfiguredAgent } from './api';
 import { ConfigurationChat } from './ConfigurationChat';
 import { JobSeekerStep } from './JobSeekerStep';
+import { AiSettingsStep } from './AiSettingsStep';
 import { EMPTY_INTERVIEW_SETTINGS, SettingsStep, type InterviewSettings } from './SettingsStep';
-import { StillingStep, WizardFrame, type Workplace } from './StillingStep';
+import {
+  ChoiceSummary,
+  StillingStep,
+  WizardFrame,
+  WizardNav,
+  type Workplace,
+} from './StillingStep';
 import { suggestedAgentName, wizardConfiguration } from './wizardConfiguration';
 import { clearWizardDraft, readWizardDraft, writeWizardDraft } from './wizardDraft';
 import styles from './page.module.css';
@@ -110,12 +117,11 @@ export function ConfigureAgent({
   const router = useRouter();
   // For a type with a profile but no template, where no template card moves the counsellor on.
   const [presetsDone, setPresetsDone] = useState(false);
-  // Which interviewer screen is open. 0 stilling, 1 intervjuer, 2 jobbsøker, 3 innstillinger, 4 fullføre.
-  const [wizardStep, setWizardStep] = useState(
-    initialTypeId === 'interviewer' && initialStep === 'intervjuer' ? 1 : 0,
-  );
+  // Which interviewer screen is open. 0 stilling, 1 intervjuer, 2 jobbsøker, 3 innstillinger,
+  // 4 AI-innstillinger, 5 fullføre.
+  const [wizardStep, setWizardStep] = useState(interviewerStepIndex(initialTypeId, initialStep));
   const [furthestStep, setFurthestStep] = useState(
-    initialTypeId === 'interviewer' && initialStep === 'intervjuer' ? 1 : 0,
+    interviewerStepIndex(initialTypeId, initialStep),
   );
   const [workplace, setWorkplace] = useState<Workplace>({
     jobTitle: '',
@@ -163,10 +169,11 @@ export function ConfigureAgent({
         setNameEdited(draft.nameEdited);
         setAgentName(draft.agentName);
         setPresetsDone(draft.presetsDone);
-        // A returnTo link can ask for the intervjuer step; otherwise open where they left off.
-        if (initialTypeId === 'interviewer' && initialStep === 'intervjuer') {
-          setWizardStep(1);
-          setFurthestStep(Math.max(draft.furthestStep, 1));
+        // A returnTo link can ask for a named step; otherwise open where they left off.
+        const namedStep = interviewerStepIndex(initialTypeId, initialStep);
+        if (namedStep > 0) {
+          setWizardStep(namedStep);
+          setFurthestStep(Math.max(draft.furthestStep, namedStep));
         } else {
           setWizardStep(draft.wizardStep);
           setFurthestStep(draft.furthestStep);
@@ -179,7 +186,7 @@ export function ConfigureAgent({
   useEffect(() => {
     if (!draftReady || definition?.id !== 'interviewer') return;
     writeWizardDraft({
-      version: 1,
+      version: 2,
       agentTypeId: 'interviewer',
       wizardStep,
       furthestStep,
@@ -219,7 +226,7 @@ export function ConfigureAgent({
   function saveDraft() {
     if (definition?.id !== 'interviewer') return;
     writeWizardDraft({
-      version: 1,
+      version: 2,
       agentTypeId: 'interviewer',
       wizardStep,
       furthestStep,
@@ -504,7 +511,7 @@ export function ConfigureAgent({
 
   if (definition.id === 'interviewer' && wizardStep === 1) {
     return (
-      <WizardFrame current={1} onGoTo={goTo} reached={furthestStep} onSaveDraft={saveDraftAndLeave}>
+      <WizardFrame current={1} onGoTo={goTo} reached={furthestStep}>
         <div className={stepStyles.form}>
           {chosenType}
           {usesIndustries && industry !== undefined && chosenIndustry}
@@ -539,14 +546,23 @@ export function ConfigureAgent({
           {usesLegal && (
             <LegalTemplateSelect templates={legalOptions} value={legalIds} onChange={setLegalIds} />
           )}
-          <div className={stepStyles.actions}>
-            <div className={stepStyles.nav}>
-              <Button onClick={() => goTo(0)}>Tilbake</Button>
-              <Button variant="contained" onClick={() => goTo(2)}>
-                Neste
-              </Button>
-            </div>
-          </div>
+          <ChoiceSummary
+            lines={[
+              {
+                label: 'Mal',
+                value:
+                  choice === null
+                    ? 'Ingen mal er valgt, så intervjueren er nøytral og profesjonell.'
+                    : (choice?.title ?? ''),
+              },
+              { label: 'Lovverk', value: legalTemplates.map((item) => item.title).join(', ') },
+            ]}
+          />
+          <WizardNav
+            onBack={() => goTo(0)}
+            onNext={() => goTo(2)}
+            onSaveDraft={saveDraftAndLeave}
+          />
         </div>
       </WizardFrame>
     );
@@ -571,13 +587,38 @@ export function ConfigureAgent({
         onNext={() => goTo(3)}
         onBack={() => goTo(1)}
         onSaveDraft={saveDraftAndLeave}
+        returnTo={`/configure?type=${definition.id}&step=jobbsøker`}
+        onDeleted={(id) => {
+          setProfiles((current) => current.filter((item) => item.id !== id));
+          if (profileId === id) {
+            setProfileId(null);
+            setPracticeAreas([]);
+            setOtherPractice('');
+            setOtherOpen(false);
+          }
+        }}
       />
     );
   }
 
-  if (definition.id === 'interviewer' && (wizardStep === 3 || wizardStep === 4)) {
+  if (definition.id === 'interviewer' && wizardStep === 4) {
+    return (
+      <AiSettingsStep
+        value={settings}
+        onChange={setSettings}
+        intro={chosenType}
+        onGoTo={goTo}
+        reached={furthestStep}
+        onBack={() => goTo(3)}
+        onNext={() => goTo(5)}
+        onSaveDraft={saveDraftAndLeave}
+      />
+    );
+  }
+
+  if (definition.id === 'interviewer' && (wizardStep === 3 || wizardStep === 5)) {
     // Only the last step shows how the answers shape the interviewer.
-    const built = wizardStep === 4 ? builtConfiguration() : null;
+    const built = wizardStep === 5 ? builtConfiguration() : null;
     return (
       <SettingsStep
         value={settings}
@@ -585,7 +626,7 @@ export function ConfigureAgent({
         intro={chosenType}
         onGoTo={goTo}
         reached={furthestStep}
-        expanded={wizardStep === 4}
+        expanded={wizardStep === 5}
         overview={{
           workplace,
           jobTemplates,
@@ -632,8 +673,9 @@ export function ConfigureAgent({
           });
         }}
         onBack={() => goTo(2)}
-        onFinishBack={() => goTo(3)}
-        onNext={() => goTo(4)}
+        onFinishBack={() => goTo(4)}
+        onAiSettings={() => goTo(4)}
+        onNext={() => goTo(5)}
         onSaveDraft={saveDraftAndLeave}
       />
     );
@@ -760,4 +802,15 @@ export function ConfigureAgent({
 function listInNorwegian(items: string[]): string {
   if (items.length <= 1) return items.join('');
   return `${items.slice(0, -1).join(', ')} og ${items[items.length - 1]}`;
+}
+
+/** Named wizard steps from returnTo links, or 0 for the first interviewer screen. */
+function interviewerStepIndex(
+  typeId: string | null | undefined,
+  step: string | null | undefined,
+): number {
+  if (typeId !== 'interviewer') return 0;
+  if (step === 'intervjuer') return 1;
+  if (step === 'jobbsøker') return 2;
+  return 0;
 }

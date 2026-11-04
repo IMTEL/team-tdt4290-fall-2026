@@ -10,6 +10,8 @@ export const FORM_SECTIONS = [
   { title: 'Jobbsøker', helpId: 'jobbsoker' },
   // English translation: Settings
   { title: 'Innstillinger', helpId: 'innstillinger' },
+  // English translation: AI settings
+  { title: 'AI-innstillinger', helpId: 'ai-innstillinger' },
   // English translation: Finish
   { title: 'Fullføre', helpId: 'fullfore' },
 ] as const;

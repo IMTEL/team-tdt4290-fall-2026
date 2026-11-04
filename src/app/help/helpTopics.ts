@@ -64,9 +64,17 @@ const NEW_AGENT_STEPS: Record<FormSectionHelpId, string[]> = {
     // English translation: Under «Egne spørsmål» you can write specific questions the
     // interviewer will ask.
     'Under «Egne spørsmål» kan du skrive spesifikke spørsmål intervjueren skal stille.',
-    // English translation: «Avanserte innstillinger» is for those who want to control the
-    // language model themselves. You can leave them as they are.
-    '«Avanserte innstillinger» er for den som vil styre språkmodellen selv. Du kan la dem stå som de er.',
+    // English translation: Press «AI-innstillinger» if you want to change the language model
+    // or the temperature. You can also skip that step with «Neste».
+    'Trykk «AI-innstillinger» hvis du vil endre språkmodell eller temperatur. Du kan også hoppe over det steget med «Neste».',
+  ],
+  'ai-innstillinger': [
+    // English translation: Choose the language model and the temperature. You can leave them as
+    // they are.
+    'Velg språkmodell og temperatur. Du kan la dem stå som de er.',
+    // English translation: Under the advanced fields you can write your own system prompt if you
+    // want to steer the interviewer yourself.
+    'Under de avanserte feltene kan du skrive din egen systemprompt hvis du vil styre intervjueren selv.',
   ],
   fullfore: [
     // English translation: Look over the summary of what you have chosen. Press a section in the

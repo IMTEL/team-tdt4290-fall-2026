@@ -3,7 +3,6 @@ import { test, expect, type Page } from '@playwright/test';
 import { logIn } from './support/auth';
 import {
   chooseInterviewer,
-  fillSettings,
   fillStilling,
   goToFinish,
   pickTemplate,
@@ -66,14 +65,17 @@ test('the settings step needs the interview type, difficulty, number of question
   await pickTemplate(page, null);
   await pickTemplate(page, null);
   const next = page.getByRole('button', { name: 'Neste', exact: true });
+  const ai = page.getByRole('button', { name: 'AI-innstillinger', exact: true });
 
   await expect(next).toBeDisabled();
+  await expect(ai).toBeDisabled();
   await page.getByRole('button', { name: 'Første intervju', exact: true }).click();
   await page.getByRole('button', { name: 'Lett', exact: true }).click();
   await page.getByRole('button', { name: '5–6', exact: true }).click();
   await expect(next).toBeDisabled();
   await page.getByRole('button', { name: 'Ja', exact: true }).click();
   await expect(next).toBeEnabled();
+  await expect(ai).toBeEnabled();
 });
 
 test('a finished interviewer can be published and is listed under Agenter', async ({ page }) => {
@@ -180,11 +182,14 @@ test('the language model can be chosen in the settings', async ({ page }) => {
   await pickTemplate(page, null);
   await pickTemplate(page, null);
 
-  // The button also shows a summary of the settings, so its name goes on.
-  await page.getByRole('button', { name: /^Avanserte innstillinger/ }).click();
+  await page.getByRole('button', { name: 'Første intervju', exact: true }).click();
+  await page.getByRole('button', { name: 'Lett', exact: true }).click();
+  await page.getByRole('button', { name: '5–6', exact: true }).click();
+  await page.getByRole('button', { name: 'Ja', exact: true }).click();
+  await page.getByRole('button', { name: 'AI-innstillinger', exact: true }).click();
   await page.getByRole('combobox', { name: 'Språkmodell', exact: true }).click();
   await page.getByRole('option', { name: 'mock/test-model', exact: true }).click();
-  await fillSettings(page);
+  await page.getByRole('button', { name: 'Neste', exact: true }).click();
   await expect(
     sections(page).getByRole('definition').filter({ hasText: 'mock/test-model' }),
   ).toBeVisible();
@@ -213,7 +218,7 @@ test('an unfinished interviewer can be saved as a draft and continued', async ({
   await chooseInterviewer(page);
   await fillStilling(page, { jobTitle: 'Kassemedarbeider' });
 
-  await sections(page).getByRole('button', { name: 'Lagre utkast', exact: true }).click();
+  await page.getByRole('button', { name: 'Lagre utkast', exact: true }).click();
 
   await expect(page).toHaveURL(/\/browse-agents$/);
   await expect(page.getByText('Utkast lagret', { exact: true })).toBeVisible();

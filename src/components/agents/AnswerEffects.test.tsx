@@ -25,6 +25,8 @@ describe('AnswerEffects', () => {
       'Enkle og åpne spørsmål.',
       '6 spørsmål i alt.',
     ]);
+    // Each column is its own list, so a tall answer cannot leave a hole beside a short one.
+    expect(document.querySelectorAll('dl')).toHaveLength(2);
   });
 
   it('says the answers change nothing when the prompt was written by hand', () => {

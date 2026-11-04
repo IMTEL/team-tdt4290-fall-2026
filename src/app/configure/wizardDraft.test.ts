@@ -9,7 +9,7 @@ import {
 } from './wizardDraft';
 
 const draft: WizardDraft = {
-  version: 1,
+  version: 2,
   agentTypeId: 'interviewer',
   wizardStep: 2,
   furthestStep: 2,
@@ -59,6 +59,14 @@ describe('wizardDraft', () => {
     expect(readWizardDraft()).toBeNull();
     localStorage.setItem('kfi-configure-draft', JSON.stringify({ version: 99 }));
     expect(readWizardDraft()).toBeNull();
+  });
+
+  it('moves Fullføre from step 4 to 5 in drafts from before AI-innstillinger', () => {
+    localStorage.setItem(
+      'kfi-configure-draft',
+      JSON.stringify({ ...draft, version: 1, wizardStep: 4, furthestStep: 4 }),
+    );
+    expect(readWizardDraft()).toMatchObject({ version: 2, wizardStep: 5, furthestStep: 5 });
   });
 
   it('clears the draft', () => {

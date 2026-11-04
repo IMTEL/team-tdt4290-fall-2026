@@ -141,6 +141,7 @@ export function JobTemplateForm({ initial, industries, onSave, cancelHref }: Job
         slotProps={{ htmlInput: { maxLength: LIMITS.description } }}
       />
       <TextField
+        className={styles.wide}
         label="Typiske oppgaver (valgfritt)"
         helperText={
           tasksError ?? 'Skill dem med komma, for eksempel «Plukking, Truck, Varemottak».'
@@ -150,25 +151,31 @@ export function JobTemplateForm({ initial, industries, onSave, cancelHref }: Job
         onChange={(event) => setTasks(event.target.value)}
         disabled={saving}
       />
-      <TextField
-        label="Dette får intervjueren vite om stillingen"
-        helperText={
-          // English translation: What the job is like: the workplace, the tasks and what the
-          // employer looks for. The interviewer asks about the job from this text.
-          `Hvordan jobben er: arbeidsplassen, oppgavene og hva arbeidsgiveren ser etter. ` +
-          `Intervjueren spør om stillingen ut fra denne teksten. ` +
-          `${jobDescription.length}/${LIMITS.jobDescription} tegn.`
-        }
-        value={jobDescription}
-        onChange={(event) => setJobDescription(event.target.value)}
-        required
-        multiline
-        minRows={5}
-        disabled={saving}
-        slotProps={{ htmlInput: { maxLength: LIMITS.jobDescription } }}
-      />
+      <div className={styles.panel}>
+        <TextField
+          label="Dette får intervjueren vite om stillingen"
+          helperText={
+            // English translation: What the job is like: the workplace, the tasks and what the
+            // employer looks for. The interviewer asks about the job from this text.
+            `Hvordan jobben er: arbeidsplassen, oppgavene og hva arbeidsgiveren ser etter. ` +
+            `Intervjueren spør om stillingen ut fra denne teksten. ` +
+            `${jobDescription.length}/${LIMITS.jobDescription} tegn.`
+          }
+          value={jobDescription}
+          onChange={(event) => setJobDescription(event.target.value)}
+          required
+          multiline
+          minRows={4}
+          disabled={saving}
+          slotProps={{ htmlInput: { maxLength: LIMITS.jobDescription } }}
+        />
+      </div>
 
-      {error && <Alert severity="error">{error}</Alert>}
+      {error && (
+        <Alert severity="error" className={styles.wide}>
+          {error}
+        </Alert>
+      )}
       <div className={styles.actions}>
         <Button type="submit" variant="contained" disabled={!canSave}>
           {saving ? 'Lagrer …' : initial ? 'Lagre endringene' : 'Lagre stillingsmal'}
