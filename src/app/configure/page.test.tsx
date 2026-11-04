@@ -477,7 +477,7 @@ describe('/configure', () => {
     expect(screen.getByRole('listitem', { current: 'step' })).toHaveTextContent('Fullføre');
     expect(screen.getByText('5 av 6 seksjoner')).toBeVisible();
     expect(screen.getByRole('button', { name: 'Publiser' })).toBeVisible();
-    expect(screen.getByRole('button', { name: 'Behold som utkast' })).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Lagre som privat agent' })).toBeVisible();
     expect(screen.getByRole('button', { name: 'Test agenten' })).toBeVisible();
     expect(screen.getByRole('complementary', { name: 'Seksjoner' })).not.toContainElement(
       screen.getByRole('button', { name: 'Publiser' }),
@@ -647,7 +647,7 @@ describe('/configure', () => {
     expect(screen.getByRole('heading', { level: 2, name: 'Fullføre' })).toBeVisible();
   });
 
-  it('saves a draft and goes to the agents page', async () => {
+  it('saves a private agent and goes to the agents page', async () => {
     fetchMock.mockImplementation(async (url, init) => {
       const path = String(url);
       if (path === '/api/agents' && (init?.method ?? 'GET') === 'POST') {
@@ -662,7 +662,7 @@ describe('/configure', () => {
     await skipProfile(user);
     await skipSettings(user);
 
-    await user.click(screen.getByRole('button', { name: 'Behold som utkast' }));
+    await user.click(screen.getByRole('button', { name: 'Lagre som privat agent' }));
 
     await waitFor(() => expect(push).toHaveBeenCalledWith('/browse-agents'));
     expect(sessionStorage.getItem('kfi-agents-flash')).toBe('agent-lagret');

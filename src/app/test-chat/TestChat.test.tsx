@@ -40,9 +40,7 @@ const observerFeedback = {
   wentWell: [
     { quote: 'fem år i butikk', comment: 'Du viste erfaring.', tip: 'Gi et konkret eksempel.' },
   ],
-  toImprove: [
-    { quote: 'vet ikke', comment: 'Svaret ble vagt.', tip: 'Si hva du liker med jobben.' },
-  ],
+  toImprove: [],
 };
 
 // Renders the chat for agent-1 and waits until the agent has been found.
@@ -176,7 +174,7 @@ describe('TestChat', () => {
     );
 
     expect(signal?.aborted).toBe(true);
-    expect(screen.queryByText('Assistenten skriver …')).not.toBeInTheDocument();
+    expect(screen.queryByText('Tenker …')).not.toBeInTheDocument();
   });
 
   it('starts a new conversation with the new agent when the agent changes', async () => {
@@ -193,7 +191,7 @@ describe('TestChat', () => {
     expect(sendMock.mock.calls.at(-1)?.[0]).toBe('agent-2');
   });
 
-  it('shows the observer’s points, each with the candidate’s words and a tip', async () => {
+  it('shows the observer’s points as the question that was asked and how it was judged', async () => {
     sendMock.mockResolvedValue('Hvorfor søker du her?');
     observerMock.mockResolvedValue(observerFeedback);
     const { user, box } = await setup();
@@ -202,12 +200,12 @@ describe('TestChat', () => {
 
     await user.click(screen.getByRole('button', { name: 'Be om tilbakemelding' }));
 
-    const wentWell = await screen.findByRole('region', { name: 'Dette gikk bra' });
-    expect(wentWell).toHaveTextContent('«fem år i butikk»');
-    expect(wentWell).toHaveTextContent('Tips: Gi et konkret eksempel.');
-    expect(screen.getByRole('region', { name: 'Dette kan bli bedre' })).toHaveTextContent(
-      '«vet ikke»',
-    );
+    const card = await screen.findByRole('article', { name: 'Spørsmål og vurdering' });
+    expect(card).toHaveTextContent('Spørsmålet som ble stilt');
+    expect(card).toHaveTextContent('fortelle litt om deg selv');
+    expect(card).toHaveTextContent('Slik ble det vurdert');
+    expect(card).toHaveTextContent('«fem år i butikk»');
+    expect(card).toHaveTextContent('Tips: Gi et konkret eksempel.');
     // The observer reads the whole conversation, greeting included.
     expect(observerMock.mock.calls[0][0].map(({ content }) => content)).toEqual([
       expect.stringContaining('velkommen til intervjuet'),
@@ -244,7 +242,9 @@ describe('TestChat', () => {
     await screen.findByText('Kunne ikke lage en tilbakemelding. Prøv igjen.');
     await user.click(screen.getByRole('button', { name: 'Prøv igjen' }));
 
-    expect(await screen.findByRole('region', { name: 'Dette gikk bra' })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('article', { name: 'Spørsmål og vurdering' }),
+    ).toBeInTheDocument();
     expect(observerMock).toHaveBeenCalledTimes(2);
   });
 
@@ -252,7 +252,7 @@ describe('TestChat', () => {
     observerMock.mockResolvedValue(observerFeedback);
     const { user } = await setup();
     await user.click(screen.getByRole('button', { name: 'Be om tilbakemelding' }));
-    await screen.findByRole('region', { name: 'Dette gikk bra' });
+    await screen.findByRole('article', { name: 'Spørsmål og vurdering' });
 
     await user.click(screen.getByRole('button', { name: 'Start på nytt' }));
     await user.click(
@@ -260,7 +260,9 @@ describe('TestChat', () => {
     );
 
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
-    expect(screen.queryByRole('region', { name: 'Dette gikk bra' })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('article', { name: 'Spørsmål og vurdering' }),
+    ).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Be om tilbakemelding' })).toBeEnabled();
   });
 });

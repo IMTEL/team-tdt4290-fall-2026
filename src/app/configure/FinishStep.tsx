@@ -237,7 +237,7 @@ export function FinishActions({
           Publiser
         </Button>
         <Button type="button" variant="outlined" onClick={onSave} disabled={!canSave}>
-          {saving ? 'Lagrer …' : 'Behold som utkast'}
+          {saving ? 'Lagrer …' : 'Lagre som privat agent'}
         </Button>
         <Button type="button" variant="outlined" onClick={onTest} disabled={!canSave}>
           {saving ? 'Lagrer …' : 'Test agenten'}

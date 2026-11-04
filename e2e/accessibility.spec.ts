@@ -350,7 +350,7 @@ for (const colorScheme of ['light', 'dark'] as const) {
         await expect(page.getByRole('log')).toContainText('Mock-svar: Jeg liker å hjelpe kunder.');
         await page.getByRole('button', { name: 'Be om tilbakemelding', exact: true }).click();
         await expect(
-          page.getByRole('region', { name: 'Dette gikk bra', exact: true }),
+          page.getByRole('article', { name: 'Spørsmål og vurdering', exact: true }),
         ).toBeVisible();
         await expectNoAccessibilityViolations(page);
       });

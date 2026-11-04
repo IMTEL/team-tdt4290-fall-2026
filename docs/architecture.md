@@ -408,8 +408,9 @@ On `/configure` the counsellor first chooses the type (`AgentTypePicker`). `regi
 
 For an **interviewer**, setup is a form wizard (not the configuration chat): Stilling og arbeidsplass
 → Intervjuer (template) → Jobbsøker (jobbsøkermal + practice areas) → Innstillinger → Fullføre.
-**Publiser** / **Test agenten** builds the nine answer fields in the browser
-(`wizardConfiguration.ts`) and saves with `POST /api/agents`. **Lagre utkast** keeps progress in
+**Publiser** / **Lagre som privat agent** / **Test agenten** builds the nine answer fields in the
+browser (`wizardConfiguration.ts`) and saves with `POST /api/agents`. **Lagre som privat agent**
+does not publish. **Lagre utkast** keeps progress in
 `localStorage` (`wizardDraft.ts`) and opens `/browse-agents`, where an **Utkast** card can resume
 or delete the draft. Saving a finished agent clears the draft and shows a short toast («Agent
 lagret»). The UI says _jobbsøkermal_; RAGdoll and the code still use _job seeker profile_.
@@ -523,7 +524,9 @@ The configurator chat talks to one shared agent. The test chat talks to the agen
 saved, named in the URL (`/test-chat?agent=<id>`). Before showing the chat, the page loads the
 counsellor's agents (`GET /api/agents`) and checks that the id is one of them; if not (deleted,
 never existed, or someone else's) it says the interviewer was not found. Under the test chat, the
-counsellor can ask a shared observer agent for feedback on the conversation so far.
+counsellor can ask a shared observer agent for feedback on the conversation so far. Each point is
+shown as the question that was asked and how the answer was judged; many points collapse to a
+summary.
 
 | Agent                   | Used on                                         | Route                             | Prompt source                                                                                            |
 | ----------------------- | ----------------------------------------------- | --------------------------------- | -------------------------------------------------------------------------------------------------------- |
@@ -589,7 +592,8 @@ sequenceDiagram
   two answers from the candidate it says the chat is too short without calling the LLM, and that
   answer does not count against the chat rate limit. A transcript over 40 000 characters gets 413.
   It drops every point whose quote is not at least three whole words the candidate said in a row,
-  and answers 502 if none is left
+  and answers 502 if none is left. The page pairs each remaining point with the interviewer
+  question the candidate was answering, and shows a summary when there are many
   ([`src/domain/observerFeedback.ts`](../src/domain/observerFeedback.ts)).
 - Code: [`src/app/api/configure/turn/route.ts`](../src/app/api/configure/turn/route.ts),
   [`src/app/api/agents/[agentId]/chat/route.ts`](../src/app/api/agents/[agentId]/chat/route.ts),
