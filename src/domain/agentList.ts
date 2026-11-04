@@ -8,7 +8,7 @@ export type AgentSection = { key: string; title: string; agents: Agent[] };
 
 /** The section for agents whose type we do not know. Always the last one. */
 // English translation: Other agents
-const OTHER_SECTION = { key: 'other', title: 'Andre agenter' };
+export const OTHER_SECTION = { key: 'other', title: 'Andre agenter' };
 
 /**
  * A short line about the agent for its card, e.g. "Butikkmedarbeider · Lett", or "" if there is
