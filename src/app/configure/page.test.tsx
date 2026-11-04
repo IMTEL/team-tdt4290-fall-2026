@@ -70,10 +70,14 @@ afterEach(() => {
   localStorage.clear();
 });
 
-async function renderPage(type?: string, step?: string) {
+async function renderPage(type?: string, step?: string, extra?: { startNew?: boolean }) {
   render(
     await ConfigurePage({
-      searchParams: Promise.resolve(type === undefined ? {} : { type, ...(step ? { step } : {}) }),
+      searchParams: Promise.resolve(
+        type === undefined
+          ? {}
+          : { type, ...(step ? { step } : {}), ...(extra?.startNew ? { new: '1' } : {}) },
+      ),
     }),
   );
 }
@@ -409,7 +413,9 @@ describe('/configure', () => {
     expect(screen.getByRole('heading', { level: 2, name: 'Velg en intervjuermal' })).toBeVisible();
     expect(screen.getByRole('link', { name: 'Lag en ny intervjuermal' })).toHaveAttribute(
       'href',
-      '/create-template?agentType=interviewer&returnTo=%2Fconfigure%3Ftype%3Dinterviewer%26step%3Dintervjuer',
+      expect.stringMatching(
+        /^\/create-template\?agentType=interviewer&returnTo=%2Fconfigure%3Ftype%3Dinterviewer%26draft%3D.+%26step%3Dintervjuer$/,
+      ),
     );
     const skip = screen.getByRole('button', { name: 'Fortsett uten intervjuermal' });
     const legal = screen.getByRole('group', { name: 'Lovverk' });
@@ -903,7 +909,9 @@ describe('/configure', () => {
 
     expect(await screen.findByRole('link', { name: 'Rediger Profil A' })).toHaveAttribute(
       'href',
-      '/profiles/profile-1/edit?returnTo=%2Fconfigure%3Ftype%3Dinterviewer%26step%3Djobbs%C3%B8ker',
+      expect.stringMatching(
+        /^\/profiles\/profile-1\/edit\?returnTo=%2Fconfigure%3Ftype%3Dinterviewer%26draft%3D.+%26step%3Djobbs%C3%B8ker$/,
+      ),
     );
     await user.click(screen.getByRole('button', { name: 'Slett Profil A' }));
     await user.click(screen.getByRole('button', { name: 'Slett' }));
@@ -921,7 +929,9 @@ describe('/configure', () => {
 
     expect(screen.getByRole('link', { name: 'Lag en ny jobbsøkermal' })).toHaveAttribute(
       'href',
-      '/profiles/new?returnTo=%2Fconfigure%3Ftype%3Dinterviewer%26step%3Djobbs%C3%B8ker',
+      expect.stringMatching(
+        /^\/profiles\/new\?returnTo=%2Fconfigure%3Ftype%3Dinterviewer%26draft%3D.+%26step%3Djobbs%C3%B8ker$/,
+      ),
     );
     const skip = screen.getByRole('button', { name: 'Fortsett uten jobbsøkermal' });
     const practice = screen.getByRole('group', { name: 'Hva skal jobbsøkeren øve på?' });
@@ -988,6 +998,68 @@ describe('/configure', () => {
     ).toBeVisible();
     await userEvent.setup().click(screen.getByRole('button', { name: 'Stilling og arbeidsplass' }));
     expect(screen.getByRole('textbox', { name: /Stilling/ })).toHaveValue('Barnehageassistent');
+  });
+
+  it('starts an empty wizard from Ny agent even when an utkast exists', async () => {
+    localStorage.setItem(
+      'kfi-configure-draft',
+      JSON.stringify({
+        version: 2,
+        agentTypeId: 'interviewer',
+        wizardStep: 1,
+        furthestStep: 1,
+        workplace: {
+          jobTitle: 'Barnehageassistent',
+          templateId: 'helsefagarbeider',
+          industry: 'Helse og omsorg',
+          sector: 'offentlig',
+          company: '',
+        },
+        hasTemplateChoice: false,
+        template: null,
+        profileId: '',
+        practiceAreas: [],
+        otherOpen: false,
+        otherPractice: '',
+        settings: {
+          interviewType: null,
+          difficulty: null,
+          questionCount: null,
+          questionCountDetail: '',
+          followUp: null,
+          ownQuestions: '',
+          extra: '',
+          model: 'openai/gpt-oss-120b',
+          temperature: 0.7,
+          customPrompt: null,
+        },
+        avatar: null,
+        nameEdited: false,
+        agentName: '',
+        presetsDone: false,
+      }),
+    );
+
+    await renderPage('interviewer', undefined, { startNew: true });
+
+    expect(
+      screen.getByRole('heading', { level: 2, name: 'Hvilken stilling skal jobbsøkeren øve til?' }),
+    ).toBeVisible();
+    expect(screen.getByRole('textbox', { name: /Stilling/ })).toHaveValue('');
+    expect(
+      screen.queryByRole('heading', { name: 'Velg en intervjuermal' }),
+    ).not.toBeInTheDocument();
+    await waitFor(() => {
+      const stored = JSON.parse(localStorage.getItem('kfi-configure-draft') ?? '{}') as {
+        version?: number;
+        drafts?: { workplace: { jobTitle: string } }[];
+      };
+      expect(stored.version).toBe(3);
+      expect(stored.drafts?.map((item) => item.workplace.jobTitle).sort()).toEqual([
+        '',
+        'Barnehageassistent',
+      ]);
+    });
   });
 
   it('sets a Norwegian tab title', () => {

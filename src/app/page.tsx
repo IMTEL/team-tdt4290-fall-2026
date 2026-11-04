@@ -29,7 +29,7 @@ export default function Home() {
         Sett opp en intervjuer, test den i en chat og publiser den til VR-appen The Candidate.
       </p>
       <div className={styles.actions}>
-        <Link href="/configure?type=interviewer" className={styles.primary}>
+        <Link href="/configure?type=interviewer&new=1" className={styles.primary}>
           Ny agent
         </Link>
         <Link href="/browse-agents" className={styles.secondary}>

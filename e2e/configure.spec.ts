@@ -273,9 +273,47 @@ test('each section links to its help, and the form is still there when coming ba
 
   await page.goBack();
   await expect(
-    page.getByRole('heading', { level: 2, name: 'Velg en mal', exact: true }),
+    page.getByRole('heading', { level: 2, name: 'Velg en intervjuermal', exact: true }),
   ).toBeVisible();
   await expect(
     sections(page).getByRole('button', { name: 'Stilling og arbeidsplass' }),
   ).toBeVisible();
+});
+
+test('Ny agent starts a blank wizard even when an utkast exists', async ({ page }) => {
+  await logIn(page, '/configure');
+  await chooseInterviewer(page);
+  await fillStilling(page, { jobTitle: 'Kassemedarbeider' });
+  await page.getByRole('button', { name: 'Lagre utkast', exact: true }).click();
+  await expect(page.getByRole('link', { name: /Fortsett fra: Intervjuer/ })).toBeVisible();
+
+  await page.getByRole('button', { name: /^Ny agent/ }).click();
+  await page
+    .getByRole('dialog')
+    .getByRole('button', { name: /^Intervjuer/ })
+    .click();
+
+  await expect(
+    page.getByRole('heading', { level: 2, name: 'Hvilken stilling skal jobbsøkeren øve til?' }),
+  ).toBeVisible();
+  await expect(page.getByRole('textbox', { name: /^Stilling/ })).toHaveValue('');
+});
+
+test('several local drafts can be stored at once', async ({ page }) => {
+  await logIn(page, '/configure');
+  await chooseInterviewer(page);
+  await fillStilling(page, { jobTitle: 'Kassemedarbeider' });
+  await page.getByRole('button', { name: 'Lagre utkast', exact: true }).click();
+  await expect(page.getByRole('link', { name: /Intervjuer for Kassemedarbeider/ })).toBeVisible();
+
+  await page.getByRole('button', { name: /^Ny agent/ }).click();
+  await page
+    .getByRole('dialog')
+    .getByRole('button', { name: /^Intervjuer/ })
+    .click();
+  await fillStilling(page, { jobTitle: 'Barnehageassistent' });
+  await page.getByRole('button', { name: 'Lagre utkast', exact: true }).click();
+
+  await expect(page.getByRole('link', { name: /Intervjuer for Kassemedarbeider/ })).toBeVisible();
+  await expect(page.getByRole('link', { name: /Intervjuer for Barnehageassistent/ })).toBeVisible();
 });

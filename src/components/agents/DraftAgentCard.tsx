@@ -14,7 +14,11 @@ import DialogContentText from '@mui/material/DialogContentText';
 import DialogTitle from '@mui/material/DialogTitle';
 import Typography from '@mui/material/Typography';
 
-import { clearWizardDraft, type WizardDraft } from '@/app/configure/wizardDraft';
+import {
+  clearWizardDraft,
+  configureDraftHref,
+  type WizardDraft,
+} from '@/app/configure/wizardDraft';
 import { SECTIONS } from '@/app/configure/StillingStep';
 import { suggestedAgentName } from '@/app/configure/wizardConfiguration';
 import { AgentAvatar } from './AgentAvatar';
@@ -38,14 +42,18 @@ export function DraftAgentCard({
   const job = draft.workplace.jobTitle.trim();
 
   function confirmDelete() {
-    clearWizardDraft();
+    clearWizardDraft(draft.id);
     setOpen(false);
     onDeleted?.();
   }
 
   return (
     <Card variant="outlined" className={styles.card}>
-      <CardActionArea component={Link} href="/configure?type=interviewer" className={styles.action}>
+      <CardActionArea
+        component={Link}
+        href={configureDraftHref(draft.id)}
+        className={styles.action}
+      >
         <CardContent className={styles.content}>
           <AgentAvatar avatar={draft.avatar} size={44} className={styles.avatar} />
           <div className={styles.titleRow}>

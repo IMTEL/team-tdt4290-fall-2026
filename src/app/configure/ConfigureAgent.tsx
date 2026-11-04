@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import Button from '@mui/material/Button';
@@ -57,7 +57,13 @@ import {
 } from './StillingStep';
 import { wizardTemplatePeeks } from './templatePeeks';
 import { suggestedAgentName, wizardConfiguration } from './wizardConfiguration';
-import { clearWizardDraft, readWizardDraft, writeWizardDraft } from './wizardDraft';
+import {
+  clearWizardDraft,
+  configureDraftHref,
+  createWizardDraftId,
+  readWizardDraft,
+  writeWizardDraft,
+} from './wizardDraft';
 import styles from './page.module.css';
 import stepStyles from './StillingStep.module.css';
 
@@ -87,9 +93,15 @@ function Steps({ steps, active }: { steps: string[]; active: number }) {
 export function ConfigureAgent({
   initialTypeId = null,
   initialStep = null,
+  startNew = false,
+  initialDraftId = null,
 }: {
   initialTypeId?: string | null;
   initialStep?: string | null;
+  /** True when «Ny agent» was chosen: ignore a stored utkast so the wizard starts empty. */
+  startNew?: boolean;
+  /** Opens this utkast. Without it, the newest draft is restored unless `startNew`. */
+  initialDraftId?: string | null;
 }) {
   const [definition, setDefinition] = useState<AgentTypeDefinition | undefined>(() =>
     initialTypeId ? getAgentType(initialTypeId) : undefined,
@@ -133,6 +145,7 @@ export function ConfigureAgent({
   });
   // False until a stored draft has been read (or found missing), so we do not overwrite it.
   const [draftReady, setDraftReady] = useState(false);
+  const [draftId, setDraftId] = useState<string | null>(initialDraftId);
   const isClient = useIsClient();
 
   const presets = definition?.presets ?? {};
@@ -149,45 +162,70 @@ export function ConfigureAgent({
 
   // Restore once after hydration (setState during render when the client flag flips).
   if (isClient && !draftReady) {
-    const draft = readWizardDraft();
-    if (
-      draft &&
-      draft.agentTypeId === 'interviewer' &&
-      (!initialTypeId || initialTypeId === draft.agentTypeId)
-    ) {
-      const type = getAgentType(draft.agentTypeId);
-      if (type) {
-        setDefinition(type);
-        setWorkplace(draft.workplace);
-        setChoice(draft.hasTemplateChoice ? draft.template : undefined);
-        setProfileId(draft.profileId || (draft.furthestStep >= 2 ? '' : null));
-        setPracticeAreas(draft.practiceAreas);
-        setLegalIds(draft.legalIds ?? []);
-        setOtherOpen(draft.otherOpen);
-        setOtherPractice(draft.otherPractice);
-        setSettings(draft.settings);
-        setAvatar(draft.avatar);
-        setNameEdited(draft.nameEdited);
-        setAgentName(draft.agentName);
-        setPresetsDone(draft.presetsDone);
-        // A returnTo link can ask for a named step; otherwise open where they left off.
-        const namedStep = interviewerStepIndex(initialTypeId, initialStep);
-        if (namedStep > 0) {
-          setWizardStep(namedStep);
-          setFurthestStep(Math.max(draft.furthestStep, namedStep));
-        } else {
-          setWizardStep(draft.wizardStep);
-          setFurthestStep(draft.furthestStep);
+    if (startNew) {
+      setDraftId(createWizardDraftId());
+    } else {
+      const draft = readWizardDraft(initialDraftId ?? undefined);
+      if (
+        draft &&
+        draft.agentTypeId === 'interviewer' &&
+        (!initialTypeId || initialTypeId === draft.agentTypeId)
+      ) {
+        const type = getAgentType(draft.agentTypeId);
+        if (type) {
+          setDraftId(draft.id);
+          setDefinition(type);
+          setWorkplace(draft.workplace);
+          setChoice(draft.hasTemplateChoice ? draft.template : undefined);
+          setProfileId(draft.profileId || (draft.furthestStep >= 2 ? '' : null));
+          setPracticeAreas(draft.practiceAreas);
+          setLegalIds(draft.legalIds ?? []);
+          setOtherOpen(draft.otherOpen);
+          setOtherPractice(draft.otherPractice);
+          setSettings(draft.settings);
+          setAvatar(draft.avatar);
+          setNameEdited(draft.nameEdited);
+          setAgentName(draft.agentName);
+          setPresetsDone(draft.presetsDone);
+          // A returnTo link can ask for a named step; otherwise open where they left off.
+          const namedStep = interviewerStepIndex(initialTypeId, initialStep);
+          if (namedStep > 0) {
+            setWizardStep(namedStep);
+            setFurthestStep(Math.max(draft.furthestStep, namedStep));
+          } else {
+            setWizardStep(draft.wizardStep);
+            setFurthestStep(draft.furthestStep);
+          }
         }
+      } else if (!draftId) {
+        setDraftId(createWizardDraftId());
       }
     }
     setDraftReady(true);
   }
 
   useEffect(() => {
-    if (!draftReady || definition?.id !== 'interviewer') return;
-    writeWizardDraft({
-      version: 2,
+    if (!draftId || typeof window === 'undefined') return;
+    const url = new URL(window.location.href);
+    let changed = false;
+    if (url.searchParams.has('new')) {
+      url.searchParams.delete('new');
+      changed = true;
+    }
+    if (url.searchParams.get('draft') !== draftId) {
+      url.searchParams.set('draft', draftId);
+      changed = true;
+    }
+    if (!changed) return;
+    const query = url.searchParams.toString();
+    window.history.replaceState(null, '', `${url.pathname}${query ? `?${query}` : ''}${url.hash}`);
+  }, [draftId]);
+
+  const currentDraft = useCallback(() => {
+    if (!draftId) return null;
+    return {
+      version: 2 as const,
+      id: draftId,
       agentTypeId: 'interviewer',
       wizardStep,
       furthestStep,
@@ -204,10 +242,9 @@ export function ConfigureAgent({
       nameEdited,
       agentName,
       presetsDone,
-    });
+    };
   }, [
-    draftReady,
-    definition?.id,
+    draftId,
     wizardStep,
     furthestStep,
     workplace,
@@ -224,27 +261,16 @@ export function ConfigureAgent({
     presetsDone,
   ]);
 
+  useEffect(() => {
+    if (!draftReady || definition?.id !== 'interviewer') return;
+    const draft = currentDraft();
+    if (draft) writeWizardDraft(draft);
+  }, [draftReady, definition?.id, currentDraft]);
+
   function saveDraft() {
     if (definition?.id !== 'interviewer') return;
-    writeWizardDraft({
-      version: 2,
-      agentTypeId: 'interviewer',
-      wizardStep,
-      furthestStep,
-      workplace,
-      hasTemplateChoice: choice !== undefined,
-      template: choice ?? null,
-      profileId: profileId ?? '',
-      practiceAreas,
-      legalIds,
-      otherOpen,
-      otherPractice,
-      settings,
-      avatar,
-      nameEdited,
-      agentName,
-      presetsDone,
-    });
+    const draft = currentDraft();
+    if (draft) writeWizardDraft(draft);
   }
 
   /** Writes the unfinished wizard and opens the agents list, where the utkast card appears. */
@@ -281,7 +307,7 @@ export function ConfigureAgent({
   }, [agentType, usesTemplates, usesProfiles, usesLegal]);
 
   function chooseType(next: AgentTypeDefinition | undefined) {
-    if (!next) clearWizardDraft();
+    if (!next && draftId) clearWizardDraft(draftId);
     setDefinition(next);
     setChoice(undefined);
     setIndustry(undefined);
@@ -413,7 +439,7 @@ export function ConfigureAgent({
             avatar,
           );
       setSavedAgent({ id, name: trimmed });
-      clearWizardDraft();
+      if (draftId) clearWizardDraft(draftId);
       return { id };
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Noe gikk galt. Prøv igjen.';
@@ -448,6 +474,9 @@ export function ConfigureAgent({
 
   const fieldLabel = (key: string | undefined) =>
     definition.fields.find((field) => field.key === key)?.label ?? '';
+
+  const wizardHref = (step: string) =>
+    draftId ? configureDraftHref(draftId, step) : `/configure?type=${definition.id}&step=${step}`;
 
   // The steps this type has, e.g. "Velg intervjuer, jobbsøkermal og lovverk", then "Velg bransje".
   const usesPresetStep = usesTemplates || usesProfiles || usesLegal;
@@ -533,7 +562,7 @@ export function ConfigureAgent({
             savedTemplates={saved}
             agentType={definition.id}
             lead={presets.template?.text.pickerLead}
-            returnTo={`/configure?type=${definition.id}&step=intervjuer`}
+            returnTo={wizardHref('intervjuer')}
             onSelect={setChoice}
             onDeleted={(id) => setSaved((current) => current.filter((item) => item.id !== id))}
           />
@@ -547,7 +576,9 @@ export function ConfigureAgent({
             </Button>
             <Button
               component={Link}
-              href={`/create-template?agentType=${encodeURIComponent(definition.id)}&returnTo=${encodeURIComponent(`/configure?type=${definition.id}&step=intervjuer`)}`}
+              href={`/create-template?agentType=${encodeURIComponent(definition.id)}&returnTo=${encodeURIComponent(
+                wizardHref('intervjuer'),
+              )}`}
               variant="outlined"
             >
               Lag en ny intervjuermal
@@ -598,7 +629,7 @@ export function ConfigureAgent({
         onBack={() => goTo(1)}
         onSaveDraft={saveDraftAndLeave}
         peeks={peeks}
-        returnTo={`/configure?type=${definition.id}&step=jobbsøker`}
+        returnTo={wizardHref('jobbsøker')}
         onDeleted={(id) => {
           setProfiles((current) => current.filter((item) => item.id !== id));
           if (profileId === id) {

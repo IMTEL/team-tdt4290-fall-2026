@@ -259,7 +259,7 @@ export function ProfileHome() {
           <ListCard
             title="Mine agenter"
             action={
-              <Button component={Link} href="/configure?type=interviewer" variant="contained">
+              <Button component={Link} href="/configure?type=interviewer&new=1" variant="contained">
                 Ny agent
               </Button>
             }

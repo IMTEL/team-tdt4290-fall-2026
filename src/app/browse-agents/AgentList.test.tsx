@@ -216,7 +216,7 @@ describe('AgentList', () => {
     expect(screen.getByText('Utkast')).toBeVisible();
     expect(screen.getByRole('link', { name: /Intervjuer for Barnehageassistent/ })).toHaveAttribute(
       'href',
-      '/configure?type=interviewer',
+      '/configure?type=interviewer&draft=legacy',
     );
   });
 
@@ -241,6 +241,34 @@ describe('AgentList', () => {
     expect(
       screen.queryByRole('heading', { name: 'Intervjuer for Barnehageassistent' }),
     ).not.toBeInTheDocument();
+  });
+
+  it('shows several local drafts at once', async () => {
+    localStorage.setItem(
+      'kfi-configure-draft',
+      JSON.stringify({
+        version: 3,
+        drafts: [
+          {
+            ...JSON.parse(draftJson),
+            version: 2,
+            id: 'draft-a',
+            workplace: { ...JSON.parse(draftJson).workplace, jobTitle: 'Butikkmedarbeider' },
+          },
+          { ...JSON.parse(draftJson), version: 2, id: 'draft-b' },
+        ],
+      }),
+    );
+    fetchAgentsMock.mockResolvedValue([]);
+
+    render(<AgentList />);
+
+    const heading = await screen.findByRole('heading', { level: 2, name: 'Intervjuer' });
+    expect(cardNames(heading.closest('section')!)).toEqual([
+      'Ny agent',
+      'Intervjuer for Butikkmedarbeider',
+      'Intervjuer for Barnehageassistent',
+    ]);
   });
 
   describe('search', () => {

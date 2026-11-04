@@ -17,7 +17,7 @@ test('a new user has no agents, only the card for a new one', async ({ page }) =
     .getByRole('button', { name: /^Intervjuer/ })
     .click();
 
-  await expect(page).toHaveURL(/\/configure\?type=interviewer$/);
+  await expect(page).toHaveURL(/\/configure\?type=interviewer/);
   await expect(
     page.getByRole('heading', { level: 1, name: 'Ny intervjuagent', exact: true }),
   ).toBeVisible();
