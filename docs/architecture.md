@@ -177,7 +177,7 @@ sequenceDiagram
 ```
 
 `GET /api/agents` lists the same user's agents and returns only `id`, `name`, `description`,
-`lastUpdated` and the advanced settings (`llmModel`, `temperature`, `prompt`), plus what the agent cards and the filter read from the stored answers: `type`,
+`lastUpdated` and the advanced settings (`llmModel`, `temperature`, `maxTokens`, `prompt`), plus what the agent cards and the filter read from the stored answers: `type`,
 `typeLabel`, `stilling`, `bransje` and `vanskelighetsgrad` (null when the agent was not made in
 this app). RAGdoll's copy of the IDUN key is dropped before the list leaves our server.
 
@@ -235,15 +235,16 @@ Code: [`src/app/api/agents/[agentId]/route.ts`](../src/app/api/agents/[agentId]/
 
 ### Advanced settings
 
-Experienced counsellors can change three things beyond the configuration, both before saving
+Experienced counsellors can change four things beyond the configuration, both before saving
 (under the save form in `/configure`) and on the edit page. The agent details page shows them
 read-only.
 
-| Setting        | Stored in RAGdoll as | Default                     | Checked by                                                 |
-| -------------- | -------------------- | --------------------------- | ---------------------------------------------------------- |
-| Language model | `llm_model`          | `openai/gpt-oss-120b`       | Must be one of the models `GET /api/models` lists          |
-| Temperature    | `llm_temperature`    | 0.7 (RAGdoll's own default) | 0 to 2, at most two decimals                               |
-| System prompt  | `prompt`             | Built from the answers      | Not empty, at most 20,000 characters, when written by hand |
+| Setting        | Stored in RAGdoll as | Default                      | Checked by                                                 |
+| -------------- | -------------------- | ---------------------------- | ---------------------------------------------------------- |
+| Language model | `llm_model`          | `openai/gpt-oss-120b`        | Must be one of the models `GET /api/models` lists          |
+| Temperature    | `llm_temperature`    | 0.7 (RAGdoll's own default)  | 0 to 1.5, at most two decimals                             |
+| Max tokens     | `llm_max_tokens`     | 1000 (RAGdoll's own default) | A whole number from 256 to 8000                            |
+| System prompt  | `prompt`             | Built from the answers       | Not empty, at most 20,000 characters, when written by hand |
 
 - `GET /api/models` asks RAGdoll's `POST /get_models` with the project's IDUN key, which stays on
   the server. If RAGdoll cannot list the models, the default (and an agent's current model) can
@@ -257,6 +258,10 @@ read-only.
   off removes the mark and rebuilds it.
 - Without `advanced` in the body, `POST /api/agents` uses the defaults and `PUT` keeps what the
   agent has.
+- RAGdoll accepts temperatures up to 2, but from about 1.5 the model rarely stops on its own: it
+  writes until it runs out of tokens and the chat times out after 30 s (#132). The max tokens count
+  the model's reasoning too, so with only a few hundred the reply comes back empty. From a
+  temperature above 1 or more than 2000 tokens, the form warns that replies can get much slower.
 - RAGdoll's chat pipeline only uses the temperature from `tdt4290/main` with the fix
   `fix/agent-temperature`; before that it stored the value but ignored it.
 - A hand-written prompt does not get the guardrails of the built prompt (stay in role, never ask

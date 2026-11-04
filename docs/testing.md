@@ -94,7 +94,9 @@ Unit and component level only:
   later marks; **Publiser** / **Test agenten** save and redirect; **Lagre utkast** writes
   `localStorage` and goes to Agenter; a stored draft is restored; saved templates appear after the
   built-in ones; a deleted template disappears from the picker; the tab title.
-- `src/app/configure/wizardDraft.test.ts`: round-trip, reject bad values, and clear the draft.
+- `src/app/configure/wizardDraft.test.ts`: round-trip, reject bad values, keep a draft saved
+  before the max tokens setting or with an empty number field (with the defaults), and clear the
+  draft.
 - `src/app/browse-agents/AgentList.test.tsx`: Ny agent first in the interviewer section; agents as
   cards; toast «Agent lagret» from flash; a local draft as an Utkast card; deleting the draft
   clears storage and removes the card.
@@ -183,14 +185,19 @@ Unit and component level only:
 - `src/server/agentMapper.test.ts`: the RAGdoll agent gets the chosen name, the built prompt, the
   stored answers and the IDUN key for both the LLM and the embeddings; `applyEdit` changes the
   name, roles, prompt and answers but keeps the id and every other field. Advanced settings: the
-  default model and temperature, the chosen ones, a hand-written prompt that survives an edit of
-  the answers, and the built prompt again when the hand-written one is dropped.
-- `src/domain/advancedSettings.test.ts`: models outside the list, temperatures outside 0-2 or with
-  more than two decimals, and empty or too long prompts are rejected with Norwegian messages;
-  badly shaped settings from the browser give null.
+  default model, temperature and max tokens, the chosen ones (also kept by an edit), a
+  hand-written prompt that survives an edit of the answers, and the built prompt again when the
+  hand-written one is dropped.
+- `src/domain/advancedSettings.test.ts`: models outside the list, temperatures outside 0-1.5 or with
+  more than two decimals, max tokens that are not a whole number from 256 to 8000, and empty or
+  too long prompts are rejected with Norwegian messages; badly shaped settings from the browser
+  give null; agents without a temperature or max tokens get the defaults; when the slow-replies
+  warning applies.
 - `src/components/agents/AdvancedSettingsFields.test.tsx`: closed by default with a one-line
   summary; shows the built prompt until the counsellor writes one; a decimal comma is accepted;
-  errors show in the heading and under the field; reset to the defaults; a message when the
+  the max tokens can be changed and are checked; the slow-replies warning only shows for a high
+  temperature or many tokens; errors show in the heading and under the field; reset to the
+  defaults; a message when the
   models could not be loaded.
 - `src/app/api/models/route.test.ts`: 401 when logged out; the models RAGdoll offers with the
   default first; falls back to the default when RAGdoll fails (401 included, which can be IDUN
@@ -198,7 +205,8 @@ Unit and component level only:
 - `src/app/api/agents/route.test.ts` and `[agentId]/route.test.ts` also cover advanced settings:
   saved when sent, defaults (new agent) or the agent's own settings (edit) when not, the default
   and the agent's current model are accepted without asking RAGdoll, 502 when another model
-  cannot be checked, and 400 for an unknown model, a temperature above 2 or an empty prompt.
+  cannot be checked, and 400 for an unknown model, a temperature above 1.5, too many max tokens or
+  an empty prompt.
 - `src/domain/agentTypes/configurator.test.ts`: which fields a template or profile decides, the
   chat's first question, the briefing (questions in order with hints, the type's rules, the block,
   and decided fields left out of both but listed with their text), and reading the `KONFIGURASJON`
@@ -229,7 +237,7 @@ Unit and component level only:
   not made here) and the last-changed date (left out when it is not a date), shows the summary above the answers (and leaves out its
   empty sentences, and the whole summary for an agent we did not make), the actions between the
   summary and the tabs, opens on the configuration tab
-  and shows the advanced settings (model, temperature, the default temperature for older agents)
+  and shows the advanced settings (model, temperature, max tokens, the defaults for older agents)
   and the stored prompt (with a mark for a hand-written one) on their own tabs, also with the
   arrow keys (only the open tab points to its panel), copies the prompt (and says what to do when
   the browser refuses), links back to the list and to the edit and clone pages with the id
