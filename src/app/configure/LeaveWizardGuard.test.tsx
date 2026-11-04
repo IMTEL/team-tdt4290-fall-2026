@@ -1,5 +1,6 @@
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import Link from 'next/link';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { LeaveWizardGuard, leavesWizard } from './LeaveWizardGuard';
@@ -41,7 +42,7 @@ describe('LeaveWizardGuard', () => {
     render(
       <>
         <LeaveWizardGuard />
-        <a href="/browse-agents">Agenter</a>
+        <Link href="/browse-agents">Agenter</Link>
       </>,
     );
 
@@ -61,7 +62,7 @@ describe('LeaveWizardGuard', () => {
     render(
       <>
         <LeaveWizardGuard />
-        <a href="/browse-agents">Agenter</a>
+        <Link href="/browse-agents">Agenter</Link>
       </>,
     );
 
@@ -76,7 +77,7 @@ describe('LeaveWizardGuard', () => {
     render(
       <>
         <LeaveWizardGuard />
-        <a href="/browse-agents">Agenter</a>
+        <Link href="/browse-agents">Agenter</Link>
       </>,
     );
 
@@ -93,7 +94,7 @@ describe('LeaveWizardGuard', () => {
     render(
       <>
         <LeaveWizardGuard />
-        <a href="/create-template?returnTo=%2Fconfigure">Lag en ny intervjuermal</a>
+        <Link href="/create-template?returnTo=%2Fconfigure">Lag en ny intervjuermal</Link>
       </>,
     );
 
