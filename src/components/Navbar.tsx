@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Bot } from 'lucide-react';
+import { Bot, CircleHelp } from 'lucide-react';
 import AppBar from '@mui/material/AppBar';
 import Toolbar from '@mui/material/Toolbar';
 import { cn } from '@/lib/utils';
@@ -24,6 +24,7 @@ function isActive(pathname: string, href: string) {
 
 export function Navbar() {
   const pathname = usePathname();
+  const helpActive = isActive(pathname, '/help');
 
   return (
     <AppBar
@@ -56,6 +57,20 @@ export function Navbar() {
           })}
         </ul>
 
+        {/* Not in the links: a question mark on the right is where people look for help. Under
+        40rem only the icon shows, so the link is named by aria-label. */}
+        <Link
+          href="/help"
+          // English translation: Help
+          aria-label="Hjelp"
+          aria-current={helpActive ? 'page' : undefined}
+          className={cn(styles.link, styles.help, helpActive && styles.linkActive)}
+        >
+          <CircleHelp className={styles.helpIcon} aria-hidden="true" />
+          <span className={styles.helpText} aria-hidden="true">
+            Hjelp
+          </span>
+        </Link>
         <ThemeToggle />
         <LogInPageButton />
       </Toolbar>

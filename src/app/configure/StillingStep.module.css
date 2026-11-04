@@ -26,6 +26,12 @@
   color: var(--muted-foreground);
 }
 
+.helpLink {
+  color: var(--primary);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
 .layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(16.5rem, 16.5rem);
