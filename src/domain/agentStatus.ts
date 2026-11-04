@@ -10,9 +10,9 @@ export const AGENT_STATUS_LABEL: Record<AgentStatus, string> = {
 };
 
 /**
- * An agent that exists is private to the counsellor. Drafts and publishing to The Candidate are
- * not stored yet, so nothing is an utkast or publisert.
+ * A saved agent is publisert when The Candidate lists it, and privat otherwise. An utkast is only
+ * stored in the browser (see DraftAgentCard), so a saved agent is never one.
  */
-export function agentStatus(_agent: Agent): AgentStatus {
-  return 'private';
+export function agentStatus(agent: Agent): AgentStatus {
+  return agent.isPublished ? 'published' : 'private';
 }

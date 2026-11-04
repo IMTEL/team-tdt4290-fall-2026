@@ -14,8 +14,16 @@ const agent: Agent = {
 };
 
 describe('agentStatus', () => {
-  it('treats every saved agent as private until drafts and publishing exist', () => {
+  it('is published when The Candidate lists the agent, and private otherwise', () => {
+    expect(agentStatus({ ...agent, isPublished: true })).toBe('published');
+    expect(agentStatus({ ...agent, isPublished: false })).toBe('private');
+  });
+
+  it('treats an agent saved before publishing existed as private', () => {
     expect(agentStatus(agent)).toBe('private');
+  });
+
+  it('has a Norwegian label for each status', () => {
     expect(AGENT_STATUS_LABEL.private).toBe('Privat');
     expect(AGENT_STATUS_LABEL.draft).toBe('Utkast');
     expect(AGENT_STATUS_LABEL.published).toBe('Publisert');

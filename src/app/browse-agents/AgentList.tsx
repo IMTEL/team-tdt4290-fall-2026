@@ -12,6 +12,7 @@ import Typography from '@mui/material/Typography';
 
 import { readWizardDraft, subscribeWizardDraft } from '@/app/configure/wizardDraft';
 import { AgentCardGrid, AGENT_CARD_SIZE } from '@/components/agents/AgentCardGrid';
+import { AgentFilters } from '@/components/agents/AgentFilters';
 import { DraftAgentCard } from '@/components/agents/DraftAgentCard';
 import { NewAgentCard } from '@/components/agents/NewAgentCard';
 import {
@@ -22,6 +23,13 @@ import {
   type AgentSection,
   type SearchableAgent,
 } from '@/domain/agentList';
+import {
+  EMPTY_FILTERS,
+  filterAgents,
+  filterOptions,
+  hasActiveFilters,
+  type AgentFilterOptions,
+} from '@/domain/agentFilters';
 import { getAgentType } from '@/domain/agentTypes/registry';
 import type { Agent } from '@/lib/types';
 import { useOnceInBrowser } from '@/lib/useOnceInBrowser';
@@ -29,10 +37,16 @@ import { fetchAgents } from './api';
 import { AGENT_SAVED_FLASH, DRAFT_SAVED_FLASH, takeAgentsFlash } from './flash';
 import styles from './AgentList.module.css';
 
-// The search text is built once, when the list arrives, not on every keystroke.
+// The search text and the filter choices are built once, when the list arrives, not on every
+// keystroke.
 type ListState =
   | { kind: 'loading' }
-  | { kind: 'ready'; agents: Agent[]; searchable: SearchableAgent[] }
+  | {
+      kind: 'ready';
+      agents: Agent[];
+      searchable: SearchableAgent[];
+      options: AgentFilterOptions;
+    }
   | { kind: 'error' };
 
 function toastFromFlash(): string | null {
@@ -60,12 +74,14 @@ function sectionsWithNewAgent(agents: Agent[]): AgentSection[] {
 /**
  * The counsellor's agents as cards, in one section per agent type. An empty list and a failed
  * request are different states. A local unfinished wizard shows as an utkast card. While there is
- * a search, only the agents that match are shown, without «Ny agent» and the utkast.
+ * a search or a filter, only the agents that match all of them are shown, without «Ny agent» and
+ * the utkast.
  */
 export function AgentList() {
   const [state, setState] = useState<ListState>({ kind: 'loading' });
   const [toast, setToast] = useState<string | null>(null);
   const [query, setQuery] = useState('');
+  const [filters, setFilters] = useState(EMPTY_FILTERS);
   const searchField = useRef<HTMLInputElement>(null);
   const draft = useSyncExternalStore(subscribeWizardDraft, readWizardDraft, () => null);
 
@@ -73,7 +89,13 @@ export function AgentList() {
     let cancelled = false;
     fetchAgents()
       .then((agents) => {
-        if (!cancelled) setState({ kind: 'ready', agents, searchable: toSearchableAgents(agents) });
+        if (cancelled) return;
+        setState({
+          kind: 'ready',
+          agents,
+          searchable: toSearchableAgents(agents),
+          options: filterOptions(agents),
+        });
       })
       .catch(() => {
         if (!cancelled) setState({ kind: 'error' });
@@ -97,8 +119,12 @@ export function AgentList() {
   } else {
     const words = searchWords(query);
     const searching = words.length > 0;
-    const found = searching ? searchAgents(state.searchable, words) : state.agents;
-    const sections = searching ? groupAgentsByType(found) : sectionsWithNewAgent(found);
+    const narrowing = searching || hasActiveFilters(filters);
+    const found = filterAgents(
+      searching ? searchAgents(state.searchable, words) : state.agents,
+      filters,
+    );
+    const sections = narrowing ? groupAgentsByType(found) : sectionsWithNewAgent(found);
     const starterCards = (
       <>
         <Grid size={AGENT_CARD_SIZE}>
@@ -113,7 +139,7 @@ export function AgentList() {
     );
     body = (
       <>
-        <div className={styles.search}>
+        <div className={styles.toolbar}>
           <TextField
             type="search"
             // English translation: Search agents
@@ -131,26 +157,34 @@ export function AgentList() {
                 ),
               },
             }}
+            className={styles.search}
+          />
+          <AgentFilters
+            options={state.options}
+            value={filters}
+            onChange={setFilters}
+            onReset={() => setFilters(EMPTY_FILTERS)}
           />
         </div>
         <div role="status" className={styles.srOnly}>
           {/* English translation: N agent(s) found */}
-          {searching ? `${found.length} ${found.length === 1 ? 'agent' : 'agenter'} funnet` : ''}
+          {narrowing ? `${found.length} ${found.length === 1 ? 'agent' : 'agenter'} funnet` : ''}
         </div>
-        {searching && found.length === 0 ? (
+        {narrowing && found.length === 0 ? (
           <div className={styles.noMatch}>
-            {/* English translation: No agents match the search. */}
-            <Typography>Ingen agenter passer søket.</Typography>
+            {/* English translation: No agents match the search or the filters. */}
+            <Typography>Ingen agenter passer søket eller filtrene.</Typography>
             <Button
               variant="outlined"
               onClick={() => {
                 setQuery('');
+                setFilters(EMPTY_FILTERS);
                 // The button goes away with the message, so focus goes back to the search.
                 searchField.current?.focus();
               }}
             >
-              {/* English translation: Clear the search */}
-              Tøm søket
+              {/* English translation: Clear the search and the filters */}
+              Nullstill søk og filtre
             </Button>
           </div>
         ) : (
@@ -161,7 +195,7 @@ export function AgentList() {
               </Typography>
               <AgentCardGrid
                 agents={section.agents}
-                leading={section.key === 'interviewer' && !searching ? starterCards : undefined}
+                leading={section.key === 'interviewer' && !narrowing ? starterCards : undefined}
               />
             </section>
           ))
