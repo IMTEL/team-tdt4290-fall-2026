@@ -49,6 +49,8 @@
 
 .topic {
   margin-top: var(--space-6);
+  padding-top: var(--space-6);
+  border-top: 1px solid var(--border);
 }
 
 .topicTitle {
@@ -85,8 +87,25 @@
   flex-direction: column;
   gap: var(--space-2);
   margin: 0;
-  padding-left: 1.4rem;
+  padding: 0;
   line-height: 1.55;
+  list-style: none;
+  counter-reset: step;
+}
+
+/* The number sits at the same left edge as the heading, with the text in its own column. */
+.steps li {
+  position: relative;
+  padding-left: 1.75rem;
+  counter-increment: step;
+}
+
+.steps li::before {
+  content: counter(step) '.';
+  position: absolute;
+  left: 0;
+  color: var(--muted-foreground);
+  font-variant-numeric: tabular-nums;
 }
 
 .terms {

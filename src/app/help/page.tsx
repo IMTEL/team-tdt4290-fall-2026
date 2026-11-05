@@ -19,10 +19,10 @@ export default function HelpPage() {
       {/* English translation: Help */}
       <h1 className={styles.title}>Hjelp</h1>
       <p className={styles.lead}>
-        {/* English translation: Short explanations of how to use the app. Start with the words,
-        they are what most people get stuck on. */}
-        Korte forklaringer på hvordan du bruker appen. Begynn gjerne med ordene, det er dem flest
-        blir usikre på.
+        {/* English translation: This page explains the words and features in the app. Use the
+        contents below to go straight to what you need. */}
+        Denne siden forklarer ord og funksjoner i appen. Bruk innholdslisten under for å gå rett til
+        det du trenger.
       </p>
 
       {/* English translation: Contents */}

@@ -94,17 +94,14 @@ export const NEW_AGENT_PARTS: HelpPart[] = FORM_SECTIONS.map(({ title, helpId })
 export const HELP_TOPICS: HelpTopic[] = [
   {
     id: 'ord',
-    // English translation: Words you will meet
-    title: 'Ord du møter',
-    // English translation: The app uses some words that are easy to mix up.
-    intro: 'Appen bruker noen ord som er lette å blande sammen.',
+    // English translation: Glossary
+    title: 'Ordliste',
     terms: [
       {
         term: 'Agent',
-        // English translation: An AI the job seeker can talk to. In this app it is usually an
+        // English translation: An AI agent the job seeker can talk to. In this app it is an
         // interviewer.
-        meaning:
-          'En AI som jobbsøkeren kan snakke med. I denne appen er det som regel en intervjuer.',
+        meaning: 'En KI-agent som jobbsøkeren kan snakke med. I denne appen er dette en intervjuer.',
       },
       {
         // English translation: Template
@@ -132,9 +129,10 @@ export const HELP_TOPICS: HelpTopic[] = [
       {
         // English translation: Interviewer template
         term: 'Intervjuermal',
-        // English translation: Decides who interviews: what they are like, and what they ask
-        // about.
-        meaning: 'Bestemmer hvem som intervjuer: hvordan hen er, og hva hen spør om.',
+        // English translation: Decides who interviews: how they behave, and what they ask the
+        // job seeker about.
+        meaning:
+          'Bestemmer hvem som intervjuer: hvordan hen oppfører seg, og hva hen spør jobbsøkeren om.',
       },
       {
         // English translation: Job seeker template
@@ -155,11 +153,14 @@ export const HELP_TOPICS: HelpTopic[] = [
       {
         // English translation: Draft
         term: 'Utkast',
-        // English translation: A form you have not finished. «Lagre utkast» in the list beside
-        // the form keeps it in the browser you used, and it shows as a draft under Agenter.
-        // «Lagre som utkast» on the last step is something else: it saves the agent.
+        // English translation: An agent you have not finished setting up. On the «Ny
+        // intervjuagent» page, the «Lagre utkast» button under «Seksjoner» saves the form as it is.
+        // It is only saved in the browser you are using, and shows as a card marked «Utkast» on
+        // the Agenter page. Press the card to continue where you left off. The «Lagre som utkast»
+        // button on the last step, «Fullføre», is something else: it saves the finished agent on
+        // the Agenter page, and you find it again on any computer.
         meaning:
-          'Et skjema du ikke er ferdig med. «Lagre utkast» i listen ved siden av skjemaet tar vare på det i nettleseren du brukte, og det vises som et utkast under Agenter. «Lagre som utkast» på siste steg er noe annet: den lagrer agenten.',
+          'En agent du ikke er ferdig med å sette opp. På siden «Ny intervjuagent» lagrer knappen «Lagre utkast» under «Seksjoner» skjemaet slik det er. Det lagres bare i nettleseren du bruker, og vises som et kort merket «Utkast» på siden Agenter. Trykk på kortet for å fortsette der du slapp. Knappen «Lagre som utkast» på siste steg, «Fullføre», er noe annet: den lagrer den ferdige agenten på siden Agenter, og du finner den igjen på alle maskiner.',
       },
       {
         term: 'The Candidate',
