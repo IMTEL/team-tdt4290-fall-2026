@@ -141,6 +141,13 @@
 
 .term dt {
   font-weight: 650;
+  scroll-margin-top: 4.5rem;
+}
+
+.termLink {
+  color: var(--primary);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
 }
 
 .term dd {

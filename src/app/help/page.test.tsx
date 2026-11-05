@@ -33,6 +33,17 @@ describe('HelpPage', () => {
     }
   });
 
+  it('links the kinds of templates in the steps to their entry in the glossary', () => {
+    const { container } = render(<HelpPage />);
+
+    const link = within(container.querySelector('[id="intervjuer"]') as HTMLElement).getAllByRole(
+      'link',
+      { name: 'intervjuermal' },
+    )[0];
+    const target = container.querySelector(`[id="${link.getAttribute('href')?.slice(1)}"]`);
+    expect(target).toHaveTextContent('Intervjuermal');
+  });
+
   it('uses each anchor once, so a link cannot land on the wrong section', () => {
     const { container } = render(<HelpPage />);
 

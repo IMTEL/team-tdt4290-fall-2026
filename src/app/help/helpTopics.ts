@@ -45,11 +45,11 @@ const NEW_AGENT_STEPS: Record<FormSectionHelpId, string[]> = {
   intervjuer: [
     // English translation: Choose an interviewer template, or press «Fortsett uten mal».
     'Velg en intervjuermal, eller trykk «Fortsett uten mal».',
-    // English translation: Choose the laws the interviewer must follow.
-    'Velg lovverket intervjueren skal følge.',
-    // English translation: If no template fits, press «Lag en ny mal». You come back here when
-    // the template is saved.
-    'Finner du ingen mal som passer, trykk «Lag en ny mal». Du kommer tilbake hit når malen er lagret.',
+    // English translation: If no interviewer template fits, press «Lag en ny intervjuermal». You
+    // come back here when the template is saved.
+    'Finner du ingen intervjuermal som passer, trykk «Lag en ny intervjuermal». Du kommer tilbake hit når malen er lagret.',
+    // English translation: Choose the laws the interviewer must follow. This is also optional.
+    'Velg lovverket intervjueren skal følge. Dette er også valgfritt.',
   ],
   jobbsoker: [
     // English translation: Choose a job seeker template, or press «Fortsett uten mal».
@@ -61,26 +61,27 @@ const NEW_AGENT_STEPS: Record<FormSectionHelpId, string[]> = {
   innstillinger: [
     // English translation: Choose the interview type, difficulty and number of questions.
     'Velg intervjutype, vanskelighetsgrad og antall spørsmål.',
-    // English translation: Under «Egne spørsmål» you can write questions the interviewer will
-    // ask.
-    'Under «Egne spørsmål» kan du skrive spørsmål intervjueren skal stille.',
+    // English translation: Under «Egne spørsmål» you can write specific questions the
+    // interviewer will ask.
+    'Under «Egne spørsmål» kan du skrive spesifikke spørsmål intervjueren skal stille.',
     // English translation: «Avanserte innstillinger» is for those who want to control the
     // language model themselves. You can leave them as they are.
     '«Avanserte innstillinger» er for den som vil styre språkmodellen selv. Du kan la dem stå som de er.',
   ],
   fullfore: [
-    // English translation: Look over the summary. «Slik former svarene dine agenten» shows what
-    // your choices do.
-    'Se over oppsummeringen. «Slik former svarene dine agenten» viser hva valgene dine gjør.',
+    // English translation: Look over the summary of what you have chosen. Press a section in the
+    // summary to change what it says. Under «Slik former svarene dine agenten» you see how each
+    // choice affects the interviewer, for example how strict it is and what it asks about.
+    'Se over oppsummeringen av det du har valgt. Trykk på en seksjon i oppsummeringen for å endre det som står der. Under «Slik former svarene dine agenten» ser du hvordan hvert valg påvirker intervjueren, for eksempel hvor streng hen er og hva hen spør om.',
     // English translation: Give the agent a name and choose an avatar.
     'Gi agenten et navn og velg en avatar.',
-    // English translation: Press «Publiser» or «Lagre som utkast». Both save the agent under
-    // Agenter, so you find it again on any computer. «Test agenten» saves it and opens the test
-    // right away.
-    'Trykk «Publiser» eller «Lagre som utkast». Begge lagrer agenten under Agenter, så du finner den igjen på alle maskiner. «Test agenten» lagrer den og åpner testen med en gang.',
-    // English translation: The agent is not in The Candidate yet. See «Publiser til The
-    // Candidate» below.
-    'Agenten er ikke i The Candidate ennå. Se «Publiser til The Candidate» under.',
+    // English translation: Press «Publiser» to save the agent and make it available in The
+    // Candidate. «Lagre som utkast» saves the agent without publishing it. In both cases you find
+    // it again on the Agenter page.
+    'Trykk «Publiser» for å lagre agenten og gjøre den tilgjengelig i The Candidate. «Lagre som utkast» lagrer agenten uten å publisere den. I begge tilfeller finner du den igjen på siden Agenter.',
+    // English translation: Saved the agent as a draft? You can publish it later from the Agenter
+    // page. See «Publiser til The Candidate» below.
+    'Har du lagret agenten som utkast, kan du publisere den senere fra siden Agenter. Se «Publiser til The Candidate» under.',
   ],
 };
 
@@ -101,7 +102,8 @@ export const HELP_TOPICS: HelpTopic[] = [
         term: 'Agent',
         // English translation: An AI agent the job seeker can talk to. In this app it is an
         // interviewer.
-        meaning: 'En KI-agent som jobbsøkeren kan snakke med. I denne appen er dette en intervjuer.',
+        meaning:
+          'En KI-agent som jobbsøkeren kan snakke med. I denne appen er dette en intervjuer.',
       },
       {
         // English translation: Template
@@ -174,36 +176,31 @@ export const HELP_TOPICS: HelpTopic[] = [
     id: NEW_AGENT_HELP_ID,
     // English translation: Make an agent
     title: 'Lag en agent',
-    // English translation: Press «Ny agent» on the start page or under Agenter. The form has
-    // five parts. The list beside it shows where you are, and you can press parts you have
-    // already been to in order to go back. «Tilbake» takes you to the previous part.
+    // English translation: Press «Ny agent» on the start page or on the Agenter page. This opens
+    // «Ny intervjuagent», a form where you set up the agent in five sections. The «Seksjoner»
+    // menu beside the form shows which section you are in. Press a section you have already
+    // been to in order to go back to it, or press «Tilbake» to go to the previous section.
     intro:
-      'Trykk «Ny agent» på forsiden eller under Agenter. Skjemaet har fem deler. Listen ved siden av viser hvor du er, og du kan trykke på deler du allerede har vært i for å gå tilbake. «Tilbake» tar deg til forrige del.',
+      'Trykk «Ny agent» på forsiden eller på siden Agenter. Da åpnes «Ny intervjuagent», et skjema der du setter opp agenten i fem seksjoner. Menyen «Seksjoner» ved siden av skjemaet viser hvilken seksjon du er i. Trykk på en seksjon du allerede har vært i for å gå tilbake til den, eller trykk «Tilbake» for å gå til forrige seksjon.',
     parts: NEW_AGENT_PARTS,
-    // English translation: Want to take a break? Press «Lagre utkast». The form is saved in this
-    // browser, and you find it as a draft under Agenter.
-    note: 'Vil du ta en pause? Trykk «Lagre utkast». Skjemaet blir lagret i denne nettleseren, og du finner det som et utkast under Agenter.',
+    // English translation: Want to take a break halfway through setting up the agent? Press
+    // «Lagre utkast» under «Seksjoner». The form is saved in this browser, and you find it as a
+    // card marked «Utkast» on the Agenter page. Press the card to continue where you left off.
+    note: 'Vil du ta en pause midt i oppsettet av agenten? Trykk «Lagre utkast» under «Seksjoner». Skjemaet blir lagret i denne nettleseren, og du finner det som et kort merket «Utkast» på siden Agenter. Trykk på kortet for å fortsette der du slapp.',
   },
   {
     id: 'maler',
     // English translation: Templates
     title: 'Maler',
     steps: [
-      // English translation: Press «Maler» at the top of the page.
-      'Trykk «Maler» øverst på siden.',
+      // English translation: Press «Maler» in the navigation bar at the top of the page.
+      'Trykk «Maler» i navigasjonsbaren øverst på siden.',
       // English translation: The templates are split into industry, job seeker, job and
       // interviewer templates, and laws. Press a group to open or close it.
       'Malene er delt i bransjemaler, jobbsøkermaler, stillingsmaler, intervjuermaler og lovverk. Trykk på en gruppe for å åpne eller lukke den.',
       // English translation: Press a template to see it, or the first card in the group
       // («Ny bransjemal», «Nytt lovverk» and so on) to make a new one.
       'Trykk på en mal for å se den, eller på det første kortet i gruppen («Ny bransjemal», «Nytt lovverk» og så videre) for å lage en ny.',
-      // English translation: In an interviewer template, «Kort beskrivelse» is one sentence
-      // shown on the card. «Fokusområder» are keywords separated by commas, for example
-      // «Service, Samarbeid».
-      'I en intervjuermal er «Kort beskrivelse» én setning som vises på kortet. «Fokusområder» er stikkord skilt med komma, for eksempel «Service, Samarbeid».',
-      // English translation: «Beskrivelse av intervjueren» is the most important field: who the
-      // interviewer is, how they behave and what they ask about.
-      '«Beskrivelse av intervjueren» er det viktigste feltet: hvem intervjueren er, hvordan hen oppfører seg og hva hen spør om.',
     ],
   },
   {
@@ -213,16 +210,19 @@ export const HELP_TOPICS: HelpTopic[] = [
     steps: [
       // English translation: Open the agent under Agenter and press «Test agenten».
       'Åpne agenten under Agenter og trykk «Test agenten».',
-      // English translation: Talk to the agent as a job seeker would. Write your answer and send
-      // it.
-      'Snakk med agenten slik en jobbsøker ville gjort. Skriv svaret ditt og send det.',
+      // English translation: Talk to the agent as a job seeker would. Write your answer in the
+      // message field and press «Send».
+      'Snakk med agenten slik en jobbsøker ville gjort. Skriv svaret ditt i meldingsfeltet og trykk «Send».',
       // English translation: Under each reply from the agent there is a thumbs up and a thumbs
-      // down. Press one of them and preferably write why. The agent takes your ratings into
-      // account when it answers later.
-      'Under hvert svar fra agenten er det en tommel opp og en tommel ned. Trykk på en av dem og skriv gjerne hvorfor. Agenten tar hensyn til vurderingene dine når den svarer senere.',
+      // down. Press thumbs up if the reply was good, or thumbs down if it was not, and preferably
+      // write why. The ratings are saved with the agent and change how it behaves: the agent uses
+      // your most recent ratings every time it answers, so it does more of what you liked and
+      // less of what you did not.
+      'Under hvert svar fra agenten er det en tommel opp og en tommel ned. Trykk tommel opp hvis svaret var bra, eller tommel ned hvis det ikke var det, og skriv gjerne hvorfor. Vurderingene lagres på agenten og endrer hvordan den oppfører seg: agenten bruker de nyeste vurderingene dine hver gang den svarer, så den gjør mer av det du likte og mindre av det du ikke likte.',
       // English translation: When the interview is done, press «Be om tilbakemelding». An
-      // observer reads the interview and tells what went well and what can be better.
-      'Når intervjuet er ferdig, trykk «Be om tilbakemelding». En observatør leser intervjuet og forteller hva som gikk bra og hva som kan bli bedre.',
+      // observer agent reads the interview and tells the job seeker what went well and what can
+      // be better. This way you see the feedback the job seeker would get after the interview.
+      'Når intervjuet er ferdig, trykk «Be om tilbakemelding». En observatøragent leser intervjuet og forteller jobbsøkeren hva som gikk bra og hva som kan bli bedre. Slik ser du tilbakemeldingen jobbsøkeren ville fått etter intervjuet.',
       // English translation: «Start på nytt» deletes the conversation and starts a new one.
       '«Start på nytt» sletter samtalen og begynner en ny.',
     ],
@@ -235,8 +235,9 @@ export const HELP_TOPICS: HelpTopic[] = [
       // English translation: Open the agent under Agenter and press «Publiser».
       'Åpne agenten under Agenter og trykk «Publiser».',
       // English translation: Write the name and a short description the job seeker will see in
-      // The Candidate. Do not write anything about the job seeker here.
-      'Skriv navnet og en kort beskrivelse som jobbsøkeren skal se i The Candidate. Ikke skriv noe om jobbsøkeren her.',
+      // The Candidate. Do not write any personal information about the job seeker here, as the
+      // agent becomes public to everyone who uses The Candidate.
+      'Skriv navnet og en kort beskrivelse som jobbsøkeren skal se i The Candidate. Ikke skriv noe personlig informasjon om jobbsøkeren her, da agenten blir offentlig for alle som bruker The Candidate.',
       // English translation: Press «Publiser». Now everyone who uses The Candidate can choose
       // the agent.
       'Trykk «Publiser». Nå kan alle som bruker The Candidate velge agenten.',
@@ -244,8 +245,9 @@ export const HELP_TOPICS: HelpTopic[] = [
       'Vil du fjerne den fra The Candidate, trykk «Gjem agent».',
     ],
     // English translation: If you change a published agent, it is hidden from The Candidate
-    // until you publish it again.
-    note: 'Endrer du en publisert agent, blir den gjemt fra The Candidate til du publiserer den på nytt.',
+    // until you publish it again. This lets you test how it behaves before the changes show up
+    // in The Candidate.
+    note: 'Endrer du en publisert agent, blir den gjemt fra The Candidate til du publiserer den på nytt. Slik kan du teste hvordan den oppfører seg før endringene kommer ut i The Candidate.',
   },
   {
     id: 'endre',
