@@ -45,6 +45,7 @@ The product is an _agent configurator_ for career counselors; the job interview 
 | A counselor or other new user        | [`docs/user-guide.md`](docs/user-guide.md): getting started with the app                                                                        |
 | The sensor, or assessing the project | [`docs/sensor-guide.md`](docs/sensor-guide.md): where to look, and running the app in five minutes without secrets                              |
 | A new developer                      | This README ([Running locally](#running-locally)), then [`docs/architecture.md`](docs/architecture.md) and [`CONTRIBUTING.md`](CONTRIBUTING.md) |
+| Taking over the app (IMTEL)          | [`docs/handover.md`](docs/handover.md): what you own, the secrets, what must stay in step, and what to do first                                 |
 | Adding a feature                     | [`docs/extending.md`](docs/extending.md): how to add an agent type, a template, a wizard choice, a page or a route, and what else must follow   |
 
 All documentation:
@@ -54,12 +55,13 @@ All documentation:
 | [`docs/architecture.md`](docs/architecture.md)                                         | The parts of the system, the flows, and where data is stored              |
 | [`docs/extending.md`](docs/extending.md)                                               | How to add new things                                                     |
 | [`docs/decisions/`](docs/decisions/README.md)                                          | One page per design decision (ADR)                                        |
-| [`docs/design-guide.md`](docs/design-guide.md)                                         | Components, tokens, colours and contrast                                  |
+| [`docs/design-guide.md`](docs/design-guide.md)                                         | Shared components, tokens, colours and contrast                           |
 | [`docs/testing.md`](docs/testing.md), [`docs/e2e-testing.md`](docs/e2e-testing.md)     | Unit, component and end-to-end tests, and the manual checks before a demo |
 | [`docs/security.md`](docs/security.md)                                                 | What we protect, countermeasures, personal data, known gaps               |
 | [`docs/deployment.md`](docs/deployment.md)                                             | Deployment status and what a deployment needs                             |
 | [`docs/testing-publish-to-the-candidate.md`](docs/testing-publish-to-the-candidate.md) | Testing publishing all the way into The Candidate, Unity included         |
 | [`docs/mcp-github-setup.md`](docs/mcp-github-setup.md)                                 | Optional: letting an AI coding assistant work with GitHub                 |
+| [`docs/handover.md`](docs/handover.md)                                                 | Handing the app over: what there is, secrets, contacts, first steps       |
 | [`docs/future-plans.md`](docs/future-plans.md)                                         | What we would do next if the project continued                            |
 | [`docs/plans/`](docs/plans/)                                                           | Working plans for finished features, kept for history                     |
 | [`prompts/`](prompts/)                                                                 | The prompts of the shared configurator and observer agents                |
