@@ -98,7 +98,10 @@ export function formatFeedbackSection(
     if (written) {
       lines.push('', '### Sammendrag', written);
     } else {
-      const { good: goodComments, bad: badComments } = commentsByRating(ratings, summaryCommentLimit);
+      const { good: goodComments, bad: badComments } = commentsByRating(
+        ratings,
+        summaryCommentLimit,
+      );
       if (goodComments.length || badComments.length) {
         lines.push('', '### Sammendrag');
         if (goodComments.length) lines.push(`Gjør mer av: ${goodComments.join('; ')}`);
@@ -175,7 +178,9 @@ export function parseObserverRatingSummary(text: string): string | null {
 }
 
 function observerLine({ userMessage, agentMessage, comment }: MessageFeedback): string {
-  const note = comment.trim() ? ` Kommentar: ${clip(comment.trim(), MAX_SUMMARY_COMMENT_LENGTH)}.` : '';
+  const note = comment.trim()
+    ? ` Kommentar: ${clip(comment.trim(), MAX_SUMMARY_COMMENT_LENGTH)}.`
+    : '';
   return `- Jobbsøkeren sa: ${quote(userMessage)} Du svarte: ${quote(agentMessage)}${note}`;
 }
 

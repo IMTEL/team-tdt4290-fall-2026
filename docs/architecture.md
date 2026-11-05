@@ -536,10 +536,10 @@ summary of every rating into that block, and only the newest are quoted in full.
 does not answer, the comments are listed instead. Undoing a rating, or editing the agent, rebuilds
 that block from the ratings that are still stored.
 
-| Agent                   | Used on                                         | Route                             | Prompt source                                                                                            |
-| ----------------------- | ----------------------------------------------- | --------------------------------- | -------------------------------------------------------------------------------------------------------- |
-| configurator (shared)   | `/configure`                                    | `POST /api/configure/turn`        | [`prompts/configurator.nb.md`](../prompts/configurator.nb.md)                                            |
-| the counsellor's agents | `/test-chat?agent=<id>`                         | `POST /api/agents/[agentId]/chat` | [`src/domain/interviewerPrompt.ts`](../src/domain/interviewerPrompt.ts), written when the agent is saved |
+| Agent                   | Used on                                                                                | Route                                                         | Prompt source                                                                                            |
+| ----------------------- | -------------------------------------------------------------------------------------- | ------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| configurator (shared)   | `/configure`                                                                           | `POST /api/configure/turn`                                    | [`prompts/configurator.nb.md`](../prompts/configurator.nb.md)                                            |
+| the counsellor's agents | `/test-chat?agent=<id>`                                                                | `POST /api/agents/[agentId]/chat`                             | [`src/domain/interviewerPrompt.ts`](../src/domain/interviewerPrompt.ts), written when the agent is saved |
 | observer (shared)       | `/test-chat?agent=<id>`, «Be om tilbakemelding»; also a summary of many thumbs ratings | `POST /api/test-chat/observer`; `syncAgentPromptWithFeedback` | [`prompts/observer.nb.md`](../prompts/observer.nb.md)                                                    |
 
 ```mermaid
@@ -652,19 +652,19 @@ All settings are environment variables, listed with dummy values in
 [`.env.example`](../.env.example). None has the `NEXT_PUBLIC_` prefix, so none is bundled into the
 browser code.
 
-| Variable                                | Used by                                                      | Secret? |
-| --------------------------------------- | ------------------------------------------------------------ | ------- |
-| `BACKEND_API_URL`                       | Login, refresh, logout, `/api/agents/*` (test chat included) | No      |
-| `RAGDOLL_API_URL`                       | `/api/configure/turn`, `/api/test-chat/observer`, rating summary | No      |
-| `RAGDOLL_CONFIGURATOR_AGENT_ID`         | `/api/configure/turn`                                        | No      |
-| `RAGDOLL_CONFIGURATOR_ACCESS_KEY`       | `/api/configure/turn`                                        | Yes     |
+| Variable                                | Used by                                                           | Secret? |
+| --------------------------------------- | ----------------------------------------------------------------- | ------- |
+| `BACKEND_API_URL`                       | Login, refresh, logout, `/api/agents/*` (test chat included)      | No      |
+| `RAGDOLL_API_URL`                       | `/api/configure/turn`, `/api/test-chat/observer`, rating summary  | No      |
+| `RAGDOLL_CONFIGURATOR_AGENT_ID`         | `/api/configure/turn`                                             | No      |
+| `RAGDOLL_CONFIGURATOR_ACCESS_KEY`       | `/api/configure/turn`                                             | Yes     |
 | `RAGDOLL_OBSERVER_AGENT_ID`             | `/api/test-chat/observer`, rating summary into interviewer prompt | No      |
 | `RAGDOLL_OBSERVER_ACCESS_KEY`           | `/api/test-chat/observer`, rating summary into interviewer prompt | Yes     |
-| `IDUN_API_KEY`                          | `POST /api/agents` (written onto the saved agent)            | Yes     |
-| `NEXTAUTH_URL`                          | NextAuth                                                     | No      |
-| `NEXTAUTH_SECRET`                       | NextAuth (cookie encryption)                                 | Yes     |
-| `KEYCLOAK_CLIENT_ID`, `KEYCLOAK_ISSUER` | NextAuth Keycloak provider                                   | No      |
-| `KEYCLOAK_CLIENT_SECRET`                | NextAuth Keycloak provider                                   | Yes     |
+| `IDUN_API_KEY`                          | `POST /api/agents` (written onto the saved agent)                 | Yes     |
+| `NEXTAUTH_URL`                          | NextAuth                                                          | No      |
+| `NEXTAUTH_SECRET`                       | NextAuth (cookie encryption)                                      | Yes     |
+| `KEYCLOAK_CLIENT_ID`, `KEYCLOAK_ISSUER` | NextAuth Keycloak provider                                        | No      |
+| `KEYCLOAK_CLIENT_SECRET`                | NextAuth Keycloak provider                                        | Yes     |
 
 The client key The Candidate uses for published agents is not ours: it is `CANDIDATE_CLIENT_KEY`
 in RAGdoll's environment and `CANDIDATE` in The Candidate's `.env`, and this app never sees it.

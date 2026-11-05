@@ -131,10 +131,9 @@ describe('syncAgentPromptWithFeedback', () => {
 
     await syncAgentPromptWithFeedback('session-token', 'agent-1');
 
-    expect(askAgentMock).toHaveBeenCalledWith(
-      { id: 'obs-1', accessKey: 'obs-key' },
-      [{ role: 'user', content: expect.stringContaining(RATING_SUMMARY_MARKER) }],
-    );
+    expect(askAgentMock).toHaveBeenCalledWith({ id: 'obs-1', accessKey: 'obs-key' }, [
+      { role: 'user', content: expect.stringContaining(RATING_SUMMARY_MARKER) },
+    ]);
     const [, saved] = updateAgentMock.mock.calls[0];
     expect(saved.prompt).toContain('Still ett spørsmål om gangen, og spør om erfaring først.');
     expect(saved.prompt).not.toContain('Unngå: Kommentar 0');

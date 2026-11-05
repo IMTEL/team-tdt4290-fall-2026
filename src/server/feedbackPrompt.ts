@@ -23,10 +23,7 @@ export async function syncAgentPromptWithFeedback(
     fetchFullAgent(sessionToken, agentId),
     listFeedback(sessionToken, agentId, MAX_FEEDBACK_TO_READ),
   ]);
-  const prompt = await promptWithRatings(
-    agent.prompt,
-    ratings.map(fromRagdollFeedback),
-  );
+  const prompt = await promptWithRatings(agent.prompt, ratings.map(fromRagdollFeedback));
   if (prompt === agent.prompt) return;
   await updateAgent(sessionToken, { ...agent, prompt, last_updated: new Date().toISOString() });
 }
@@ -44,9 +41,7 @@ export async function promptWithRatings(
   return withFeedbackSection(prompt, ratings, undefined, observerSummary);
 }
 
-async function askObserverForRatingSummary(
-  ratings: MessageFeedback[],
-): Promise<string | null> {
+async function askObserverForRatingSummary(ratings: MessageFeedback[]): Promise<string | null> {
   const id = process.env.RAGDOLL_OBSERVER_AGENT_ID;
   const accessKey = process.env.RAGDOLL_OBSERVER_ACCESS_KEY;
   if (!id || !accessKey) return null;

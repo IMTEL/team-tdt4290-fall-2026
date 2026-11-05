@@ -75,13 +75,17 @@ describe('ObserverPanel', () => {
     expect(summary).toHaveTextContent(
       'Observatøren vurderte 4 svar: 2 gikk bra, og 2 kan bli bedre.',
     );
-    expect(screen.queryByRole('article', { name: 'Spørsmål og vurdering' })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('article', { name: 'Spørsmål og vurdering' }),
+    ).not.toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Vis hvert spørsmål' }));
 
     expect(screen.getAllByRole('article', { name: 'Spørsmål og vurdering' })).toHaveLength(2);
     await user.click(screen.getByRole('button', { name: 'Skjul spørsmålene' }));
-    expect(screen.queryByRole('article', { name: 'Spørsmål og vurdering' })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('article', { name: 'Spørsmål og vurdering' }),
+    ).not.toBeInTheDocument();
   });
 
   it('hides the observer’s system prompt until it is opened', async () => {

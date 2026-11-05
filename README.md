@@ -205,12 +205,12 @@ cp .env.example .env
 
 Open `.env`. The values in `.env.example` already match the local RAGdoll, except:
 
-| Variable                                                           | What to do                                                                                                                                                               |
-| ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `NEXTAUTH_SECRET`                                                  | Replace with the output of `openssl rand -base64 32`. It encrypts the login cookie.                                                                                      |
-| `RAGDOLL_CONFIGURATOR_AGENT_ID`, `RAGDOLL_CONFIGURATOR_ACCESS_KEY` | The shared configurator agent behind `/configure`. It lives on the RAGdoll at `RAGDOLL_API_URL` (the deployed one by default). Ask the team. Not needed to log in.       |
+| Variable                                                           | What to do                                                                                                                                                                                                            |
+| ------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `NEXTAUTH_SECRET`                                                  | Replace with the output of `openssl rand -base64 32`. It encrypts the login cookie.                                                                                                                                   |
+| `RAGDOLL_CONFIGURATOR_AGENT_ID`, `RAGDOLL_CONFIGURATOR_ACCESS_KEY` | The shared configurator agent behind `/configure`. It lives on the RAGdoll at `RAGDOLL_API_URL` (the deployed one by default). Ask the team. Not needed to log in.                                                    |
 | `RAGDOLL_OBSERVER_AGENT_ID`, `RAGDOLL_OBSERVER_ACCESS_KEY`         | The shared observer agent behind «Be om tilbakemelding» in the test chat, and behind summaries of many thumbs ratings, on the same RAGdoll as the configurator. Ask the team. Its prompt is `prompts/observer.nb.md`. |
-| `IDUN_API_KEY`                                                     | The project's IDUN key. Our server puts it into every agent it saves. Needed to save agents; ask the team.                                                               |
+| `IDUN_API_KEY`                                                     | The project's IDUN key. Our server puts it into every agent it saves. Needed to save agents; ask the team.                                                                                                            |
 
 For reference, the login settings for local testing are:
 
