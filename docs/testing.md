@@ -101,15 +101,18 @@ Unit and component level only:
   later marks; **Publiser** / **Test agenten** save and redirect; **Lagre utkast** writes
   `localStorage` and goes to Agenter; a stored draft is restored; saved templates appear after the
   built-in ones; a deleted template disappears from the picker; the tab title.
-- `src/app/configure/wizardDraft.test.ts`: round-trip, reject bad values, and clear the draft.
+- `src/app/configure/wizardDraft.test.ts`: round-trip, reject bad values, several drafts side by
+  side, clear one draft or all, move old drafts past the new AI-innstillinger step, and the link
+  to one draft.
 - `src/app/configure/StillingStep.test.tsx`: each wizard section links to its own part of the help
   page, and a section the help has no part for links to the help for the whole form.
 - `src/app/help/page.test.tsx`: every entry in the contents leads to the section with that
   heading; every wizard section has a part, with its heading, at its anchor; no anchor is used
   twice.
 - `src/app/browse-agents/AgentList.test.tsx`: Ny agent first in the interviewer section; agents as
-  cards; toast «Agent lagret» from flash; a local draft as an Utkast card; deleting the draft
-  clears storage and removes the card; filter dropdowns stay hidden until **Filtrer**.
+  cards; toast «Agent lagret» from flash; a local draft as an Utkast card; several drafts at
+  once; deleting a draft clears it from storage and removes the card; filter dropdowns stay hidden
+  until **Filtrer**.
 - `src/components/templates/IndustryPicker.test.tsx`: every industry template is shown with its
   industry and sector, clicking one selects it, "Fortsett uten bransjemal" selects none, and the
   sector filter shows only public or only private jobs.
@@ -298,21 +301,21 @@ variable or a changed RAGdoll API.
 Before you start: RAGdoll runs locally and `.env` is filled in as described in the README
 (including `IDUN_API_KEY`). Restart `npm run dev` after changing `.env`.
 
-| #   | Do this                                                                                                          | You should see                                                                                             |
-| --- | ---------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| 1   | Open <http://localhost:3000/configure?type=interviewer> while logged out                                         | You are sent to `/login`                                                                                   |
-| 2   | Log in as `test@example.com` / `test`                                                                            | You land on the wizard at **Stilling og arbeidsplass**                                                     |
-| 3   | Fill in a stilling (and required workplace fields), go through Intervjuer → Jobbsøker → Innstillinger → Fullføre | **Publiser**, **Lagre som privat agent** and **Test agenten** are available; overview shows what you chose |
-| 4   | Keep or change the suggested name and click **Publiser**                                                         | You go to `/browse-agents` with toast **Agent lagret**; the new agent is in the list                       |
-| 5   | In the browser console (F12), run `await (await fetch('/api/agents')).json()`                                    | The new agent is in the list, with your configuration as JSON in `description`                             |
-| 6   | Open the Network tab, repeat steps 3 to 5, and look at every request to `/api/*`                                 | No response contains `llm_api_key`, `embedding_api_key`, an access key or a token                          |
-| 7   | Start a new interviewer, fill only the first section, click **Lagre utkast**                                     | Agenter shows an **Utkast** card; toast **Utkast lagret**; card opens `/configure?type=interviewer` again  |
-| 8   | On the Utkast card, click **Slett**, confirm                                                                     | The card is gone; `localStorage` has no `kfi-configure-draft`                                              |
-| 9   | Log out, log in as a second user (register one on the login page), and repeat step 5                             | The first user's agent is not in this list                                                                 |
-| 10  | Log in as the first user again, open the agent on `/browse-agents` and click **Rediger**                         | The form shows the agent's name and answers                                                                |
-| 11  | Change the name and one answer, and click **Lagre endringer**                                                    | Back on the details page with the new values; the system prompt shows the new answer                       |
-| 12  | Repeat step 5                                                                                                    | Same number of agents as before, with the same id: the agent was updated, not copied                       |
-| 13  | Stop RAGdoll, change an answer and save, then start RAGdoll again                                                | A Norwegian error, and the form still shows what you typed                                                 |
+| #   | Do this                                                                                                                             | You should see                                                                                                                      |
+| --- | ----------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | Open <http://localhost:3000/configure?type=interviewer> while logged out                                                            | You are sent to `/login`                                                                                                            |
+| 2   | Log in as `test@example.com` / `test`                                                                                               | You land on the wizard at **Stilling og arbeidsplass**                                                                              |
+| 3   | Fill in a stilling (and required workplace fields), go through Intervjuer → Jobbsøker → Innstillinger → AI-innstillinger → Fullføre | **Publiser**, **Lagre som privat agent** and **Test agenten** are available; overview shows what you chose                          |
+| 4   | Keep or change the suggested name and click **Lagre som privat agent**                                                              | You go to `/browse-agents` with toast **Agent lagret**; the new agent is in the list                                                |
+| 5   | In the browser console (F12), run `await (await fetch('/api/agents')).json()`                                                       | The new agent is in the list, with your configuration as JSON in `description`                                                      |
+| 6   | Open the Network tab, repeat steps 3 to 5, and look at every request to `/api/*`                                                    | No response contains `llm_api_key`, `embedding_api_key`, an access key or a token                                                   |
+| 7   | Start a new interviewer, fill only the first section, click **Lagre utkast**                                                        | Agenter shows an **Utkast** card; toast **Utkast lagret**; card opens `/configure?type=interviewer&draft=<id>` at the step you left |
+| 8   | On the Utkast card, click **Slett**, confirm                                                                                        | The card is gone; with no other drafts, `localStorage` has no `kfi-configure-draft`                                                 |
+| 9   | Log out, log in as a second user (register one on the login page), and repeat step 5                                                | The first user's agent is not in this list                                                                                          |
+| 10  | Log in as the first user again, open the agent on `/browse-agents` and click **Rediger**                                            | The form shows the agent's name and answers                                                                                         |
+| 11  | Change the name and one answer, and click **Lagre endringer**                                                                       | Back on the details page with the new values; the system prompt shows the new answer                                                |
+| 12  | Repeat step 5                                                                                                                       | Same number of agents as before, with the same id: the agent was updated, not copied                                                |
+| 13  | Stop RAGdoll, change an answer and save, then start RAGdoll again                                                                   | A Norwegian error, and the form still shows what you typed                                                                          |
 
 If **Publiser** stays disabled or shows that required fields are missing, go back through the
 section list and fill every marked field (stilling, arbeidsgiver, intervjutype, vanskelighetsgrad,

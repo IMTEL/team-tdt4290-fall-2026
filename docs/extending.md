@@ -12,7 +12,7 @@ know the parts.
 - [Add a built-in interviewer template](#add-a-built-in-interviewer-template)
 - [Add a choice to the interviewer wizard](#add-a-choice-to-the-interviewer-wizard)
 - [Add a field to the interviewer](#add-a-field-to-the-interviewer)
-- [Add a built-in stillingsmal, legal template or avatar](#add-a-built-in-stillingsmal-legal-template-or-avatar)
+- [Add a built-in stillingsmal, legal template or avatar](#add-a-built-in-stillingsmal-legal-paragraph-or-avatar)
 - [Add a new kind of saved template](#add-a-new-kind-of-saved-template)
 - [Add a page](#add-a-page)
 - [Add an API route that calls RAGdoll](#add-an-api-route-that-calls-ragdoll)
@@ -45,11 +45,11 @@ read all of this from the definition, and never name a type or a field. So most 
 writing one definition.
 
 The exception is the **form wizard** on `/configure`. The customer wants every agent type set up
-the same way as the interviewer: the same five-step form, with the same frame, navigation, drafts
-and last step, where only the content of the steps differs from type to type. Today that form is
+the same way as the interviewer: the same six-step form, with the same frame, navigation, drafts,
+AI settings and last step, where only the content of the steps differs from type to type. Today that form is
 written for the interviewer only, so the first new type has to make it work for more than one
 type. How is described in
-[step 2 of Add a new agent type](#2-give-it-the-five-step-form-required).
+[step 2 of Add a new agent type](#2-give-it-the-same-form-required).
 
 <!-- TODO: update this when/if config chat is removed -->
 
@@ -99,31 +99,36 @@ That alone gives you, with no other change:
   deleting;
 - the keyword search over its answers.
 
-### 2. Give it the five-step form (required)
+### 2. Give it the same form (required)
 
-Every type is set up through the same five-step form as the interviewer. The number of steps, the
-step bar, **Tilbake**/**Neste**, **Lagre utkast** and the last step stay the same; what each step
-asks for is the type's own.
+Every type is set up through the same six-step form as the interviewer. The number of steps, the
+step bar, **Tilbake**/**Neste**, **Lagre utkast**, the AI settings and the last step stay the same;
+what steps 1 to 4 ask for is the type's own.
 
 **What the interviewer's steps hold, and what a teacher's could hold:**
 
-| Step | Interviewer (today)                                                                                                              | Teacher (example)                                             |
-| ---- | -------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
-| 1    | **Stilling og arbeidsplass**: job title, industry, public or private, company; a stillingsmal fills it in (`StillingStep`)       | **Fag og eksamen**: subject, level, curriculum goals          |
-| 2    | **Intervjuer**: interviewer template and legal templates (inline in `ConfigureAgent.tsx`)                                        | **Sensor**: a template for who examines, and how strictly     |
-| 3    | **Jobbsøker**: job seeker profile and practice areas (`JobSeekerStep`)                                                           | **Elev**: a student profile and what to practise              |
-| 4    | **Innstillinger**: interview type, difficulty, number of questions, follow-up, must-ask questions (`SettingsStep`)               | **Innstillinger**: exam form, difficulty, number of questions |
-| 5    | **Fullføre**: overview, «Slik former svarene dine agenten», avatar, name, **Publiser** / **Lagre som utkast** / **Test agenten** | The same                                                      |
+| Step | Interviewer (today)                                                                                                                                                          | Teacher (example)                                             |
+| ---- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
+| 1    | **Stilling og arbeidsplass**: job title, industry, public or private, company; a stillingsmal fills it in (`StillingStep`)                                                   | **Fag og eksamen**: subject, level, curriculum goals          |
+| 2    | **Intervjuer**: interviewer template and legal templates (inline in `ConfigureAgent.tsx`)                                                                                    | **Sensor**: a template for who examines, and how strictly     |
+| 3    | **Jobbsøker**: job seeker profile and practice areas (`JobSeekerStep`)                                                                                                       | **Elev**: a student profile and what to practise              |
+| 4    | **Innstillinger**: interview type, difficulty, number of questions, follow-up, own questions, tillegg (`SettingsStep`)                                                       | **Innstillinger**: exam form, difficulty, number of questions |
+| 5    | **AI-innstillinger**: language model and temperature, optional (`AiSettingsStep`)                                                                                            | The same                                                      |
+| 6    | **Fullføre**: overview, «Slik former svarene dine agenten», avatar, name, **Publiser** / **Lagre som privat agent** / **Test agenten** (`FinishActions` in `FinishStep.tsx`) | The same                                                      |
 
 **What stays shared** (write it once, for every type):
 
-- the frame: the step bar, jumping back to a step already reached, **Lagre utkast**
-  (`WizardFrame` in `StillingStep.tsx`);
-- the last step, **Fullføre**: the overview, `definition.explainAnswers`, the avatar, the name and
-  the three buttons. Saving goes through `persist()` and `POST /api/agents`, which already work
+- the frame: the step bar, jumping back to a step already reached, **Tilbake**/**Neste** and
+  **Lagre utkast** (`WizardFrame` and `WizardNav` in `StillingStep.tsx`), the question-mark help on
+  fields (`FieldHelp`), and the bubbles for the chosen templates (`TemplatePeekBubbles`);
+- **AI-innstillinger** (`AiSettingsStep`): model and temperature are the same for every type;
+- the last step, **Fullføre** (`FinishActions`): `definition.explainAnswers`, the avatar, the name
+  and the three buttons. Saving goes through `persist()` and `POST /api/agents`, and **Publiser**
+  through `PublishToCandidateDialog` and `POST /api/agents/[agentId]/publish`, which already work
   for any type;
-- keeping an unfinished form as an **Utkast** in `localStorage` (`wizardDraft.ts`), and the draft
-  card on Agenter.
+- keeping unfinished forms as **Utkast** in `localStorage` (`wizardDraft.ts`, several drafts by
+  id), the draft cards on Agenter, and asking before the counselor leaves without saving
+  (`LeaveWizardGuard`).
 
 **What each type writes for itself:**
 
@@ -133,7 +138,9 @@ asks for is the type's own.
   `wizardConfiguration()` in `wizardConfiguration.ts` does for the interviewer. Its keys must be
   the keys of the type's `fields`, because the prompt, the summary, the details page and the edit
   form read the answers by those keys;
-- the overview lines on the last step (what was chosen in steps 1 to 4);
+- the overview lines on the last step (what was chosen in steps 1 to 4; the interviewer's are
+  `configurationLines` in `FinishStep.tsx`);
+- what the template bubbles show for its templates (the interviewer's are in `templatePeeks.ts`);
 - the shape of its draft, so a draft from one type is never opened as another.
 
 Choices that are lists in the steps (like `INTERVIEW_TYPES` in `SettingsStep.tsx`) need a rule in
@@ -142,13 +149,15 @@ the type's prompt builder too, the same way as for the interviewer
 
 **The change the first new type has to make** (not done yet). Today `ConfigureAgent.tsx` shows the
 interviewer's steps with `if (definition.id === 'interviewer' && wizardStep === …)` branches, and
-the last step is part of `SettingsStep`. Do not add a second set of branches for the new type.
+the last step is rendered by `SettingsStep`, which passes it the interviewer's overview. Do not add a second set of branches for the new type.
 Instead:
 
 1. Move the interviewer's steps 1 to 4, their state and `wizardConfiguration()` into one place,
    for example `src/app/configure/wizards/interviewer/`, behind a small interface: the step names,
    the step components, the overview lines and the function that builds the answers.
-2. Split **Fullføre** out of `SettingsStep` into its own shared component.
+2. Render **AI-innstillinger** and **Fullføre** (`AiSettingsStep`, `FinishActions`) from the
+   shared wizard instead of from the interviewer's branches and `SettingsStep`, taking the
+   overview lines from the type's wizard.
 3. Let `ConfigureAgent.tsx` pick the wizard from a map keyed by the type's id, and render the
    shared frame and last step around it.
 4. Make the draft in `wizardDraft.ts` carry the type's own state, keyed by `agentTypeId` (it
@@ -193,18 +202,19 @@ from the language model.
 
 Look at these and decide whether the new type needs the same:
 
-| Where                                                                      | What it does for the interviewer only                                                                                                      |
-| -------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| `src/app/configure/ConfigureAgent.tsx` (`definition.id === 'interviewer'`) | The five-step form wizard. Other types fall back to the presets and the chat until step 2 is done                                          |
-| `src/app/configure/page.tsx`                                               | The wider wizard layout. Use it for every type with a wizard                                                                               |
-| `src/app/configure/wizardDraft.ts`, `wizardConfiguration.ts`               | Saving an unfinished wizard as an **Utkast** in `localStorage`, and turning the wizard's choices into answers. The chat path has no drafts |
-| `src/app/page.tsx`                                                         | **Ny agent** on the start page goes straight to `/configure?type=interviewer`                                                              |
-| `src/app/browse-agents/AgentList.tsx` (`sectionsWithNewAgent`)             | «Ny agent» and the draft card sit in the interviewer section, which shows even when it is empty                                            |
-| `src/app/templates/TemplateLibrary.tsx`, `src/app/profile/ProfileHome.tsx` | Fetch only interviewer templates (see step 4)                                                                                              |
-| `src/domain/agentTypes/registry.ts` (`DEFAULT_AGENT_TYPE`)                 | Agents and requests without a type are read as interviewers. Leave this as it is                                                           |
+| Where                                                                      | What it does for the interviewer only                                                                                                                                                            |
+| -------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `src/app/configure/ConfigureAgent.tsx` (`definition.id === 'interviewer'`) | The six-step form wizard. Other types fall back to the presets and the chat until step 2 is done                                                                                                 |
+| `src/app/configure/page.tsx`                                               | The wider wizard layout. Use it for every type with a wizard                                                                                                                                     |
+| `src/app/configure/wizardDraft.ts`, `wizardConfiguration.ts`               | Saving unfinished wizards as **Utkast** in `localStorage` (`configureDraftHref` always links to `?type=interviewer`), and turning the wizard's choices into answers. The chat path has no drafts |
+| `src/app/page.tsx`                                                         | **Ny agent** on the start page goes straight to `/configure?type=interviewer&new=1`                                                                                                              |
+| `src/app/browse-agents/AgentList.tsx` (`sectionsWithNewAgent`)             | «Ny agent» and the draft cards sit in the interviewer section, which shows even when it is empty. Only drafts with `agentTypeId: 'interviewer'` are shown                                        |
+| `src/app/templates/TemplateLibrary.tsx`, `src/app/profile/ProfileHome.tsx` | Fetch only interviewer templates (see step 4)                                                                                                                                                    |
+| `src/domain/agentFilters.ts`                                               | The filters on Agenter read the interviewer's answers (`bransje`, `intervjutype`, `vanskelighetsgrad`). Agents of another type drop out as soon as one of those filters is set                   |
+| `src/domain/agentTypes/registry.ts` (`DEFAULT_AGENT_TYPE`)                 | Agents and requests without a type are read as interviewers. Leave this as it is                                                                                                                 |
 
 The first three rows go away with the change in
-[step 2](#2-give-it-the-five-step-form-required).
+[step 2](#2-give-it-the-same-form-required).
 
 ### 6. Who may use it
 
@@ -214,7 +224,7 @@ such access would be stored (RAGdoll user settings or Keycloak roles) is not dec
 
 ### 7. Tests and docs
 
-- A page test, like `src/app/configure/page.test.tsx`, that goes through the new type's five steps
+- A page test, like `src/app/configure/page.test.tsx`, that goes through the new type's six steps
   and checks the answers it saves.
 - An e2e test that sets up, saves and opens an agent of the new type (see
   [`e2e-testing.md`](e2e-testing.md#writing-a-test)). The mock backend stores agents of any type,
@@ -293,13 +303,13 @@ A new answer, such as «Arbeidstid», touches more places, because the wizard is
 The details page, the edit and clone forms and the configuration chat pick the field up from the
 definition.
 
-## Add a built-in stillingsmal, legal template or avatar
+## Add a built-in stillingsmal, legal paragraph or avatar
 
-| What                         | Where                                                                                                           | Notes                                                                                                                                                                        |
-| ---------------------------- | --------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Stillingsmal (a general job) | [`src/data/industry-templates.ts`](../src/data/industry-templates.ts)                                           | Give a new, stable `id`, the job `title`, the `industry` and `sector`, a line, tasks and a `jobDescription`. A new `industry` name also appears as an industry in the wizard |
-| Legal template               | [`src/data/legal-templates.ts`](../src/data/legal-templates.ts)                                                 | Write it in plain words and have the customer check the wording. Keep within `LEGAL_TEMPLATE_LIMITS` in `src/domain/legalTemplate.ts`                                        |
-| Avatar                       | An image in `public/avatars/`, and an entry in `AVATARS` in [`src/domain/avatars.ts`](../src/domain/avatars.ts) | The `id` is saved on agents; never rename or remove one that is in use (agents with an unknown id show the default image)                                                    |
+| What                         | Where                                                                                                           | Notes                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| ---------------------------- | --------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Stillingsmal (a general job) | [`src/data/industry-templates.ts`](../src/data/industry-templates.ts)                                           | Give a new, stable `id`, the job `title`, the `industry` and `sector`, a line, tasks and a `jobDescription`. A new `industry` name also appears as an industry in the wizard                                                                                                                                                                                                                                                                                                                                                                                                   |
+| Legal paragraph              | [`src/data/legal-templates.ts`](../src/data/legal-templates.ts)                                                 | Add a `law(id, jurisdiction, title, description, text, sourceUrl)` to `builtInLegalParagraphs`: a stable `id`, the law and paragraph as `title`, the rule in plain words as `text`, and a link to Lovdata or another official source. The standard template «Rettigheter i ansettelsesprosessen» is built from every paragraph, so it gets the new one too, and counselors can tick it in their own. Have the customer check the wording, and keep within `LEGAL_TEMPLATE_LIMITS` in `src/domain/legalTemplate.ts`. An EU law replaces one of the `legalParagraphPlaceholders` |
+| Avatar                       | An image in `public/avatars/`, and an entry in `AVATARS` in [`src/domain/avatars.ts`](../src/domain/avatars.ts) | The `id` is saved on agents; never rename or remove one that is in use (agents with an unknown id show the default image)                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
 
 Counselors can add their own stillingsmaler, bransjemaler, jobbsøkermaler and legal templates in
 the app, under **Maler**. Built-in ones are only needed for things every counselor should get.
