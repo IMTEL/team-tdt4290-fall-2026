@@ -90,3 +90,25 @@
     display: none;
   }
 }
+
+.help {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.helpIcon {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.helpText {
+  display: none;
+}
+
+@media (width >= 40rem) {
+  .helpText {
+    display: inline;
+  }
+}

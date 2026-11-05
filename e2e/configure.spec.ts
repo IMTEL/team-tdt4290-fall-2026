@@ -256,3 +256,26 @@ test('an unfinished interviewer can be saved as a draft and continued', async ({
     .click();
   await expect(page.getByRole('textbox', { name: /^Stilling/ })).toHaveValue('Kassemedarbeider');
 });
+
+test('each section links to its help, and the form is still there when coming back', async ({
+  page,
+}) => {
+  await logIn(page, '/configure');
+  await chooseInterviewer(page);
+  await fillStilling(page);
+
+  await page.getByRole('link', { name: 'Les hjelpen for denne delen', exact: true }).click();
+
+  await expect(page).toHaveURL(/\/help#intervjuer$/);
+  await expect(
+    page.getByRole('heading', { level: 3, name: 'Intervjuer', exact: true }),
+  ).toBeInViewport();
+
+  await page.goBack();
+  await expect(
+    page.getByRole('heading', { level: 2, name: 'Velg en mal', exact: true }),
+  ).toBeVisible();
+  await expect(
+    sections(page).getByRole('button', { name: 'Stilling og arbeidsplass' }),
+  ).toBeVisible();
+});

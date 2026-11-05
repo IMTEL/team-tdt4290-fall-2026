@@ -1,0 +1,168 @@
+.page {
+  max-width: 48rem;
+  margin: 0 auto;
+  padding: var(--space-6) var(--space-5) 4rem;
+}
+
+.title {
+  margin: 0;
+  font-size: 2.1rem;
+  font-weight: 650;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+}
+
+.lead {
+  margin: var(--space-3) 0 0;
+  color: var(--muted-foreground);
+  font-size: 1.05rem;
+  line-height: 1.5;
+}
+
+.contents {
+  margin-top: var(--space-5);
+  padding: var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+}
+
+.contents ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.contents a {
+  color: var(--primary);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+.toTop {
+  position: fixed;
+  right: var(--space-5);
+  bottom: var(--space-5);
+  padding: var(--space-2) var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--background);
+  box-shadow: 0 2px 8px rgb(0 0 0 / 8%);
+  color: var(--primary);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.toTop:hover {
+  background: color-mix(in oklch, var(--secondary) 34%, var(--background));
+}
+
+.toTop:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+/* The navbar is sticky, so a section opened from a link must not land under it. */
+.title,
+.topic,
+.part {
+  scroll-margin-top: 4.5rem;
+}
+
+.topic {
+  margin-top: var(--space-6);
+  padding-top: var(--space-6);
+  border-top: 1px solid var(--border);
+}
+
+.topicTitle {
+  margin: 0 0 var(--space-3);
+  font-size: 1.35rem;
+  font-weight: 650;
+}
+
+.part {
+  margin-top: var(--space-4);
+}
+
+.partTitle {
+  margin: 0 0 var(--space-2);
+  font-size: 1.05rem;
+  font-weight: 650;
+}
+
+.text,
+.note {
+  margin: 0 0 var(--space-3);
+  line-height: 1.55;
+}
+
+.note {
+  margin-top: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  background: color-mix(in oklch, var(--secondary) 34%, var(--background));
+}
+
+.steps {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  line-height: 1.55;
+  list-style: none;
+  counter-reset: step;
+}
+
+/* The number sits at the same left edge as the heading, with the text in its own column. */
+.steps li {
+  position: relative;
+  padding-left: 1.75rem;
+  counter-increment: step;
+}
+
+.steps li::before {
+  content: counter(step) '.';
+  position: absolute;
+  left: 0;
+  color: var(--muted-foreground);
+  font-variant-numeric: tabular-nums;
+}
+
+.terms {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin: 0;
+}
+
+.term dt {
+  font-weight: 650;
+  scroll-margin-top: 4.5rem;
+}
+
+.termLink {
+  color: var(--primary);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+.term dd {
+  margin: var(--space-1) 0 0;
+  line-height: 1.5;
+}
+
+@media (width >= 40rem) {
+  .term {
+    display: grid;
+    grid-template-columns: 10rem 1fr;
+    gap: var(--space-4);
+  }
+
+  .term dd {
+    margin: 0;
+  }
+}
