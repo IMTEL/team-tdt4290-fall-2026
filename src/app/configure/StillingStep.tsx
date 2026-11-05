@@ -57,7 +57,6 @@ export function WizardFrame({
   current,
   onGoTo,
   reached,
-  expanded = false,
   more,
   peeks = [],
   children,
@@ -67,8 +66,6 @@ export function WizardFrame({
   onGoTo?: (index: number) => void;
   /** The furthest section opened, so it can be jumped back to. */
   reached?: number;
-  /** The last step: finish in the main card, sections stay their own card. */
-  expanded?: boolean;
   more?: ReactNode;
   /** Chosen templates, as short clickable bubbles under the progress bar. */
   peeks?: TemplatePeek[];

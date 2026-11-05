@@ -121,7 +121,6 @@ export function SettingsStep({
       onGoTo={onGoTo}
       reached={reached}
       peeks={peeks}
-      expanded={expanded}
       more={
         expanded ? (
           <FinishActions
