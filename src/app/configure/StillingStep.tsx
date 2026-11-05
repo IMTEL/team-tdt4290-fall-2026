@@ -8,18 +8,14 @@ import ToggleButton from '@mui/material/ToggleButton';
 import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
 
 import { SECTOR_LABELS, type IndustryTemplate, type Sector } from '@/data/industry-templates';
+import { FORM_SECTIONS, formSectionHelpHref } from './formSections';
 import styles from './StillingStep.module.css';
 
 /** How many job suggestions sit next to «Se alle maler». */
 const SUGGESTION_COUNT = 5;
 
-export const SECTIONS = [
-  'Stilling og arbeidsplass',
-  'Intervjuer',
-  'Jobbsøker',
-  'Innstillinger',
-  'Fullføre',
-] as const;
+/** The section titles, in order. The sections and their help anchors are in `formSections.ts`. */
+export const SECTIONS = FORM_SECTIONS.map((section) => section.title);
 
 export type Employer = Sector | 'ikke-oppgitt';
 
@@ -81,7 +77,12 @@ export function WizardFrame({
       </p>
       <h1 className={styles.title}>Ny intervjuagent</h1>
       <p className={styles.lead}>
-        Svar på noen få spørsmål. Du ser agenten ta form til høyre mens du går.
+        Svar på noen få spørsmål. Du ser agenten ta form til høyre mens du går.{' '}
+        {/* English translation: Read the help for this part. The form is kept in this browser,
+        so the counsellor finds it again when coming back. */}
+        <Link href={formSectionHelpHref(current)} className={styles.helpLink}>
+          Les hjelpen for denne delen
+        </Link>
       </p>
 
       <div className={expanded ? `${styles.layout} ${styles.layoutExpanded}` : styles.layout}>

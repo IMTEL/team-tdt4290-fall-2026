@@ -37,6 +37,14 @@ for (const colorScheme of ['light', 'dark'] as const) {
         await expectNoAccessibilityViolations(page);
       });
 
+      test('help page', async ({ page }) => {
+        await page.goto('/help');
+        await expect(
+          page.getByRole('heading', { level: 1, name: 'Hjelp', exact: true }),
+        ).toBeVisible();
+        await expectNoAccessibilityViolations(page);
+      });
+
       test('theme menu', async ({ page }) => {
         await page.goto('/');
         await page.getByRole('button', { name: 'Bytt tema', exact: true }).click();
