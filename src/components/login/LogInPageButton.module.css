@@ -12,22 +12,22 @@
   flex-shrink: 0;
   align-items: center;
   justify-content: center;
-  width: 1.75rem;
-  height: 1.75rem;
+  width: 2rem;
+  height: 2rem;
   overflow: hidden;
   border-radius: var(--radius-full);
   background-color: color-mix(in oklch, var(--secondary) 55%, var(--background));
   background-position: center;
   background-size: cover;
   color: var(--foreground);
-  font-size: 0.8rem;
+  font-size: 0.9rem;
   font-weight: 650;
 }
 
 .userName {
   max-width: 10rem;
   overflow: hidden;
-  font-size: 0.875rem;
+  font-size: 1rem;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
