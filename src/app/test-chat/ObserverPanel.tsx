@@ -34,8 +34,8 @@ type ObserverState =
 
 /**
  * Lets the counsellor ask the observer for feedback on the test chat, and shows it: each point as
- * the question that was asked and how the answer was judged. Many points collapse to a summary.
- * Mount a new one (a new key) to clear it when the chat starts over.
+ * the question that was asked and how the answer was judged. Many points also get a short summary
+ * above the list. Mount a new one (a new key) to clear it when the chat starts over.
  */
 export function ObserverPanel({ messages, disabled }: ObserverPanelProps) {
   const [state, setState] = useState<ObserverState>({ step: 'idle' });
@@ -121,13 +121,11 @@ function FeedbackView({
   feedback: Extract<ObserverFeedback, { kind: 'feedback' }>;
   messages: ChatMessage[];
 }) {
-  const many = hasManyEvaluations(feedback);
-  const [showTurns, setShowTurns] = useState(!many);
   const turns = evaluatedTurns(feedback, messages);
 
   return (
     <>
-      {many && (
+      {hasManyEvaluations(feedback) && (
         <Paper
           component="section"
           variant="outlined"
@@ -139,21 +137,15 @@ function FeedbackView({
             Sammendrag
           </Typography>
           <Typography variant="body2">{summarizeObserverFeedback(feedback)}</Typography>
-          <Button size="small" onClick={() => setShowTurns((open) => !open)}>
-            {/* English translation: Show each question / Hide each question */}
-            {showTurns ? 'Skjul hvert spørsmål' : 'Vis hvert spørsmål'}
-          </Button>
         </Paper>
       )}
-      {showTurns && (
-        <ol className={styles.list}>
-          {turns.map((turn, index) => (
-            <li key={index}>
-              <QuestionEvaluation turn={turn} />
-            </li>
-          ))}
-        </ol>
-      )}
+      <ol className={styles.list}>
+        {turns.map((turn, index) => (
+          <li key={index}>
+            <QuestionEvaluation turn={turn} />
+          </li>
+        ))}
+      </ol>
     </>
   );
 }

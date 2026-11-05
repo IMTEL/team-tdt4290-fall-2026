@@ -16,10 +16,6 @@
   background: var(--card);
 }
 
-fieldset.panel {
-  padding-top: 0.45rem;
-}
-
 .split {
   display: grid;
   grid-template-columns: 1fr;
@@ -53,10 +49,9 @@ fieldset.panel {
   grid-column: 1 / -1;
 }
 
-.legend {
+.sectionTitle {
   grid-column: 1 / -1;
   margin: 0;
-  padding: 0 0.25rem;
   font-size: 0.95rem;
   font-weight: 650;
 }

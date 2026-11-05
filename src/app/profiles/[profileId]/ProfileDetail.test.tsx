@@ -51,7 +51,7 @@ describe('ProfileDetail', () => {
       'href',
       '/profiles/profile-1/edit',
     );
-    expect(screen.getByRole('link', { name: 'Tilbake til malene' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Tilbake' })).toHaveAttribute(
       'href',
       '/templates',
     );

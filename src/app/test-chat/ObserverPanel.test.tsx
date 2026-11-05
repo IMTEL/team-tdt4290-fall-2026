@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -58,8 +58,8 @@ describe('ObserverPanel', () => {
     expect(screen.queryByRole('region', { name: 'Sammendrag' })).not.toBeInTheDocument();
   });
 
-  it('shows a summary when there are many points, and lists each question on request', async () => {
-    const user = await ask({
+  it('shows a summary when there are many points, and lists each question under it', async () => {
+    await ask({
       kind: 'feedback',
       wentWell: [
         point('i tre år', 'Du viste erfaring.', 'Tips 1'),
@@ -75,16 +75,7 @@ describe('ObserverPanel', () => {
     expect(summary).toHaveTextContent(
       'Observatøren vurderte 4 svar: 2 gikk bra, og 2 kan bli bedre.',
     );
-    expect(
-      screen.queryByRole('article', { name: 'Spørsmål og vurdering' }),
-    ).not.toBeInTheDocument();
-
-    await user.click(within(summary).getByRole('button', { name: 'Vis hvert spørsmål' }));
-
+    expect(screen.queryByRole('button', { name: 'Vis hvert spørsmål' })).not.toBeInTheDocument();
     expect(screen.getAllByRole('article', { name: 'Spørsmål og vurdering' })).toHaveLength(2);
-    await user.click(screen.getByRole('button', { name: 'Skjul hvert spørsmål' }));
-    expect(
-      screen.queryByRole('article', { name: 'Spørsmål og vurdering' }),
-    ).not.toBeInTheDocument();
   });
 });

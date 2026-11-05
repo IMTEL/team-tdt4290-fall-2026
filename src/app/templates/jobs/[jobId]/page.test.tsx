@@ -57,7 +57,7 @@ describe('/templates/jobs/[jobId]', () => {
       'href',
       '/templates/industries/helse-og-omsorg',
     );
-    expect(screen.getByRole('link', { name: 'Tilbake til malene' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Tilbake' })).toHaveAttribute(
       'href',
       '/templates',
     );

@@ -28,7 +28,14 @@ type LoadState =
  * focuses on and the description the interviewer gets. The counsellor's own templates have the
  * buttons to edit and delete them. The built-in ones come with the app and have none.
  */
-export function TemplateDetailView({ templateId }: { templateId: string }) {
+export function TemplateDetailView({
+  templateId,
+  backHref = '/templates',
+}: {
+  templateId: string;
+  /** Where Tilbake goes: Maler, or the wizard when opened from configure. */
+  backHref?: string;
+}) {
   const router = useRouter();
   const builtIn = findBuiltInTemplate(templateId);
   const [state, setState] = useState<LoadState>(
@@ -56,7 +63,7 @@ export function TemplateDetailView({ templateId }: { templateId: string }) {
 
   if (state.kind !== 'ready') {
     return (
-      <TemplateDetailPage>
+      <TemplateDetailPage backHref={backHref}>
         {/* English translation: Loading template */}
         {state.kind === 'loading' && <TemplateDetailSkeleton label="Laster mal" />}
         {state.kind === 'error' && <Alert severity="error">{state.message}</Alert>}
@@ -68,6 +75,7 @@ export function TemplateDetailView({ templateId }: { templateId: string }) {
   return (
     <TemplateDetail
       title={template.title}
+      backHref={backHref}
       // English translation: Your own template
       chip={state.builtIn ? BUILT_IN_LABEL : 'Egen mal'}
       // English translation: About the template
@@ -85,7 +93,7 @@ export function TemplateDetailView({ templateId }: { templateId: string }) {
             <DeleteTemplateButton
               template={template}
               variant="outlined"
-              onDeleted={() => router.push('/templates')}
+              onDeleted={() => router.push(backHref)}
             />
           </>
         )

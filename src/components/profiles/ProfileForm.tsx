@@ -135,44 +135,47 @@ export function ProfileForm({
     >
       <div className={styles.split}>
         <div className={styles.cell}>
-          <fieldset className={`${styles.panel} ${styles.fieldset}`} disabled={isSaving}>
-            <legend className={styles.legend}>
-              Navn på malen
-              <span aria-hidden="true"> *</span>
-            </legend>
+          <div className={`${styles.panel} ${styles.fieldset}`}>
             <TextField
               size="small"
+              label="Navn på malen"
               helperText="Et navn bare du ser, for eksempel «Profil A». Ikke bruk jobbsøkerens ekte navn."
               value={label}
               onChange={(event) => setLabel(event.target.value)}
               required
               disabled={isSaving}
               className={styles.wide}
-              slotProps={{ htmlInput: { maxLength: LIMITS.label, 'aria-label': 'Navn på malen' } }}
+              slotProps={{ htmlInput: { maxLength: LIMITS.label } }}
             />
-          </fieldset>
+          </div>
         </div>
 
         <div className={styles.cell}>
-          <fieldset className={`${styles.panel} ${styles.fieldset}`} disabled={isSaving}>
-            <legend className={styles.legend}>Notater</legend>
+          <div className={`${styles.panel} ${styles.fieldset}`}>
             <TextField
               size="small"
+              label="Notater"
               helperText="Bare for deg. Notatene sendes ikke til assistenten eller intervjueren."
               value={notes}
               onChange={(event) => setNotes(event.target.value)}
               disabled={isSaving}
               className={styles.wide}
-              slotProps={{ htmlInput: { maxLength: LIMITS.notes, 'aria-label': 'Notater' } }}
+              slotProps={{ htmlInput: { maxLength: LIMITS.notes } }}
             />
-          </fieldset>
+          </div>
         </div>
       </div>
 
       <div className={styles.split}>
         <div className={styles.cell}>
-          <fieldset className={`${styles.panel} ${styles.fieldset}`} disabled={isSaving}>
-            <legend className={styles.legend}>Om jobbsøkeren</legend>
+          <fieldset
+            className={`${styles.panel} ${styles.fieldset}`}
+            disabled={isSaving}
+            aria-labelledby="profile-about-heading"
+          >
+            <h2 id="profile-about-heading" className={styles.sectionTitle}>
+              Om jobbsøkeren
+            </h2>
             <TextField
               size="small"
               select
@@ -238,8 +241,14 @@ export function ProfileForm({
         </div>
 
         <div className={styles.cell}>
-          <fieldset className={`${styles.panel} ${styles.fieldset}`} disabled={isSaving}>
-            <legend className={styles.legend}>Dette vil jobbsøkeren øve på</legend>
+          <fieldset
+            className={`${styles.panel} ${styles.fieldset}`}
+            disabled={isSaving}
+            aria-labelledby="profile-practice-heading"
+          >
+            <h2 id="profile-practice-heading" className={styles.sectionTitle}>
+              Dette vil jobbsøkeren øve på
+            </h2>
             <div className={`${styles.checkboxes} ${styles.wide}`}>
               {PRACTICE_AREAS.map((area) => (
                 <FormControlLabel
