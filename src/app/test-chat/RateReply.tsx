@@ -32,8 +32,9 @@ type RateState =
   | { step: 'undoing'; rating: Rating; feedbackId: string };
 
 /**
- * Lets the counsellor rate one reply in the test chat, with an optional comment. RAGdoll adds the
- * newest ratings to the agent's prompt, so the rating shapes the agent's next reply.
+ * Lets the counsellor rate one reply in the test chat, with an optional comment. The ratings are
+ * written into the interviewer's system prompt, so the next replies follow them. Many ratings
+ * become a summary of all of them, with the newest quoted in full.
  */
 export function RateReply({ agentId, reply, userMessage }: RateReplyProps) {
   const [state, setState] = useState<RateState>({ step: 'unrated' });

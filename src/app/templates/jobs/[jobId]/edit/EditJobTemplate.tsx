@@ -7,7 +7,7 @@ import Alert from '@mui/material/Alert';
 import { JobTemplateForm } from '@/components/templates/JobTemplateForm';
 import { useWorkplaceTemplates } from '@/components/templates/useWorkplaceTemplates';
 import { fetchJobTemplate, updateJobTemplate } from '@/components/templates/workplaceApi';
-import type { IndustryTemplate } from '@/data/industry-templates';
+import type { JobTemplate } from '@/data/job-templates';
 import { jobHref } from '@/domain/templateCatalog';
 import { industryNames } from '@/domain/workplaceTemplate';
 import { setTemplatesFlash, TEMPLATE_SAVED_FLASH } from '../../../flash';
@@ -15,7 +15,7 @@ import styles from '../../../formPage.module.css';
 
 type LoadState =
   | { kind: 'loading' }
-  | { kind: 'ready'; job: IndustryTemplate }
+  | { kind: 'ready'; job: JobTemplate }
   | { kind: 'missing' }
   | { kind: 'error'; message: string };
 

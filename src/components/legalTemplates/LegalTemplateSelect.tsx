@@ -1,10 +1,13 @@
 'use client';
 
+import { useId } from 'react';
 import Link from 'next/link';
 import Checkbox from '@mui/material/Checkbox';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import FormHelperText from '@mui/material/FormHelperText';
 
+import { templatesSectionHref } from '@/app/templates/sectionOpen';
+import { FieldHelp } from '@/components/ui/FieldHelp';
 import { LEGAL_TEMPLATE_LIMITS, type LegalTemplate } from '@/domain/legalTemplate';
 import styles from './LegalTemplateSelect.module.css';
 
@@ -27,6 +30,7 @@ export function LegalTemplateSelect({
   helperText,
   disabled = false,
 }: LegalTemplateSelectProps) {
+  const labelId = useId();
   const full = value.length >= LEGAL_TEMPLATE_LIMITS.perAgent;
 
   function toggle(id: string, checked: boolean) {
@@ -34,8 +38,14 @@ export function LegalTemplateSelect({
   }
 
   return (
-    <fieldset className={styles.fieldset} disabled={disabled}>
-      <legend className={styles.legend}>Lovverk</legend>
+    <fieldset className={styles.fieldset} disabled={disabled} aria-labelledby={labelId}>
+      <legend className={styles.legend}>
+        <span id={labelId}>Lovverk</span>
+        <FieldHelp
+          label="Lovverk"
+          description="Lover og regler intervjueren skal følge, for eksempel hva den ikke skal spørre om. Valgfritt."
+        />
+      </legend>
       <div className={styles.options}>
         {templates.map((template) => {
           const checked = value.includes(template.id);
@@ -57,14 +67,13 @@ export function LegalTemplateSelect({
       <FormHelperText>
         {[
           helperText ??
-            'Intervjueren følger lovverket du velger, og kan svare jobbsøkeren om rettighetene ' +
-              'sine. Valgfritt.',
+            'Standardmalen har alle lover. Vil du vrake noen, lag et eget lovverk. Valgfritt.',
           full && `Du kan velge høyst ${LEGAL_TEMPLATE_LIMITS.perAgent}.`,
         ]
           .filter(Boolean)
           .join(' ')}
       </FormHelperText>
-      <Link href="/legal-templates" className={styles.link}>
+      <Link href={templatesSectionHref('lovverk')} scroll={false} className={styles.link}>
         Administrer lovverk
       </Link>
     </fieldset>

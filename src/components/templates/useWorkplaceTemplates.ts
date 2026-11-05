@@ -2,15 +2,15 @@
 
 import { useEffect, useState } from 'react';
 
-import { industryTemplates, type IndustryTemplate } from '@/data/industry-templates';
-import type { IndustryTemplateEntry } from '@/domain/workplaceTemplate';
+import { builtInJobTemplates, type JobTemplate } from '@/data/job-templates';
+import type { IndustryTemplate } from '@/domain/workplaceTemplate';
 import { fetchIndustryTemplates, fetchJobTemplates } from './workplaceApi';
 
 export type WorkplaceTemplates = {
   /** The counsellor's stillingsmaler first, then the built-in ones. */
-  jobs: IndustryTemplate[];
+  jobs: JobTemplate[];
   /** The bransjemaler the counsellor has added. */
-  industries: IndustryTemplateEntry[];
+  industries: IndustryTemplate[];
   /** False until the counsellor's own have loaded, or failed to. */
   loaded: boolean;
   /** A Norwegian message if the counsellor's own could not be loaded. The built-in ones still are. */
@@ -23,8 +23,8 @@ export type WorkplaceTemplates = {
  */
 export function useWorkplaceTemplates(enabled = true): WorkplaceTemplates {
   const [saved, setSaved] = useState<{
-    jobs: IndustryTemplate[];
-    industries: IndustryTemplateEntry[];
+    jobs: JobTemplate[];
+    industries: IndustryTemplate[];
     loaded: boolean;
     error: string | null;
   }>({ jobs: [], industries: [], loaded: false, error: null });
@@ -45,7 +45,7 @@ export function useWorkplaceTemplates(enabled = true): WorkplaceTemplates {
   }, [enabled]);
 
   return {
-    jobs: [...saved.jobs, ...industryTemplates],
+    jobs: [...saved.jobs, ...builtInJobTemplates],
     industries: saved.industries,
     loaded: saved.loaded,
     error: saved.error,

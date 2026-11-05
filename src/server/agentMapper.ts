@@ -4,6 +4,7 @@ import {
   DEFAULT_ADVANCED_SETTINGS,
   settingsOf,
 } from '@/domain/advancedSettings';
+import { stripFeedbackSection } from '@/domain/interviewerFeedbackPrompt';
 import { readStoredAnswers, toStoredDescription } from '@/domain/agentTypes/storedAnswers';
 import type {
   AgentRole,
@@ -79,7 +80,9 @@ export function currentSettings(agent: FullRagdollAgent): AdvancedSettings {
     {
       model: agent.llm_model,
       temperature: typeof agent.llm_temperature === 'number' ? agent.llm_temperature : null,
-      prompt: agent.prompt,
+      // Ratings are appended to the stored prompt; the editor and a clone should not treat them
+      // as part of a hand-written prompt.
+      prompt: stripFeedbackSection(agent.prompt),
     },
     readStoredAnswers(agent.description)?.customPrompt ?? false,
   );

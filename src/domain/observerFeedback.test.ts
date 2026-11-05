@@ -1,11 +1,14 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  evaluatedTurns,
   formatTranscript,
   hasEnoughToJudge,
+  hasManyEvaluations,
   isObserverFeedback,
   keepGroundedPoints,
   parseObserverReply,
+  summarizeObserverFeedback,
   type ObserverPoint,
   type TranscriptMessage,
 } from './observerFeedback';
@@ -121,6 +124,88 @@ describe('keepGroundedPoints', () => {
 
   it('drops an empty quote or one with only punctuation, which every answer would contain', () => {
     expect(grounded([point(''), point(' «». ')])).toMatchObject({ wentWell: [] });
+  });
+});
+
+describe('evaluatedTurns', () => {
+  const well = point('i tre år');
+  const better = point('jeg vet ikke helt');
+
+  it('pairs each point with the interviewer question the candidate was answering', () => {
+    expect(
+      evaluatedTurns({ kind: 'feedback', wentWell: [well], toImprove: [better] }, transcript),
+    ).toEqual([
+      {
+        question: 'Hei, og velkommen. Kan du fortelle litt om deg selv?',
+        items: [{ kind: 'wentWell', point: well }],
+      },
+      {
+        question: 'Hvorfor søker du på denne stillingen?',
+        items: [{ kind: 'toImprove', point: better }],
+      },
+    ]);
+  });
+
+  it('keeps two judgements of the same answer under that one question', () => {
+    const extra = point('jeg liker å hjelpe kunder');
+
+    expect(
+      evaluatedTurns({ kind: 'feedback', wentWell: [well, extra], toImprove: [] }, transcript),
+    ).toEqual([
+      {
+        question: 'Hei, og velkommen. Kan du fortelle litt om deg selv?',
+        items: [
+          { kind: 'wentWell', point: well },
+          { kind: 'wentWell', point: extra },
+        ],
+      },
+    ]);
+  });
+
+  it('keeps a point that does not match the chat, without a question', () => {
+    const invented = point('jeg er en lagspiller');
+
+    expect(
+      evaluatedTurns({ kind: 'feedback', wentWell: [invented], toImprove: [] }, transcript),
+    ).toEqual([{ question: null, items: [{ kind: 'wentWell', point: invented }] }]);
+  });
+});
+
+describe('hasManyEvaluations', () => {
+  it('is true from four points, so the page can switch to a summary', () => {
+    const points = [point('a'), point('b'), point('c'), point('d')];
+    expect(
+      hasManyEvaluations({ kind: 'feedback', wentWell: points.slice(0, 3), toImprove: [] }),
+    ).toBe(false);
+    expect(hasManyEvaluations({ kind: 'feedback', wentWell: points, toImprove: [] })).toBe(true);
+  });
+});
+
+describe('summarizeObserverFeedback', () => {
+  it('counts how many answers went well and how many can be better', () => {
+    expect(
+      summarizeObserverFeedback({
+        kind: 'feedback',
+        wentWell: [point('a'), point('b'), point('c')],
+        toImprove: [point('d')],
+      }),
+    ).toBe('Observatøren vurderte 4 svar: 3 gikk bra, og 1 kan bli bedre.');
+  });
+
+  it('says so when every answer went well, or every answer can be better', () => {
+    expect(
+      summarizeObserverFeedback({ kind: 'feedback', wentWell: [point('a')], toImprove: [] }),
+    ).toBe('Observatøren vurderte 1 svar, og det gikk bra.');
+    expect(
+      summarizeObserverFeedback({
+        kind: 'feedback',
+        wentWell: [point('a'), point('b')],
+        toImprove: [],
+      }),
+    ).toBe('Observatøren vurderte 2 svar, og alle gikk bra.');
+    expect(
+      summarizeObserverFeedback({ kind: 'feedback', wentWell: [], toImprove: [point('a')] }),
+    ).toBe('Observatøren vurderte 1 svar, og det kan bli bedre.');
   });
 });
 

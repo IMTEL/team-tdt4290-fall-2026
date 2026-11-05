@@ -2,16 +2,34 @@
   margin-bottom: 2rem;
 }
 
-/* The search and the filters above the cards. */
+/* Search and Filtrer on one row; the dropdowns span both columns when they open. */
 .toolbar {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-4);
+  display: grid;
+  grid-template-columns: minmax(12rem, 480px) auto;
+  grid-template-areas:
+    'search toggle'
+    'filters filters';
+  justify-content: start;
+  align-items: center;
+  column-gap: var(--space-3);
+  row-gap: var(--space-4);
   margin-bottom: var(--space-6);
 }
 
 .search {
-  max-width: 480px;
+  grid-area: search;
+  min-width: 0;
+}
+
+/* MUI's sm breakpoint. Media queries can't read CSS variables. */
+@media (max-width: 600px) {
+  .toolbar {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      'search'
+      'toggle'
+      'filters';
+  }
 }
 
 .noMatch {

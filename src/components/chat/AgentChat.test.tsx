@@ -42,7 +42,7 @@ describe('AgentChat', () => {
     expect(screen.getByText('Hei!')).toBeInTheDocument();
   });
 
-  it('shows the user message, a typing bubble, and then the reply', async () => {
+  it('shows the user message, a thinking indicator, and then the reply', async () => {
     const reply = deferred<string>();
     const { send, user, box } = setup();
     send.mockReturnValue(reply.promise);
@@ -50,7 +50,7 @@ describe('AgentChat', () => {
     await user.type(box, 'Butikkmedarbeider{Enter}');
 
     expect(screen.getByText('Butikkmedarbeider')).toBeInTheDocument();
-    expect(screen.getByText('Assistenten skriver …')).toBeInTheDocument();
+    expect(screen.getByText('Tenker …')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Send' })).toBeDisabled();
 
     reply.resolve('Er arbeidsgiveren offentlig eller privat?');
@@ -58,7 +58,7 @@ describe('AgentChat', () => {
     expect(
       await screen.findByText('Er arbeidsgiveren offentlig eller privat?'),
     ).toBeInTheDocument();
-    expect(screen.queryByText('Assistenten skriver …')).not.toBeInTheDocument();
+    expect(screen.queryByText('Tenker …')).not.toBeInTheDocument();
   });
 
   it('sends the whole conversation, initial messages included', async () => {

@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 
+import { returnPath } from '@/lib/returnTo';
 import { CreateTemplateForm } from './CreateTemplateForm';
 import styles from './page.module.css';
 
@@ -12,13 +13,6 @@ export const metadata: Metadata = {
 type CreateTemplatePageProps = {
   searchParams: Promise<{ agentType?: string | string[]; returnTo?: string | string[] }>;
 };
-
-/** A path on this site. Anything else is dropped so the link cannot leave the app. */
-function returnPath(value: string | string[] | undefined): string | null {
-  const path = Array.isArray(value) ? value[0] : value;
-  if (!path || !path.startsWith('/') || path.startsWith('//') || path.includes('\\')) return null;
-  return path;
-}
 
 /** `?agentType=<id>` chooses the agent type to start with, as the link on /configure does. */
 export default async function CreateTemplatePage({ searchParams }: CreateTemplatePageProps) {

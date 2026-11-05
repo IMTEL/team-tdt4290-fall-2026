@@ -15,6 +15,8 @@ import Switch from '@mui/material/Switch';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 
+import { FieldHelp } from '@/components/ui/FieldHelp';
+import helpStyles from '@/components/ui/FieldHelp.module.css';
 import {
   type AdvancedSettings,
   type AdvancedSettingsErrors,
@@ -35,11 +37,18 @@ type AdvancedSettingsFieldsProps = {
   languageModels: LanguageModels;
   errors: AdvancedSettingsErrors;
   disabled?: boolean;
+  /**
+   * Off on /configure: the prompt always comes from the answers. On while editing a saved agent.
+   */
+  allowCustomPrompt?: boolean;
+  /** Open as a page of fields, without the accordion. Used on the wizard's AI-innstillinger step. */
+  alwaysOpen?: boolean;
 };
 
 /**
- * "Advanced settings" for experienced counsellors: the language model, the temperature and a
- * system prompt written by hand. Closed until opened, so other counsellors are not bothered.
+ * "Advanced settings" for experienced counsellors: the language model, the temperature and, when
+ * editing, a system prompt written by hand. Closed until opened, so other counsellors are not
+ * bothered.
  */
 export function AdvancedSettingsFields({
   value,
@@ -48,6 +57,8 @@ export function AdvancedSettingsFields({
   languageModels,
   errors,
   disabled = false,
+  allowCustomPrompt = true,
+  alwaysOpen = false,
 }: AdvancedSettingsFieldsProps) {
   const modelLabelId = useId();
   // The text in the number field, kept apart so "0," can be typed on the way to "0,5".
@@ -80,27 +91,16 @@ export function AdvancedSettingsFields({
     onChange(DEFAULT_ADVANCED_SETTINGS);
   }
 
-  return (
-    <Accordion disableGutters variant="outlined">
-      <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-        <div className={styles.summary}>
-          {/* English translation: Advanced settings */}
-          <Typography component="span">Avanserte innstillinger</Typography>
-          <Typography variant="body2" color={hasErrors ? 'error' : 'text.secondary'}>
-            {hasErrors
-              ? // English translation: Something in the settings needs fixing
-                'Noe i innstillingene må rettes'
-              : summaryText(value)}
-          </Typography>
-        </div>
-      </AccordionSummary>
-
-      <AccordionDetails className={styles.fields}>
+  const fields = (
+    <>
+      {alwaysOpen ? null : (
         <Typography variant="body2" color="text.secondary">
           {/* English translation: For experienced users. The defaults work well for most interviews. */}
           For erfarne brukere. Standardverdiene fungerer godt for de fleste intervjuer.
         </Typography>
+      )}
 
+      <div className={styles.fieldWithHelp}>
         <FormControl fullWidth disabled={disabled} error={Boolean(errors.model)}>
           {/* English translation: Language model */}
           <InputLabel id={modelLabelId}>Språkmodell</InputLabel>
@@ -125,45 +125,57 @@ export function AdvancedSettingsFields({
                   'Modellene kommer fra IDUN, NTNUs egne servere.')}
           </FormHelperText>
         </FormControl>
+        <FieldHelp
+          label="Språkmodell"
+          description="Hvilken språkmodell som skriver intervjuerens svar. Modellene kjører på IDUN, NTNUs egne servere."
+        />
+      </div>
 
-        <div>
+      <div>
+        <div className={helpStyles.row}>
           <Typography id={`${modelLabelId}-temperature`} gutterBottom>
             {/* English translation: Temperature */}
             Temperatur
           </Typography>
-          <div className={styles.temperature}>
-            <Slider
-              aria-labelledby={`${modelLabelId}-temperature`}
-              value={sliderValue(value.temperature)}
-              min={MIN_TEMPERATURE}
-              max={MAX_TEMPERATURE}
-              step={SLIDER_STEP}
-              marks={[
-                { value: MIN_TEMPERATURE, label: MIN_TEMPERATURE },
-                { value: MAX_TEMPERATURE, label: MAX_TEMPERATURE },
-              ]}
-              valueLabelDisplay="auto"
-              disabled={disabled}
-              onChange={(_, temperature) => setTemperature(temperature as number)}
-            />
-            <TextField
-              // English translation: Value
-              label="Verdi"
-              value={temperatureText}
-              onChange={(event) => handleTemperatureText(event.target.value)}
-              size="small"
-              disabled={disabled}
-              error={Boolean(errors.temperature)}
-              slotProps={{ htmlInput: { inputMode: 'decimal' } }}
-            />
-          </div>
-          <FormHelperText error={Boolean(errors.temperature)}>
-            {errors.temperature ??
-              // English translation: Low gives more predictable answers, high gives more varied ones.
-              'Lav gir mer forutsigbare svar, høy gir mer varierte svar.'}
-          </FormHelperText>
+          <FieldHelp
+            label="Temperatur"
+            description="Hvor varierte svarene blir. Lav er mer forutsigbar, høy mer variert."
+          />
         </div>
+        <div className={styles.temperature}>
+          <Slider
+            aria-labelledby={`${modelLabelId}-temperature`}
+            value={sliderValue(value.temperature)}
+            min={MIN_TEMPERATURE}
+            max={MAX_TEMPERATURE}
+            step={SLIDER_STEP}
+            marks={[
+              { value: MIN_TEMPERATURE, label: MIN_TEMPERATURE },
+              { value: MAX_TEMPERATURE, label: MAX_TEMPERATURE },
+            ]}
+            valueLabelDisplay="auto"
+            disabled={disabled}
+            onChange={(_, temperature) => setTemperature(temperature as number)}
+          />
+          <TextField
+            // English translation: Value
+            label="Verdi"
+            value={temperatureText}
+            onChange={(event) => handleTemperatureText(event.target.value)}
+            size="small"
+            disabled={disabled}
+            error={Boolean(errors.temperature)}
+            slotProps={{ htmlInput: { inputMode: 'decimal' } }}
+          />
+        </div>
+        <FormHelperText error={Boolean(errors.temperature)}>
+          {errors.temperature ??
+            // English translation: Low gives more predictable answers, high gives more varied ones.
+            'Lav gir mer forutsigbare svar, høy gir mer varierte svar.'}
+        </FormHelperText>
+      </div>
 
+      {allowCustomPrompt && (
         <div>
           <FormControlLabel
             control={
@@ -214,14 +226,36 @@ export function AdvancedSettingsFields({
             </FormHelperText>
           )}
         </div>
+      )}
 
-        <div className={styles.actions}>
-          <Button onClick={reset} disabled={disabled}>
-            {/* English translation: Reset to defaults */}
-            Tilbakestill til standard
-          </Button>
+      <div className={styles.actions}>
+        <Button onClick={reset} disabled={disabled}>
+          {/* English translation: Reset to defaults */}
+          Tilbakestill til standard
+        </Button>
+      </div>
+    </>
+  );
+
+  if (alwaysOpen) {
+    return <div className={styles.fields}>{fields}</div>;
+  }
+
+  return (
+    <Accordion disableGutters variant="outlined">
+      <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+        <div className={styles.summary}>
+          {/* English translation: Advanced settings */}
+          <Typography component="span">Avanserte innstillinger</Typography>
+          <Typography variant="body2" color={hasErrors ? 'error' : 'text.secondary'}>
+            {hasErrors
+              ? // English translation: Something in the settings needs fixing
+                'Noe i innstillingene må rettes'
+              : summaryText(value, allowCustomPrompt)}
+          </Typography>
         </div>
-      </AccordionDetails>
+      </AccordionSummary>
+      <AccordionDetails className={styles.fields}>{fields}</AccordionDetails>
     </Accordion>
   );
 }
@@ -240,8 +274,10 @@ function sliderValue(temperature: number): number {
 }
 
 /** One line under the heading, so the settings can be checked without opening the section. */
-function summaryText(settings: AdvancedSettings): string {
+function summaryText(settings: AdvancedSettings, allowCustomPrompt: boolean): string {
+  const base = `${settings.model} · temperatur ${formatTemperature(settings.temperature)}`;
+  if (!allowCustomPrompt) return base;
   // English translation: <model> · temperature <t> · own system prompt / prompt from the answers
   const prompt = settings.customPrompt !== null ? 'egen systemprompt' : 'prompt fra svarene';
-  return `${settings.model} · temperatur ${formatTemperature(settings.temperature)} · ${prompt}`;
+  return `${base} · ${prompt}`;
 }

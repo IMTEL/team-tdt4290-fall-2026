@@ -1,6 +1,5 @@
 import Typography from '@mui/material/Typography';
 
-import { ScrollArea } from '@/components/ui/ScrollArea';
 import type { AnswerEffect } from '@/domain/agentTypes/types';
 import styles from './AnswerEffects.module.css';
 
@@ -10,7 +9,28 @@ type AnswerEffectsProps = {
   customPrompt: boolean;
 };
 
-/** Which of the counsellor's answers change how the agent behaves, and how. */
+function EffectItem({ label, lines }: { label: string; lines: string[] }) {
+  return (
+    <div className={styles.item}>
+      <Typography component="dt" variant="subtitle2">
+        {label}
+      </Typography>
+      <Typography component="dd" variant="body2" sx={{ m: 0 }}>
+        {lines.length === 1 ? (
+          lines[0]
+        ) : (
+          <ul className={styles.effects}>
+            {lines.map((line) => (
+              <li key={line}>{line}</li>
+            ))}
+          </ul>
+        )}
+      </Typography>
+    </div>
+  );
+}
+
+/** Which answers change how the agent behaves, and how — one even column when the box is narrow. */
 export function AnswerEffects({ effects, customPrompt }: AnswerEffectsProps) {
   if (customPrompt) {
     return (
@@ -22,27 +42,12 @@ export function AnswerEffects({ effects, customPrompt }: AnswerEffectsProps) {
   }
 
   return (
-    <ScrollArea className={styles.area}>
+    <div className={styles.wrap}>
       <dl className={styles.list}>
         {effects.map(({ key, label, effects: lines }) => (
-          <div key={key}>
-            <Typography component="dt" variant="subtitle2">
-              {label}
-            </Typography>
-            <Typography component="dd" variant="body2" sx={{ m: 0 }}>
-              {lines.length === 1 ? (
-                lines[0]
-              ) : (
-                <ul className={styles.effects}>
-                  {lines.map((line) => (
-                    <li key={line}>{line}</li>
-                  ))}
-                </ul>
-              )}
-            </Typography>
-          </div>
+          <EffectItem key={key} label={label} lines={lines} />
         ))}
       </dl>
-    </ScrollArea>
+    </div>
   );
 }

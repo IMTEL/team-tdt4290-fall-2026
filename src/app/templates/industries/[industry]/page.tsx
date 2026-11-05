@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 
-import { industryTemplates } from '@/data/industry-templates';
+import { builtInJobTemplates } from '@/data/job-templates';
 import { findIndustry } from '@/domain/templateCatalog';
 import { IndustryTemplateView } from './IndustryTemplateView';
 
@@ -23,7 +23,7 @@ export async function generateMetadata({ params }: IndustryTemplatePageProps): P
   // The counsellor's own industries are only known in the browser.
   // English translation: Industry template
   return {
-    title: findIndustry(industryTemplates, await slugFrom(params))?.industry ?? 'Bransjemal',
+    title: findIndustry(builtInJobTemplates, await slugFrom(params))?.industry ?? 'Bransjemal',
   };
 }
 

@@ -14,7 +14,7 @@ import {
 } from '@/components/templates/TemplateDetail';
 import { useWorkplaceTemplates } from '@/components/templates/useWorkplaceTemplates';
 import { deleteIndustryTemplate } from '@/components/templates/workplaceApi';
-import { SECTOR_LABELS } from '@/data/industry-templates';
+import { SECTOR_LABELS } from '@/data/job-templates';
 import {
   findIndustry,
   industryHref,
@@ -89,7 +89,7 @@ export function IndustryTemplateView({ slug }: { slug: string }) {
         { label: 'Typiske oppgaver', chips: tasks },
         // English translation: What the interviewer is told about the industry
         ...(entry?.context
-          ? [{ label: 'Dette får intervjueren vite om bransjen', text: entry.context }]
+          ? [{ label: 'Dette får intervjueren vite om bransjen', text: entry.context, boxed: true }]
           : []),
       ]}
     />

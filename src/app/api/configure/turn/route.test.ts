@@ -2,8 +2,9 @@
 import { NextRequest } from 'next/server';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { findIndustryTemplate, industryConfiguration } from '@/data/industry-templates';
+import { findJobTemplate, jobConfiguration } from '@/data/job-templates';
 import { findBuiltInTemplate } from '@/data/templates';
+import { LEGAL_TEMPLATE_LIMITS } from '@/domain/legalTemplate';
 import { getSessionToken } from '@/lib/session-tokens';
 import { askAgent, getProfile, getTemplate, RagdollError } from '@/server/ragdoll';
 import { chatRetryAfter, MAX_CHAT_REQUESTS, resetChatLimits } from '@/server/rateLimit';
@@ -97,15 +98,15 @@ describe('POST /api/configure/turn', () => {
     expect(briefing.content).not.toMatch(/^Intervjuer:/m);
   });
 
-  it('briefs the configurator on both the interviewer and the industry template', async () => {
+  it('briefs the configurator on both the interviewer and the stillingsmal', async () => {
     askAgentMock.mockResolvedValue('Hvilken bedrift er det?');
 
     await POST(
-      turnRequest({ templateId: 'teamleder', industryTemplateId: 'helsefagarbeider', messages }),
+      turnRequest({ templateId: 'teamleder', jobTemplateId: 'helsefagarbeider', messages }),
     );
 
     const [, [briefing]] = askAgentMock.mock.calls[0];
-    const { stilling, bransje } = industryConfiguration(findIndustryTemplate('helsefagarbeider')!);
+    const { stilling, bransje } = jobConfiguration(findJobTemplate('helsefagarbeider')!);
     expect(briefing.content).toContain(`- Stilling: ${stilling}`);
     expect(briefing.content).toContain(`- Bransje: ${bransje}`);
     expect(briefing.content).toContain(
@@ -115,7 +116,7 @@ describe('POST /api/configure/turn', () => {
     expect(briefing.content).not.toMatch(/^Stilling:/m);
   });
 
-  it('takes the job and industry from an industry template, without lines for them', async () => {
+  it('takes the job and industry from a stillingsmal, without lines for them', async () => {
     askAgentMock.mockResolvedValue(
       finalReply
         .replace('Stilling: Butikkmedarbeider\n', '')
@@ -123,13 +124,13 @@ describe('POST /api/configure/turn', () => {
     );
 
     const res = await POST(
-      turnRequest({ templateId: 'teamleder', industryTemplateId: 'lagermedarbeider', messages }),
+      turnRequest({ templateId: 'teamleder', jobTemplateId: 'lagermedarbeider', messages }),
     );
     const body = await res.json();
 
     expect(body.done).toBe(true);
     expect(body.configuration).toMatchObject({
-      ...industryConfiguration(findIndustryTemplate('lagermedarbeider')!),
+      ...jobConfiguration(findJobTemplate('lagermedarbeider')!),
       intervjuer: findBuiltInTemplate('teamleder')?.persona,
     });
     expect(body.configuration.bransje).toBe('Transport og logistikk (privat)');
@@ -294,7 +295,12 @@ describe('POST /api/configure/turn', () => {
   });
 
   it('answers 400 for legal template ids that are not a list of distinct ids', async () => {
-    for (const legalTemplateIds of ['legal-1', [''], ['a', 'a'], ['1', '2', '3', '4', '5', '6']]) {
+    for (const legalTemplateIds of [
+      'legal-1',
+      [''],
+      ['a', 'a'],
+      Array.from({ length: LEGAL_TEMPLATE_LIMITS.perAgent + 1 }, (_, i) => `id-${i}`),
+    ]) {
       const res = await POST(turnRequest({ legalTemplateIds, messages }));
       expect(res.status).toBe(400);
     }
@@ -330,8 +336,8 @@ describe('POST /api/configure/turn', () => {
     ],
     ['the template is unknown', { templateId: 'finnes-ikke', messages }],
     ['the agent type is unknown', { agentType: 'finnes-ikke', messages }],
-    ['the industry template is unknown', { industryTemplateId: 'finnes-ikke', messages }],
-    ['the industry template id is empty', { industryTemplateId: '', messages }],
+    ['the job template is unknown', { jobTemplateId: 'finnes-ikke', messages }],
+    ['the job template id is empty', { jobTemplateId: '', messages }],
     ['the agent type is only planned', { agentType: 'teacher', messages }],
   ])('answers 400 when %s', async (_case, body) => {
     const res = await POST(turnRequest(body));

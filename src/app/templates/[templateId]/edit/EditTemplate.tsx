@@ -17,7 +17,14 @@ type LoadState =
   | { kind: 'error'; message: string };
 
 /** Loads one of the counsellor's saved templates and shows the form for editing it. */
-export function EditTemplate({ templateId }: { templateId: string }) {
+export function EditTemplate({
+  templateId,
+  cancelHref = '/templates',
+}: {
+  templateId: string;
+  /** The page that opened the form, so Avbryt and a save go back there. */
+  cancelHref?: string;
+}) {
   const router = useRouter();
   const [state, setState] = useState<LoadState>({ kind: 'loading' });
 
@@ -54,11 +61,11 @@ export function EditTemplate({ templateId }: { templateId: string }) {
       {state.kind === 'ready' && (
         <TemplateForm
           initial={state.template}
-          cancelHref="/templates"
+          cancelHref={cancelHref}
           onSave={(template) => updateTemplate(templateId, template)}
           onSaved={() => {
-            setTemplatesFlash(TEMPLATE_SAVED_FLASH);
-            router.push('/templates');
+            if (cancelHref.startsWith('/templates')) setTemplatesFlash(TEMPLATE_SAVED_FLASH);
+            router.push(cancelHref);
           }}
         />
       )}

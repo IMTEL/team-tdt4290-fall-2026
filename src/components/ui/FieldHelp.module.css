@@ -1,0 +1,41 @@
+.row {
+  display: flex;
+  align-items: center;
+  gap: 0.15rem;
+}
+
+.besideInput {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-1);
+}
+
+.besideInput > :first-child {
+  flex: 1;
+  min-width: 0;
+}
+
+.besideInput > :last-child {
+  margin-top: 0.65rem;
+}
+
+.button {
+  padding: 0.15rem;
+  color: var(--muted-foreground);
+  font-size: 1.1rem;
+}
+
+.button:hover,
+.button:focus-visible {
+  color: var(--foreground);
+}
+
+.popper {
+  z-index: 1500;
+}
+
+.tooltip {
+  max-width: 20rem;
+  font-size: 0.875rem;
+  line-height: 1.4;
+}

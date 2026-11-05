@@ -1,15 +1,25 @@
 'use client';
 
-import { useState, type ReactNode } from 'react';
+import { createContext, useContext, useId, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import Button from '@mui/material/Button';
 import TextField from '@mui/material/TextField';
 import ToggleButton from '@mui/material/ToggleButton';
 import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
 
-import { SECTOR_LABELS, type IndustryTemplate, type Sector } from '@/data/industry-templates';
-import { FORM_SECTIONS, formSectionHelpHref } from './formSections';
+import { FieldHelp } from '@/components/ui/FieldHelp';
+import helpStyles from '@/components/ui/FieldHelp.module.css';
+import { SECTOR_LABELS, type JobTemplate, type Sector } from '@/data/job-templates';
+import { FORM_SECTIONS, formSectionHelpHref, type FormSection } from './formSections';
+import { LeaveWizardGuard } from './LeaveWizardGuard';
+import { SeeWholeTemplate, TemplatePeekList } from './TemplatePeekBubbles';
+import { peekForStep, peeksOnStep, type TemplatePeek } from './templatePeeks';
 import styles from './StillingStep.module.css';
+
+const WizardPeeksContext = createContext<{ peeks: TemplatePeek[]; current: number }>({
+  peeks: [],
+  current: 0,
+});
 
 /** How many job suggestions sit next to «Se alle maler». */
 const SUGGESTION_COUNT = 5;
@@ -29,7 +39,7 @@ export type Workplace = {
 
 type StillingStepProps = {
   value: Workplace;
-  templates: IndustryTemplate[];
+  templates: JobTemplate[];
   /** The industries to choose from: those of the stillingsmaler and the counsellor's own. */
   industries: string[];
   onChange: (value: Workplace) => void;
@@ -37,7 +47,10 @@ type StillingStepProps = {
   /** Opens a section the counsellor has already been to. */
   onGoTo?: (index: number) => void;
   reached?: number;
+  openedAiSettings?: boolean;
   onSaveDraft?: () => void;
+  /** Short summaries of the templates already chosen, shown under the progress bar. */
+  peeks?: TemplatePeek[];
 };
 
 /** The shared frame: title, and the section list down the side. `current` is the open section. */
@@ -45,10 +58,9 @@ export function WizardFrame({
   current,
   onGoTo,
   reached,
-  details,
-  expanded = false,
+  openedAiSettings = false,
   more,
-  onSaveDraft,
+  peeks = [],
   children,
 }: {
   current: number;
@@ -56,86 +68,164 @@ export function WizardFrame({
   onGoTo?: (index: number) => void;
   /** The furthest section opened, so it can be jumped back to. */
   reached?: number;
-  /** Values shown under each section dot on the last step. */
-  details?: { label: string; value: string }[][];
-  /** The same side card, a little wider, with `more` shown under the progress. */
-  expanded?: boolean;
+  /** True after the counsellor has opened AI-innstillinger, so a skip does not look completed. */
+  openedAiSettings?: boolean;
   more?: ReactNode;
-  /** Writes the unfinished wizard to local storage. */
-  onSaveDraft?: () => void;
+  /** Chosen templates, as short clickable bubbles under the progress bar. */
+  peeks?: TemplatePeek[];
   children: ReactNode;
 }) {
   // Progress follows the furthest section opened, so jumping back does not empty the bar.
   const progress = Math.min(Math.max(reached ?? current, current), SECTIONS.length);
+  const shown = peeksOnStep(peeks, current);
 
   return (
-    <div className={styles.step}>
-      <p className={styles.crumb}>
-        <Link href="/browse-agents">Agenter</Link>
-        <span aria-hidden="true"> › </span>
-        Ny agent
-      </p>
-      <h1 className={styles.title}>Ny intervjuagent</h1>
-      <p className={styles.lead}>
-        Svar på noen få spørsmål. Du ser agenten ta form til høyre mens du går.{' '}
-        {/* English translation: Read the help for this part. The form is kept in this browser,
-        so the counsellor finds it again when coming back. */}
-        <Link href={formSectionHelpHref(current)} className={styles.helpLink}>
-          Les hjelpen for denne delen
-        </Link>
-      </p>
+    <WizardPeeksContext.Provider value={{ peeks: shown, current }}>
+      <LeaveWizardGuard />
+      <div className={styles.step}>
+        <p className={styles.crumb}>
+          <Link href="/browse-agents">Agenter</Link>
+          <span aria-hidden="true"> › </span>
+          Ny agent
+        </p>
+        <h1 className={styles.title}>Ny intervjuagent</h1>
+        <p className={styles.lead}>
+          Svar på noen få spørsmål. Du ser agenten ta form til høyre mens du går.{' '}
+          {/* English translation: Read the help for this part. The form is kept in this browser,
+          so the counsellor finds it again when coming back. */}
+          <Link href={formSectionHelpHref(current)} className={styles.helpLink}>
+            Les hjelpen for denne delen
+          </Link>
+        </p>
 
-      <div className={expanded ? `${styles.layout} ${styles.layoutExpanded}` : styles.layout}>
-        <div
-          className={styles.formSlot}
-          inert={expanded || undefined}
-          aria-hidden={expanded || undefined}
-        >
-          {children}
-        </div>
-        <aside className={styles.side} aria-label="Seksjoner">
-          <p className={styles.sideLabel}>Seksjoner</p>
-          <SectionMenu current={current} onGoTo={onGoTo} reached={reached} details={details} />
-          <div
-            className={styles.draft}
-            inert={expanded || undefined}
-            aria-hidden={expanded || undefined}
-          >
-            <div className={styles.clip}>
-              <Button
-                type="button"
-                variant="outlined"
-                fullWidth
-                disabled={!onSaveDraft}
-                onClick={() => onSaveDraft?.()}
-              >
-                Lagre utkast
-              </Button>
-            </div>
+        <div className={styles.layout}>
+          <div className={styles.formSlot}>
+            {more ? <div className={styles.form}>{more}</div> : children}
           </div>
-          <p className={styles.count}>
-            {progress} av {SECTIONS.length} seksjoner
-          </p>
-          <div className={styles.track} aria-hidden="true">
-            <div
-              className={styles.fill}
-              style={{
-                width: progress === 0 ? '0.6rem' : `${(progress / SECTIONS.length) * 100}%`,
-              }}
+          <aside className={styles.side} aria-label="Seksjoner">
+            <div>
+              <p className={styles.sideLabel}>Seksjoner</p>
+            </div>
+            <SectionMenu
+              current={current}
+              onGoTo={onGoTo}
+              reached={reached}
+              openedAiSettings={openedAiSettings}
             />
-          </div>
-          <div className={expanded ? `${styles.extra} ${styles.extraOpen}` : styles.extra}>
-            <div
-              className={styles.clip}
-              inert={expanded ? undefined : true}
-              aria-hidden={expanded ? undefined : true}
-            >
-              {more}
+            <p className={styles.count}>
+              {progress} av {SECTIONS.length} seksjoner
+            </p>
+            <div className={styles.track} aria-hidden="true">
+              <div
+                className={styles.fill}
+                style={{
+                  width: progress === 0 ? '0.6rem' : `${(progress / SECTIONS.length) * 100}%`,
+                }}
+              />
             </div>
-          </div>
-        </aside>
+            <TemplatePeekList peeks={shown} />
+          </aside>
+        </div>
+      </div>
+    </WizardPeeksContext.Provider>
+  );
+}
+
+/** Tilbake, Neste and Lagre utkast on one row, so the side card only holds the sections. */
+export function WizardNav({
+  onBack,
+  backHref,
+  onNext,
+  nextDisabled,
+  nextSubmit = false,
+  nextLabel = 'Neste',
+  extraNext,
+  onSaveDraft,
+}: {
+  onBack?: () => void;
+  backHref?: string;
+  onNext?: () => void;
+  nextDisabled?: boolean;
+  nextSubmit?: boolean;
+  nextLabel?: string;
+  /** A second way forward, shown before Neste. */
+  extraNext?: { label: string; onClick: () => void };
+  /** Writes the unfinished wizard to local storage. */
+  onSaveDraft?: () => void;
+}) {
+  const { peeks, current } = useContext(WizardPeeksContext);
+  const seeWhole = peekForStep(peeks, current);
+
+  return (
+    <div className={styles.actions}>
+      {onSaveDraft ? (
+        <Button type="button" variant="outlined" onClick={onSaveDraft}>
+          Lagre utkast
+        </Button>
+      ) : null}
+      <div className={styles.nav}>
+        {seeWhole ? <SeeWholeTemplate peek={seeWhole} /> : null}
+        {backHref ? (
+          <Button component={Link} href={backHref}>
+            Tilbake
+          </Button>
+        ) : (
+          <Button type="button" onClick={onBack}>
+            Tilbake
+          </Button>
+        )}
+        {extraNext ? (
+          <Button
+            type="button"
+            variant="outlined"
+            disabled={nextDisabled}
+            onClick={extraNext.onClick}
+          >
+            {extraNext.label}
+          </Button>
+        ) : null}
+        <Button
+          type={nextSubmit ? 'submit' : 'button'}
+          variant="contained"
+          disabled={nextDisabled}
+          onClick={nextSubmit ? undefined : onNext}
+        >
+          {nextLabel}
+        </Button>
       </div>
     </div>
+  );
+}
+
+/** The choices already made on this step, shown above Neste. */
+export function ChoiceSummary({ lines }: { lines: { label: string; value: string }[] }) {
+  const headingId = useId();
+  const shown = lines.filter((line) => {
+    const value = line.value.trim();
+    return value !== '' && value !== 'Ikke valgt';
+  });
+  if (shown.length === 0) return null;
+  return (
+    <section aria-labelledby={headingId} className={styles.choiceSummary}>
+      <p id={headingId} className={styles.sideLabel}>
+        Dine valg
+      </p>
+      <dl className={styles.choiceList}>
+        {shown.map((line) => (
+          <div
+            key={line.label}
+            className={
+              line.value.length > 40
+                ? `${styles.choiceRow} ${styles.choiceRowWide}`
+                : styles.choiceRow
+            }
+          >
+            <dt>{line.label}</dt>
+            <dd>{line.value}</dd>
+          </div>
+        ))}
+      </dl>
+    </section>
   );
 }
 
@@ -147,30 +237,40 @@ export function SectionMenu({
   current,
   onGoTo,
   reached,
-  details,
+  openedAiSettings = false,
   className,
 }: {
   current: number;
   onGoTo?: (index: number) => void;
   /** The furthest section the counsellor has opened. Later ones stay locked. */
   reached?: number;
-  /** Values shown under each section dot. Only used on the last step. */
-  details?: { label: string; value: string }[][];
+  /** True after the counsellor has opened AI-innstillinger. */
+  openedAiSettings?: boolean;
   className?: string;
 }) {
   const furthest = Math.max(reached ?? current, current);
   return (
     <ol className={className ? `${styles.sections} ${className}` : styles.sections}>
       {SECTIONS.map((section, index) => {
+        const optional = (FORM_SECTIONS[index] as FormSection | undefined)?.optional;
         const open = Boolean(onGoTo) && index !== current && index <= furthest;
+        // A skipped optional step is past, but not done: the counsellor never opened it.
+        const skipped = Boolean(
+          optional && !openedAiSettings && index < furthest && index !== current,
+        );
         // Visited sections keep their check when the counsellor jumps back.
-        const done = index !== current && index <= furthest;
+        const done = index !== current && index <= furthest && !skipped;
         const mark = done ? styles.doneMark : styles.mark;
-        const lines = details?.[index] ?? [];
+        const itemClass = [
+          index === current ? styles.current : null,
+          optional ? styles.optionalStep : null,
+        ]
+          .filter(Boolean)
+          .join(' ');
         return (
           <li
             key={section}
-            className={index === current ? styles.current : undefined}
+            className={itemClass || undefined}
             aria-current={index === current ? 'step' : undefined}
           >
             {open && onGoTo ? (
@@ -184,16 +284,7 @@ export function SectionMenu({
                 {section}
               </span>
             )}
-            {lines.length > 0 && (
-              <dl className={styles.under}>
-                {lines.map((line) => (
-                  <div key={line.label} className={styles.underRow}>
-                    <dt>{line.label}</dt>
-                    <dd>{line.value}</dd>
-                  </div>
-                ))}
-              </dl>
-            )}
+            {optional ? <span className={styles.optional}>Valgfritt</span> : null}
           </li>
         );
       })}
@@ -211,6 +302,31 @@ function stillingComplete(value: Workplace): boolean {
     value.industry !== '' &&
     value.sector !== null
   );
+}
+
+function stillingChoiceLines(
+  value: Workplace,
+  templates: JobTemplate[],
+): { label: string; value: string }[] {
+  const jobTemplate =
+    value.templateId === NO_TEMPLATE
+      ? 'Ingen mal er valgt, så intervjueren får ingen stillingsbeskrivelse.'
+      : (templates.find((item) => item.id === value.templateId)?.title ?? '');
+  let employer = '';
+  if (value.sector === 'ikke-oppgitt') employer = 'Ikke oppgitt';
+  else if (value.sector === 'offentlig' || value.sector === 'privat') {
+    employer = SECTOR_LABELS[value.sector];
+  }
+  return [
+    { label: 'Stilling', value: value.jobTitle.trim() },
+    { label: 'Stillingsmal', value: jobTemplate },
+    {
+      label: 'Bransje',
+      value: value.industry === NO_TEMPLATE ? 'Ingen bransje' : value.industry,
+    },
+    { label: 'Arbeidsgiver', value: employer },
+    { label: 'Bedrift', value: value.company.trim() },
+  ];
 }
 
 function RequiredMark() {
@@ -234,7 +350,9 @@ export function StillingStep({
   onNext,
   onGoTo,
   reached,
+  openedAiSettings,
   onSaveDraft,
+  peeks,
 }: StillingStepProps) {
   const [showAllJobs, setShowAllJobs] = useState(false);
   const [showAllIndustries, setShowAllIndustries] = useState(false);
@@ -250,7 +368,7 @@ export function StillingStep({
    * Chooses the stillingsmal and fills in its job title, industry and employer. A job title the
    * counsellor wrote themselves is kept; one a stillingsmal filled in is replaced.
    */
-  function pickTemplate(template: IndustryTemplate) {
+  function pickTemplate(template: JobTemplate) {
     const previous = templates.find((item) => item.id === value.templateId);
     const title = value.jobTitle.trim();
     const ownTitle = title !== '' && title !== previous?.title;
@@ -264,7 +382,13 @@ export function StillingStep({
   }
 
   return (
-    <WizardFrame current={0} onGoTo={onGoTo} reached={reached} onSaveDraft={onSaveDraft}>
+    <WizardFrame
+      current={0}
+      onGoTo={onGoTo}
+      reached={reached}
+      openedAiSettings={openedAiSettings}
+      peeks={peeks}
+    >
       <form
         className={styles.form}
         onSubmit={(event) => {
@@ -285,10 +409,16 @@ export function StillingStep({
         />
 
         <div className={styles.suggestions}>
-          <p className={styles.suggestionLabel} id="job-templates-label">
-            Stillingsmaler
-            <RequiredMark />
-          </p>
+          <div className={helpStyles.row}>
+            <p className={styles.suggestionLabel} id="job-templates-label">
+              Stillingsmaler
+              <RequiredMark />
+            </p>
+            <FieldHelp
+              label="Stillingsmaler"
+              description="En stillingsmal fyller inn stilling, bransje og arbeidsgiver. Du kan endre dem etterpå."
+            />
+          </div>
           <p className={styles.hint}>
             En stillingsmal fyller inn stilling, bransje og arbeidsgiver for deg. Du kan endre dem
             etterpå.
@@ -334,10 +464,16 @@ export function StillingStep({
         </div>
 
         <div className={styles.suggestions}>
-          <p className={styles.suggestionLabel} id="industry-label">
-            Bransje
-            <RequiredMark />
-          </p>
+          <div className={helpStyles.row}>
+            <p className={styles.suggestionLabel} id="industry-label">
+              Bransje
+              <RequiredMark />
+            </p>
+            <FieldHelp
+              label="Bransje"
+              description="Hvilken bransje stillingen er i, for eksempel helse eller varehandel."
+            />
+          </div>
           <div className={styles.pills} role="group" aria-labelledby="industry-label">
             <Button
               type="button"
@@ -379,10 +515,16 @@ export function StillingStep({
         </div>
 
         <div className={styles.employer}>
-          <span className={styles.suggestionLabel} id="employer-label">
-            Arbeidsgiver
-            <RequiredMark />
-          </span>
+          <div className={helpStyles.row}>
+            <span className={styles.suggestionLabel} id="employer-label">
+              Arbeidsgiver
+              <RequiredMark />
+            </span>
+            <FieldHelp
+              label="Arbeidsgiver"
+              description="Om arbeidsgiveren er offentlig, privat, eller ikke oppgitt."
+            />
+          </div>
           <ToggleButtonGroup
             exclusive
             size="small"
@@ -399,24 +541,27 @@ export function StillingStep({
           </ToggleButtonGroup>
         </div>
 
-        <TextField
-          label="Bedrift (valgfritt)"
-          value={value.company}
-          onChange={(event) => onChange({ ...value, company: event.target.value })}
-          helperText="Du kan hoppe over dette. Intervjueren bruker da en generell bedrift."
-          fullWidth
-        />
-
-        <div className={styles.actions}>
-          <div className={styles.nav}>
-            <Button component={Link} href="/browse-agents">
-              Tilbake
-            </Button>
-            <Button type="submit" variant="contained" disabled={!stillingComplete(value)}>
-              Neste
-            </Button>
-          </div>
+        <div className={styles.fieldWithHelp}>
+          <TextField
+            label="Bedrift (valgfritt)"
+            value={value.company}
+            onChange={(event) => onChange({ ...value, company: event.target.value })}
+            helperText="Du kan hoppe over dette. Intervjueren bruker da en generell bedrift."
+            fullWidth
+          />
+          <FieldHelp
+            label="Bedrift"
+            description="Navnet på bedriften intervjuet er hos. Valgfritt. Uten navn bruker intervjueren en generell bedrift."
+          />
         </div>
+
+        <ChoiceSummary lines={stillingChoiceLines(value, templates)} />
+        <WizardNav
+          backHref="/browse-agents"
+          nextSubmit
+          nextDisabled={!stillingComplete(value)}
+          onSaveDraft={onSaveDraft}
+        />
       </form>
     </WizardFrame>
   );

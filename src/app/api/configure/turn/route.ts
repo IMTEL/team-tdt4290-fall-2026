@@ -1,10 +1,6 @@
 import type { NextRequest } from 'next/server';
 
-import {
-  findIndustryTemplate,
-  industryConfiguration,
-  type IndustryTemplate,
-} from '@/data/industry-templates';
+import { findJobTemplate, jobConfiguration, type JobTemplate } from '@/data/job-templates';
 import { findBuiltInLegalTemplate } from '@/data/legal-templates';
 import { findBuiltInTemplate, type AgentTemplate } from '@/data/templates';
 import { buildBriefing, parseAnswers } from '@/domain/agentTypes/configurator';
@@ -54,7 +50,7 @@ export async function POST(req: NextRequest) {
   let messages: RagdollMessage[];
   let templateId: string | undefined;
   let profileId: string | undefined;
-  let industryTemplateId: string | undefined;
+  let jobTemplateId: string | undefined;
   let legalTemplateIds: string[] = [];
   try {
     const body = await req.json();
@@ -93,16 +89,18 @@ export async function POST(req: NextRequest) {
       }
       profileId = body.profileId;
     }
-    // No industryTemplateId means the counsellor started without an industry template.
-    if (body.industryTemplateId !== undefined) {
+    // No jobTemplateId means the counsellor started without a stillingsmal. Accept the old
+    // industryTemplateId name so older clients still work.
+    const rawJobTemplateId = body.jobTemplateId ?? body.industryTemplateId;
+    if (rawJobTemplateId !== undefined) {
       if (
-        typeof body.industryTemplateId !== 'string' ||
-        !body.industryTemplateId ||
-        !definition.presets?.industryTemplate
+        typeof rawJobTemplateId !== 'string' ||
+        !rawJobTemplateId ||
+        !definition.presets?.jobTemplate
       ) {
-        return Response.json({ error: 'Unknown industry template' }, { status: 400 });
+        return Response.json({ error: 'Unknown job template' }, { status: 400 });
       }
-      industryTemplateId = body.industryTemplateId;
+      jobTemplateId = rawJobTemplateId;
     }
     // No legalTemplateIds means the counsellor chose no legal templates.
     if (body.legalTemplateIds !== undefined) {
@@ -147,12 +145,12 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // Industry templates are only built in, so there is nothing to load from RAGdoll.
-  let industry: IndustryTemplate | undefined;
-  if (industryTemplateId) {
-    industry = findIndustryTemplate(industryTemplateId);
-    if (!industry) {
-      return Response.json({ error: 'Unknown industry template' }, { status: 400 });
+  // Built-in stillingsmaler live in code, so there is nothing to load from RAGdoll.
+  let jobTemplate: JobTemplate | undefined;
+  if (jobTemplateId) {
+    jobTemplate = findJobTemplate(jobTemplateId);
+    if (!jobTemplate) {
+      return Response.json({ error: 'Unknown job template' }, { status: 400 });
     }
   }
 
@@ -181,7 +179,7 @@ export async function POST(req: NextRequest) {
   const sources: AnswerSources = {};
   const {
     jobSeekerProfile,
-    industryTemplate,
+    jobTemplate: jobTemplatePreset,
     legalTemplates: legalField,
   } = definition.presets ?? {};
   const templateField = definition.presets?.template?.field;
@@ -193,11 +191,11 @@ export async function POST(req: NextRequest) {
     decided[jobSeekerProfile] = jobSeeker;
     sources[jobSeekerProfile] = { kind: 'profile', id: profileId };
   }
-  // No source: the edit form has no industry choice, so there is nothing to show it in.
-  if (industryTemplate && industry) {
-    const { stilling, bransje } = industryConfiguration(industry);
-    decided[industryTemplate.job] = stilling;
-    decided[industryTemplate.industry] = bransje;
+  // No source: the edit form has no stillingsmal choice, so there is nothing to show it in.
+  if (jobTemplatePreset && jobTemplate) {
+    const { stilling, bransje } = jobConfiguration(jobTemplate);
+    decided[jobTemplatePreset.job] = stilling;
+    decided[jobTemplatePreset.industry] = bransje;
   }
   if (legalField && legalTemplates.length > 0) {
     decided[legalField] = describeLegalFrameworks(legalTemplates);

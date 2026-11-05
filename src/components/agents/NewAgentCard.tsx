@@ -69,7 +69,7 @@ export function NewAgentCard() {
             planned={listPlannedAgentTypes()}
             labelledBy={DIALOG_TITLE_ID}
             onSelect={(definition) => {
-              router.push(`/configure?type=${encodeURIComponent(definition.id)}`);
+              router.push(`/configure?type=${encodeURIComponent(definition.id)}&new=1`);
             }}
           />
         </DialogContent>

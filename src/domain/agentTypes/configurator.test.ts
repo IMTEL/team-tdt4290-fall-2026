@@ -64,7 +64,7 @@ describe('decidedFields', () => {
   });
 
   it('gives both fields an industry template fills in, in the type’s field order', () => {
-    expect(decidedFields(interviewer, { template: true, industryTemplate: true })).toEqual([
+    expect(decidedFields(interviewer, { template: true, jobTemplate: true })).toEqual([
       'stilling',
       'bransje',
       'intervjuer',

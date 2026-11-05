@@ -31,7 +31,7 @@ describe('NewAgentCard', () => {
     await user.click(screen.getByRole('button', { name: /Ny agent/ }));
     await user.click(screen.getByRole('button', { name: /^Intervjuer/ }));
 
-    expect(push).toHaveBeenCalledWith('/configure?type=interviewer');
+    expect(push).toHaveBeenCalledWith('/configure?type=interviewer&new=1');
   });
 
   it('closes from the cross and from a click outside the dialog', async () => {

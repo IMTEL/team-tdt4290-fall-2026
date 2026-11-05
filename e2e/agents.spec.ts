@@ -17,7 +17,7 @@ test('a new user has no agents, only the card for a new one', async ({ page }) =
     .getByRole('button', { name: /^Intervjuer/ })
     .click();
 
-  await expect(page).toHaveURL(/\/configure\?type=interviewer$/);
+  await expect(page).toHaveURL(/\/configure\?type=interviewer/);
   await expect(
     page.getByRole('heading', { level: 1, name: 'Ny intervjuagent', exact: true }),
   ).toBeVisible();
@@ -201,12 +201,23 @@ test('an agent can be published to The Candidate and hidden again', async ({ pag
   await dialog.getByRole('button', { name: 'Publiser', exact: true }).click();
   await expect(chip).toBeVisible();
 
+  await page.goto('/browse-agents');
+  const card = page.getByRole('link', { name: /^Intervjuer for butikk/ });
+  await expect(card).toContainText('Publisert');
+  await expect(card).not.toContainText('Privat');
+
+  await page.goto(`/browse-agents/${id}`);
   await page.getByRole('button', { name: 'Gjem agent', exact: true }).click();
   await expect(page.getByRole('dialog')).toContainText('Gjemme «Butikkintervju»?');
   await page.getByRole('dialog').getByRole('button', { name: 'Gjem agent', exact: true }).click();
   await expect(chip).toBeHidden();
 
+  await page.goto('/browse-agents');
+  await expect(card).toContainText('Privat');
+  await expect(card).not.toContainText('Publisert');
+
   // The page still knows after loading the agent again.
+  await page.goto(`/browse-agents/${id}`);
   await page.reload();
   await expect(page.getByRole('button', { name: 'Publiser', exact: true })).toBeVisible();
   await expect(chip).toBeHidden();

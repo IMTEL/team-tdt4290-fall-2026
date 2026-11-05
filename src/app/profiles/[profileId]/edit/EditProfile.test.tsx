@@ -56,6 +56,20 @@ describe('EditProfile', () => {
     expect(push).toHaveBeenCalledWith('/templates');
   });
 
+  it('goes back to the wizard when that is where the form was opened', async () => {
+    fetchMock.mockResolvedValue(profile);
+    updateMock.mockResolvedValue();
+    const user = userEvent.setup();
+    const backTo = '/configure?type=interviewer&step=jobbsøker';
+    render(<EditProfile profileId="profile-1" cancelHref={backTo} />);
+
+    expect(await screen.findByRole('link', { name: 'Avbryt' })).toHaveAttribute('href', backTo);
+    await user.click(screen.getByRole('button', { name: 'Lagre endringene' }));
+
+    await vi.waitFor(() => expect(push).toHaveBeenCalledWith(backTo));
+    expect(sessionStorage.getItem('kfi-templates-flash')).toBeNull();
+  });
+
   it('shows the not-found page when the counsellor has no such profile', async () => {
     fetchMock.mockResolvedValue(null);
     render(<EditProfile profileId="profile-1" />);

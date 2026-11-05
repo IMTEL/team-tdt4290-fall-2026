@@ -1,3 +1,5 @@
+import { useId, useState } from 'react';
+import FilterAltIcon from '@mui/icons-material/FilterAlt';
 import FilterAltOffIcon from '@mui/icons-material/FilterAltOff';
 import Button from '@mui/material/Button';
 import MenuItem from '@mui/material/MenuItem';
@@ -29,47 +31,66 @@ type Props = {
 };
 
 /**
- * One dropdown per filter, with «Alle» first, and a button that clears them all. A filter with no
- * choices (no agent has that answer) is turned off.
+ * A Filtrer button that opens one dropdown per filter, with «Alle» first, and a button that
+ * clears them all. A filter with no choices (no agent has that answer) is turned off.
  */
 export function AgentFilters({ options, value, onChange, onReset }: Props) {
+  const [open, setOpen] = useState(false);
+  const panelId = useId();
+  const active = hasActiveFilters(value);
+
   return (
-    // English translation: Filter agents
-    <div role="group" aria-label="Filtrer agenter" className={styles.filters}>
-      {FILTERS.map(({ key, label }) => (
-        <TextField
-          key={key}
-          select
-          size="small"
-          label={label}
-          value={value[key]}
-          onChange={(event) => onChange({ ...value, [key]: event.target.value })}
-          disabled={options[key].length === 0}
-          className={styles.field}
-          slotProps={{
-            // Shows «Alle» in the field, not an empty box under the label.
-            select: { displayEmpty: true },
-            inputLabel: { shrink: true },
-          }}
-        >
-          {/* English translation: All */}
-          <MenuItem value="">Alle</MenuItem>
-          {options[key].map((option) => (
-            <MenuItem key={option.value} value={option.value}>
-              {option.label}
-            </MenuItem>
-          ))}
-        </TextField>
-      ))}
+    <>
       <Button
-        onClick={onReset}
-        disabled={!hasActiveFilters(value)}
-        startIcon={<FilterAltOffIcon />}
-        className={styles.reset}
+        variant={open || active ? 'contained' : 'outlined'}
+        className={styles.toggle}
+        aria-expanded={open}
+        aria-controls={open ? panelId : undefined}
+        onClick={() => setOpen((current) => !current)}
+        startIcon={<FilterAltIcon />}
       >
-        {/* English translation: Reset filters */}
-        Nullstill filtre
+        {/* English translation: Filter */}
+        Filtrer
       </Button>
-    </div>
+      {open && (
+        // English translation: Filter agents
+        <div id={panelId} role="group" aria-label="Filtrer agenter" className={styles.filters}>
+          {FILTERS.map(({ key, label }) => (
+            <TextField
+              key={key}
+              select
+              size="small"
+              label={label}
+              value={value[key]}
+              onChange={(event) => onChange({ ...value, [key]: event.target.value })}
+              disabled={options[key].length === 0}
+              className={styles.field}
+              slotProps={{
+                // Shows «Alle» in the field, not an empty box under the label.
+                select: { displayEmpty: true },
+                inputLabel: { shrink: true },
+              }}
+            >
+              {/* English translation: All */}
+              <MenuItem value="">Alle</MenuItem>
+              {options[key].map((option) => (
+                <MenuItem key={option.value} value={option.value}>
+                  {option.label}
+                </MenuItem>
+              ))}
+            </TextField>
+          ))}
+          <Button
+            onClick={onReset}
+            disabled={!active}
+            startIcon={<FilterAltOffIcon />}
+            className={styles.reset}
+          >
+            {/* English translation: Reset filters */}
+            Nullstill filtre
+          </Button>
+        </div>
+      )}
+    </>
   );
 }

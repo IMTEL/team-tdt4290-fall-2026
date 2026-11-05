@@ -61,15 +61,21 @@ Unit and component level only:
   route, passes the abort signal on, turns failures (including 404) into Norwegian `ChatError`
   messages, and rethrows aborts untouched.
 - `src/app/test-chat/TestChat.test.tsx` and `page.test.tsx`: the greeting, the conversation goes
-  to the agent in `?agent=`, starting over, a new conversation when the agent changes, and a link
-  to the agents when the URL names none.
+  to the agent in `?agent=`, starting over, a new conversation when the agent changes, a link
+  to the agents when the URL names none, observer feedback shown as the question that was
+  asked and how it was judged, and the observer's system prompt closed until opened.
+- `src/app/test-chat/ObserverPanel.test.tsx`: each observer point is paired with the interviewer
+  question; many points show a summary until «Vis hvert spørsmål»; the observer's system prompt
+  is hidden until opened.
+- `src/domain/observerFeedback.test.ts`: parsing the observer's lines, dropping invented quotes,
+  pairing points with the interviewer question, and the summary text.
 - `src/components/chat/ChatInput.test.tsx`: Enter and the button send the trimmed text and clear
   the box, Shift+Enter adds a new line, blank text and a disabled input never send.
 - `src/components/chat/MessageList.test.tsx`: messages in order with a hidden speaker label, and
-  the typing bubble only while the assistant answers; the newest question's answer options can be
+  the thinking bubble only while the assistant answers; the newest question's answer options can be
   clicked, older ones are shown as a numbered list, and options are hidden while the assistant
   answers.
-- `src/components/chat/AgentChat.test.tsx`: greeting, typing bubble and reply; the whole
+- `src/components/chat/AgentChat.test.tsx`: greeting, thinking indicator and reply; the whole
   conversation (greeting included) is sent; friendly error, sending blocked, Retry resends the same
   history without repeating the user's message; no technical error text; leaving the page aborts
   the request.
@@ -86,8 +92,9 @@ Unit and component level only:
   empty one.
 - `src/components/templates/TemplatePicker.test.tsx`: every template is shown, clicking one
   selects it, "Fortsett uten mal" selects none, "Lag en ny mal" links to `/create-template` (with
-  the agent type when given), the type's lead is shown, and
-  only saved templates have edit and delete.
+  the agent type when given), the type's lead is shown, only saved templates have edit and delete,
+  focus pills open editing (or the built-in page), and the interviewer text is on the card and in
+  a hover tip.
 - `src/app/configure/page.test.tsx`: the page starts by asking for the agent type, with planned
   types shown as "Kommer snart" and not choosable; `?type=interviewer` opens the wizard (stilling
   → intervjuer → jobbsøker → innstillinger → fullføre); section progress and jumping back keep
@@ -102,7 +109,7 @@ Unit and component level only:
   twice.
 - `src/app/browse-agents/AgentList.test.tsx`: Ny agent first in the interviewer section; agents as
   cards; toast «Agent lagret» from flash; a local draft as an Utkast card; deleting the draft
-  clears storage and removes the card.
+  clears storage and removes the card; filter dropdowns stay hidden until **Filtrer**.
 - `src/components/templates/IndustryPicker.test.tsx`: every industry template is shown with its
   industry and sector, clicking one selects it, "Fortsett uten bransjemal" selects none, and the
   sector filter shows only public or only private jobs.
@@ -171,7 +178,8 @@ Unit and component level only:
   from the environment, as the chosen agent type (an interviewer when none is sent); 401, 400
   (including an unknown or planned type) and 500 cases save nothing; lists the counsellor's agents.
 - `src/app/api/agents/[agentId]/route.test.ts`: editing updates the same agent (same id) with the
-  new name, answers and prompt, and keeps the fields the edit does not touch; 401 and 400 cases
+  new name, answers and prompt, and keeps the fields the edit does not touch; ratings are written
+  back into the rebuilt prompt; 401 and 400 cases
   (bad JSON, bad name, a missing answer, an agent not made in this app) save nothing; an agent
   the user does not have gives 404 and is never written, so RAGdoll cannot create a new one;
   RAGdoll failures give 502.
@@ -212,6 +220,12 @@ Unit and component level only:
   only its definition.
 - `src/domain/interviewerPrompt.test.ts`: filling the interviewer prompt from the answers, with
   the Tillegg line only when something was added.
+- `src/domain/interviewerFeedbackPrompt.test.ts`: counsellor ratings of test-chat replies become a
+  prompt section, many ratings are summarised so older comments are kept, an observer-written
+  summary is used when there is one, an older section is replaced, and the block is dropped when
+  every rating is undone.
+- `src/server/feedbackPrompt.test.ts`: ratings are written into the stored prompt; many ratings
+  are sent to the observer; comments are listed if the observer does not answer.
 - `src/domain/interviewerSummary.test.ts` and `src/domain/difficulty.test.ts`: the summary in up to
   three sentences; each sentence is left out when its answers are empty; the type and level of
   difficulty (also when the chat added the number of questions); a long job seeker description is
@@ -284,21 +298,21 @@ variable or a changed RAGdoll API.
 Before you start: RAGdoll runs locally and `.env` is filled in as described in the README
 (including `IDUN_API_KEY`). Restart `npm run dev` after changing `.env`.
 
-| #   | Do this                                                                                                          | You should see                                                                                            |
-| --- | ---------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
-| 1   | Open <http://localhost:3000/configure?type=interviewer> while logged out                                         | You are sent to `/login`                                                                                  |
-| 2   | Log in as `test@example.com` / `test`                                                                            | You land on the wizard at **Stilling og arbeidsplass**                                                    |
-| 3   | Fill in a stilling (and required workplace fields), go through Intervjuer → Jobbsøker → Innstillinger → Fullføre | **Publiser**, **Lagre som utkast** and **Test agenten** are available; overview shows what you chose      |
-| 4   | Keep or change the suggested name and click **Publiser**                                                         | You go to `/browse-agents` with toast **Agent lagret**; the new agent is in the list                      |
-| 5   | In the browser console (F12), run `await (await fetch('/api/agents')).json()`                                    | The new agent is in the list, with your configuration as JSON in `description`                            |
-| 6   | Open the Network tab, repeat steps 3 to 5, and look at every request to `/api/*`                                 | No response contains `llm_api_key`, `embedding_api_key`, an access key or a token                         |
-| 7   | Start a new interviewer, fill only the first section, click **Lagre utkast**                                     | Agenter shows an **Utkast** card; toast **Utkast lagret**; card opens `/configure?type=interviewer` again |
-| 8   | On the Utkast card, click **Slett**, confirm                                                                     | The card is gone; `localStorage` has no `kfi-configure-draft`                                             |
-| 9   | Log out, log in as a second user (register one on the login page), and repeat step 5                             | The first user's agent is not in this list                                                                |
-| 10  | Log in as the first user again, open the agent on `/browse-agents` and click **Rediger**                         | The form shows the agent's name and answers                                                               |
-| 11  | Change the name and one answer, and click **Lagre endringer**                                                    | Back on the details page with the new values; the system prompt shows the new answer                      |
-| 12  | Repeat step 5                                                                                                    | Same number of agents as before, with the same id: the agent was updated, not copied                      |
-| 13  | Stop RAGdoll, change an answer and save, then start RAGdoll again                                                | A Norwegian error, and the form still shows what you typed                                                |
+| #   | Do this                                                                                                          | You should see                                                                                             |
+| --- | ---------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| 1   | Open <http://localhost:3000/configure?type=interviewer> while logged out                                         | You are sent to `/login`                                                                                   |
+| 2   | Log in as `test@example.com` / `test`                                                                            | You land on the wizard at **Stilling og arbeidsplass**                                                     |
+| 3   | Fill in a stilling (and required workplace fields), go through Intervjuer → Jobbsøker → Innstillinger → Fullføre | **Publiser**, **Lagre som privat agent** and **Test agenten** are available; overview shows what you chose |
+| 4   | Keep or change the suggested name and click **Publiser**                                                         | You go to `/browse-agents` with toast **Agent lagret**; the new agent is in the list                       |
+| 5   | In the browser console (F12), run `await (await fetch('/api/agents')).json()`                                    | The new agent is in the list, with your configuration as JSON in `description`                             |
+| 6   | Open the Network tab, repeat steps 3 to 5, and look at every request to `/api/*`                                 | No response contains `llm_api_key`, `embedding_api_key`, an access key or a token                          |
+| 7   | Start a new interviewer, fill only the first section, click **Lagre utkast**                                     | Agenter shows an **Utkast** card; toast **Utkast lagret**; card opens `/configure?type=interviewer` again  |
+| 8   | On the Utkast card, click **Slett**, confirm                                                                     | The card is gone; `localStorage` has no `kfi-configure-draft`                                              |
+| 9   | Log out, log in as a second user (register one on the login page), and repeat step 5                             | The first user's agent is not in this list                                                                 |
+| 10  | Log in as the first user again, open the agent on `/browse-agents` and click **Rediger**                         | The form shows the agent's name and answers                                                                |
+| 11  | Change the name and one answer, and click **Lagre endringer**                                                    | Back on the details page with the new values; the system prompt shows the new answer                       |
+| 12  | Repeat step 5                                                                                                    | Same number of agents as before, with the same id: the agent was updated, not copied                       |
+| 13  | Stop RAGdoll, change an answer and save, then start RAGdoll again                                                | A Norwegian error, and the form still shows what you typed                                                 |
 
 If **Publiser** stays disabled or shows that required fields are missing, go back through the
 section list and fill every marked field (stilling, arbeidsgiver, intervjutype, vanskelighetsgrad,

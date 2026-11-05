@@ -10,8 +10,8 @@ export const AGENT_STATUS_LABEL: Record<AgentStatus, string> = {
 };
 
 /**
- * A saved agent is publisert when The Candidate lists it, and privat otherwise. An utkast is only
- * stored in the browser (see DraftAgentCard), so a saved agent is never one.
+ * A saved agent is private to the counsellor until it is published to The Candidate. An unfinished
+ * wizard is an utkast, and is shown as its own card, not as an agent.
  */
 export function agentStatus(agent: Agent): AgentStatus {
   return agent.isPublished ? 'published' : 'private';

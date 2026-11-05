@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 
+import { returnPath } from '@/lib/returnTo';
 import { CreateProfileForm } from './CreateProfileForm';
 import styles from '../page.module.css';
 
@@ -7,7 +8,12 @@ export const metadata: Metadata = {
   title: 'Lag en jobbsøkermal',
 };
 
-export default function NewProfilePage() {
+export default async function NewProfilePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ returnTo?: string | string[] }>;
+}) {
+  const { returnTo } = await searchParams;
   return (
     <div className={styles.page}>
       <header className={styles.header}>
@@ -20,7 +26,7 @@ export default function NewProfilePage() {
         </p>
       </header>
 
-      <CreateProfileForm />
+      <CreateProfileForm cancelHref={returnPath(returnTo) ?? '/templates'} />
     </div>
   );
 }

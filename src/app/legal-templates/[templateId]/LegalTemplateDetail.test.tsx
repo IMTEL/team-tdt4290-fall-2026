@@ -48,7 +48,7 @@ describe('LegalTemplateDetail', () => {
     expect(screen.getByRole('button', { name: 'Slett Arbeidsmiljøloven § 9-3' })).toBeVisible();
     expect(screen.getByRole('link', { name: 'Tilbake til malene' })).toHaveAttribute(
       'href',
-      '/templates',
+      '/templates?seksjon=lovverk#lovverk',
     );
   });
 
@@ -59,7 +59,14 @@ describe('LegalTemplateDetail', () => {
       screen.getByRole('heading', { level: 1, name: 'Rettigheter i ansettelsesprosessen' }),
     ).toBeVisible();
     expect(screen.getByText('Følger med appen')).toBeVisible();
-    expect(screen.getByText(/Likestillings- og diskrimineringsloven § 30/)).toBeVisible();
+    expect(
+      screen.getByRole('heading', { name: 'Likestillings- og diskrimineringsloven § 30' }),
+    ).toBeVisible();
+    expect(screen.getByText(/spørre om graviditet/)).toBeVisible();
+    expect(screen.getAllByRole('link', { name: 'Se kilden' })[0]).toHaveAttribute(
+      'href',
+      'https://lovdata.no/lov/2017-06-16-51/%C2%A730',
+    );
     expect(screen.queryByRole('link', { name: 'Rediger' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Slett/ })).not.toBeInTheDocument();
     expect(fetchLegalTemplateMock).not.toHaveBeenCalled();

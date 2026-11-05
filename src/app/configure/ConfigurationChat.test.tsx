@@ -2,7 +2,7 @@ import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { findIndustryTemplate } from '@/data/industry-templates';
+import { findJobTemplate } from '@/data/job-templates';
 import { findBuiltInTemplate } from '@/data/templates';
 import { interviewer } from '@/domain/agentTypes/interviewer';
 import { saveConfiguredAgent, sendConfigurationTurn } from './api';
@@ -73,7 +73,7 @@ describe('ConfigurationChat', () => {
     expect(choices).toEqual({
       templateId: 'teamleder',
       profileId: null,
-      industryTemplateId: null,
+      jobTemplateId: null,
       legalTemplateIds: [],
     });
     expect(history.map(({ role, content }) => ({ role, content }))).toEqual([
@@ -111,12 +111,12 @@ describe('ConfigurationChat', () => {
         definition={interviewer}
         template={template}
         profile={null}
-        industry={findIndustryTemplate('helsefagarbeider')!}
+        jobTemplate={findJobTemplate('helsefagarbeider')!}
       />,
     );
 
     expect(
-      screen.getByText(/bransjemalen «Helsefagarbeider» \(Helse og omsorg, offentlig sektor\)/),
+      screen.getByText(/stillingsmalen «Helsefagarbeider» \(Helse og omsorg, offentlig sektor\)/),
     ).toBeInTheDocument();
     expect(screen.getByText(/Hvilken bedrift eller virksomhet/)).toBeInTheDocument();
     expect(screen.queryByText(/Hvilken stilling/)).not.toBeInTheDocument();
@@ -127,7 +127,7 @@ describe('ConfigurationChat', () => {
     expect(sendMock.mock.calls[0][1]).toEqual({
       templateId: 'teamleder',
       profileId: null,
-      industryTemplateId: 'helsefagarbeider',
+      jobTemplateId: 'helsefagarbeider',
       legalTemplateIds: [],
     });
   });
@@ -144,7 +144,7 @@ describe('ConfigurationChat', () => {
     expect(sendMock.mock.calls[0][1]).toEqual({
       templateId: null,
       profileId: null,
-      industryTemplateId: null,
+      jobTemplateId: null,
       legalTemplateIds: [],
     });
   });
@@ -162,7 +162,7 @@ describe('ConfigurationChat', () => {
     expect(sendMock.mock.calls[0][1]).toEqual({
       templateId: 'teamleder',
       profileId: 'profile-1',
-      industryTemplateId: null,
+      jobTemplateId: null,
       legalTemplateIds: [],
     });
   });

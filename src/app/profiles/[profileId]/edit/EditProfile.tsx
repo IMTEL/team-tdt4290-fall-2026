@@ -17,7 +17,14 @@ type LoadState =
   | { kind: 'error'; message: string };
 
 /** Loads one of the counsellor's profiles and shows the form for editing it. */
-export function EditProfile({ profileId }: { profileId: string }) {
+export function EditProfile({
+  profileId,
+  cancelHref = '/templates',
+}: {
+  profileId: string;
+  /** The page that opened the form, so Avbryt and a save go back there. */
+  cancelHref?: string;
+}) {
   const router = useRouter();
   const [state, setState] = useState<LoadState>({ kind: 'loading' });
 
@@ -54,10 +61,11 @@ export function EditProfile({ profileId }: { profileId: string }) {
       {state.kind === 'ready' && (
         <ProfileForm
           initial={state.profile}
+          cancelHref={cancelHref}
           onSave={(profile) => updateProfile(profileId, profile)}
           onSaved={() => {
-            setTemplatesFlash(PROFILE_SAVED_FLASH);
-            router.push('/templates');
+            if (cancelHref.startsWith('/templates')) setTemplatesFlash(PROFILE_SAVED_FLASH);
+            router.push(cancelHref);
           }}
         />
       )}

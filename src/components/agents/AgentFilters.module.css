@@ -1,6 +1,12 @@
-/* The dropdowns in one row that wraps; one column on a phone. */
+.toggle {
+  grid-area: toggle;
+  justify-self: start;
+}
+
+/* Full width under the search and the Filtrer button. */
 .filters {
   display: grid;
+  grid-area: filters;
   grid-template-columns: 1fr;
   gap: var(--space-3);
   align-items: center;

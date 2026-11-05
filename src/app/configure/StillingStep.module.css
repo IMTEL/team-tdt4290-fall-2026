@@ -36,39 +36,17 @@
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(16.5rem, 16.5rem);
   gap: var(--space-5);
-  align-items: center;
+  align-items: start;
   transition: grid-template-columns 0.5s cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-.layoutExpanded {
-  grid-template-columns: minmax(0, 0fr) minmax(16.5rem, 36rem);
-  justify-content: center;
 }
 
 .formSlot {
   min-width: 0;
-  max-height: 120rem;
-  overflow: hidden;
-  opacity: 1;
-  transition:
-    opacity 0.3s ease,
-    max-height 0.5s cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-.layoutExpanded .formSlot {
-  max-height: 0;
-  opacity: 0;
-  pointer-events: none;
 }
 
 @media (max-width: 800px) {
-  .layout,
-  .layoutExpanded {
+  .layout {
     grid-template-columns: 1fr;
-  }
-
-  .layoutExpanded .formSlot {
-    display: none;
   }
 }
 
@@ -97,6 +75,21 @@
   color: var(--muted-foreground);
 }
 
+.fieldWithHelp {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-1);
+}
+
+.fieldWithHelp > :first-child {
+  flex: 1;
+  min-width: 0;
+}
+
+.fieldWithHelp > :last-child {
+  margin-top: 0.65rem;
+}
+
 .commaHint {
   color: var(--foreground) !important;
   font-size: 1rem !important;
@@ -112,6 +105,14 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
+}
+
+.box {
+  margin: 0;
+  padding: var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--card);
 }
 
 .pills {
@@ -168,95 +169,145 @@
   margin-top: var(--space-2);
 }
 
+.actions > :first-child:not(.nav) {
+  margin-right: auto;
+}
+
 .nav {
   display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
   gap: var(--space-2);
+}
+
+.choiceSummary {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: color-mix(in oklch, var(--muted) 40%, var(--card));
+}
+
+.choiceList {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-2) var(--space-4);
+  margin: 0;
+}
+
+@media (min-width: 801px) {
+  .choiceList {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.choiceRow {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+  margin: 0;
+}
+
+.choiceRow dt,
+.choiceRow dd {
+  margin: 0;
+}
+
+.choiceRow dt {
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
+}
+
+.choiceRow dd {
+  font-size: 0.95rem;
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+
+.choiceRowWide {
+  grid-column: 1 / -1;
 }
 
 .side {
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
-  align-self: center;
   width: 100%;
   padding: var(--space-4);
   transition: padding 0.5s cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-.layoutExpanded .side {
-  padding: var(--space-5);
-}
-
-.draft {
-  display: grid;
-  grid-template-rows: 1fr;
-  margin-top: var(--space-3);
-  opacity: 1;
-  transition:
-    grid-template-rows 0.45s cubic-bezier(0.22, 1, 0.36, 1),
-    margin-top 0.45s cubic-bezier(0.22, 1, 0.36, 1),
-    opacity 0.3s ease;
-}
-
-.layoutExpanded .draft {
-  grid-template-rows: 0fr;
-  margin-top: 0;
-  opacity: 0;
-}
-
-.clip {
-  overflow: hidden;
-  min-height: 0;
-}
-
-.extra {
-  display: grid;
-  grid-template-rows: 0fr;
-  opacity: 0;
-  transition:
-    grid-template-rows 0.45s cubic-bezier(0.22, 1, 0.36, 1),
-    opacity 0.35s ease 0.12s;
-}
-
-.extraOpen {
-  grid-template-rows: 1fr;
-  opacity: 1;
 }
 
 .finishActions {
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
-  padding-top: var(--space-4);
 }
 
-/* How the answers shape the interviewer, on the last step. */
-.effects {
+.effectsBlock {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+/* How the answers shape the interviewer, on the last step. Distinct from the choice list above. */
+.effects,
+.effectsBlock > section {
   padding: var(--space-4);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background-color: var(--muted);
+  border-radius: var(--radius-lg);
+  background: color-mix(in oklch, var(--secondary) 14%, var(--card));
 }
 
 .effectsHeading {
   margin: 0 0 var(--space-3);
-  font-size: 1rem;
+  font-size: 1.25rem;
+  font-weight: 650;
+}
+
+.filledIn {
+  column-count: 1;
+  column-gap: 1.25rem;
+}
+
+.filledIn > section {
+  break-inside: avoid;
+  margin: 0 0 0.75rem;
+}
+
+.filledIn > section:last-child {
+  margin-bottom: 0;
+}
+
+.filledInSection {
+  margin: 0 0 0.25rem;
+  font-size: 0.95rem;
+  font-weight: 650;
 }
 
 .under {
   display: flex;
   flex-direction: column;
-  gap: 0.1rem;
-  margin: 0 var(--space-2) var(--space-2) calc(1.15rem + 2 * var(--space-2));
+  gap: 0.15rem;
+  margin: 0;
+}
+
+@media (min-width: 601px) {
+  .filledIn {
+    column-count: 2;
+  }
 }
 
 .underRow {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.35rem;
+  gap: 0.1rem 0.35rem;
+  min-width: 0;
   margin: 0;
   font-size: 0.8rem;
-  line-height: 1.35;
+  line-height: 1.3;
 }
 
 .underRow dt,
@@ -297,9 +348,7 @@
 @media (prefers-reduced-motion: reduce) {
   .layout,
   .formSlot,
-  .side,
-  .draft,
-  .extra {
+  .side {
     transition: none;
   }
 }
@@ -335,6 +384,19 @@
   gap: 0.15rem;
   min-height: 2.4rem;
   border-radius: var(--radius-md);
+}
+
+.optionalStep .mark,
+.optionalStep .doneMark {
+  border-style: dashed;
+}
+
+.optional {
+  margin: -0.2rem 0 0.2rem;
+  padding: 0 var(--space-2) 0 calc(var(--space-2) + 1.15rem + var(--space-2));
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
+  line-height: 1.2;
 }
 
 .sectionLine,
@@ -408,4 +470,121 @@
   height: 100%;
   border-radius: inherit;
   background: var(--foreground);
+}
+
+.peekList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.peek {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.2rem;
+  width: 100%;
+  padding: 0.7rem 0.85rem;
+  border: 1px solid var(--border);
+  border-radius: 1rem 1rem 1rem 0.3rem;
+  background: color-mix(in oklch, var(--muted) 50%, var(--card));
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.peek:hover,
+.peek:focus-visible {
+  border-color: var(--foreground);
+}
+
+.peekKind {
+  color: var(--muted-foreground);
+  font-size: 0.7rem;
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.peekTitle {
+  font-size: 0.9rem;
+}
+
+.peekSummary {
+  display: -webkit-box;
+  overflow: hidden;
+  color: var(--muted-foreground);
+  font-size: 0.8rem;
+  line-height: 1.35;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.peekMore {
+  margin-top: 0.15rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+}
+
+.seeWhole {
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+}
+
+.peekPaper {
+  max-width: min(22rem, calc(100vw - 2rem));
+  max-height: 20rem;
+  padding: var(--space-4);
+  overflow: auto;
+}
+
+.peekHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+}
+
+.peekHeading {
+  margin: 0;
+  flex: 1;
+  min-width: 0;
+  font-weight: 650;
+}
+
+.peekClose {
+  display: flex;
+  flex-shrink: 0;
+  margin: -0.25rem -0.25rem 0 0;
+  border: 1px solid var(--foreground);
+  border-radius: var(--radius-full);
+  color: var(--foreground);
+}
+
+.peekDetails {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin: 0;
+}
+
+.peekDetail {
+  margin: 0;
+}
+
+.peekDetail dt {
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
+}
+
+.peekDetail dd {
+  margin: 0.2rem 0 0;
+  font-size: 0.9rem;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
 }

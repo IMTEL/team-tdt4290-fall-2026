@@ -83,8 +83,8 @@ export type AgentPresets = {
   template?: { field: string; text: TemplateText };
   /** The field a job seeker profile's description fills in. */
   jobSeekerProfile?: string;
-  /** The fields an industry template fills in: the job, and the industry with its sector. */
-  industryTemplate?: { job: string; industry: string };
+  /** The fields a job template (stillingsmal) fills in: the job, and the industry with its sector. */
+  jobTemplate?: { job: string; industry: string };
   /** The field the chosen legal templates fill in, together. The field should be presetOnly. */
   legalTemplates?: string;
 };

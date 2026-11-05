@@ -40,6 +40,20 @@ describe('toRagdollLegalTemplate and fromRagdollLegalTemplate', () => {
     });
   });
 
+  it('stores the ticked paragraphs and reads them back', () => {
+    const withSources = { ...template, sourceIds: ['builtin-legal-aml-9-3'] };
+    const stored = { id: 'legal-1', ...toRagdollLegalTemplate(withSources) };
+    expect(stored.content).toEqual({
+      text: template.text,
+      sourceIds: ['builtin-legal-aml-9-3'],
+    });
+    expect(fromRagdollLegalTemplate(stored)).toEqual({
+      id: 'legal-1',
+      ...withSources,
+      builtIn: false,
+    });
+  });
+
   it('reads a template of another type, or without text, as none', () => {
     const stored = { id: 'legal-1', ...toRagdollLegalTemplate(template) };
     expect(fromRagdollLegalTemplate({ ...stored, type: 'interviewer' })).toBeNull();

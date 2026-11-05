@@ -3,10 +3,10 @@ import { test, expect, type Page } from '@playwright/test';
 import { logIn } from './support/auth';
 import {
   chooseInterviewer,
-  fillSettings,
   fillStilling,
   goToFinish,
   pickTemplate,
+  publishFromFinish,
 } from './support/configure';
 import { createProfile } from './support/data';
 
@@ -52,8 +52,30 @@ test('the stilling step needs a job title, a job template, an industry and an em
 
   await next.click();
   await expect(
-    page.getByRole('heading', { level: 2, name: 'Velg en mal', exact: true }),
+    page.getByRole('heading', { level: 2, name: 'Velg en intervjuermal', exact: true }),
   ).toBeVisible();
+});
+
+test('a chosen stillingsmal shows a short bubble that opens the full contents', async ({
+  page,
+}) => {
+  await logIn(page, '/configure');
+  await chooseInterviewer(page);
+  await page
+    .getByRole('group', { name: 'Stillingsmaler', exact: true })
+    .getByRole('button', { name: 'Butikkmedarbeider', exact: true })
+    .click();
+
+  const peeks = page.getByRole('region', { name: 'Valgte maler', exact: true });
+  await expect(peeks).toContainText('Stillingsmal');
+  await expect(peeks).toContainText('Kundeservice, kasse og varepåfylling');
+  await expect(peeks).toContainText('Bransje');
+  await expect(peeks).toContainText('Varehandel');
+  await expect(page.getByRole('button', { name: 'Se hele', exact: true })).toBeVisible();
+
+  await peeks.getByRole('button', { name: 'Stillingsmal: Butikkmedarbeider. Se hele.' }).click();
+  const dialog = page.getByRole('dialog', { name: 'Stillingsmal: Butikkmedarbeider' });
+  await expect(dialog).toContainText('Hjelper kunder, sitter i kassen');
 });
 
 test('the settings step needs the interview type, difficulty, number of questions and follow-ups', async ({
@@ -65,14 +87,17 @@ test('the settings step needs the interview type, difficulty, number of question
   await pickTemplate(page, null);
   await pickTemplate(page, null);
   const next = page.getByRole('button', { name: 'Neste', exact: true });
+  const ai = page.getByRole('button', { name: 'AI-innstillinger', exact: true });
 
   await expect(next).toBeDisabled();
+  await expect(ai).toBeDisabled();
   await page.getByRole('button', { name: 'Første intervju', exact: true }).click();
   await page.getByRole('button', { name: 'Lett', exact: true }).click();
   await page.getByRole('button', { name: '5–6', exact: true }).click();
   await expect(next).toBeDisabled();
   await page.getByRole('button', { name: 'Ja', exact: true }).click();
   await expect(next).toBeEnabled();
+  await expect(ai).toBeEnabled();
 });
 
 test('a finished interviewer can be published and is listed under Agenter', async ({ page }) => {
@@ -82,11 +107,15 @@ test('a finished interviewer can be published and is listed under Agenter', asyn
   await expect(page.getByRole('textbox', { name: /^Navn på agenten/ })).toHaveValue(
     'Intervjuer for Butikkmedarbeider',
   );
-  await page.getByRole('button', { name: 'Publiser', exact: true }).click();
+  await publishFromFinish(page);
 
   await expect(page).toHaveURL(/\/browse-agents$/);
-  await expect(page.getByText('Agent lagret', { exact: true })).toBeVisible();
-  await page.getByRole('link', { name: /Intervjuer for Butikkmedarbeider/ }).click();
+  await expect(page.getByText('Agent publisert', { exact: true })).toBeVisible();
+  const card = page.getByRole('link', { name: /Intervjuer for Butikkmedarbeider/ });
+  await expect(card).toContainText('Publisert');
+  await expect(card).not.toContainText('Privat');
+  await card.click();
+  await expect(page.getByText('Publisert i The Candidate', { exact: true })).toBeVisible();
   await expect(
     page
       .getByRole('tabpanel')
@@ -118,15 +147,14 @@ test('the last step shows what was chosen, and a section can be opened again', a
   await logIn(page, '/configure');
   await goToFinish(page, { interviewer: 'Daglig leder' });
 
-  const interviewer = sections(page)
-    .getByRole('listitem')
-    .filter({
-      has: page.getByRole('button', { name: 'Intervjuer', exact: true }),
-    });
+  const filledIn = page.getByRole('region', { name: 'Det du har fylt inn' });
+  const interviewer = filledIn
+    .locator('section')
+    .filter({ has: page.getByRole('heading', { name: 'Intervjuer', exact: true }) });
   // The first line is the template; the legal template comes after it.
   const interviewerTemplate = interviewer.getByRole('definition').first();
   await expect(interviewerTemplate).toHaveText('Daglig leder');
-  await expect(sections(page).getByRole('definition').filter({ hasText: 'Lett' })).toBeVisible();
+  await expect(filledIn.getByRole('definition').filter({ hasText: 'Lett' })).toBeVisible();
 
   await sections(page).getByRole('button', { name: 'Intervjuer', exact: true }).click();
   await expect(page.getByRole('radio', { name: /^Daglig leder/ })).toBeChecked();
@@ -142,7 +170,7 @@ test('the chosen templates fill in the answers, and the agent remembers them', a
   await page.goto('/configure');
   await goToFinish(page, { interviewer: 'Daglig leder', jobSeeker: 'Profil A' });
 
-  await page.getByRole('button', { name: 'Publiser', exact: true }).click();
+  await publishFromFinish(page);
   await page.getByRole('link', { name: /Intervjuer for Butikkmedarbeider/ }).click();
 
   await expect(
@@ -175,15 +203,21 @@ test('the language model can be chosen in the settings', async ({ page }) => {
   await pickTemplate(page, null);
   await pickTemplate(page, null);
 
-  // The button also shows a summary of the settings, so its name goes on.
-  await page.getByRole('button', { name: /^Avanserte innstillinger/ }).click();
+  await page.getByRole('button', { name: 'Første intervju', exact: true }).click();
+  await page.getByRole('button', { name: 'Lett', exact: true }).click();
+  await page.getByRole('button', { name: '5–6', exact: true }).click();
+  await page.getByRole('button', { name: 'Ja', exact: true }).click();
+  await page.getByRole('button', { name: 'AI-innstillinger', exact: true }).click();
   await page.getByRole('combobox', { name: 'Språkmodell', exact: true }).click();
   await page.getByRole('option', { name: 'mock/test-model', exact: true }).click();
-  await fillSettings(page);
+  await page.getByRole('button', { name: 'Neste', exact: true }).click();
   await expect(
-    sections(page).getByRole('definition').filter({ hasText: 'mock/test-model' }),
+    page
+      .getByRole('region', { name: 'Det du har fylt inn' })
+      .getByRole('definition')
+      .filter({ hasText: 'mock/test-model' }),
   ).toBeVisible();
-  await page.getByRole('button', { name: 'Publiser', exact: true }).click();
+  await publishFromFinish(page);
   await page.getByRole('link', { name: /Intervjuer for Butikkmedarbeider/ }).click();
 
   await page.getByRole('tab', { name: 'Avanserte innstillinger', exact: true }).click();
@@ -208,7 +242,7 @@ test('an unfinished interviewer can be saved as a draft and continued', async ({
   await chooseInterviewer(page);
   await fillStilling(page, { jobTitle: 'Kassemedarbeider' });
 
-  await sections(page).getByRole('button', { name: 'Lagre utkast', exact: true }).click();
+  await page.getByRole('button', { name: 'Lagre utkast', exact: true }).click();
 
   await expect(page).toHaveURL(/\/browse-agents$/);
   await expect(page.getByText('Utkast lagret', { exact: true })).toBeVisible();
@@ -217,7 +251,7 @@ test('an unfinished interviewer can be saved as a draft and continued', async ({
 
   await draft.click();
   await expect(
-    page.getByRole('heading', { level: 2, name: 'Velg en mal', exact: true }),
+    page.getByRole('heading', { level: 2, name: 'Velg en intervjuermal', exact: true }),
   ).toBeVisible();
   await sections(page)
     .getByRole('button', { name: 'Stilling og arbeidsplass', exact: true })
@@ -241,9 +275,67 @@ test('each section links to its help, and the form is still there when coming ba
 
   await page.goBack();
   await expect(
-    page.getByRole('heading', { level: 2, name: 'Velg en mal', exact: true }),
+    page.getByRole('heading', { level: 2, name: 'Velg en intervjuermal', exact: true }),
   ).toBeVisible();
   await expect(
     sections(page).getByRole('button', { name: 'Stilling og arbeidsplass' }),
   ).toBeVisible();
+});
+
+test('Ny agent starts a blank wizard even when an utkast exists', async ({ page }) => {
+  await logIn(page, '/configure');
+  await chooseInterviewer(page);
+  await fillStilling(page, { jobTitle: 'Kassemedarbeider' });
+  await page.getByRole('button', { name: 'Lagre utkast', exact: true }).click();
+  await expect(page.getByRole('link', { name: /Fortsett fra: Intervjuer/ })).toBeVisible();
+
+  await page.getByRole('button', { name: /^Ny agent/ }).click();
+  await page
+    .getByRole('dialog')
+    .getByRole('button', { name: /^Intervjuer/ })
+    .click();
+
+  await expect(
+    page.getByRole('heading', { level: 2, name: 'Hvilken stilling skal jobbsøkeren øve til?' }),
+  ).toBeVisible();
+  await expect(page.getByRole('textbox', { name: /^Stilling/ })).toHaveValue('');
+});
+
+test('leaving the wizard without saving asks for confirmation', async ({ page }) => {
+  await logIn(page, '/configure');
+  await chooseInterviewer(page);
+  await fillStilling(page, { jobTitle: 'Kassemedarbeider' });
+
+  await page.getByRole('navigation').getByRole('link', { name: 'Agenter', exact: true }).click();
+  const dialog = page.getByRole('dialog', { name: 'Forlate uten å lagre?', exact: true });
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByRole('button', { name: 'Lagre utkast', exact: true })).toBeVisible();
+  await dialog.getByRole('button', { name: 'Avbryt', exact: true }).click();
+  await expect(dialog).toHaveCount(0);
+  await expect(
+    page.getByRole('heading', { level: 2, name: 'Velg en intervjuermal', exact: true }),
+  ).toBeVisible();
+
+  await page.getByRole('navigation').getByRole('link', { name: 'Agenter', exact: true }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Forlat', exact: true }).click();
+  await expect(page).toHaveURL(/\/browse-agents$/);
+});
+
+test('several local drafts can be stored at once', async ({ page }) => {
+  await logIn(page, '/configure');
+  await chooseInterviewer(page);
+  await fillStilling(page, { jobTitle: 'Kassemedarbeider' });
+  await page.getByRole('button', { name: 'Lagre utkast', exact: true }).click();
+  await expect(page.getByRole('link', { name: /Intervjuer for Kassemedarbeider/ })).toBeVisible();
+
+  await page.getByRole('button', { name: /^Ny agent/ }).click();
+  await page
+    .getByRole('dialog')
+    .getByRole('button', { name: /^Intervjuer/ })
+    .click();
+  await fillStilling(page, { jobTitle: 'Barnehageassistent' });
+  await page.getByRole('button', { name: 'Lagre utkast', exact: true }).click();
+
+  await expect(page.getByRole('link', { name: /Intervjuer for Kassemedarbeider/ })).toBeVisible();
+  await expect(page.getByRole('link', { name: /Intervjuer for Barnehageassistent/ })).toBeVisible();
 });

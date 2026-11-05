@@ -205,7 +205,11 @@ for (const colorScheme of ['light', 'dark'] as const) {
         await fillStilling(page);
         await pickTemplate(page, null);
         await pickTemplate(page, null);
-        await page.getByRole('button', { name: /^Avanserte innstillinger/ }).click();
+        await page.getByRole('button', { name: 'Første intervju', exact: true }).click();
+        await page.getByRole('button', { name: 'Lett', exact: true }).click();
+        await page.getByRole('button', { name: '5–6', exact: true }).click();
+        await page.getByRole('button', { name: 'Ja', exact: true }).click();
+        await page.getByRole('button', { name: 'AI-innstillinger', exact: true }).click();
         await expect(
           page.getByRole('combobox', { name: 'Språkmodell', exact: true }),
         ).toBeVisible();
@@ -346,7 +350,7 @@ for (const colorScheme of ['light', 'dark'] as const) {
         await expect(page.getByRole('log')).toContainText('Mock-svar: Jeg liker å hjelpe kunder.');
         await page.getByRole('button', { name: 'Be om tilbakemelding', exact: true }).click();
         await expect(
-          page.getByRole('region', { name: 'Dette gikk bra', exact: true }),
+          page.getByRole('article', { name: 'Spørsmål og vurdering', exact: true }),
         ).toBeVisible();
         await expectNoAccessibilityViolations(page);
       });

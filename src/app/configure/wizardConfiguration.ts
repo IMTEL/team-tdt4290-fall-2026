@@ -1,9 +1,9 @@
-import type { IndustryTemplate } from '@/data/industry-templates';
+import type { JobTemplate } from '@/data/job-templates';
 import type { AgentTemplate } from '@/data/templates';
 import { MAX_NAME_LENGTH } from '@/domain/agentName';
 import type { Configuration } from '@/domain/configuration';
 import type { AnswerSources } from '@/domain/agentTypes/types';
-import { industryContext, type IndustryTemplateEntry } from '@/domain/workplaceTemplate';
+import { industryContext, type IndustryTemplate } from '@/domain/workplaceTemplate';
 import {
   describeJobSeeker,
   isPracticeChoice,
@@ -18,9 +18,9 @@ import { NO_TEMPLATE, type Workplace } from './StillingStep';
 export type WizardDraft = {
   workplace: Workplace;
   /** The stillingsmaler to find the chosen one in: the counsellor's own and the built-in ones. */
-  jobTemplates: IndustryTemplate[];
+  jobTemplates: JobTemplate[];
   /** The counsellor's bransjemaler, for what the interviewer is told about the chosen industry. */
-  industryTemplates: IndustryTemplateEntry[];
+  industryTemplates: IndustryTemplate[];
   /** The interviewer template, or null when the counsellor continued without one. */
   interviewer: AgentTemplate | null;
   /** The job seeker profile, or null when the counsellor continued without one. */
@@ -96,7 +96,7 @@ function jobSeekerOf(profile: JobSeekerProfile | null, practiceAreas: string[]):
 }
 
 /** The job title, with the stillingsmal's description after it when one was chosen. */
-function stillingOf(workplace: Workplace, jobTemplates: IndustryTemplate[]): string {
+function stillingOf(workplace: Workplace, jobTemplates: JobTemplate[]): string {
   const title = workplace.jobTitle.trim();
   const template =
     workplace.templateId && workplace.templateId !== NO_TEMPLATE
@@ -109,7 +109,7 @@ function stillingOf(workplace: Workplace, jobTemplates: IndustryTemplate[]): str
  * Industry and employer in the one line the saved Bransje field uses, with what the bransjemal
  * tells the interviewer after a «|», as Bedrift has its values.
  */
-function bransjeOf(workplace: Workplace, industryTemplates: IndustryTemplateEntry[]): string {
+function bransjeOf(workplace: Workplace, industryTemplates: IndustryTemplate[]): string {
   const industry =
     workplace.industry === NO_TEMPLATE || workplace.industry.trim() === ''
       ? 'Ingen bransje'

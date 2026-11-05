@@ -26,7 +26,16 @@ export function parseNewLegalTemplate(body: unknown): NewLegalTemplate | null {
   const text = cleanText(b.text, LIMITS.text);
   if (!title || !description || !text) return null;
 
-  return { title, description, text };
+  const sourceIds = parseSourceIds(b.sourceIds);
+  return sourceIds.length > 0
+    ? { title, description, text, sourceIds }
+    : { title, description, text };
+}
+
+function parseSourceIds(value: unknown): string[] {
+  if (!Array.isArray(value) || value.length > LIMITS.perAgent) return [];
+  const ids = value.filter((item): item is string => typeof item === 'string' && item !== '');
+  return new Set(ids).size === ids.length ? ids : [];
 }
 
 /** The legal template as we store it in RAGdoll's templates. */
@@ -35,7 +44,10 @@ export function toRagdollLegalTemplate(template: NewLegalTemplate): NewRagdollTe
     type: LEGAL_TEMPLATE_TYPE,
     name: template.title,
     description: template.description,
-    content: { text: template.text },
+    content: {
+      text: template.text,
+      ...(template.sourceIds?.length ? { sourceIds: template.sourceIds } : {}),
+    },
   };
 }
 
@@ -48,11 +60,13 @@ export function fromRagdollLegalTemplate(stored: RagdollTemplate): LegalTemplate
   const { text } = stored.content;
   if (typeof text !== 'string' || !text) return null;
 
+  const sourceIds = parseSourceIds(stored.content.sourceIds);
   return {
     id: stored.id,
     title: stored.name,
     description: stored.description,
     text,
     builtIn: false,
+    ...(sourceIds.length > 0 ? { sourceIds } : {}),
   };
 }

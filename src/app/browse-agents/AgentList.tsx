@@ -10,7 +10,11 @@ import Snackbar from '@mui/material/Snackbar';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 
-import { readWizardDraft, subscribeWizardDraft } from '@/app/configure/wizardDraft';
+import {
+  readWizardDrafts,
+  subscribeWizardDraft,
+  type WizardDraft,
+} from '@/app/configure/wizardDraft';
 import { AgentCardGrid, AGENT_CARD_SIZE } from '@/components/agents/AgentCardGrid';
 import { AgentFilters } from '@/components/agents/AgentFilters';
 import { DraftAgentCard } from '@/components/agents/DraftAgentCard';
@@ -34,11 +38,19 @@ import { getAgentType } from '@/domain/agentTypes/registry';
 import type { Agent } from '@/lib/types';
 import { useOnceInBrowser } from '@/lib/useOnceInBrowser';
 import { fetchAgents } from './api';
-import { AGENT_SAVED_FLASH, DRAFT_SAVED_FLASH, takeAgentsFlash } from './flash';
+import {
+  AGENT_PUBLISHED_FLASH,
+  AGENT_SAVED_FLASH,
+  DRAFT_SAVED_FLASH,
+  takeAgentsFlash,
+} from './flash';
 import styles from './AgentList.module.css';
 
 // The search text and the filter choices are built once, when the list arrives, not on every
 // keystroke.
+const NO_DRAFTS: WizardDraft[] = [];
+
+// The search text is built once, when the list arrives, not on every keystroke.
 type ListState =
   | { kind: 'loading' }
   | {
@@ -52,6 +64,7 @@ type ListState =
 function toastFromFlash(): string | null {
   const flash = takeAgentsFlash();
   if (flash === AGENT_SAVED_FLASH) return 'Agent lagret';
+  if (flash === AGENT_PUBLISHED_FLASH) return 'Agent publisert';
   if (flash === DRAFT_SAVED_FLASH) return 'Utkast lagret';
   return null;
 }
@@ -83,7 +96,7 @@ export function AgentList() {
   const [query, setQuery] = useState('');
   const [filters, setFilters] = useState(EMPTY_FILTERS);
   const searchField = useRef<HTMLInputElement>(null);
-  const draft = useSyncExternalStore(subscribeWizardDraft, readWizardDraft, () => null);
+  const drafts = useSyncExternalStore(subscribeWizardDraft, readWizardDrafts, () => NO_DRAFTS);
 
   useEffect(() => {
     let cancelled = false;
@@ -130,11 +143,13 @@ export function AgentList() {
         <Grid size={AGENT_CARD_SIZE}>
           <NewAgentCard />
         </Grid>
-        {draft?.agentTypeId === 'interviewer' && (
-          <Grid size={AGENT_CARD_SIZE}>
-            <DraftAgentCard draft={draft} />
-          </Grid>
-        )}
+        {drafts
+          .filter((draft) => draft.agentTypeId === 'interviewer')
+          .map((draft) => (
+            <Grid key={draft.id} size={AGENT_CARD_SIZE}>
+              <DraftAgentCard draft={draft} />
+            </Grid>
+          ))}
       </>
     );
     body = (

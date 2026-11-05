@@ -97,6 +97,20 @@ describe('ProfileForm for a new profile', () => {
     ).toBeInTheDocument();
   });
 
+  it('labels name and notes on the field, and groups the other sections', () => {
+    setup();
+
+    const name = screen.getByRole('textbox', { name: /Navn på malen/ });
+    const notes = screen.getByRole('textbox', { name: /Notater/ });
+    const about = screen.getByRole('group', { name: 'Om jobbsøkeren' });
+    const practice = screen.getByRole('group', { name: 'Dette vil jobbsøkeren øve på' });
+    expect(name).toBeVisible();
+    expect(notes).toBeVisible();
+    expect(name.compareDocumentPosition(notes) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(notes.compareDocumentPosition(about) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(about.compareDocumentPosition(practice) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
   it('shows the error and keeps what was typed when saving fails', async () => {
     const { user, onSave, field } = setup();
     onSave.mockRejectedValue(new Error('Du er logget ut. Logg inn på nytt og prøv igjen.'));

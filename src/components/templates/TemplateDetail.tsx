@@ -21,6 +21,8 @@ export type TemplateDetailField = {
   text?: string;
   chips?: string[];
   links?: { href: string; label: string }[];
+  /** Shown as its own box, for longer private text such as notes. */
+  boxed?: boolean;
 };
 
 type TemplateDetailProps = {
@@ -32,15 +34,24 @@ type TemplateDetailProps = {
   /** Edit and delete, for the counsellor's own templates. Built-in ones have none. */
   actions?: ReactNode;
   fields: TemplateDetailField[];
+  /** Where Tilbake goes: Maler, or the wizard when the counsellor opened this from configure. */
+  backHref?: string;
 };
 
 /**
- * One template on its own page, like an agent's page: a link back to Maler, the title and whose it
- * is, what it is for, the buttons, then what it holds. Each kind of template fills it in.
+ * One template on its own page, like an agent's page: a link back, the title and whose it is, what
+ * it is for, the buttons, then what it holds. Each kind of template fills it in.
  */
-export function TemplateDetail({ title, chip, summary, actions, fields }: TemplateDetailProps) {
+export function TemplateDetail({
+  title,
+  chip,
+  summary,
+  actions,
+  fields,
+  backHref,
+}: TemplateDetailProps) {
   return (
-    <TemplateDetailPage>
+    <TemplateDetailPage backHref={backHref}>
       <div className={styles.header}>
         <Typography variant="h4" component="h1">
           {title}
@@ -73,7 +84,10 @@ export function TemplateDetail({ title, chip, summary, actions, fields }: Templa
 
       <dl className={styles.fields}>
         {fields.map((field) => (
-          <div key={field.label}>
+          <div
+            key={field.label}
+            className={field.boxed ? styles.boxedField : field.chips ? styles.wideField : undefined}
+          >
             <Typography component="dt" variant="subtitle2">
               {field.label}
             </Typography>
@@ -115,15 +129,22 @@ function FieldValue({ field }: { field: TemplateDetailField }) {
   );
 }
 
-/** The page around a template: the column and the link back to Maler. Also while it loads. */
-export function TemplateDetailPage({ children }: { children: ReactNode }) {
+/** The page around a template: the column and Tilbake. Also while it loads. */
+export function TemplateDetailPage({
+  children,
+  backHref = '/templates',
+}: {
+  children: ReactNode;
+  /** Maler by default; a returnTo path when opened from the wizard. */
+  backHref?: string;
+}) {
   return (
     <div className={styles.page}>
       {/* The margin is on a wrapper: MUI's own styles load after ours and reset its margin. */}
       <div className={styles.backLink}>
-        <Button component={Link} href="/templates" startIcon={<ArrowBackIcon />} size="small">
-          {/* English translation: Back to the templates */}
-          Tilbake til malene
+        <Button component={Link} href={backHref} startIcon={<ArrowBackIcon />} size="small">
+          {/* English translation: Back */}
+          Tilbake
         </Button>
       </div>
       {children}

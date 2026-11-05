@@ -4,8 +4,8 @@
 
 svg.sun,
 svg.moon {
-  width: 1.2rem;
-  height: 1.2rem;
+  width: 1.4rem;
+  height: 1.4rem;
   transition: transform var(--duration) var(--ease);
 }
 
@@ -29,8 +29,8 @@ svg.moon {
 /* Reserves the icon box before mount so the navbar does not shift. */
 .placeholder {
   display: block;
-  width: 1.2rem;
-  height: 1.2rem;
+  width: 1.4rem;
+  height: 1.4rem;
 }
 
 .itemSelected {

@@ -34,7 +34,14 @@ const initialMessages: ChatMessage[] = [
 type Lookup = { agentId: string; kind: 'ready' | 'missing' | 'error' };
 
 // A client component because page.tsx (a server component) can't pass a function to AgentChat.
-export function TestChat({ agentId }: { agentId: string }) {
+export function TestChat({
+  agentId,
+  observerPrompt = '',
+}: {
+  agentId: string;
+  /** The shared observer agent's system prompt, shown under the feedback panel. */
+  observerPrompt?: string;
+}) {
   // A new key mounts a fresh AgentChat: the conversation goes back to the greeting, and a reply
   // still on its way is cancelled (AgentChat aborts it when it unmounts).
   const [round, setRound] = useState(0);
@@ -126,6 +133,7 @@ export function TestChat({ agentId }: { agentId: string }) {
         key={`observer-${agentId}-${round}`}
         messages={messages}
         disabled={messages.at(-1)?.role !== 'assistant'}
+        prompt={observerPrompt}
       />
 
       <Dialog open={confirmReset} onClose={() => setConfirmReset(false)}>

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import type { IndustryTemplate } from '@/data/industry-templates';
+import type { JobTemplate } from '@/data/job-templates';
 import type { JobSeekerProfile } from '@/domain/jobSeekerProfile';
 import {
   findIndustry,
@@ -11,7 +11,7 @@ import {
   savedTemplateCatalog,
 } from './templateCatalog';
 
-const helse: IndustryTemplate = {
+const helse: JobTemplate = {
   id: 'helsefagarbeider',
   title: 'Helsefagarbeider',
   industry: 'Helse og omsorg',
@@ -21,7 +21,7 @@ const helse: IndustryTemplate = {
   jobDescription: 'Hjelper beboere.',
 };
 
-const butikk: IndustryTemplate = {
+const butikk: JobTemplate = {
   id: 'butikkmedarbeider',
   title: 'Butikkmedarbeider',
   industry: 'Varehandel',
@@ -81,7 +81,7 @@ describe('industrySlug and findIndustry', () => {
 });
 
 describe('the counsellor’s own industries and jobs', () => {
-  const ownJob: IndustryTemplate = { ...butikk, id: 'job-1', title: 'Kassemedarbeider' };
+  const ownJob: JobTemplate = { ...butikk, id: 'job-1', title: 'Kassemedarbeider' };
   const logistikk = {
     id: 'industry-1',
     name: 'Logistikk',
