@@ -133,7 +133,9 @@ what steps 1 to 4 ask for is the type's own.
 
 **What each type writes for itself:**
 
-- the step names (the interviewer's are `SECTIONS` in `StillingStep.tsx`);
+- the step names and the help page's anchor for each (the interviewer's are `FORM_SECTIONS` in
+  `src/app/configure/formSections.ts`), and the help text for each step (`NEW_AGENT_STEPS` in
+  `src/app/help/helpTopics.ts`). `src/app/help/page.test.tsx` fails if a step has no help part;
 - steps 1 to 4: a component per step, and the state the steps fill in;
 - a function that turns that state into the type's answers and their sources, like
   `wizardConfiguration()` in `wizardConfiguration.ts` does for the interviewer. Its keys must be
@@ -357,6 +359,9 @@ RAGdoll needs no change for a new template type.
    [design guide](design-guide.md).
 5. Add it to `e2e/accessibility.spec.ts`, so contrast and keyboard checks cover it.
 6. Add it to the Pages row in [Inside the frontend](architecture.md#inside-the-frontend).
+7. If counselors need to learn how to use it, add a topic to `HELP_TOPICS` in
+   [`src/app/help/helpTopics.ts`](../src/app/help/helpTopics.ts) (in Norwegian, with the same
+   words as the buttons), and a line to the [user guide](user-guide.md).
 
 ## Add an API route that calls RAGdoll
 

@@ -125,12 +125,18 @@ changing dependencies.
   of published agents and for chatting ([decision 0003](decisions/0003-publish-to-the-candidate.md)).
   The publish dialog warns «Ikke skriv noe om jobbsøkeren her».
 - **Editing a published agent hides it**, so a job seeker never meets a version nobody has tested.
+  Ratings are the exception; see [Known gaps](#known-gaps).
 - **Chats are not stored by us.** The whole history is sent on every turn and kept only in the
   page. Ratings of test chat replies are stored in RAGdoll with the agent.
 - **The counselor's own profile** (name, email, picture) is stored in RAGdoll's user settings.
 
 ## Known gaps
 
+- **Ratings change a published agent without hiding it.** Every rating, and its comment, is
+  written into the agent's prompt at once (`syncAgentPromptWithFeedback` in
+  `src/server/feedbackPrompt.ts`), and the agent stays published. A careless comment reaches job
+  seekers in The Candidate without a new test. The comment text is also not checked for personal
+  data before it goes into the prompt.
 - **A hand-written system prompt has no guardrails.** The form reminds the counselor, but the
   rules of the built prompt are not added to it ([Advanced settings](architecture.md#advanced-settings)).
 - **The rate limit lives in the server's memory.** It resets when the server restarts, and is

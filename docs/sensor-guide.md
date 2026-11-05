@@ -120,14 +120,19 @@ Following [the user guide](user-guide.md), in about ten minutes:
 1. **Ny agent**: go through the six steps of the wizard. Choose a stillingsmal, an intervjuermal
    and a jobbsøkermal, and click the template bubbles beside the steps to see what they hold. On
    **Fullføre**, read «Slik former svarene dine agenten».
-2. Click **Test agenten** and chat. Rate a reply, and click **Be om tilbakemelding**. In demo
-   mode both the interviewer's replies and the feedback are canned (see above).
-3. On **Agenter**, try the search and the filters, then open the agent: the summary, **Konfigurasjon** and **Systemprompt** show how the
-   answers became the interviewer's instructions.
+2. Click **Test agenten** and chat. Rate a reply with a comment, and click **Be om
+   tilbakemelding**. In demo mode both the interviewer's replies and the feedback are canned (see
+   above).
+3. On **Agenter**, try the search and **Filtrer**, then open the agent: the summary,
+   **Konfigurasjon** and **Systemprompt** show how the answers became the interviewer's
+   instructions. Your rating is at the end of the system prompt, under «Tilbakemeldinger fra
+   veilederen».
 4. **Publiser** it, then **Rediger** it: notice it is hidden from The Candidate again until it is
    re-published.
 5. Under **Maler**, make your own jobbsøkermal and use it in a new agent.
-6. Switch between light and dark mode (the toggle in the navbar), and try the app with the keyboard
+6. Open **Hjelp** (the question mark in the navbar), and **Les hjelpen for denne delen** from a
+   step of the wizard.
+7. Switch between light and dark mode (the toggle in the navbar), and try the app with the keyboard
    only.
 
 ## Run the tests

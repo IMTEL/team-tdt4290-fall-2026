@@ -41,6 +41,11 @@ Set up (Ny agent)  →  Test (Test agenten)  →  Publish (Publiser)  →  Job s
 The menu at the top has three pages: **Hjem** (the start page), **Agenter** (your interviewers)
 and **Maler** (templates).
 
+**Need help?** The question mark at the top opens **Hjelp**, a short guide in Norwegian with a
+word list (**Ordliste**) and steps for making an agent, templates, testing, publishing and
+changing an agent. You can read it without logging in. In the set-up, **Les hjelpen for denne
+delen** in each step opens the help for that step.
+
 ## 2. Set up your first interviewer
 
 Click **Ny agent** on the start page (or the «Ny agent» card under **Agenter**). The set-up has
@@ -79,8 +84,11 @@ health information. Describe them in general terms, such as an age group and the
 Open the interviewer under **Agenter** and click **Test agenten**. You play the job seeker:
 
 - Type your answers as the job seeker would. The interviewer asks its questions one at a time.
-- Rate a reply with **thumbs up** or **thumbs down**, and add a comment if you like. This helps you remember
-  what to change.
+- Rate a reply with **thumbs up** or **thumbs down**, and add a comment if you like, such as «Still
+  kortere spørsmål». **Your ratings change the interviewer at once**: they are added to its
+  instructions, so its next replies follow them. With more than ten ratings, the AI observer sums
+  them up instead of listing each one. Undo a rating to take it out again. You can see the ratings
+  at the end of the **Systemprompt** tab on the interviewer's page.
 - Click **Be om tilbakemelding** to have a separate AI observer comment on the answers given so far.
   It needs at least two answers from the job seeker. Each point is marked **Gikk bra** or **Kan
   bli bedre**, quotes what the job seeker said, and gives a **Tips**. With many points you first
@@ -113,12 +121,16 @@ To take it out of The Candidate, click **Gjem agent**. You can publish it again 
 If you **edit** a published interviewer, it is hidden from The Candidate automatically, so a job
 seeker never meets a version you have not tested. Test it, then publish it again.
 
+**Rating replies is different**: a rating changes a published interviewer straight away, without
+hiding it, so job seekers in The Candidate meet the changed interviewer at once. Rate with care
+once an interviewer is published.
+
 ## 5. Browse your agents
 
 **Agenter** lists all your interviewers, and your drafts. Search by any word in the name or the
-answers, for example the job title, or narrow the list with the filters **Rolle**, **Bransje**,
-**Sektor**, **Intervjutype**, **Vanskelighetsgrad** and **Status** (private or published). Open
-one to see:
+answers, for example the job title. To narrow the list, click **Filtrer** and choose from
+**Rolle**, **Bransje**, **Sektor**, **Intervjutype**, **Vanskelighetsgrad** and **Status** (private
+or published). **Nullstill filtre** shows every agent again. Open one to see:
 
 - a short summary, and how your answers shape it;
 - the tabs **Konfigurasjon** (your answers), **Avanserte innstillinger** and **Systemprompt** (the

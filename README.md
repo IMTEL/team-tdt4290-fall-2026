@@ -33,7 +33,7 @@ Course: TDT4290 Customer Driven Project, NTNU, autumn 2026. Group 3.
 1. A counselor logs in and sets up an interviewer in a six-step form wizard (stilling, intervjuer, jobbsøker, innstillinger, AI-innstillinger, fullføre), with optional templates from **Maler**.
 2. Progress can be saved as local **utkast** (several at once) and finished later from **Agenter**.
 3. Saving builds a system prompt from the answers and stores the agent, private to the counselor, in **RAGdoll**.
-4. The counselor tests the agent in a chat, can ask an observer agent for feedback on the conversation, and edits the agent until satisfied.
+4. The counselor tests the agent in a chat, rates its replies (the ratings are written into the agent's prompt), can ask an observer agent for feedback on the conversation, and edits the agent until satisfied. A help page explains each step.
 5. **Publiser**, on the wizard's last step or on the agent's page, makes it available in **The Candidate**; **Gjem agent** hides it again.
 
 The product is an _agent configurator_ for career counselors; the job interview is the first scenario, and the architecture allows other scenarios as new agent types ([`docs/extending.md`](docs/extending.md)).
