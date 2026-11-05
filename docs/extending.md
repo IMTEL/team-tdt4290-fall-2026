@@ -55,7 +55,8 @@ type. How is described in
 
 Until that is done, a new type falls back to the older generic flow: optional preset pickers, then
 the configuration chat (`ConfigurationChat`), which asks the type's questions one by one. That flow
-still works, but it is not how the customer wants agents set up.
+still works, but it is not how the customer wants agents set up. Why the wizard replaced the chat is in
+[decision 0005](decisions/0005-form-wizard-instead-of-configuration-chat.md).
 
 ## Add a new agent type
 
