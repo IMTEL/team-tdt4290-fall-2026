@@ -60,6 +60,7 @@ All documentation:
 | [`docs/deployment.md`](docs/deployment.md)                                             | Deployment status and what a deployment needs                             |
 | [`docs/testing-publish-to-the-candidate.md`](docs/testing-publish-to-the-candidate.md) | Testing publishing all the way into The Candidate, Unity included         |
 | [`docs/mcp-github-setup.md`](docs/mcp-github-setup.md)                                 | Optional: letting an AI coding assistant work with GitHub                 |
+| [`docs/future-plans.md`](docs/future-plans.md)                                         | What we would do next if the project continued                            |
 | [`docs/plans/`](docs/plans/)                                                           | Working plans for finished features, kept for history                     |
 | [`prompts/`](prompts/)                                                                 | The prompts of the shared configurator and observer agents                |
 
