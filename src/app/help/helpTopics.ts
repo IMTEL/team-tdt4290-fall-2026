@@ -254,9 +254,9 @@ export const HELP_TOPICS: HelpTopic[] = [
     // English translation: Edit, clone or delete an agent
     title: 'Endre, klone eller slette en agent',
     steps: [
-      // English translation: Find the agent under Agenter. The search field at the top helps
-      // you find it.
-      'Finn agenten under Agenter. Søkefeltet øverst hjelper deg å finne den.',
+      // English translation: Find the agent under Agenter. The search field or the filters at
+      // the top help you find it.
+      'Finn agenten under Agenter. Søkefeltet eller filtrene øverst hjelper deg å finne den.',
       // English translation: «Rediger» lets you change the answers you gave when you made the
       // agent.
       '«Rediger» lar deg endre svarene du ga da du laget agenten.',
@@ -264,7 +264,7 @@ export const HELP_TOPICS: HelpTopic[] = [
       // is.
       '«Klon» lager en kopi du kan endre. Den første agenten blir som den er.',
       // English translation: «Slett» removes the agent for good. It cannot be undone.
-      '«Slett» fjerner agenten for godt. Det kan ikke angres.',
+      '«Slett» fjerner agenten for godt. Dette kan ikke angres.',
     ],
   },
 ];
