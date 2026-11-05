@@ -29,6 +29,11 @@ describe('leavesWizard', () => {
     );
   });
 
+  it('lets the counsellor open help without asking', () => {
+    expect(leavesWizard('/help#intervjuer', origin)).toBe(false);
+    expect(leavesWizard('/help', origin)).toBe(false);
+  });
+
   it('treats Agenter, Hjem and Maler as leaving', () => {
     expect(leavesWizard('/browse-agents', origin)).toBe(true);
     expect(leavesWizard('/', origin)).toBe(true);

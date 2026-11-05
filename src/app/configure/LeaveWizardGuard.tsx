@@ -13,7 +13,8 @@ import { DRAFT_SAVED_FLASH, setAgentsFlash } from '../browse-agents/flash';
 
 /**
  * True when following `href` would leave the wizard. Round-trips with `returnTo` (new mal, edit
- * profile) come back, so they are allowed.
+ * profile) come back, so they are allowed. Help is also allowed: the draft stays, and the
+ * counsellor comes back with the browser.
  */
 export function leavesWizard(href: string, origin: string): boolean {
   if (!href || href.startsWith('#') || href.toLowerCase().startsWith('javascript:')) return false;
@@ -25,6 +26,7 @@ export function leavesWizard(href: string, origin: string): boolean {
   }
   if (url.origin !== new URL(origin).origin) return true;
   if (url.pathname === '/configure' || url.pathname.startsWith('/configure/')) return false;
+  if (url.pathname === '/help' || url.pathname.startsWith('/help/')) return false;
   if (url.searchParams.has('returnTo')) return false;
   return true;
 }
