@@ -30,13 +30,7 @@ function EffectItem({ label, lines }: { label: string; lines: string[] }) {
   );
 }
 
-/** Split top-to-bottom so a tall answer cannot stretch a hole beside a short one. */
-function columnsOf(effects: AnswerEffect[]): AnswerEffect[][] {
-  const mid = Math.ceil(effects.length / 2);
-  return [effects.slice(0, mid), effects.slice(mid)].filter((column) => column.length > 0);
-}
-
-/** Which of the counsellor's answers change how the agent behaves, and how. */
+/** Which answers change how the agent behaves, and how — one even column when the box is narrow. */
 export function AnswerEffects({ effects, customPrompt }: AnswerEffectsProps) {
   if (customPrompt) {
     return (
@@ -48,14 +42,12 @@ export function AnswerEffects({ effects, customPrompt }: AnswerEffectsProps) {
   }
 
   return (
-    <div className={styles.list}>
-      {columnsOf(effects).map((column) => (
-        <dl key={column[0].key} className={styles.column}>
-          {column.map(({ key, label, effects: lines }) => (
-            <EffectItem key={key} label={label} lines={lines} />
-          ))}
-        </dl>
-      ))}
+    <div className={styles.wrap}>
+      <dl className={styles.list}>
+        {effects.map(({ key, label, effects: lines }) => (
+          <EffectItem key={key} label={label} lines={lines} />
+        ))}
+      </dl>
     </div>
   );
 }

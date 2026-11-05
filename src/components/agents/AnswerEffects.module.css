@@ -1,25 +1,29 @@
-.list {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-4);
+.wrap {
+  container-type: inline-size;
 }
 
-.column {
-  display: flex;
-  flex-direction: column;
+.list {
+  display: grid;
+  grid-template-columns: 1fr;
   gap: var(--space-4);
   margin: 0;
 }
 
 .item {
   margin: 0;
+  min-width: 0;
 }
 
-@media (min-width: 600px) {
+.item dd {
+  text-wrap: pretty;
+}
+
+/* Two columns only when this box is actually wide enough for even lines. */
+@container (min-width: 32rem) {
   .list {
-    display: grid;
     grid-template-columns: 1fr 1fr;
     column-gap: var(--space-5);
+    row-gap: var(--space-4);
     align-items: start;
   }
 }

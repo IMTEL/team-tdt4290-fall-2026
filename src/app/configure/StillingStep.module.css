@@ -258,10 +258,10 @@
 }
 
 /* How the answers shape the interviewer, on the last step. Distinct from the choice list above. */
-.effects {
+.effects,
+.effectsBlock > section {
   padding: var(--space-5);
   border: 1px solid var(--border);
-  border-left: 4px solid var(--secondary);
   border-radius: var(--radius-lg);
   background: color-mix(in oklch, var(--secondary) 14%, var(--card));
 }
