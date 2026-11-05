@@ -40,17 +40,12 @@
   transition: grid-template-columns 0.5s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-.layoutExpanded {
-  grid-template-columns: minmax(0, 1fr) minmax(22rem, 28rem);
-}
-
 .formSlot {
   min-width: 0;
 }
 
 @media (max-width: 800px) {
-  .layout,
-  .layoutExpanded {
+  .layout {
     grid-template-columns: 1fr;
   }
 }
@@ -254,53 +249,65 @@
 .effectsBlock {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: var(--space-3);
 }
 
 /* How the answers shape the interviewer, on the last step. Distinct from the choice list above. */
 .effects,
 .effectsBlock > section {
-  padding: var(--space-5);
+  padding: var(--space-4);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   background: color-mix(in oklch, var(--secondary) 14%, var(--card));
 }
 
 .effectsHeading {
-  margin: 0 0 var(--space-4);
+  margin: 0 0 var(--space-3);
   font-size: 1.25rem;
+  font-weight: 650;
+}
+
+.filledIn {
+  column-count: 1;
+  column-gap: 1.25rem;
+}
+
+.filledIn > section {
+  break-inside: avoid;
+  margin: 0 0 0.75rem;
+}
+
+.filledIn > section:last-child {
+  margin-bottom: 0;
+}
+
+.filledInSection {
+  margin: 0 0 0.25rem;
+  font-size: 0.95rem;
   font-weight: 650;
 }
 
 .under {
   display: flex;
   flex-direction: column;
-  gap: 0.1rem;
-  margin: 0 var(--space-2) var(--space-2) calc(1.15rem + 2 * var(--space-2));
+  gap: 0.15rem;
+  margin: 0;
 }
 
-@media (min-width: 801px) {
-  .layoutExpanded .under {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    column-gap: var(--space-3);
-    row-gap: var(--space-2);
-  }
-
-  .layoutExpanded .underRow {
-    flex-direction: column;
-    gap: 0;
+@media (min-width: 601px) {
+  .filledIn {
+    column-count: 2;
   }
 }
 
 .underRow {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.35rem;
+  gap: 0.1rem 0.35rem;
   min-width: 0;
   margin: 0;
   font-size: 0.8rem;
-  line-height: 1.35;
+  line-height: 1.3;
 }
 
 .underRow dt,
@@ -359,13 +366,6 @@
   font-weight: 650;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-}
-
-.sideHint {
-  margin: 0.15rem 0 0;
-  color: var(--muted-foreground);
-  font-size: 0.85rem;
-  line-height: 1.3;
 }
 
 .sections {

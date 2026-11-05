@@ -62,7 +62,7 @@ test('a saved template can be chosen for a new interviewer', async ({ page }) =>
 
   await expect(
     page
-      .getByRole('complementary', { name: 'Seksjoner', exact: true })
+      .getByRole('region', { name: 'Det du har fylt inn' })
       .getByRole('definition')
       .filter({ hasText: 'Butikksjef' }),
   ).toBeVisible();

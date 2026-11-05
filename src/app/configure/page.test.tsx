@@ -483,7 +483,9 @@ describe('/configure', () => {
       screen.getByRole('button', { name: 'Publiser' }),
     );
     expect(screen.getByRole('radio', { name: 'Standard' })).toBeChecked();
-    expect(screen.getByText('Teamleder', { selector: 'dd' })).toBeVisible();
+    const filledIn = screen.getByRole('region', { name: 'Det du har fylt inn' });
+    expect(within(filledIn).getByText('Teamleder', { selector: 'dd' })).toBeVisible();
+    expect(screen.getByRole('complementary', { name: 'Seksjoner' })).not.toContainElement(filledIn);
     expect(screen.queryByRole('heading', { name: 'Velg en bransjemal' })).not.toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Intervjuer' }));
@@ -553,7 +555,7 @@ describe('/configure', () => {
     await skipSettings(user);
 
     expect(screen.getByText('Hvordan valgene former intervjueren')).toBeVisible();
-    expect(screen.getByText('Det du har fylt inn')).toBeVisible();
+    expect(screen.getByRole('region', { name: 'Det du har fylt inn' })).toBeVisible();
     const effects = screen.getByRole('region', { name: 'Slik former svarene dine agenten' });
     expect(within(effects).getByText('Intervjuer').nextElementSibling).toHaveTextContent(
       'Ingen mal er valgt, så intervjueren er nøytral og profesjonell.',

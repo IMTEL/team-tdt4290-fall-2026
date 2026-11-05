@@ -16,8 +16,7 @@ import type { AnswerEffect } from '@/domain/agentTypes/types';
 import { practiceChoiceLabel } from '@/domain/jobSeekerProfile';
 import { SECTOR_LABELS, type IndustryTemplate } from '@/data/industry-templates';
 import stepStyles from './StillingStep.module.css';
-import type { Employer, Workplace } from './StillingStep';
-import { NO_TEMPLATE } from './StillingStep';
+import { NO_TEMPLATE, SECTIONS, type Employer, type Workplace } from './StillingStep';
 import type { InterviewSettings } from './SettingsStep';
 
 export type FinishOverview = {
@@ -118,10 +117,43 @@ export function configurationLines(overview: FinishOverview): { label: string; v
   ];
 }
 
+/** The answers from every section, shown under the blue summary on Fullføre. */
+function FilledInSummary({ overview }: { overview: FinishOverview }) {
+  return (
+    <section aria-labelledby="filled-in-heading" className={stepStyles.effects}>
+      <h3 id="filled-in-heading" className={stepStyles.effectsHeading}>
+        Det du har fylt inn
+      </h3>
+      <div className={stepStyles.filledIn}>
+        {configurationLines(overview).map((lines, index) => {
+          if (lines.length === 0) return null;
+          const section = SECTIONS[index];
+          return (
+            <section key={section} aria-labelledby={`filled-in-${index}`}>
+              <h4 id={`filled-in-${index}`} className={stepStyles.filledInSection}>
+                {section}
+              </h4>
+              <dl className={stepStyles.under}>
+                {lines.map((line) => (
+                  <div key={line.label} className={stepStyles.underRow}>
+                    <dt>{line.label}</dt>
+                    <dd>{line.value}</dd>
+                  </div>
+                ))}
+              </dl>
+            </section>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
 /** The controls that appear under the section card when it opens into the last step. */
 export function FinishActions({
   intro,
   onBack,
+  overview,
   effects,
   customPrompt,
   avatar,
@@ -136,6 +168,8 @@ export function FinishActions({
 }: {
   intro: ReactNode;
   onBack: () => void;
+  /** The answers from every section, listed under the summary. */
+  overview: FinishOverview;
   /** How the answers shape the interviewer. */
   effects: AnswerEffect[];
   /** The counsellor wrote the system prompt by hand, so the answers change nothing. */
@@ -193,9 +227,9 @@ export function FinishActions({
       {intro}
       <h2 className={stepStyles.question}>Fullføre</h2>
       <p className={stepStyles.hint}>Trykk på et steg over for å endre det som står der.</p>
-      {(effects.length > 0 || customPrompt) && (
-        <div className={stepStyles.effectsBlock}>
-          <p className={stepStyles.sideLabel}>Hvordan valgene former intervjueren</p>
+      <div className={stepStyles.effectsBlock}>
+        <p className={stepStyles.sideLabel}>Hvordan valgene former intervjueren</p>
+        {(effects.length > 0 || customPrompt) && (
           <section aria-labelledby="effects-heading" className={stepStyles.effects}>
             {/* English translation: How your answers shape the agent */}
             <h3 id="effects-heading" className={stepStyles.effectsHeading}>
@@ -203,8 +237,9 @@ export function FinishActions({
             </h3>
             <AnswerEffects effects={effects} customPrompt={customPrompt} />
           </section>
-        </div>
-      )}
+        )}
+        <FilledInSummary overview={overview} />
+      </div>
       <div className={stepStyles.avatars}>
         <div className={helpStyles.row}>
           <p className={stepStyles.avatarLabel}>Velg en avatar for intervjueren</p>

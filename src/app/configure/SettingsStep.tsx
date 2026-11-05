@@ -12,7 +12,7 @@ import { DEFAULT_MODEL, DEFAULT_TEMPERATURE } from '@/domain/advancedSettings';
 import type { AnswerEffect } from '@/domain/agentTypes/types';
 import stepStyles from './StillingStep.module.css';
 import { ChoiceSummary, WizardFrame, WizardNav } from './StillingStep';
-import { FinishActions, configurationLines, type FinishOverview } from './FinishStep';
+import { FinishActions, type FinishOverview } from './FinishStep';
 import type { TemplatePeek } from './templatePeeks';
 
 const INTERVIEW_TYPES = [
@@ -127,6 +127,7 @@ export function SettingsStep({
           <FinishActions
             intro={intro}
             onBack={onFinishBack}
+            overview={overview}
             effects={effects}
             customPrompt={false}
             avatar={avatar}
@@ -141,7 +142,6 @@ export function SettingsStep({
           />
         ) : undefined
       }
-      details={expanded ? configurationLines(overview) : undefined}
     >
       <form
         className={stepStyles.form}

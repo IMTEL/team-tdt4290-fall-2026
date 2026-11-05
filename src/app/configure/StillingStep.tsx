@@ -57,7 +57,6 @@ export function WizardFrame({
   current,
   onGoTo,
   reached,
-  details,
   expanded = false,
   more,
   peeks = [],
@@ -68,8 +67,6 @@ export function WizardFrame({
   onGoTo?: (index: number) => void;
   /** The furthest section opened, so it can be jumped back to. */
   reached?: number;
-  /** Values shown under each section dot on the last step. */
-  details?: { label: string; value: string }[][];
   /** The last step: finish in the main card, sections stay their own card. */
   expanded?: boolean;
   more?: ReactNode;
@@ -100,16 +97,15 @@ export function WizardFrame({
           </Link>
         </p>
 
-        <div className={expanded ? `${styles.layout} ${styles.layoutExpanded}` : styles.layout}>
+        <div className={styles.layout}>
           <div className={styles.formSlot}>
             {more ? <div className={styles.form}>{more}</div> : children}
           </div>
           <aside className={styles.side} aria-label="Seksjoner">
             <div>
               <p className={styles.sideLabel}>Seksjoner</p>
-              {expanded ? <p className={styles.sideHint}>Det du har fylt inn</p> : null}
             </div>
-            <SectionMenu current={current} onGoTo={onGoTo} reached={reached} details={details} />
+            <SectionMenu current={current} onGoTo={onGoTo} reached={reached} />
             <p className={styles.count}>
               {progress} av {SECTIONS.length} seksjoner
             </p>
@@ -235,15 +231,12 @@ export function SectionMenu({
   current,
   onGoTo,
   reached,
-  details,
   className,
 }: {
   current: number;
   onGoTo?: (index: number) => void;
   /** The furthest section the counsellor has opened. Later ones stay locked. */
   reached?: number;
-  /** Values shown under each section dot. Only used on the last step. */
-  details?: { label: string; value: string }[][];
   className?: string;
 }) {
   const furthest = Math.max(reached ?? current, current);
@@ -254,7 +247,6 @@ export function SectionMenu({
         // Visited sections keep their check when the counsellor jumps back.
         const done = index !== current && index <= furthest;
         const mark = done ? styles.doneMark : styles.mark;
-        const lines = details?.[index] ?? [];
         return (
           <li
             key={section}
@@ -271,16 +263,6 @@ export function SectionMenu({
                 <span className={mark} aria-hidden="true" />
                 {section}
               </span>
-            )}
-            {lines.length > 0 && (
-              <dl className={styles.under}>
-                {lines.map((line) => (
-                  <div key={line.label} className={styles.underRow}>
-                    <dt>{line.label}</dt>
-                    <dd>{line.value}</dd>
-                  </div>
-                ))}
-              </dl>
             )}
           </li>
         );

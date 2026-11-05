@@ -147,15 +147,14 @@ test('the last step shows what was chosen, and a section can be opened again', a
   await logIn(page, '/configure');
   await goToFinish(page, { interviewer: 'Daglig leder' });
 
-  const interviewer = sections(page)
-    .getByRole('listitem')
-    .filter({
-      has: page.getByRole('button', { name: 'Intervjuer', exact: true }),
-    });
+  const filledIn = page.getByRole('region', { name: 'Det du har fylt inn' });
+  const interviewer = filledIn
+    .locator('section')
+    .filter({ has: page.getByRole('heading', { name: 'Intervjuer', exact: true }) });
   // The first line is the template; the legal template comes after it.
   const interviewerTemplate = interviewer.getByRole('definition').first();
   await expect(interviewerTemplate).toHaveText('Daglig leder');
-  await expect(sections(page).getByRole('definition').filter({ hasText: 'Lett' })).toBeVisible();
+  await expect(filledIn.getByRole('definition').filter({ hasText: 'Lett' })).toBeVisible();
 
   await sections(page).getByRole('button', { name: 'Intervjuer', exact: true }).click();
   await expect(page.getByRole('radio', { name: /^Daglig leder/ })).toBeChecked();
@@ -213,7 +212,10 @@ test('the language model can be chosen in the settings', async ({ page }) => {
   await page.getByRole('option', { name: 'mock/test-model', exact: true }).click();
   await page.getByRole('button', { name: 'Neste', exact: true }).click();
   await expect(
-    sections(page).getByRole('definition').filter({ hasText: 'mock/test-model' }),
+    page
+      .getByRole('region', { name: 'Det du har fylt inn' })
+      .getByRole('definition')
+      .filter({ hasText: 'mock/test-model' }),
   ).toBeVisible();
   await publishFromFinish(page);
   await page.getByRole('link', { name: /Intervjuer for Butikkmedarbeider/ }).click();
