@@ -140,6 +140,9 @@ export function ConfigureAgent({
   const [furthestStep, setFurthestStep] = useState(
     interviewerStepIndex(initialTypeId, initialStep),
   );
+  // Neste from Innstillinger skips AI-innstillinger. Tilbake from Fullføre returns there only if
+  // the counsellor opened that step.
+  const [openedAiSettings, setOpenedAiSettings] = useState(false);
   const [workplace, setWorkplace] = useState<Workplace>({
     jobTitle: '',
     templateId: null,
@@ -197,9 +200,11 @@ export function ConfigureAgent({
           if (namedStep > 0) {
             setWizardStep(namedStep);
             setFurthestStep(Math.max(draft.furthestStep, namedStep));
+            setOpenedAiSettings(Boolean(draft.openedAiSettings) || namedStep === 4);
           } else {
             setWizardStep(draft.wizardStep);
             setFurthestStep(draft.furthestStep);
+            setOpenedAiSettings(Boolean(draft.openedAiSettings) || draft.wizardStep === 4);
           }
         }
       } else if (!draftId) {
@@ -234,6 +239,7 @@ export function ConfigureAgent({
       agentTypeId: 'interviewer',
       wizardStep,
       furthestStep,
+      openedAiSettings,
       workplace,
       hasTemplateChoice: choice !== undefined,
       template: choice ?? null,
@@ -252,6 +258,7 @@ export function ConfigureAgent({
     draftId,
     wizardStep,
     furthestStep,
+    openedAiSettings,
     workplace,
     choice,
     profileId,
@@ -332,6 +339,7 @@ export function ConfigureAgent({
     setPresetsDone(false);
     setWizardStep(0);
     setFurthestStep(0);
+    setOpenedAiSettings(false);
     setWorkplace({ jobTitle: '', templateId: null, industry: '', sector: null, company: '' });
   }
 
@@ -339,6 +347,7 @@ export function ConfigureAgent({
   function goTo(index: number) {
     setWizardStep(index);
     setFurthestStep((reached) => Math.max(reached, index));
+    if (index === 4) setOpenedAiSettings(true);
   }
 
   /** Picks a profile (or '' for without) and starts practice areas from that profile. */
@@ -549,6 +558,7 @@ export function ConfigureAgent({
         onNext={() => goTo(1)}
         onGoTo={goTo}
         reached={furthestStep}
+        openedAiSettings={openedAiSettings}
         onSaveDraft={saveDraftAndLeave}
         peeks={peeks}
       />
@@ -557,7 +567,13 @@ export function ConfigureAgent({
 
   if (definition.id === 'interviewer' && wizardStep === 1) {
     return (
-      <WizardFrame current={1} onGoTo={goTo} reached={furthestStep} peeks={peeks}>
+      <WizardFrame
+        current={1}
+        onGoTo={goTo}
+        reached={furthestStep}
+        openedAiSettings={openedAiSettings}
+        peeks={peeks}
+      >
         <div className={stepStyles.form}>
           {chosenType}
           {usesJobTemplates && jobTemplate !== undefined && chosenJobSummary}
@@ -624,6 +640,7 @@ export function ConfigureAgent({
         intro={chosenType}
         onGoTo={goTo}
         reached={furthestStep}
+        openedAiSettings={openedAiSettings}
         onSelect={chooseProfile}
         selectedId={profileId}
         practiceAreas={practiceAreas}
@@ -658,6 +675,7 @@ export function ConfigureAgent({
         intro={chosenType}
         onGoTo={goTo}
         reached={furthestStep}
+        openedAiSettings={openedAiSettings}
         onBack={() => goTo(3)}
         onNext={() => goTo(5)}
         onSaveDraft={saveDraftAndLeave}
@@ -676,6 +694,7 @@ export function ConfigureAgent({
         intro={chosenType}
         onGoTo={goTo}
         reached={furthestStep}
+        openedAiSettings={openedAiSettings}
         expanded={wizardStep === 5}
         overview={{
           workplace,
@@ -723,7 +742,7 @@ export function ConfigureAgent({
           });
         }}
         onBack={() => goTo(2)}
-        onFinishBack={() => goTo(4)}
+        onFinishBack={() => goTo(openedAiSettings ? 4 : 3)}
         onAiSettings={() => goTo(4)}
         onNext={() => goTo(5)}
         onSaveDraft={saveDraftAndLeave}

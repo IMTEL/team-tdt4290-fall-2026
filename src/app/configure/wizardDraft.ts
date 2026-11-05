@@ -40,6 +40,8 @@ export type WizardDraft = {
   agentTypeId: string;
   wizardStep: number;
   furthestStep: number;
+  /** True after the counsellor has opened AI-innstillinger, so Tilbake from Fullføre can return there. */
+  openedAiSettings?: boolean;
   workplace: Workplace;
   /** False until the counsellor picks a template or continues without one. */
   hasTemplateChoice: boolean;
@@ -125,6 +127,7 @@ function isDraft(value: unknown): value is WizardDraft {
     typeof value.agentTypeId === 'string' &&
     typeof value.wizardStep === 'number' &&
     typeof value.furthestStep === 'number' &&
+    (value.openedAiSettings === undefined || typeof value.openedAiSettings === 'boolean') &&
     isWorkplace(value.workplace) &&
     typeof value.hasTemplateChoice === 'boolean' &&
     (value.template === null || isTemplate(value.template)) &&

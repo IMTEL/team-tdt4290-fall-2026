@@ -66,7 +66,7 @@ type SettingsStepProps = {
   onAiSettings?: () => void;
   /** The last step: finish in the main card, with the section list beside it. */
   expanded?: boolean;
-  /** Closes the last step and shows the settings form again. */
+  /** Closes the last step: AI-innstillinger if it was opened, otherwise Innstillinger. */
   onFinishBack?: () => void;
   overview: FinishOverview;
   /** How the answers shape the interviewer, shown on the last step. */
@@ -85,6 +85,7 @@ type SettingsStepProps = {
   /** Opens an earlier section from the list on the side. */
   onGoTo?: (index: number) => void;
   reached?: number;
+  openedAiSettings?: boolean;
   onSaveDraft?: () => void;
   peeks?: TemplatePeek[];
 };
@@ -112,6 +113,7 @@ export function SettingsStep({
   onPublish,
   onTest,
   reached,
+  openedAiSettings,
   onSaveDraft,
   peeks,
 }: SettingsStepProps) {
@@ -120,6 +122,7 @@ export function SettingsStep({
       current={expanded ? 5 : 3}
       onGoTo={onGoTo}
       reached={reached}
+      openedAiSettings={openedAiSettings}
       peeks={peeks}
       more={
         expanded ? (

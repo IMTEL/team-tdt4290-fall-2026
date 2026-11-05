@@ -10,7 +10,7 @@ import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
 import { FieldHelp } from '@/components/ui/FieldHelp';
 import helpStyles from '@/components/ui/FieldHelp.module.css';
 import { SECTOR_LABELS, type JobTemplate, type Sector } from '@/data/job-templates';
-import { FORM_SECTIONS, formSectionHelpHref } from './formSections';
+import { FORM_SECTIONS, formSectionHelpHref, type FormSection } from './formSections';
 import { LeaveWizardGuard } from './LeaveWizardGuard';
 import { SeeWholeTemplate, TemplatePeekList } from './TemplatePeekBubbles';
 import { peekForStep, peeksOnStep, type TemplatePeek } from './templatePeeks';
@@ -47,6 +47,7 @@ type StillingStepProps = {
   /** Opens a section the counsellor has already been to. */
   onGoTo?: (index: number) => void;
   reached?: number;
+  openedAiSettings?: boolean;
   onSaveDraft?: () => void;
   /** Short summaries of the templates already chosen, shown under the progress bar. */
   peeks?: TemplatePeek[];
@@ -57,6 +58,7 @@ export function WizardFrame({
   current,
   onGoTo,
   reached,
+  openedAiSettings = false,
   more,
   peeks = [],
   children,
@@ -66,6 +68,8 @@ export function WizardFrame({
   onGoTo?: (index: number) => void;
   /** The furthest section opened, so it can be jumped back to. */
   reached?: number;
+  /** True after the counsellor has opened AI-innstillinger, so a skip does not look completed. */
+  openedAiSettings?: boolean;
   more?: ReactNode;
   /** Chosen templates, as short clickable bubbles under the progress bar. */
   peeks?: TemplatePeek[];
@@ -102,7 +106,12 @@ export function WizardFrame({
             <div>
               <p className={styles.sideLabel}>Seksjoner</p>
             </div>
-            <SectionMenu current={current} onGoTo={onGoTo} reached={reached} />
+            <SectionMenu
+              current={current}
+              onGoTo={onGoTo}
+              reached={reached}
+              openedAiSettings={openedAiSettings}
+            />
             <p className={styles.count}>
               {progress} av {SECTIONS.length} seksjoner
             </p>
@@ -228,26 +237,40 @@ export function SectionMenu({
   current,
   onGoTo,
   reached,
+  openedAiSettings = false,
   className,
 }: {
   current: number;
   onGoTo?: (index: number) => void;
   /** The furthest section the counsellor has opened. Later ones stay locked. */
   reached?: number;
+  /** True after the counsellor has opened AI-innstillinger. */
+  openedAiSettings?: boolean;
   className?: string;
 }) {
   const furthest = Math.max(reached ?? current, current);
   return (
     <ol className={className ? `${styles.sections} ${className}` : styles.sections}>
       {SECTIONS.map((section, index) => {
+        const optional = (FORM_SECTIONS[index] as FormSection | undefined)?.optional;
         const open = Boolean(onGoTo) && index !== current && index <= furthest;
+        // A skipped optional step is past, but not done: the counsellor never opened it.
+        const skipped = Boolean(
+          optional && !openedAiSettings && index < furthest && index !== current,
+        );
         // Visited sections keep their check when the counsellor jumps back.
-        const done = index !== current && index <= furthest;
+        const done = index !== current && index <= furthest && !skipped;
         const mark = done ? styles.doneMark : styles.mark;
+        const itemClass = [
+          index === current ? styles.current : null,
+          optional ? styles.optionalStep : null,
+        ]
+          .filter(Boolean)
+          .join(' ');
         return (
           <li
             key={section}
-            className={index === current ? styles.current : undefined}
+            className={itemClass || undefined}
             aria-current={index === current ? 'step' : undefined}
           >
             {open && onGoTo ? (
@@ -261,6 +284,7 @@ export function SectionMenu({
                 {section}
               </span>
             )}
+            {optional ? <span className={styles.optional}>Valgfritt</span> : null}
           </li>
         );
       })}
@@ -326,6 +350,7 @@ export function StillingStep({
   onNext,
   onGoTo,
   reached,
+  openedAiSettings,
   onSaveDraft,
   peeks,
 }: StillingStepProps) {
@@ -357,7 +382,13 @@ export function StillingStep({
   }
 
   return (
-    <WizardFrame current={0} onGoTo={onGoTo} reached={reached} peeks={peeks}>
+    <WizardFrame
+      current={0}
+      onGoTo={onGoTo}
+      reached={reached}
+      openedAiSettings={openedAiSettings}
+      peeks={peeks}
+    >
       <form
         className={styles.form}
         onSubmit={(event) => {

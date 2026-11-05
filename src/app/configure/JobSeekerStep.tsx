@@ -48,6 +48,7 @@ type JobSeekerStepProps = {
   /** Opens an earlier section from the list on the side. */
   onGoTo?: (index: number) => void;
   reached?: number;
+  openedAiSettings?: boolean;
   onSaveDraft?: () => void;
   /** Called with the id of a profile once it is deleted. */
   onDeleted?: (id: string) => void;
@@ -73,13 +74,20 @@ export function JobSeekerStep({
   onBack,
   onGoTo,
   reached,
+  openedAiSettings,
   onSaveDraft,
   onDeleted = () => {},
   returnTo,
   peeks,
 }: JobSeekerStepProps) {
   return (
-    <WizardFrame current={2} onGoTo={onGoTo} reached={reached} peeks={peeks}>
+    <WizardFrame
+      current={2}
+      onGoTo={onGoTo}
+      reached={reached}
+      openedAiSettings={openedAiSettings}
+      peeks={peeks}
+    >
       <div className={stepStyles.form}>
         {intro}
         <section aria-labelledby="profile-picker-heading" className={cardStyles.picker}>

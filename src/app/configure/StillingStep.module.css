@@ -386,6 +386,19 @@
   border-radius: var(--radius-md);
 }
 
+.optionalStep .mark,
+.optionalStep .doneMark {
+  border-style: dashed;
+}
+
+.optional {
+  margin: -0.2rem 0 0.2rem;
+  padding: 0 var(--space-2) 0 calc(var(--space-2) + 1.15rem + var(--space-2));
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
+  line-height: 1.2;
+}
+
 .sectionLine,
 .jump {
   display: flex;

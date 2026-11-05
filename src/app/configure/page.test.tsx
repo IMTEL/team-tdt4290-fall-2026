@@ -535,6 +535,22 @@ describe('/configure', () => {
     await user.click(screen.getByRole('button', { name: 'Neste' }));
 
     expect(screen.getByRole('heading', { level: 2, name: 'Fullføre' })).toBeVisible();
+    await user.click(screen.getByRole('button', { name: 'Gå tilbake' }));
+    expect(screen.getByRole('heading', { level: 2, name: 'AI-innstillinger' })).toBeVisible();
+  });
+
+  it('keeps a skipped AI-innstillinger step optional, not ticked as done', async () => {
+    const user = await openAsInterviewer();
+
+    await skipTemplate(user);
+    await skipProfile(user);
+    await skipSettings(user);
+
+    const sections = screen.getByRole('complementary', { name: 'Seksjoner' });
+    expect(within(sections).getByText('Valgfritt')).toBeVisible();
+    await user.click(within(sections).getByRole('button', { name: 'AI-innstillinger' }));
+
+    expect(screen.getByRole('heading', { level: 2, name: 'AI-innstillinger' })).toBeVisible();
   });
 
   it('opens the last step when the counsellor continues without templates', async () => {
@@ -752,7 +768,9 @@ describe('/configure', () => {
     await skipSettings(user);
     await user.click(screen.getByRole('button', { name: 'Gå tilbake' }));
 
-    expect(screen.getByRole('heading', { level: 2, name: 'AI-innstillinger' })).toBeVisible();
+    expect(
+      screen.getByRole('heading', { level: 2, name: 'Hvordan skal intervjuet være?' }),
+    ).toBeVisible();
 
     await user.click(screen.getByRole('button', { name: 'Neste' }));
     await user.click(screen.getByRole('button', { name: 'Innstillinger' }));
@@ -877,7 +895,6 @@ describe('/configure', () => {
     expect(screen.getByText('Nervøsitet, Hull i CV-en, turnus, lønn')).toBeVisible();
 
     await user.click(screen.getByRole('button', { name: 'Gå tilbake' }));
-    await user.click(screen.getByRole('button', { name: 'Tilbake' }));
     await user.click(screen.getByRole('button', { name: 'Tilbake' }));
 
     expect(screen.getByRole('radio', { name: /Profil A/ })).toBeChecked();

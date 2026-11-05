@@ -22,6 +22,7 @@ type AiSettingsStepProps = {
   onNext: () => void;
   onGoTo?: (index: number) => void;
   reached?: number;
+  openedAiSettings?: boolean;
   onSaveDraft?: () => void;
   peeks?: TemplatePeek[];
 };
@@ -35,6 +36,7 @@ export function AiSettingsStep({
   onNext,
   onGoTo,
   reached,
+  openedAiSettings,
   onSaveDraft,
   peeks,
 }: AiSettingsStepProps) {
@@ -52,7 +54,13 @@ export function AiSettingsStep({
   }
 
   return (
-    <WizardFrame current={4} onGoTo={onGoTo} reached={reached} peeks={peeks}>
+    <WizardFrame
+      current={4}
+      onGoTo={onGoTo}
+      reached={reached}
+      openedAiSettings={openedAiSettings}
+      peeks={peeks}
+    >
       <div className={stepStyles.form}>
         {intro}
         <h2 className={stepStyles.question}>AI-innstillinger</h2>
