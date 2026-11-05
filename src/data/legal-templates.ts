@@ -84,7 +84,6 @@ export const standardLegalTemplate: LegalTemplate = {
 /** What the counsellor ticks on /configure: the standard template, then their own. */
 export const builtInLegalTemplates: LegalTemplate[] = [standardLegalTemplate];
 
-
 /** A new interviewer starts with the standard template, which has every paragraph. */
 export function builtInLegalTemplateIds(): string[] {
   return [STANDARD_LEGAL_TEMPLATE_ID];
