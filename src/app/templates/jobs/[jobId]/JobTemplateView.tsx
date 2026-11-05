@@ -14,11 +14,7 @@ import {
   TemplateDetailSkeleton,
 } from '@/components/templates/TemplateDetail';
 import { deleteJobTemplate, fetchJobTemplate } from '@/components/templates/workplaceApi';
-import {
-  findJobTemplate,
-  SECTOR_LABELS,
-  type JobTemplate,
-} from '@/data/job-templates';
+import { findJobTemplate, SECTOR_LABELS, type JobTemplate } from '@/data/job-templates';
 import { industryHref, jobHref, OWN_TEMPLATE_LABEL } from '@/domain/templateCatalog';
 import { setTemplatesFlash, TEMPLATE_DELETED_FLASH } from '../../flash';
 

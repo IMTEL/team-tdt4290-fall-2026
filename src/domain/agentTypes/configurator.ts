@@ -23,9 +23,7 @@ export function decidedFields(definition: AgentTypeDefinition, chosen: ChosenPre
 export function presetFields(presets: AgentPresets, kind: keyof AgentPresets): string[] {
   if (kind === 'template') return presets.template ? [presets.template.field] : [];
   if (kind === 'jobTemplate') {
-    return presets.jobTemplate
-      ? [presets.jobTemplate.job, presets.jobTemplate.industry]
-      : [];
+    return presets.jobTemplate ? [presets.jobTemplate.job, presets.jobTemplate.industry] : [];
   }
   return presets[kind] ? [presets[kind]] : [];
 }

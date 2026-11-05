@@ -1,10 +1,6 @@
 import type { NextRequest } from 'next/server';
 
-import {
-  findJobTemplate,
-  jobConfiguration,
-  type JobTemplate,
-} from '@/data/job-templates';
+import { findJobTemplate, jobConfiguration, type JobTemplate } from '@/data/job-templates';
 import { findBuiltInLegalTemplate } from '@/data/legal-templates';
 import { findBuiltInTemplate, type AgentTemplate } from '@/data/templates';
 import { buildBriefing, parseAnswers } from '@/domain/agentTypes/configurator';

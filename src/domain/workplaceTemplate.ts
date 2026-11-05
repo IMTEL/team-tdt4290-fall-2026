@@ -53,10 +53,7 @@ export function isBuiltInJob(id: string): boolean {
  * Every industry name, in the order the counsellor sees them: those of the stillingsmaler first,
  * then the bransjemaler that have none yet. Each name once, whatever its case.
  */
-export function industryNames(
-  jobs: JobTemplate[],
-  industries: IndustryTemplate[],
-): string[] {
+export function industryNames(jobs: JobTemplate[], industries: IndustryTemplate[]): string[] {
   const names = new Map<string, string>();
   for (const name of [...jobs.map((job) => job.industry), ...industries.map((i) => i.name)]) {
     const key = name.trim().toLowerCase();

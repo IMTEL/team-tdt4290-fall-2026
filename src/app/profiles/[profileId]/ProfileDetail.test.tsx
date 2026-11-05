@@ -51,10 +51,7 @@ describe('ProfileDetail', () => {
       'href',
       '/profiles/profile-1/edit',
     );
-    expect(screen.getByRole('link', { name: 'Tilbake' })).toHaveAttribute(
-      'href',
-      '/templates',
-    );
+    expect(screen.getByRole('link', { name: 'Tilbake' })).toHaveAttribute('href', '/templates');
   });
 
   it('shows a dash for what the template leaves out', async () => {
