@@ -5,8 +5,6 @@ Web application for career counselors to configure AI interviewer agents, try th
 Customer: **IMTEL** (Innovative Immersive Technologies for Learning, NTNU) with NAV and Trøndelag fylkeskommune.
 Course: TDT4290 Customer Driven Project, NTNU, autumn 2026. Group 3.
 
-<!-- TODO: replace with the final product name once agreed with the customer -->
-
 ## Contents
 
 - [What it does](#what-it-does)
@@ -75,8 +73,8 @@ All documentation:
 | LLMs                   | IDUN (NTNU HPC), accessed **only through RAGdoll**                                                |
 | VR app                 | The Candidate (contact: Mathias, IMTEL)                                                           |
 | Backlog & sprint board | [GitHub Project #6](https://github.com/orgs/IMTEL/projects/6)                                     |
-| Report                 | Overleaf <!-- TODO: link -->                                                                      |
-| Customer contact       | Slack (product owners: <!-- TODO: idk, Tobias and Ekaterina? -->)                                 |
+| Report                 | [Overleaf](https://www.overleaf.com/project/6a9fb636f4a3e478a7f3653c)                             |
+| Customer contact       | Slack (product owners: Mikhail, Ekaterina, Mathias, Erik and Tobias)                              |
 
 ## Tech stack
 
