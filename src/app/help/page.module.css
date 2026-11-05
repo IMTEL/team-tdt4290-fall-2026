@@ -41,7 +41,31 @@
   text-underline-offset: 0.2em;
 }
 
+.toTop {
+  position: fixed;
+  right: var(--space-5);
+  bottom: var(--space-5);
+  padding: var(--space-2) var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--background);
+  box-shadow: 0 2px 8px rgb(0 0 0 / 8%);
+  color: var(--primary);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.toTop:hover {
+  background: color-mix(in oklch, var(--secondary) 34%, var(--background));
+}
+
+.toTop:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
 /* The navbar is sticky, so a section opened from a link must not land under it. */
+.title,
 .topic,
 .part {
   scroll-margin-top: 4.5rem;

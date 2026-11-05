@@ -17,7 +17,9 @@ export default function HelpPage() {
   return (
     <div className={styles.page}>
       {/* English translation: Help */}
-      <h1 className={styles.title}>Hjelp</h1>
+      <h1 id="top" className={styles.title}>
+        Hjelp
+      </h1>
       <p className={styles.lead}>
         {/* English translation: This page explains the words and features in the app. Use the
         contents below to go straight to what you need. */}
@@ -39,6 +41,12 @@ export default function HelpPage() {
       {HELP_TOPICS.map((topic) => (
         <Topic key={topic.id} topic={topic} />
       ))}
+
+      {/* A plain link, so it works without JavaScript and also moves focus to the top. */}
+      <a href="#top" className={styles.toTop}>
+        {/* English translation: To the top */}
+        Til toppen ↑
+      </a>
     </div>
   );
 }
