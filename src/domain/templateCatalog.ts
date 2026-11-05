@@ -1,8 +1,8 @@
-import { SECTOR_LABELS, type IndustryTemplate } from '@/data/industry-templates';
+import { SECTOR_LABELS, type JobTemplate } from '@/data/job-templates';
 import type { AgentTemplate } from '@/data/templates';
 import { summarizeProfile, type JobSeekerProfile } from '@/domain/jobSeekerProfile';
 import { LEGAL_JURISDICTION_LABELS, type LegalTemplate } from '@/domain/legalTemplate';
-import { isBuiltInJob, type IndustryTemplateEntry } from '@/domain/workplaceTemplate';
+import { isBuiltInJob, type IndustryTemplate } from '@/domain/workplaceTemplate';
 
 /** One card on the templates page: a title, one short line, and one sentence. */
 export type CatalogItem = {
@@ -35,8 +35,8 @@ export function industrySlug(industry: string): string {
 /** One industry: its name, its stillingsmaler, and the bransjemal if the counsellor made it. */
 export type IndustryGroup = {
   industry: string;
-  jobs: IndustryTemplate[];
-  entry?: IndustryTemplateEntry;
+  jobs: JobTemplate[];
+  entry?: IndustryTemplate;
 };
 
 /**
@@ -44,8 +44,8 @@ export type IndustryGroup = {
  * bransjemaler that have no stillingsmaler yet. Names that differ only in case are one industry.
  */
 export function industryGroups(
-  templates: IndustryTemplate[],
-  entries: IndustryTemplateEntry[] = [],
+  templates: JobTemplate[],
+  entries: IndustryTemplate[] = [],
 ): IndustryGroup[] {
   const groups = new Map<string, IndustryGroup>();
   for (const template of templates) {
@@ -71,9 +71,9 @@ export function isBuiltInIndustry(group: IndustryGroup): boolean {
 
 /** The industry with this slug and its jobs, or undefined if there is none. */
 export function findIndustry(
-  templates: IndustryTemplate[],
+  templates: JobTemplate[],
   slug: string,
-  entries: IndustryTemplateEntry[] = [],
+  entries: IndustryTemplate[] = [],
 ): IndustryGroup | undefined {
   return industryGroups(templates, entries).find((group) => industrySlug(group.industry) === slug);
 }
@@ -90,8 +90,8 @@ export const jobHref = (id: string) => `/templates/jobs/${encodeURIComponent(id)
  * bransjemal with none yet, says what the industry is.
  */
 export function industryCatalog(
-  templates: IndustryTemplate[],
-  entries: IndustryTemplateEntry[] = [],
+  templates: JobTemplate[],
+  entries: IndustryTemplate[] = [],
 ): CatalogItem[] {
   return industryGroups(templates, entries).map((group) => {
     const sectors = [...new Set(group.jobs.map((job) => SECTOR_LABELS[job.sector]))];
@@ -115,7 +115,7 @@ export function industryCatalog(
  * One card per job, opening its page. The line is the industry and whether the employer is public
  * or private.
  */
-export function jobCatalog(templates: IndustryTemplate[]): CatalogItem[] {
+export function jobCatalog(templates: JobTemplate[]): CatalogItem[] {
   return templates.map((template) => ({
     id: template.id,
     title: template.title,

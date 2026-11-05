@@ -8,35 +8,35 @@ import Chip from '@mui/material/Chip';
 import ToggleButton from '@mui/material/ToggleButton';
 import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
 
-import { SECTOR_LABELS, type IndustryTemplate, type Sector } from '@/data/industry-templates';
+import { SECTOR_LABELS, type JobTemplate, type Sector } from '@/data/job-templates';
 import styles from './TemplatePicker.module.css';
 
 type SectorFilter = Sector | 'alle';
 
-type IndustryPickerProps = {
-  templates: IndustryTemplate[];
-  /** Called with the chosen template, or null to go on without one. */
-  onSelect: (template: IndustryTemplate | null) => void;
+type JobTemplatePickerProps = {
+  templates: JobTemplate[];
+  /** Called with the chosen stillingsmal, or null to go on without one. */
+  onSelect: (template: JobTemplate | null) => void;
 };
 
-/** Lets the counsellor pick a general job in an industry, public or private, or go on without. */
-export function IndustryPicker({ templates, onSelect }: IndustryPickerProps) {
+/** Lets the counsellor pick a stillingsmal (job in an industry), or go on without. */
+export function JobTemplatePicker({ templates, onSelect }: JobTemplatePickerProps) {
   const [sector, setSector] = useState<SectorFilter>('alle');
   const shown =
     sector === 'alle' ? templates : templates.filter((template) => template.sector === sector);
 
   return (
-    <section aria-labelledby="industry-picker-heading" className={styles.picker}>
+    <section aria-labelledby="job-template-picker-heading" className={styles.picker}>
       <Button variant="contained" onClick={() => onSelect(null)} className={styles.scratch}>
-        Fortsett uten bransjemal
+        Fortsett uten stillingsmal
       </Button>
 
-      <h2 id="industry-picker-heading" className={styles.heading}>
-        Velg en bransjemal
+      <h2 id="job-template-picker-heading" className={styles.heading}>
+        Velg en stillingsmal
       </h2>
       <p className={styles.lead}>
-        Bransjemalen bestemmer stillingen og bransjen, og om arbeidsgiveren er offentlig eller
-        privat. Uten bransjemal spør assistenten deg om stillingen også.
+        Stillingsmalen bestemmer stillingen og bransjen, og om arbeidsgiveren er offentlig eller
+        privat. Uten stillingsmal spør assistenten deg om stillingen også.
       </p>
 
       <ToggleButtonGroup

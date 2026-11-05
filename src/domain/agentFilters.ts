@@ -1,4 +1,4 @@
-import { SECTOR_LABELS, type Sector } from '@/data/industry-templates';
+import { SECTOR_LABELS, type Sector } from '@/data/job-templates';
 import type { Agent } from '@/lib/types';
 import { OTHER_SECTION } from './agentList';
 import { AGENT_STATUS_LABEL, agentStatus } from './agentStatus';

@@ -1,4 +1,4 @@
-import type { IndustryTemplate } from '@/data/industry-templates';
+import type { JobTemplate } from '@/data/job-templates';
 import { paragraphsForTemplate } from '@/data/legal-templates';
 import type { AgentTemplate } from '@/data/templates';
 import {
@@ -8,7 +8,7 @@ import {
   type JobSeekerProfile,
 } from '@/domain/jobSeekerProfile';
 import { LEGAL_JURISDICTION_LABELS, type LegalTemplate } from '@/domain/legalTemplate';
-import type { IndustryTemplateEntry } from '@/domain/workplaceTemplate';
+import type { IndustryTemplate } from '@/domain/workplaceTemplate';
 
 /** Same sentinel as StillingStep.NO_TEMPLATE. Kept here so this file does not import the step. */
 const NO_TEMPLATE = 'ingen';
@@ -48,7 +48,7 @@ function lines(
     .filter((item) => item.value !== '');
 }
 
-export function jobTemplatePeek(template: IndustryTemplate): TemplatePeek {
+export function jobTemplatePeek(template: JobTemplate): TemplatePeek {
   return {
     id: `job-${template.id}`,
     kind: 'Stillingsmal',
@@ -62,7 +62,7 @@ export function jobTemplatePeek(template: IndustryTemplate): TemplatePeek {
   };
 }
 
-export function industryTemplatePeek(entry: IndustryTemplateEntry): TemplatePeek | null {
+export function industryTemplatePeek(entry: IndustryTemplate): TemplatePeek | null {
   const details = lines([
     { label: 'Om bransjen', value: entry.description },
     { label: 'Dette får intervjueren vite', value: entry.context },
@@ -80,8 +80,8 @@ export function industryTemplatePeek(entry: IndustryTemplateEntry): TemplatePeek
 /** A bubble for the chosen industry, even when there is no saved bransjemal. */
 export function industryChoicePeek(
   name: string,
-  jobs: IndustryTemplate[],
-  entry?: IndustryTemplateEntry,
+  jobs: JobTemplate[],
+  entry?: IndustryTemplate,
 ): TemplatePeek {
   const saved = entry ? industryTemplatePeek(entry) : null;
   if (saved) return saved;
@@ -186,8 +186,8 @@ export function wizardTemplatePeeks({
   legalTemplates,
 }: {
   workplace: WorkplacePeekInput;
-  jobTemplates: IndustryTemplate[];
-  industryTemplates: IndustryTemplateEntry[];
+  jobTemplates: JobTemplate[];
+  industryTemplates: IndustryTemplate[];
   interviewer: AgentTemplate | null;
   profile: JobSeekerProfile | null;
   legalTemplates: LegalTemplate[];

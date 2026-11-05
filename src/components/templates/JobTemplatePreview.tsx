@@ -1,22 +1,22 @@
 import Chip from '@mui/material/Chip';
 
-import { SECTOR_LABELS, type IndustryTemplate, type Sector } from '@/data/industry-templates';
-import styles from './IndustryPreview.module.css';
+import { SECTOR_LABELS, type JobTemplate, type Sector } from '@/data/job-templates';
+import styles from './JobTemplatePreview.module.css';
 
 const SECTORS: Sector[] = ['offentlig', 'privat'];
 
 /**
- * The industry templates, grouped by public and private, shown before the counsellor gets to
- * choose one. Only a preview: the cards to choose from come in the next step.
+ * The stillingsmaler, grouped by public and private, shown before the counsellor gets to choose
+ * one. Only a preview: the cards to choose from come in the next step.
  */
-export function IndustryPreview({ templates }: { templates: IndustryTemplate[] }) {
+export function JobTemplatePreview({ templates }: { templates: JobTemplate[] }) {
   return (
-    <section aria-labelledby="industry-preview-heading" className={styles.preview}>
-      <h2 id="industry-preview-heading" className={styles.heading}>
-        Bransjer du kan velge i neste steg
+    <section aria-labelledby="job-template-preview-heading" className={styles.preview}>
+      <h2 id="job-template-preview-heading" className={styles.heading}>
+        Stillinger du kan velge i neste steg
       </h2>
       <p className={styles.lead}>
-        Etter intervjueren velger du en bransjemal. Den bestemmer stillingen og bransjen, og om
+        Etter intervjueren velger du en stillingsmal. Den bestemmer stillingen og bransjen, og om
         arbeidsgiveren er offentlig eller privat.
       </p>
       {SECTORS.map((sector) => (

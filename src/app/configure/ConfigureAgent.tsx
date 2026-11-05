@@ -13,11 +13,11 @@ import { fetchLegalTemplates } from '@/components/legalTemplates/api';
 import { LegalTemplateSelect } from '@/components/legalTemplates/LegalTemplateSelect';
 import { fetchProfiles } from '@/components/profiles/api';
 import { ProfileSelect } from '@/components/profiles/ProfileSelect';
-import { IndustryPicker } from '@/components/templates/IndustryPicker';
-import { IndustryPreview } from '@/components/templates/IndustryPreview';
+import { JobTemplatePicker } from '@/components/templates/JobTemplatePicker';
+import { JobTemplatePreview } from '@/components/templates/JobTemplatePreview';
 import { TemplatePicker } from '@/components/templates/TemplatePicker';
 import { useWorkplaceTemplates } from '@/components/templates/useWorkplaceTemplates';
-import { industryTemplates, type IndustryTemplate } from '@/data/industry-templates';
+import { builtInJobTemplates, type JobTemplate } from '@/data/job-templates';
 import {
   builtInLegalTemplateIds,
   builtInLegalTemplates,
@@ -90,7 +90,7 @@ function Steps({ steps, active }: { steps: string[]; active: number }) {
 /**
  * First the counsellor picks the type of agent. Then, for each kind of preset the type has, what
  * fills it in: a job seeker profile, legal templates and an interviewer template in one step, then
- * an industry template in the next. All are optional. The built-in interviewer templates come first, then the
+ * a stillingsmal in the next. All are optional. The built-in interviewer templates come first, then the
  * ones the counsellor has saved. Then the chat starts. Everything type-specific comes from the
  * type's definition, so a new type needs no change here.
  */
@@ -111,7 +111,7 @@ export function ConfigureAgent({
     initialTypeId ? getAgentType(initialTypeId) : undefined,
   );
   const [choice, setChoice] = useState<Choice<AgentTemplate>>(undefined);
-  const [industry, setIndustry] = useState<Choice<IndustryTemplate>>(undefined);
+  const [jobTemplate, setJobTemplate] = useState<Choice<JobTemplate>>(undefined);
   const [saved, setSaved] = useState<AgentTemplate[]>([]);
   const [profiles, setProfiles] = useState<JobSeekerProfile[]>([]);
   const [profilesLoaded, setProfilesLoaded] = useState(false);
@@ -156,11 +156,11 @@ export function ConfigureAgent({
   const usesTemplates = Boolean(presets.template);
   const agentType = definition?.id;
   const usesProfiles = Boolean(presets.jobSeekerProfile);
-  const usesIndustries = Boolean(presets.industryTemplate);
+  const usesJobTemplates = Boolean(presets.jobTemplate);
   const usesLegal = Boolean(presets.legalTemplates);
   // The built-in stillingsmaler and bransjemaler, and the counsellor's own once they have loaded.
   const workplaceTemplates = useWorkplaceTemplates(
-    definition?.id === 'interviewer' || usesIndustries,
+    definition?.id === 'interviewer' || usesJobTemplates,
   );
   const jobTemplates = workplaceTemplates.jobs;
 
@@ -315,7 +315,7 @@ export function ConfigureAgent({
     if (!next && draftId) clearWizardDraft(draftId);
     setDefinition(next);
     setChoice(undefined);
-    setIndustry(undefined);
+    setJobTemplate(undefined);
     setProfileId(null);
     setPracticeAreas([]);
     setLegalIds(next?.presets?.legalTemplates ? builtInLegalTemplateIds() : []);
@@ -497,7 +497,7 @@ export function ConfigureAgent({
   const steps = [
     'Velg agenttype',
     ...(usesPresetStep ? [presetStep] : []),
-    ...(usesIndustries ? ['Velg bransje'] : []),
+    ...(usesJobTemplates ? ['Velg stillingsmal'] : []),
     'Svar på spørsmålene',
   ];
 
@@ -512,14 +512,14 @@ export function ConfigureAgent({
     </div>
   );
 
-  const chosenIndustry = (
+  const chosenJobSummary = (
     <div className={styles.chosen}>
       <p>
-        {fieldLabel(presets.industryTemplate?.job)}:{' '}
-        <strong>{industry ? industry.title : 'Ingen bransjemal valgt'}</strong>
+        {fieldLabel(presets.jobTemplate?.job)}:{' '}
+        <strong>{jobTemplate ? jobTemplate.title : 'Ingen stillingsmal valgt'}</strong>
       </p>
-      <Button variant="contained" size="small" onClick={() => setIndustry(undefined)}>
-        {industry ? 'Bytt bransjemal' : 'Velg en bransjemal'}
+      <Button variant="contained" size="small" onClick={() => setJobTemplate(undefined)}>
+        {jobTemplate ? 'Bytt stillingsmal' : 'Velg en stillingsmal'}
       </Button>
     </div>
   );
@@ -560,7 +560,7 @@ export function ConfigureAgent({
       <WizardFrame current={1} onGoTo={goTo} reached={furthestStep} peeks={peeks}>
         <div className={stepStyles.form}>
           {chosenType}
-          {usesIndustries && industry !== undefined && chosenIndustry}
+          {usesJobTemplates && jobTemplate !== undefined && chosenJobSummary}
           <TemplatePicker
             embedded
             asRadios
@@ -738,7 +738,7 @@ export function ConfigureAgent({
         <Steps steps={steps} active={1} />
         {chosenType}
         {/* Kept when the counsellor goes back to change the interviewer. */}
-        {usesIndustries && industry !== undefined && chosenIndustry}
+        {usesJobTemplates && jobTemplate !== undefined && chosenJobSummary}
         {usesProfiles && (
           <ProfileSelect profiles={profiles} value={profileId ?? ''} onChange={setProfileId} />
         )}
@@ -759,14 +759,14 @@ export function ConfigureAgent({
             Fortsett
           </Button>
         )}
-        {usesIndustries && industry === undefined && (
-          <IndustryPreview templates={industryTemplates} />
+        {usesJobTemplates && jobTemplate === undefined && (
+          <JobTemplatePreview templates={builtInJobTemplates} />
         )}
       </>
     );
   }
 
-  // Shown above the industry picker and the chat, so the counsellor can go back and change it.
+  // Shown above the jobTemplate picker and the chat, so the counsellor can go back and change it.
   const chosenPresets = usesPresetStep && (
     <div className={styles.chosen}>
       <p>
@@ -811,38 +811,38 @@ export function ConfigureAgent({
     </div>
   );
 
-  if (usesIndustries && industry === undefined) {
+  if (usesJobTemplates && jobTemplate === undefined) {
     return (
       <>
         <Steps steps={steps} active={steps.length - 2} />
         {chosenType}
         {chosenPresets}
         {/* The chat's server route only knows the built-in stillingsmaler. */}
-        <IndustryPicker templates={industryTemplates} onSelect={setIndustry} />
+        <JobTemplatePicker templates={builtInJobTemplates} onSelect={setJobTemplate} />
       </>
     );
   }
 
-  const chosenIndustryTemplate = usesIndustries ? (industry ?? null) : null;
+  const chosenJobTemplate = usesJobTemplates ? (jobTemplate ?? null) : null;
 
   return (
     <>
       <Steps steps={steps} active={steps.length - 1} />
       {chosenType}
       {chosenPresets}
-      {usesIndustries && chosenIndustry}
+      {usesJobTemplates && chosenJobSummary}
       <ConfigurationChat
         key={JSON.stringify([
           definition.id,
           template?.id,
           profile?.id,
-          chosenIndustryTemplate?.id,
+          chosenJobTemplate?.id,
           legalIds,
         ])}
         definition={definition}
         template={template}
         profile={profile}
-        industry={chosenIndustryTemplate}
+        jobTemplate={chosenJobTemplate}
         legalTemplates={legalTemplates}
       />
     </>

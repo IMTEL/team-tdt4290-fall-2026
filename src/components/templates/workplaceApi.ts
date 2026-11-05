@@ -1,6 +1,6 @@
-import type { IndustryTemplate } from '@/data/industry-templates';
+import type { JobTemplate } from '@/data/job-templates';
 import type {
-  IndustryTemplateEntry,
+  IndustryTemplate,
   NewIndustryTemplate,
   NewJobTemplate,
 } from '@/domain/workplaceTemplate';
@@ -83,10 +83,10 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
 }
 
-const JOBS: Kind<IndustryTemplate> = {
+const JOBS: Kind<JobTemplate> = {
   url: '/api/job-templates',
   noun: 'Stillingsmalen',
-  isSaved: (value): value is IndustryTemplate =>
+  isSaved: (value): value is JobTemplate =>
     isRecord(value) &&
     typeof value.id === 'string' &&
     typeof value.title === 'string' &&
@@ -98,10 +98,10 @@ const JOBS: Kind<IndustryTemplate> = {
     typeof value.jobDescription === 'string',
 };
 
-const INDUSTRIES: Kind<IndustryTemplateEntry> = {
+const INDUSTRIES: Kind<IndustryTemplate> = {
   url: '/api/industry-templates',
   noun: 'Bransjemalen',
-  isSaved: (value): value is IndustryTemplateEntry =>
+  isSaved: (value): value is IndustryTemplate =>
     isRecord(value) &&
     typeof value.id === 'string' &&
     typeof value.name === 'string' &&

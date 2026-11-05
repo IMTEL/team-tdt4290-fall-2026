@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { industryTemplates } from '@/data/industry-templates';
+import { builtInJobTemplates } from '@/data/job-templates';
 import { interviewerTemplates } from '@/data/interviewer-templates';
 import { builtInLegalParagraphs, builtInLegalTemplates } from '@/data/legal-templates';
 import type { JobSeekerProfile } from '@/domain/jobSeekerProfile';
@@ -30,7 +30,7 @@ describe('wizardTemplatePeeks', () => {
   it('summarises the chosen stillingsmal, including what the interviewer is told', () => {
     const peeks = wizardTemplatePeeks({
       workplace,
-      jobTemplates: industryTemplates,
+      jobTemplates: builtInJobTemplates,
       industryTemplates: [],
       interviewer: null,
       profile: null,
@@ -55,7 +55,7 @@ describe('wizardTemplatePeeks', () => {
   it('adds a bransjemal when the chosen industry has its own template', () => {
     const peeks = wizardTemplatePeeks({
       workplace,
-      jobTemplates: industryTemplates,
+      jobTemplates: builtInJobTemplates,
       industryTemplates: [
         {
           id: 'ind-1',
@@ -86,7 +86,7 @@ describe('wizardTemplatePeeks', () => {
 
     const peeks = wizardTemplatePeeks({
       workplace: { ...workplace, templateId: 'ingen', industry: 'ingen' },
-      jobTemplates: industryTemplates,
+      jobTemplates: builtInJobTemplates,
       industryTemplates: [],
       interviewer: team,
       profile: null,
@@ -105,7 +105,7 @@ describe('wizardTemplatePeeks', () => {
   it('summarises a job seeker profile without the notes field', () => {
     const [peek] = wizardTemplatePeeks({
       workplace: { ...workplace, templateId: 'ingen', industry: 'ingen' },
-      jobTemplates: industryTemplates,
+      jobTemplates: builtInJobTemplates,
       industryTemplates: [],
       interviewer: null,
       profile,
@@ -130,7 +130,7 @@ describe('wizardTemplatePeeks', () => {
   it('gives the chosen legal template one bubble, and lists the paragraphs inside it', () => {
     const peeks = wizardTemplatePeeks({
       workplace: { ...workplace, templateId: 'ingen', industry: 'ingen' },
-      jobTemplates: industryTemplates,
+      jobTemplates: builtInJobTemplates,
       industryTemplates: [],
       interviewer: null,
       profile: null,
@@ -164,7 +164,7 @@ describe('peeksOnStep', () => {
     if (!team) throw new Error('missing teamleder template');
     const peeks = wizardTemplatePeeks({
       workplace,
-      jobTemplates: industryTemplates,
+      jobTemplates: builtInJobTemplates,
       industryTemplates: [],
       interviewer: team,
       profile,
@@ -182,7 +182,7 @@ describe('peeksOnStep', () => {
   it('adds a bransje bubble from the chosen industry name when there is no bransjemal', () => {
     const peeks = wizardTemplatePeeks({
       workplace,
-      jobTemplates: industryTemplates,
+      jobTemplates: builtInJobTemplates,
       industryTemplates: [],
       interviewer: null,
       profile: null,

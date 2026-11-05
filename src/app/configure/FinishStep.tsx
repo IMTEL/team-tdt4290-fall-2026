@@ -14,14 +14,14 @@ import { formatTemperature } from '@/domain/advancedSettings';
 import { MAX_NAME_LENGTH } from '@/domain/agentName';
 import type { AnswerEffect } from '@/domain/agentTypes/types';
 import { practiceChoiceLabel } from '@/domain/jobSeekerProfile';
-import { SECTOR_LABELS, type IndustryTemplate } from '@/data/industry-templates';
+import { SECTOR_LABELS, type JobTemplate } from '@/data/job-templates';
 import stepStyles from './StillingStep.module.css';
 import { NO_TEMPLATE, SECTIONS, type Employer, type Workplace } from './StillingStep';
 import type { InterviewSettings } from './SettingsStep';
 
 export type FinishOverview = {
   workplace: Workplace;
-  jobTemplates: IndustryTemplate[];
+  jobTemplates: JobTemplate[];
   interviewerTitle: string | null;
   profileLabel: string | null;
   /** The chosen legal templates' titles, in the order they were chosen. */

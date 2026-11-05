@@ -36,6 +36,7 @@ function respondWith({
   templates?: unknown[];
   profiles?: unknown[];
   jobTemplates?: unknown[];
+  /** Bransjemaler from /api/industry-templates. */
   industryTemplates?: unknown[];
 }) {
   fetchMock.mockImplementation(async (url) => {
@@ -461,7 +462,7 @@ describe('/configure', () => {
 
     expect(screen.getByRole('heading', { level: 2, name: 'Velg en jobbsøkermal' })).toBeVisible();
     expect(screen.getByRole('listitem', { current: 'step' })).toHaveTextContent('Jobbsøker');
-    expect(screen.queryByRole('heading', { name: 'Velg en bransjemal' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Velg en stillingsmal' })).not.toBeInTheDocument();
 
     await skipProfile(user);
 
@@ -469,7 +470,7 @@ describe('/configure', () => {
       screen.getByRole('heading', { level: 2, name: 'Hvordan skal intervjuet være?' }),
     ).toBeVisible();
     expect(screen.getByRole('listitem', { current: 'step' })).toHaveTextContent('Innstillinger');
-    expect(screen.queryByRole('heading', { name: 'Velg en bransjemal' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Velg en stillingsmal' })).not.toBeInTheDocument();
 
     await skipSettings(user);
 
@@ -486,7 +487,7 @@ describe('/configure', () => {
     const filledIn = screen.getByRole('region', { name: 'Det du har fylt inn' });
     expect(within(filledIn).getByText('Teamleder', { selector: 'dd' })).toBeVisible();
     expect(screen.getByRole('complementary', { name: 'Seksjoner' })).not.toContainElement(filledIn);
-    expect(screen.queryByRole('heading', { name: 'Velg en bransjemal' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Velg en stillingsmal' })).not.toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Intervjuer' }));
 

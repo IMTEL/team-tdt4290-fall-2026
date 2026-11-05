@@ -1,8 +1,8 @@
-// Stillingsmaler and bransjemaler the counsellor makes. The built-in ones are in
-// data/industry-templates.ts; the counsellor's own are saved in RAGdoll's templates with their own
-// types, and are offered next to the built-in ones on /templates and on /configure.
+// Stillingsmaler and bransjemaler the counsellor makes. Built-in stillingsmaler are in
+// data/job-templates.ts; the counsellor's own are saved in RAGdoll with their own types, and are
+// offered next to the built-in ones on /templates and on /configure.
 
-import { industryTemplates, type IndustryTemplate } from '@/data/industry-templates';
+import { builtInJobTemplates, type JobTemplate } from '@/data/job-templates';
 
 /** RAGdoll's template type for stillingsmaler. Kept apart from the agent types' templates. */
 export const JOB_TEMPLATE_TYPE = 'job-template';
@@ -27,10 +27,10 @@ export const INDUSTRY_TEMPLATE_LIMITS = {
 } as const;
 
 /** A stillingsmal as the counsellor writes it. The saved one has the same shape as a built-in. */
-export type NewJobTemplate = Omit<IndustryTemplate, 'id'>;
+export type NewJobTemplate = Omit<JobTemplate, 'id'>;
 
 /** A bransje the counsellor has added, so it can be chosen before it has any stillingsmaler. */
-export type IndustryTemplateEntry = {
+export type IndustryTemplate = {
   id: string;
   name: string;
   /** One line about the industry. Shown on the card and the industry's page. */
@@ -42,11 +42,11 @@ export type IndustryTemplateEntry = {
   context: string;
 };
 
-export type NewIndustryTemplate = Omit<IndustryTemplateEntry, 'id'>;
+export type NewIndustryTemplate = Omit<IndustryTemplate, 'id'>;
 
 /** True for a stillingsmal that comes with the app. They can't be changed or deleted. */
 export function isBuiltInJob(id: string): boolean {
-  return industryTemplates.some((template) => template.id === id);
+  return builtInJobTemplates.some((template) => template.id === id);
 }
 
 /**
@@ -54,8 +54,8 @@ export function isBuiltInJob(id: string): boolean {
  * then the bransjemaler that have none yet. Each name once, whatever its case.
  */
 export function industryNames(
-  jobs: IndustryTemplate[],
-  industries: IndustryTemplateEntry[],
+  jobs: JobTemplate[],
+  industries: IndustryTemplate[],
 ): string[] {
   const names = new Map<string, string>();
   for (const name of [...jobs.map((job) => job.industry), ...industries.map((i) => i.name)]) {
@@ -66,7 +66,7 @@ export function industryNames(
 }
 
 /** What the interviewer is told about the industry with this name, whatever its case, or "". */
-export function industryContext(name: string, industries: IndustryTemplateEntry[]): string {
+export function industryContext(name: string, industries: IndustryTemplate[]): string {
   const key = name.trim().toLowerCase();
   return industries.find((entry) => entry.name.trim().toLowerCase() === key)?.context ?? '';
 }

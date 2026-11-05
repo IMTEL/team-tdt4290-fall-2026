@@ -5,7 +5,7 @@ import Button from '@mui/material/Button';
 
 import { AgentChat } from '@/components/chat/AgentChat';
 import type { ChatMessage, SendMessages } from '@/components/chat/types';
-import { SECTOR_LABELS, type IndustryTemplate } from '@/data/industry-templates';
+import { SECTOR_LABELS, type JobTemplate } from '@/data/job-templates';
 import type { AgentTemplate } from '@/data/templates';
 import { decidedFields, firstQuestion } from '@/domain/agentTypes/configurator';
 import type { AgentTypeDefinition, AnswerSources, Answers } from '@/domain/agentTypes/types';
@@ -22,25 +22,25 @@ export const FINISHED_REPLY =
 
 // The assistant opens the conversation. Fixed text, so it costs no LLM call. It is also sent to
 // RAGdoll, after the server's briefing, so the agent doesn't greet again, and knows what was
-// chosen. It asks the type's first question that a template or profile hasn't answered: with an
-// industry template, the job is already known, so an interviewer's chat asks about the company.
+// chosen. It asks the type's first question that a template or profile hasn't answered: with a
+// stillingsmal, the job is already known, so an interviewer's chat asks about the company.
 function greeting(
   definition: AgentTypeDefinition,
   template: AgentTemplate | null,
   profile: JobSeekerProfile | null,
-  industry: IndustryTemplate | null,
+  jobTemplate: JobTemplate | null,
   legalTemplates: LegalTemplate[],
 ): ChatMessage {
   const decided = decidedFields(definition, {
     template: template !== null,
     jobSeekerProfile: profile !== null,
-    industryTemplate: industry !== null,
+    jobTemplate: jobTemplate !== null,
   });
   const chosen = [
     template && ` Du har valgt malen «${template.title}».`,
-    industry &&
-      ` Du har valgt bransjemalen «${industry.title}» (${industry.industry}, ` +
-        `${SECTOR_LABELS[industry.sector].toLowerCase()} sektor).`,
+    jobTemplate &&
+      ` Du har valgt stillingsmalen «${jobTemplate.title}» (${jobTemplate.industry}, ` +
+        `${SECTOR_LABELS[jobTemplate.sector].toLowerCase()} sektor).`,
     profile && ` Du har valgt jobbsøkermalen «${profile.label}».`,
     legalTemplates.length > 0 &&
       ` Intervjueren skal følge ${legalTemplates.map(({ title }) => `«${title}»`).join(', ')}.`,
@@ -65,8 +65,8 @@ type ConfigurationChatProps = {
   template: AgentTemplate | null;
   /** Null when the counsellor chose no job seeker profile. */
   profile: JobSeekerProfile | null;
-  /** The industry template, or null when the counsellor started without one. */
-  industry?: IndustryTemplate | null;
+  /** The stillingsmal, or null when the counsellor started without one. */
+  jobTemplate?: JobTemplate | null;
   /** The legal templates the interviewer must follow. None when the counsellor chose none. */
   legalTemplates?: LegalTemplate[];
 };
@@ -75,7 +75,7 @@ export function ConfigurationChat({
   definition,
   template,
   profile,
-  industry = null,
+  jobTemplate = null,
   legalTemplates = NO_LEGAL_TEMPLATES,
 }: ConfigurationChatProps) {
   // The finished configuration and its sources, once the configurator has written its
@@ -90,12 +90,12 @@ export function ConfigurationChat({
 
   const templateId = template?.id ?? null;
   const profileId = profile?.id ?? null;
-  const industryTemplateId = industry?.id ?? null;
+  const jobTemplateId = jobTemplate?.id ?? null;
   // A string, so the callback below stays the same while the same templates are chosen.
   const legalKey = JSON.stringify(legalTemplates.map(({ id }) => id));
   const initialMessages = useMemo(
-    () => [greeting(definition, template, profile, industry, legalTemplates)],
-    [definition, template, profile, industry, legalTemplates],
+    () => [greeting(definition, template, profile, jobTemplate, legalTemplates)],
+    [definition, template, profile, jobTemplate, legalTemplates],
   );
 
   // useCallback keeps it the same function on every render.
@@ -106,7 +106,7 @@ export function ConfigurationChat({
         {
           templateId,
           profileId,
-          industryTemplateId,
+          jobTemplateId,
           legalTemplateIds: JSON.parse(legalKey) as string[],
         },
         messages,
@@ -119,7 +119,7 @@ export function ConfigurationChat({
       setOpen(true);
       return FINISHED_REPLY;
     },
-    [definition, templateId, profileId, industryTemplateId, legalKey],
+    [definition, templateId, profileId, jobTemplateId, legalKey],
   );
 
   return (

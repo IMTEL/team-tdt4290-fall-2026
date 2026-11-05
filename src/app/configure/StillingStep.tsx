@@ -9,7 +9,7 @@ import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
 
 import { FieldHelp } from '@/components/ui/FieldHelp';
 import helpStyles from '@/components/ui/FieldHelp.module.css';
-import { SECTOR_LABELS, type IndustryTemplate, type Sector } from '@/data/industry-templates';
+import { SECTOR_LABELS, type JobTemplate, type Sector } from '@/data/job-templates';
 import { FORM_SECTIONS, formSectionHelpHref } from './formSections';
 import { LeaveWizardGuard } from './LeaveWizardGuard';
 import { SeeWholeTemplate, TemplatePeekList } from './TemplatePeekBubbles';
@@ -39,7 +39,7 @@ export type Workplace = {
 
 type StillingStepProps = {
   value: Workplace;
-  templates: IndustryTemplate[];
+  templates: JobTemplate[];
   /** The industries to choose from: those of the stillingsmaler and the counsellor's own. */
   industries: string[];
   onChange: (value: Workplace) => void;
@@ -282,7 +282,7 @@ function stillingComplete(value: Workplace): boolean {
 
 function stillingChoiceLines(
   value: Workplace,
-  templates: IndustryTemplate[],
+  templates: JobTemplate[],
 ): { label: string; value: string }[] {
   const jobTemplate =
     value.templateId === NO_TEMPLATE
@@ -343,7 +343,7 @@ export function StillingStep({
    * Chooses the stillingsmal and fills in its job title, industry and employer. A job title the
    * counsellor wrote themselves is kept; one a stillingsmal filled in is replaced.
    */
-  function pickTemplate(template: IndustryTemplate) {
+  function pickTemplate(template: JobTemplate) {
     const previous = templates.find((item) => item.id === value.templateId);
     const title = value.jobTitle.trim();
     const ownTitle = title !== '' && title !== previous?.title;

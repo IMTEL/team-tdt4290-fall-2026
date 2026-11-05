@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest';
 
-import { industryTemplates } from '@/data/industry-templates';
+import { builtInJobTemplates } from '@/data/job-templates';
 import {
   industryContext,
   industryNames,
@@ -9,13 +9,13 @@ import {
   isBuiltInJob,
 } from './workplaceTemplate';
 
-const ownJob = { ...industryTemplates[0], id: 'job-1', industry: 'Logistikk' };
+const ownJob = { ...builtInJobTemplates[0], id: 'job-1', industry: 'Logistikk' };
 
 describe('industryNames', () => {
   it('lists the stillingsmaler’s industries, then the bransjemaler without any, each once', () => {
     expect(
       industryNames(
-        [ownJob, industryTemplates[0], industryTemplates[0]],
+        [ownJob, builtInJobTemplates[0], builtInJobTemplates[0]],
         [
           { id: 'i-1', name: 'logistikk', description: '', context: '' },
           { id: 'i-2', name: 'Renhold', description: '', context: '' },

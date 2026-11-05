@@ -14,7 +14,7 @@ import {
 } from '@/components/templates/TemplateDetail';
 import { useWorkplaceTemplates } from '@/components/templates/useWorkplaceTemplates';
 import { deleteIndustryTemplate } from '@/components/templates/workplaceApi';
-import { SECTOR_LABELS } from '@/data/industry-templates';
+import { SECTOR_LABELS } from '@/data/job-templates';
 import {
   findIndustry,
   industryHref,

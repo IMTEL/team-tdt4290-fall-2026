@@ -9,7 +9,7 @@ import TextField from '@mui/material/TextField';
 import ToggleButton from '@mui/material/ToggleButton';
 import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
 
-import { SECTOR_LABELS, type Sector } from '@/data/industry-templates';
+import { SECTOR_LABELS, type Sector } from '@/data/job-templates';
 import { JOB_TEMPLATE_LIMITS as LIMITS, type NewJobTemplate } from '@/domain/workplaceTemplate';
 import styles from '@/components/profiles/ProfileForm.module.css';
 

@@ -22,9 +22,9 @@ export function decidedFields(definition: AgentTypeDefinition, chosen: ChosenPre
 /** The fields one kind of preset fills in for a type, or none if the type doesn't have it. */
 export function presetFields(presets: AgentPresets, kind: keyof AgentPresets): string[] {
   if (kind === 'template') return presets.template ? [presets.template.field] : [];
-  if (kind === 'industryTemplate') {
-    return presets.industryTemplate
-      ? [presets.industryTemplate.job, presets.industryTemplate.industry]
+  if (kind === 'jobTemplate') {
+    return presets.jobTemplate
+      ? [presets.jobTemplate.job, presets.jobTemplate.industry]
       : [];
   }
   return presets[kind] ? [presets[kind]] : [];
@@ -41,7 +41,7 @@ export function firstQuestion(definition: AgentTypeDefinition, decided: string[]
  * with. The configure route sends it as the first message, so the configurator's prompt in RAGdoll
  * stays the same for every agent type. `decided` holds the answers settled before the chat, with
  * their text, so the configurator can fit its questions and suggestions to them: an interviewer
- * template and an industry template together, for example.
+ * template and a job template together, for example.
  */
 export function buildBriefing(definition: AgentTypeDefinition, decided: Answers = {}): string {
   const decidedKeys = Object.keys(decided).filter((key) => decided[key]);
