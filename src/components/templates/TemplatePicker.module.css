@@ -110,6 +110,10 @@
 .focusChip {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  min-height: 24px;
+  min-width: 24px;
   max-width: 100%;
   padding: 0.15rem 0.55rem;
   border-radius: var(--radius-full);

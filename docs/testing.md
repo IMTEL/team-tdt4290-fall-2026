@@ -108,7 +108,7 @@ Unit and component level only:
   twice.
 - `src/app/browse-agents/AgentList.test.tsx`: Ny agent first in the interviewer section; agents as
   cards; toast «Agent lagret» from flash; a local draft as an Utkast card; deleting the draft
-  clears storage and removes the card.
+  clears storage and removes the card; filter dropdowns stay hidden until **Filtrer**.
 - `src/components/templates/IndustryPicker.test.tsx`: every industry template is shown with its
   industry and sector, clicking one selects it, "Fortsett uten bransjemal" selects none, and the
   sector filter shows only public or only private jobs.

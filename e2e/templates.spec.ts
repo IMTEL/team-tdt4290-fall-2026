@@ -1,7 +1,13 @@
 import { test, expect } from '@playwright/test';
 
 import { logIn } from './support/auth';
-import { chooseInterviewer, fillStilling, goToFinish, INTERVIEWER_STEP } from './support/configure';
+import {
+  chooseInterviewer,
+  fillStilling,
+  goToFinish,
+  INTERVIEWER_STEP,
+  INTERVIEWER_STEP_URL,
+} from './support/configure';
 import { createTemplate } from './support/data';
 
 test('a counsellor can make a template from the wizard and choose it there', async ({ page }) => {
@@ -75,10 +81,10 @@ test('a saved template can be edited', async ({ page }) => {
   await description.fill('Ny beskrivelse.');
   await expect(page.getByRole('link', { name: 'Avbryt', exact: true })).toHaveAttribute(
     'href',
-    /\/configure\?type=interviewer&step=intervjuer/,
+    INTERVIEWER_STEP_URL,
   );
   await page.getByRole('button', { name: 'Lagre endringene', exact: true }).click();
-  await expect(page).toHaveURL(/\/configure\?type=interviewer&step=intervjuer/);
+  await expect(page).toHaveURL(INTERVIEWER_STEP_URL);
   await expect(
     page.getByRole('heading', { level: 2, name: 'Velg en intervjuermal', exact: true }),
   ).toBeVisible();
@@ -115,6 +121,10 @@ test('a template that does not exist shows the not found page', async ({ page })
 test('administering lovverk jumps to that group on Maler', async ({ page }) => {
   await logIn(page, INTERVIEWER_STEP);
   await page.getByRole('link', { name: 'Administrer lovverk', exact: true }).click();
+  await page
+    .getByRole('dialog', { name: 'Forlate uten å lagre?', exact: true })
+    .getByRole('button', { name: 'Forlat', exact: true })
+    .click();
 
   await expect(page).toHaveURL(/\/templates\?seksjon=lovverk/);
   const lovverk = page.getByRole('button', { name: 'Lovverk', exact: true });

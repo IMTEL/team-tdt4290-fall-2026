@@ -9,6 +9,13 @@ const startsWith = (text: string) => new RegExp(`^${text.replace(/[.*+?^${}()|[\
 /** The wizard's Intervjuer step, opened straight from a link. Saved templates are shown there. */
 export const INTERVIEWER_STEP = '/configure?type=interviewer&step=intervjuer';
 
+/**
+ * The interviewer step after the wizard has a draft id in the query. `type` and `step` stay;
+ * `draft` may sit between them or after `step`.
+ */
+export const INTERVIEWER_STEP_URL =
+  /\/configure\?(?=.*\btype=interviewer\b)(?=.*\bstep=intervjuer\b)/;
+
 /** Picks the interviewer on /configure, the only agent type that can be set up so far. */
 export async function chooseInterviewer(page: Page): Promise<void> {
   await page.getByRole('button', { name: /^Intervjuer/ }).click();
@@ -89,8 +96,8 @@ export async function goToFinish(
 /** Confirms Publiser on Fullføre. Same dialog as on the agent's page. */
 export async function publishFromFinish(page: Page): Promise<void> {
   await page.getByRole('button', { name: 'Publiser', exact: true }).click();
-  const dialog = page.getByRole('dialog');
-  await expect(dialog.getByRole('heading', { name: 'Publiser til The Candidate' })).toBeVisible();
+  const dialog = page.getByRole('dialog', { name: 'Publiser til The Candidate' });
+  await expect(dialog).toBeVisible();
   await dialog.getByRole('button', { name: 'Publiser', exact: true }).click();
 }
 

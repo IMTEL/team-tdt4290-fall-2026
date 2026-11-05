@@ -375,8 +375,15 @@ describe('AgentList', () => {
       }),
     ];
 
+    /** Opens the filter dropdowns if they are still folded. */
+    async function showFilters(user: ReturnType<typeof userEvent.setup>) {
+      const toggle = await screen.findByRole('button', { name: 'Filtrer' });
+      if (toggle.getAttribute('aria-expanded') !== 'true') await user.click(toggle);
+    }
+
     /** Opens the filter with this label and picks the choice. */
     async function choose(user: ReturnType<typeof userEvent.setup>, filter: string, label: string) {
+      await showFilters(user);
       await user.click(screen.getByRole('combobox', { name: filter }));
       await user.click(screen.getByRole('option', { name: label }));
     }
@@ -386,13 +393,35 @@ describe('AgentList', () => {
       return cardNames(heading.closest('section')!);
     }
 
+    it('hides the dropdowns until Filtrer is opened', async () => {
+      fetchAgentsMock.mockResolvedValue(agents);
+      const user = userEvent.setup();
+
+      render(<AgentList />);
+
+      expect(await screen.findByRole('button', { name: 'Filtrer' })).toHaveAttribute(
+        'aria-expanded',
+        'false',
+      );
+      expect(screen.queryByRole('combobox', { name: 'Rolle' })).not.toBeInTheDocument();
+
+      await user.click(screen.getByRole('button', { name: 'Filtrer' }));
+
+      expect(screen.getByRole('button', { name: 'Filtrer' })).toHaveAttribute(
+        'aria-expanded',
+        'true',
+      );
+      expect(screen.getByRole('combobox', { name: 'Rolle' })).toBeVisible();
+    });
+
     it('offers only the industries and difficulties the agents have', async () => {
       fetchAgentsMock.mockResolvedValue(agents);
       const user = userEvent.setup();
 
       render(<AgentList />);
 
-      await user.click(await screen.findByRole('combobox', { name: 'Bransje' }));
+      await showFilters(user);
+      await user.click(screen.getByRole('combobox', { name: 'Bransje' }));
       expect(screen.getAllByRole('option').map((option) => option.textContent)).toEqual([
         'Alle',
         'Helse og omsorg',
@@ -415,7 +444,6 @@ describe('AgentList', () => {
 
       render(<AgentList />);
 
-      await screen.findByRole('combobox', { name: 'Sektor' });
       await choose(user, 'Sektor', 'Offentlig');
       expect(shownNames()).toEqual(['Intervjuer for Barnehagelærer', 'Intervjuer for Sykepleier']);
       expect(screen.queryByRole('button', { name: /Ny agent/ })).not.toBeInTheDocument();
@@ -435,7 +463,6 @@ describe('AgentList', () => {
 
       render(<AgentList />);
 
-      await screen.findByRole('combobox', { name: 'Status' });
       await choose(user, 'Status', 'Publisert');
 
       expect(shownNames()).toEqual(['Butikksjef Kari']);
@@ -468,7 +495,8 @@ describe('AgentList', () => {
 
       render(<AgentList />);
 
-      const reset = await screen.findByRole('button', { name: 'Nullstill filtre' });
+      await showFilters(user);
+      const reset = screen.getByRole('button', { name: 'Nullstill filtre' });
       expect(reset).toBeDisabled();
 
       await choose(user, 'Sektor', 'Privat');
@@ -493,7 +521,6 @@ describe('AgentList', () => {
 
       render(<AgentList />);
 
-      await screen.findByRole('combobox', { name: 'Sektor' });
       await choose(user, 'Sektor', 'Privat');
       await choose(user, 'Vanskelighetsgrad', 'Lett');
 
@@ -508,10 +535,12 @@ describe('AgentList', () => {
 
     it('turns off a filter no agent has an answer for', async () => {
       fetchAgentsMock.mockResolvedValue([makeAgent({ bransje: null })]);
+      const user = userEvent.setup();
 
       render(<AgentList />);
 
-      expect(await screen.findByRole('combobox', { name: 'Bransje' })).toHaveAttribute(
+      await showFilters(user);
+      expect(screen.getByRole('combobox', { name: 'Bransje' })).toHaveAttribute(
         'aria-disabled',
         'true',
       );
