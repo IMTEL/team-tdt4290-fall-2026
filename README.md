@@ -392,6 +392,9 @@ See [CONTRIBUTING.md](CONTRIBUTING.md): branch naming, commit convention, pull r
 
 ## License
 
-<!-- TODO: ask IMTEL before adding a LICENSE file -->
+[MIT](LICENSE). Copyright © 2026 IMTEL.
+
+Built on [RAGdoll](https://github.com/IMTEL/RAGdoll) (MIT). The Candidate (GPL-3.0) is a separate
+program and shares no code with this repository.
 
 <!-- IF you have read all of this, hi :D>
