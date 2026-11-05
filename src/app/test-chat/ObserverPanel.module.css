@@ -24,6 +24,13 @@
   padding: var(--space-4);
 }
 
+.summaryHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
 .list {
   display: flex;
   flex-direction: column;
@@ -61,4 +68,30 @@
   border-left: 3px solid var(--primary);
   color: var(--muted-foreground);
   font-style: italic;
+}
+
+.promptAccordion {
+  margin-top: var(--space-2);
+}
+
+.promptDetails {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.promptBox {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.prompt {
+  margin: 0;
+  max-height: 24em;
+  overflow-y: auto;
+  padding: var(--space-3);
+  font-family: monospace;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }

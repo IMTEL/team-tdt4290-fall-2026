@@ -6,13 +6,17 @@ import { hasAllAnswers } from '@/domain/agentTypes/registry';
 import { cleanSources, readStoredAnswers } from '@/domain/agentTypes/storedAnswers';
 import { parseAvatarChoice } from '@/domain/avatars';
 import { getSessionToken } from '@/lib/session-tokens';
+import { MAX_FEEDBACK_TO_READ } from '@/domain/interviewerFeedbackPrompt';
 import { applyEdit } from '@/server/agentMapper';
 import { notOwnerResponse, ragdollErrorResponse } from '@/server/errorResponse';
+import { fromRagdollFeedback } from '@/server/feedbackMapper';
+import { promptWithRatings } from '@/server/feedbackPrompt';
 import { modelsToValidate } from '@/server/models';
 import {
   deleteAgent,
   fetchFullAgent,
   isAgentOwner,
+  listFeedback,
   unpublishAgent,
   updateAgent,
 } from '@/server/ragdoll';
@@ -103,6 +107,16 @@ export async function PUT(req: NextRequest, { params }: Params) {
       undefined,
       avatar,
     );
+    // Re-attach the ratings: applyEdit rebuilds the prompt from the answers (or the hand-written
+    // one) and would otherwise drop them.
+    try {
+      const ratings = (await listFeedback(sessionToken, agentId, MAX_FEEDBACK_TO_READ)).map(
+        fromRagdollFeedback,
+      );
+      edited.prompt = await promptWithRatings(edited.prompt, ratings);
+    } catch (error) {
+      console.error('Could not add ratings to the rebuilt interviewer prompt:', error);
+    }
     return Response.json({ agent: await updateAgent(sessionToken, edited) });
   } catch (error) {
     return ragdollErrorResponse(error);

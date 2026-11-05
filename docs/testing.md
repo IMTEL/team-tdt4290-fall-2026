@@ -62,10 +62,11 @@ Unit and component level only:
   messages, and rethrows aborts untouched.
 - `src/app/test-chat/TestChat.test.tsx` and `page.test.tsx`: the greeting, the conversation goes
   to the agent in `?agent=`, starting over, a new conversation when the agent changes, a link
-  to the agents when the URL names none, and observer feedback shown as the question that was
-  asked and how it was judged.
+  to the agents when the URL names none, observer feedback shown as the question that was
+  asked and how it was judged, and the observer's system prompt closed until opened.
 - `src/app/test-chat/ObserverPanel.test.tsx`: each observer point is paired with the interviewer
-  question; many points show a summary until «Vis hvert spørsmål».
+  question; many points show a summary until «Vis hvert spørsmål»; the observer's system prompt
+  is hidden until opened.
 - `src/domain/observerFeedback.test.ts`: parsing the observer's lines, dropping invented quotes,
   pairing points with the interviewer question, and the summary text.
 - `src/components/chat/ChatInput.test.tsx`: Enter and the button send the trimmed text and clear
@@ -177,7 +178,8 @@ Unit and component level only:
   from the environment, as the chosen agent type (an interviewer when none is sent); 401, 400
   (including an unknown or planned type) and 500 cases save nothing; lists the counsellor's agents.
 - `src/app/api/agents/[agentId]/route.test.ts`: editing updates the same agent (same id) with the
-  new name, answers and prompt, and keeps the fields the edit does not touch; 401 and 400 cases
+  new name, answers and prompt, and keeps the fields the edit does not touch; ratings are written
+  back into the rebuilt prompt; 401 and 400 cases
   (bad JSON, bad name, a missing answer, an agent not made in this app) save nothing; an agent
   the user does not have gives 404 and is never written, so RAGdoll cannot create a new one;
   RAGdoll failures give 502.
@@ -218,6 +220,12 @@ Unit and component level only:
   only its definition.
 - `src/domain/interviewerPrompt.test.ts`: filling the interviewer prompt from the answers, with
   the Tillegg line only when something was added.
+- `src/domain/interviewerFeedbackPrompt.test.ts`: counsellor ratings of test-chat replies become a
+  prompt section, many ratings are summarised so older comments are kept, an observer-written
+  summary is used when there is one, an older section is replaced, and the block is dropped when
+  every rating is undone.
+- `src/server/feedbackPrompt.test.ts`: ratings are written into the stored prompt; many ratings
+  are sent to the observer; comments are listed if the observer does not answer.
 - `src/domain/interviewerSummary.test.ts` and `src/domain/difficulty.test.ts`: the summary in up to
   three sentences; each sentence is left out when its answers are empty; the type and level of
   difficulty (also when the chat added the number of questions); a long job seeker description is

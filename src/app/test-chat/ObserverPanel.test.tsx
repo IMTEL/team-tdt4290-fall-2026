@@ -58,8 +58,8 @@ describe('ObserverPanel', () => {
     expect(screen.queryByRole('region', { name: 'Sammendrag' })).not.toBeInTheDocument();
   });
 
-  it('shows a summary when there are many points, and lists each question under it', async () => {
-    await ask({
+  it('shows a summary when there are many points, until «Vis hvert spørsmål»', async () => {
+    const user = await ask({
       kind: 'feedback',
       wentWell: [
         point('i tre år', 'Du viste erfaring.', 'Tips 1'),
@@ -75,7 +75,42 @@ describe('ObserverPanel', () => {
     expect(summary).toHaveTextContent(
       'Observatøren vurderte 4 svar: 2 gikk bra, og 2 kan bli bedre.',
     );
-    expect(screen.queryByRole('button', { name: 'Vis hvert spørsmål' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('article', { name: 'Spørsmål og vurdering' })).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Vis hvert spørsmål' }));
+
     expect(screen.getAllByRole('article', { name: 'Spørsmål og vurdering' })).toHaveLength(2);
+    await user.click(screen.getByRole('button', { name: 'Skjul spørsmålene' }));
+    expect(screen.queryByRole('article', { name: 'Spørsmål og vurdering' })).not.toBeInTheDocument();
+  });
+
+  it('hides the observer’s system prompt until it is opened', async () => {
+    render(
+      <ObserverPanel
+        messages={messages}
+        disabled={false}
+        prompt={'Du er en observatør.\n\n## Tilbakemeldingen'}
+      />,
+    );
+
+    const toggle = screen.getByRole('button', { name: 'Observatørens systemprompt' });
+    expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.queryByText(/Du er en observatør/)).not.toBeVisible();
+
+    await userEvent.setup().click(toggle);
+
+    expect(toggle).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByText(/Du er en observatør/)).toBeVisible();
+    expect(
+      screen.getByText(/Dette er instruksjonene observatøren følger når den gir tilbakemelding/),
+    ).toBeVisible();
+  });
+
+  it('does not offer the system prompt when none was given', () => {
+    render(<ObserverPanel messages={messages} disabled={false} />);
+
+    expect(
+      screen.queryByRole('button', { name: 'Observatørens systemprompt' }),
+    ).not.toBeInTheDocument();
   });
 });

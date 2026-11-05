@@ -2,6 +2,7 @@ import type { NextRequest } from 'next/server';
 
 import { getSessionToken } from '@/lib/session-tokens';
 import { ragdollErrorResponse } from '@/server/errorResponse';
+import { syncAgentPromptWithFeedback } from '@/server/feedbackPrompt';
 import { deleteFeedback } from '@/server/ragdoll';
 
 type Params = { params: Promise<{ agentId: string; feedbackId: string }> };
@@ -28,6 +29,9 @@ export async function DELETE(req: NextRequest, { params }: Params) {
 
   try {
     await deleteFeedback(sessionToken, agentId, feedbackId);
+    await syncAgentPromptWithFeedback(sessionToken, agentId).catch((error) => {
+      console.error('Could not take the rating out of the interviewer prompt:', error);
+    });
     return new Response(null, { status: 204 });
   } catch (error) {
     return ragdollErrorResponse(error);

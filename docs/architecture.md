@@ -526,13 +526,21 @@ counsellor's agents (`GET /api/agents`) and checks that the id is one of them; i
 never existed, or someone else's) it says the interviewer was not found. Under the test chat, the
 counsellor can ask a shared observer agent for feedback on the conversation so far. Each point is
 shown as the question that was asked and how the answer was judged; many points collapse to a
-summary.
+summary until «Vis hvert spørsmål». The observer's system prompt from
+[`prompts/observer.nb.md`](../prompts/observer.nb.md) is shown under the panel, closed until
+opened. Editing it is not offered (that stays a paste into RAGdoll). Under each interviewer reply
+the counsellor can rate it (thumbs up or down, with an optional comment). The ratings are written
+into the stored system prompt as **Tilbakemeldinger fra veilederen**, so later replies in the test
+chat and in The Candidate follow them. When there are many, the same observer writes a short
+summary of every rating into that block, and only the newest are quoted in full. If the observer
+does not answer, the comments are listed instead. Undoing a rating, or editing the agent, rebuilds
+that block from the ratings that are still stored.
 
 | Agent                   | Used on                                         | Route                             | Prompt source                                                                                            |
 | ----------------------- | ----------------------------------------------- | --------------------------------- | -------------------------------------------------------------------------------------------------------- |
 | configurator (shared)   | `/configure`                                    | `POST /api/configure/turn`        | [`prompts/configurator.nb.md`](../prompts/configurator.nb.md)                                            |
 | the counsellor's agents | `/test-chat?agent=<id>`                         | `POST /api/agents/[agentId]/chat` | [`src/domain/interviewerPrompt.ts`](../src/domain/interviewerPrompt.ts), written when the agent is saved |
-| observer (shared)       | `/test-chat?agent=<id>`, «Be om tilbakemelding» | `POST /api/test-chat/observer`    | [`prompts/observer.nb.md`](../prompts/observer.nb.md)                                                    |
+| observer (shared)       | `/test-chat?agent=<id>`, «Be om tilbakemelding»; also a summary of many thumbs ratings | `POST /api/test-chat/observer`; `syncAgentPromptWithFeedback` | [`prompts/observer.nb.md`](../prompts/observer.nb.md)                                                    |
 
 ```mermaid
 sequenceDiagram
@@ -594,11 +602,17 @@ sequenceDiagram
   It drops every point whose quote is not at least three whole words the candidate said in a row,
   and answers 502 if none is left. The page pairs each remaining point with the interviewer
   question the candidate was answering, and shows a summary when there are many
-  ([`src/domain/observerFeedback.ts`](../src/domain/observerFeedback.ts)).
+  ([`src/domain/observerFeedback.ts`](../src/domain/observerFeedback.ts)). The test chat also
+  shows the observer's system prompt, closed until opened. After more than ten thumbs ratings,
+  `syncAgentPromptWithFeedback` sends the ratings as a different user message
+  (`SAMMENDRAG AV VURDERINGER:`) and puts the observer's prose into the interviewer prompt
+  ([`src/domain/interviewerFeedbackPrompt.ts`](../src/domain/interviewerFeedbackPrompt.ts),
+  [`src/server/feedbackPrompt.ts`](../src/server/feedbackPrompt.ts)).
 - Code: [`src/app/api/configure/turn/route.ts`](../src/app/api/configure/turn/route.ts),
   [`src/app/api/agents/[agentId]/chat/route.ts`](../src/app/api/agents/[agentId]/chat/route.ts),
   [`src/app/api/test-chat/observer/route.ts`](../src/app/api/test-chat/observer/route.ts),
-  [`src/server/ragdoll.ts`](../src/server/ragdoll.ts).
+  [`src/server/ragdoll.ts`](../src/server/ragdoll.ts),
+  [`src/server/feedbackPrompt.ts`](../src/server/feedbackPrompt.ts).
 
 ### Logging out
 
@@ -641,11 +655,11 @@ browser code.
 | Variable                                | Used by                                                      | Secret? |
 | --------------------------------------- | ------------------------------------------------------------ | ------- |
 | `BACKEND_API_URL`                       | Login, refresh, logout, `/api/agents/*` (test chat included) | No      |
-| `RAGDOLL_API_URL`                       | `/api/configure/turn`, `/api/test-chat/observer`             | No      |
+| `RAGDOLL_API_URL`                       | `/api/configure/turn`, `/api/test-chat/observer`, rating summary | No      |
 | `RAGDOLL_CONFIGURATOR_AGENT_ID`         | `/api/configure/turn`                                        | No      |
 | `RAGDOLL_CONFIGURATOR_ACCESS_KEY`       | `/api/configure/turn`                                        | Yes     |
-| `RAGDOLL_OBSERVER_AGENT_ID`             | `/api/test-chat/observer`                                    | No      |
-| `RAGDOLL_OBSERVER_ACCESS_KEY`           | `/api/test-chat/observer`                                    | Yes     |
+| `RAGDOLL_OBSERVER_AGENT_ID`             | `/api/test-chat/observer`, rating summary into interviewer prompt | No      |
+| `RAGDOLL_OBSERVER_ACCESS_KEY`           | `/api/test-chat/observer`, rating summary into interviewer prompt | Yes     |
 | `IDUN_API_KEY`                          | `POST /api/agents` (written onto the saved agent)            | Yes     |
 | `NEXTAUTH_URL`                          | NextAuth                                                     | No      |
 | `NEXTAUTH_SECRET`                       | NextAuth (cookie encryption)                                 | Yes     |

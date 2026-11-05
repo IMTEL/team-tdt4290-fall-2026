@@ -1,5 +1,6 @@
-// A counsellor's rating of one agent reply in the test chat. RAGdoll stores it and adds the most
-// recent ratings to the agent's prompt on every chat turn, so a rating shapes the next reply.
+// A counsellor's rating of one agent reply in the test chat. RAGdoll stores it; we write the
+// ratings into the interviewer's system prompt so the next replies follow them. Many ratings
+// become a summary of all of them, with the newest quoted in full.
 
 export type Rating = 'good' | 'bad';
 

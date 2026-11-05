@@ -204,6 +204,27 @@ describe('applyEdit with advanced settings', () => {
 });
 
 describe('currentSettings', () => {
+  it('does not treat ratings in the stored prompt as part of a hand-written prompt', () => {
+    const agent = {
+      ...toRagdollAgent(
+        'Kari',
+        interviewer,
+        answers,
+        'idun-key',
+        {},
+        {
+          model: 'meta/llama-3.3-70b',
+          temperature: 0.2,
+          customPrompt: 'Du er Kari.',
+        },
+      ),
+      id: 'agent-1',
+      prompt: 'Du er Kari.\n\n## Tilbakemeldinger fra veilederen\nUnngå dette.',
+    };
+
+    expect(currentSettings(agent).customPrompt).toBe('Du er Kari.');
+  });
+
   it('reads the settings of an agent with a hand-written prompt', () => {
     const agent = {
       ...toRagdollAgent(

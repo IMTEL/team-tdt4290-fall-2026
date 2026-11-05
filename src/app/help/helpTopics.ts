@@ -223,14 +223,16 @@ export const HELP_TOPICS: HelpTopic[] = [
       'Snakk med agenten slik en jobbsøker ville gjort. Skriv svaret ditt i meldingsfeltet og trykk «Send».',
       // English translation: Under each reply from the agent there is a thumbs up and a thumbs
       // down. Press thumbs up if the reply was good, or thumbs down if it was not, and preferably
-      // write why. The ratings are saved with the agent and change how it behaves: the agent uses
-      // your most recent ratings every time it answers, so it does more of what you liked and
-      // less of what you did not.
-      'Under hvert svar fra agenten er det en tommel opp og en tommel ned. Trykk tommel opp hvis svaret var bra, eller tommel ned hvis det ikke var det, og skriv gjerne hvorfor. Vurderingene lagres på agenten og endrer hvordan den oppfører seg: agenten bruker de nyeste vurderingene dine hver gang den svarer, så den gjør mer av det du likte og mindre av det du ikke likte.',
+      // write why. The ratings are written into the interviewer's system prompt, so the next
+      // replies follow what you liked and avoid what you did not. If there are many ratings, the
+      // observer writes a summary of them.
+      'Under hvert svar fra agenten er det en tommel opp og en tommel ned. Trykk tommel opp hvis svaret var bra, eller tommel ned hvis det ikke var det, og skriv gjerne hvorfor. Vurderingene skrives inn i intervjuerens systemprompt, så neste svar følger det du likte og unngår det du ikke likte. Kommer det mange vurderinger, skriver observatøren et sammendrag av dem.',
       // English translation: When the interview is done, press «Be om tilbakemelding». An
       // observer agent reads the interview and tells the job seeker what went well and what can
-      // be better. This way you see the feedback the job seeker would get after the interview.
-      'Når intervjuet er ferdig, trykk «Be om tilbakemelding». En observatøragent leser intervjuet og forteller jobbsøkeren hva som gikk bra og hva som kan bli bedre. Slik ser du tilbakemeldingen jobbsøkeren ville fått etter intervjuet.',
+      // be better, as «the question that was asked» and «how it was judged». If there are many
+      // points, a summary is shown first. Under the feedback you can open «Observatørens
+      // systemprompt» to read the instructions it follows.
+      'Når intervjuet er ferdig, trykk «Be om tilbakemelding». En observatøragent leser intervjuet og forteller jobbsøkeren hva som gikk bra og hva som kan bli bedre, som «spørsmålet som ble stilt» og «slik ble det vurdert». Har observatøren mange punkter, vises et sammendrag først. Under tilbakemeldingen kan du åpne «Observatørens systemprompt» for å se instruksjonene den følger.',
       // English translation: «Start på nytt» deletes the conversation and starts a new one.
       '«Start på nytt» sletter samtalen og begynner en ny.',
     ],
