@@ -19,8 +19,8 @@ import styles from './NewAgentCard.module.css';
 const DIALOG_TITLE_ID = 'new-agent-dialog-title';
 
 /**
- * The first card on the agents page. Choosing a type in the dialog opens the configurator with
- * that type already chosen.
+ * The first card on the agents page. Choosing a type in the dialog opens /configure with that
+ * type already chosen.
  */
 export function NewAgentCard() {
   const router = useRouter();

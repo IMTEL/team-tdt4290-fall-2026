@@ -1,8 +1,6 @@
 import { render, screen, within } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 
-import { parseQuestionOptions } from '@/domain/questionOptions';
 import { MessageList } from './MessageList';
 import type { ChatMessage } from './types';
 
@@ -54,70 +52,5 @@ describe('MessageList', () => {
       'aria-live',
       'off',
     );
-  });
-
-  describe('with answer options', () => {
-    const question: ChatMessage = {
-      id: '3',
-      role: 'assistant',
-      content: `Offentlig eller privat?
-
-[ALTERNATIVER: ett]
-1. Offentlig
-2. Privat`,
-    };
-
-    it('lets the newest question be answered by clicking, without showing the block as text', async () => {
-      const onAnswer = vi.fn();
-      render(
-        <MessageList
-          messages={[...messages, question]}
-          onAnswer={onAnswer}
-          parseReply={parseQuestionOptions}
-        />,
-      );
-
-      expect(screen.queryByText(/ALTERNATIVER/)).not.toBeInTheDocument();
-      const user = userEvent.setup();
-      await user.click(screen.getByRole('button', { name: '2. Privat' }));
-
-      expect(onAnswer).toHaveBeenCalledExactlyOnceWith('2. Privat');
-    });
-
-    it('shows the options of an older question as a numbered list', () => {
-      const answered = [
-        ...messages,
-        question,
-        { id: '4', role: 'user' as const, content: '2. Privat' },
-      ];
-      render(
-        <MessageList messages={answered} onAnswer={vi.fn()} parseReply={parseQuestionOptions} />,
-      );
-
-      expect(screen.queryByRole('button', { name: '1. Offentlig' })).not.toBeInTheDocument();
-      expect(
-        screen.getByText(/Offentlig eller privat\?\s+1\. Offentlig\s+2\. Privat/),
-      ).toBeInTheDocument();
-    });
-
-    it('hides the options while the assistant is answering', () => {
-      render(
-        <MessageList
-          messages={[...messages, question]}
-          onAnswer={vi.fn()}
-          parseReply={parseQuestionOptions}
-          isTyping
-        />,
-      );
-
-      expect(screen.queryByRole('button', { name: '1. Offentlig' })).not.toBeInTheDocument();
-    });
-
-    it('shows the reply as it is for an agent that does not write options', () => {
-      render(<MessageList messages={[...messages, question]} onAnswer={vi.fn()} />);
-
-      expect(screen.queryByRole('button', { name: '1. Offentlig' })).not.toBeInTheDocument();
-      expect(screen.getByText(/\[ALTERNATIVER: ett\]/)).toBeInTheDocument();
-    });
   });
 });

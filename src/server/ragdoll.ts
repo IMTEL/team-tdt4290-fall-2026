@@ -23,8 +23,8 @@ export class RagdollError extends Error {
 const TIMEOUT_MS = 30000;
 
 /**
- * Sends the chat history to the shared configurator agent and returns the reply text.
- * Goes to RAGDOLL_API_URL, where the configurator lives. Throws RagdollError.
+ * Sends the chat history to the shared observer agent and returns the reply text.
+ * Goes to RAGDOLL_API_URL, where the observer lives. Throws RagdollError.
  */
 export async function askAgent(agent: RagdollAgent, messages: RagdollMessage[]): Promise<string> {
   return askAt('RAGDOLL_API_URL', agent, messages);
@@ -32,7 +32,7 @@ export async function askAgent(agent: RagdollAgent, messages: RagdollMessage[]):
 
 /**
  * Sends the chat history to one of the logged-in user's saved agents and returns the reply text.
- * Goes to BACKEND_API_URL: the RAGdoll the agent was saved in, which may not be the configurator's.
+ * Goes to BACKEND_API_URL: the RAGdoll the agent was saved in, which may not be the observer's.
  * Throws RagdollError.
  */
 export async function askSavedAgent(

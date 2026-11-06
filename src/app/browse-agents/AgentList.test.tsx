@@ -201,7 +201,6 @@ describe('AgentList', () => {
     avatar: null,
     nameEdited: false,
     agentName: '',
-    presetsDone: false,
   });
 
   it('shows a local draft as an utkast card', async () => {

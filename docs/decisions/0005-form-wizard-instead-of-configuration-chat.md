@@ -1,6 +1,6 @@
 # 0005. Counselors set up an agent in a form wizard, not in a configuration chat
 
-- **Status:** Accepted
+- **Status:** Accepted. The chat kept as a fallback was removed later (#135, 2026-11-06)
 - **Date:** 2026-10-23
 - **Issues:** #104 (PR #106)
 
@@ -39,8 +39,8 @@ arbeidsplass → Intervjuer → Jobbsøker → Innstillinger → AI-innstillinge
 `wizardConfiguration.ts` turns the choices into the same answers the chat produced, and they are
 saved with the same `POST /api/agents`, so nothing after `/configure` changed.
 
-The configuration chat is kept in the code as the fallback for agent types that have no wizard
-yet, but no counselor sees it today.
+The configuration chat was first kept in the code as the fallback for agent types that have no
+wizard yet. No counselor used it, so it was removed in #135: a new type gets a wizard instead.
 
 Later the customer added that **every agent type** should be set up the same way: the same steps,
 frame and last step, with only the content of the steps differing by type. How to get there is in
@@ -57,6 +57,6 @@ frame and last step, with only the content of the steps differing by type. How t
 - A new choice in the wizard needs a list in the code and a rule in the prompt builder
   ([Add a choice to the interviewer wizard](../extending.md#add-a-choice-to-the-interviewer-wizard)).
   The chat could take any free text, the wizard only what is listed (plus the free-text fields).
-- The configurator prompt (`prompts/configurator.nb.md`), the chat route and `ConfigurationChat`
-  are kept and tested, but only used by a type without a wizard. If the team decides all types get
-  a wizard for good, they can be removed (see the TODO in `extending.md`).
+- With the chat removed (#135), the configurator agent, its prompt, the chat route
+  (`/api/configure/turn`), the answer-option buttons and the questions in each agent type's
+  definition are gone too. A type without a wizard can't be set up until it gets one.

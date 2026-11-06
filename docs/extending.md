@@ -27,36 +27,32 @@ The app was built so that the job interview is the _first_ scenario, not the onl
 that is special about one kind of agent lives in its **agent type definition**
 (`AgentTypeDefinition` in [`src/domain/agentTypes/types.ts`](../src/domain/agentTypes/types.ts)):
 
-| Part of the definition       | What it decides                                                                               |
-| ---------------------------- | --------------------------------------------------------------------------------------------- |
-| `id`, `label`, `description` | The type's id (stored on every agent and template), and how counselors see it                 |
-| `fields`                     | The answers the counselor gives, each with the question the configurator asks                 |
-| `configurator`               | What the shared configurator agent is told about this type: purpose, greeting, extra rules    |
-| `presets`                    | Which field a template, a job seeker profile, an industry template or legal templates fill in |
-| `buildPrompt`                | The agent's system prompt, built from the answers                                             |
-| `buildSummary`               | The few sentences at the top of the details page                                              |
-| `explainAnswers`             | «Slik former svarene dine agenten»: which answers change the agent, and how                   |
-| `buildRoles`                 | The agent's roles in RAGdoll. The Candidate talks to the first one                            |
-| `defaultName`                | The name suggested when the agent is saved                                                    |
+| Part of the definition       | What it decides                                                               |
+| ---------------------------- | ----------------------------------------------------------------------------- |
+| `id`, `label`, `description` | The type's id (stored on every agent and template), and how counselors see it |
+| `fields`                     | The answers the counselor gives: a key, a label, and whether it is optional   |
+| `presets`                    | Which field an intervjuermal, a jobbsøkermal or legal templates fill in       |
+| `buildPrompt`                | The agent's system prompt, built from the answers                             |
+| `buildSummary`               | The few sentences at the top of the details page                              |
+| `explainAnswers`             | «Slik former svarene dine agenten»: which answers change the agent, and how   |
+| `buildRoles`                 | The agent's roles in RAGdoll. The Candidate talks to the first one            |
+| `defaultName`                | The name suggested when the agent is saved                                    |
 
 The API routes, the mapper to RAGdoll (`src/server/agentMapper.ts`), the storage of answers
-(`storedAnswers.ts`), the edit, clone and details pages and the configurator's prompt in RAGdoll
-read all of this from the definition, and never name a type or a field. So most of a new type is
-writing one definition.
+(`storedAnswers.ts`) and the edit, clone and details pages read all of this from the definition,
+and never name a type or a field. So a new type is one definition plus its form wizard.
 
 The exception is the **form wizard** on `/configure`. The customer wants every agent type set up
 the same way as the interviewer: the same six-step form, with the same frame, navigation, drafts,
 AI settings and last step, where only the content of the steps differs from type to type. Today that form is
 written for the interviewer only, so the first new type has to make it work for more than one
 type. How is described in
-[step 2 of Add a new agent type](#2-give-it-the-same-form-required).
+[step 2 of Add a new agent type](#2-give-it-the-same-form-required). Until a type has a wizard,
+`/configure` only says it can't be set up yet.
 
-<!-- TODO: update this when/if config chat is removed -->
-
-Until that is done, a new type falls back to the older generic flow: optional preset pickers, then
-the configuration chat (`ConfigurationChat`), which asks the type's questions one by one. That flow
-still works, but it is not how the customer wants agents set up. Why the wizard replaced the chat is in
-[decision 0005](decisions/0005-form-wizard-instead-of-configuration-chat.md).
+Agents used to be set up in a configuration chat with a shared configurator agent. The wizard
+replaced it ([decision 0005](decisions/0005-form-wizard-instead-of-configuration-chat.md)), and the
+chat was removed in #135.
 
 ## Add a new agent type
 
@@ -70,12 +66,8 @@ as "Kommer snart" in `PLANNED_AGENT_TYPES` in
    [`interviewer.ts`](../src/domain/agentTypes/interviewer.ts) as the model.
    - `id`: short, English, never changed later (it is stored on every agent and template). Use
      the planned id, `teacher`, so the "Kommer snart" card disappears by itself.
-   - `fields`: in the order the configurator should ask. Write `question` as the configurator
-     should ask it, in Norwegian. Use `hint` for what the configurator needs to find out and
-     `format` for how it should write the answer in the `KONFIGURASJON` block. Mark fields the
-     counselor may skip as `optional`.
-   - `configurator.rules`: only rules this type has. Rules for every type are in
-     `prompts/configurator.nb.md`.
+   - `fields`: a `key` and a Norwegian `label` for each answer, in the order the details page and
+     the edit form should show them. Mark fields the counselor may skip as `optional`.
    - `presets`: leave it out at first. Add `template` if counselors should make templates for
      this type (see step 4).
 2. Put the prompt, summary and explanation in their own files in `src/domain/`, as the
@@ -92,9 +84,8 @@ as "Kommer snart" in `PLANNED_AGENT_TYPES` in
 
 That alone gives you, with no other change:
 
-- the type in the «Ny agent» dialog on Agenter and on `/configure` without `?type=`;
-- the configuration chat on `/configure?type=teacher`, asking the type's questions (the fallback
-  until step 2 is done);
+- the type in the «Ny agent» dialog on Agenter and on `/configure` without `?type=` (it says the
+  type can't be set up yet until step 2 is done);
 - saving (`POST /api/agents`), the test chat, rating replies and the observer;
 - its own section on Agenter, the details page with summary and answers, editing, cloning and
   deleting;
@@ -196,25 +187,26 @@ flag on any agent.
    `fetchSavedTemplates('interviewer', …)`. Fetch the new type's too, or the counselor's own
    templates for it will only show on `/configure`.
 
-Job seeker profiles, industry templates and legal templates can be reused by naming the field
-they fill in (`presets.jobSeekerProfile`, `presets.industryTemplate`, `presets.legalTemplates`).
-A field filled in by legal templates must be `optional` and `presetOnly`, so legal text never comes
-from the language model.
+Job seeker profiles and legal templates can be reused by naming the field they fill in
+(`presets.jobSeekerProfile`, `presets.legalTemplates`); the edit form then offers the same choice.
+A field filled in by legal templates must be `optional`. Stillingsmaler and bransjemaler are picked
+in the interviewer's first step and written into the answers there, so a new type's wizard uses
+them the same way if it needs them.
 
 ### 5. Places that still name the interviewer
 
 Look at these and decide whether the new type needs the same:
 
-| Where                                                                      | What it does for the interviewer only                                                                                                                                                            |
-| -------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `src/app/configure/ConfigureAgent.tsx` (`definition.id === 'interviewer'`) | The six-step form wizard. Other types fall back to the presets and the chat until step 2 is done                                                                                                 |
-| `src/app/configure/page.tsx`                                               | The wider wizard layout. Use it for every type with a wizard                                                                                                                                     |
-| `src/app/configure/wizardDraft.ts`, `wizardConfiguration.ts`               | Saving unfinished wizards as **Utkast** in `localStorage` (`configureDraftHref` always links to `?type=interviewer`), and turning the wizard's choices into answers. The chat path has no drafts |
-| `src/app/page.tsx`                                                         | **Ny agent** on the start page goes straight to `/configure?type=interviewer&new=1`                                                                                                              |
-| `src/app/browse-agents/AgentList.tsx` (`sectionsWithNewAgent`)             | «Ny agent» and the draft cards sit in the interviewer section, which shows even when it is empty. Only drafts with `agentTypeId: 'interviewer'` are shown                                        |
-| `src/app/templates/TemplateLibrary.tsx`, `src/app/profile/ProfileHome.tsx` | Fetch only interviewer templates (see step 4)                                                                                                                                                    |
-| `src/domain/agentFilters.ts`                                               | The filters on Agenter read the interviewer's answers (`bransje`, `intervjutype`, `vanskelighetsgrad`). Agents of another type drop out as soon as one of those filters is set                   |
-| `src/domain/agentTypes/registry.ts` (`DEFAULT_AGENT_TYPE`)                 | Agents and requests without a type are read as interviewers. Leave this as it is                                                                                                                 |
+| Where                                                                      | What it does for the interviewer only                                                                                                                                          |
+| -------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `src/app/configure/ConfigureAgent.tsx` (`definition.id === 'interviewer'`) | The six-step form wizard. Other types can't be set up until step 2 is done                                                                                                     |
+| `src/app/configure/page.tsx`                                               | The wider wizard layout. Use it for every type with a wizard                                                                                                                   |
+| `src/app/configure/wizardDraft.ts`, `wizardConfiguration.ts`               | Saving unfinished wizards as **Utkast** in `localStorage` (`configureDraftHref` always links to `?type=interviewer`), and turning the wizard's choices into answers            |
+| `src/app/page.tsx`                                                         | **Ny agent** on the start page goes straight to `/configure?type=interviewer&new=1`                                                                                            |
+| `src/app/browse-agents/AgentList.tsx` (`sectionsWithNewAgent`)             | «Ny agent» and the draft cards sit in the interviewer section, which shows even when it is empty. Only drafts with `agentTypeId: 'interviewer'` are shown                      |
+| `src/app/templates/TemplateLibrary.tsx`, `src/app/profile/ProfileHome.tsx` | Fetch only interviewer templates (see step 4)                                                                                                                                  |
+| `src/domain/agentFilters.ts`                                               | The filters on Agenter read the interviewer's answers (`bransje`, `intervjutype`, `vanskelighetsgrad`). Agents of another type drop out as soon as one of those filters is set |
+| `src/domain/agentTypes/registry.ts` (`DEFAULT_AGENT_TYPE`)                 | Agents and requests without a type are read as interviewers. Leave this as it is                                                                                               |
 
 The first three rows go away with the change in
 [step 2](#2-give-it-the-same-form-required).
@@ -229,12 +221,10 @@ such access would be stored (RAGdoll user settings or Keycloak roles) is not dec
 
 - A page test, like `src/app/configure/page.test.tsx`, that goes through the new type's six steps
   and checks the answers it saves.
-- An e2e test that sets up, saves and opens an agent of the new type (see
-  [`e2e-testing.md`](e2e-testing.md#writing-a-test)). The mock backend stores agents of any type,
-  but its configurator replies are canned (`Mock-svar: …`, never a `KONFIGURASJON` block), so the
-  test can't go through a whole chat. Create the agent through the API instead:
-  `createAgent` in `e2e/support/data.ts` only makes interviewers, so give it a `type` and the
-  answers of the new type.
+- An e2e test that sets up, saves and opens an agent of the new type through its wizard (see
+  [`e2e-testing.md`](e2e-testing.md#writing-a-test)). The mock backend stores agents of any type.
+  To create one through the API instead, give `createAgent` in `e2e/support/data.ts` a `type` and
+  the new type's answers; today it only makes interviewers.
 - Update [Agent types](architecture.md#agent-types) in `architecture.md`, and the
   [user guide](user-guide.md).
 
@@ -277,8 +267,7 @@ For each:
    shown, but the agent behaves as if nothing was chosen.
 3. Run `src/domain/interviewerAdaptations.test.ts`. It checks that every instruction ends up in
    the prompt.
-4. If the configuration chat should offer it too, update the `hint` or `format` of the field in
-   `interviewer.ts`.
+4. Update the help text for that step in `src/app/help/helpTopics.ts` if it lists the choices.
 
 Agents saved before the change keep their old answer text and their old prompt until they are
 edited.
@@ -290,7 +279,7 @@ A new answer, such as «Arbeidstid», touches more places, because the wizard is
 1. **The label**: add the key to `LABELS` in [`src/domain/configuration.ts`](../src/domain/configuration.ts).
    `Configuration` gets the key from there.
 2. **The definition**: add the field to `fields` in `interviewer.ts`, in the order it should be
-   asked. Make it `optional` unless every old agent can be given a value: agents saved before the
+   shown. Make it `optional` unless every old agent can be given a value: agents saved before the
    field existed come back with it empty, and saving is strict about required fields.
 3. **The prompt and the explanation**: use the answer in `interviewerPrompt.ts` through a rule in
    `interviewerAdaptations.ts`, and in `interviewerSummary.ts` if it belongs in the summary.
@@ -303,14 +292,13 @@ A new answer, such as «Arbeidstid», touches more places, because the wizard is
    `wizardConfiguration.test.ts`, `src/app/configure/page.test.tsx`, and the e2e helper
    `e2e/support/configure.ts` if the field is required.
 
-The details page, the edit and clone forms and the configuration chat pick the field up from the
-definition.
+The details page and the edit and clone forms pick the field up from the definition.
 
 ## Add a built-in stillingsmal, legal paragraph or avatar
 
 | What                         | Where                                                                                                           | Notes                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
 | ---------------------------- | --------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Stillingsmal (a general job) | [`src/data/industry-templates.ts`](../src/data/industry-templates.ts)                                           | Give a new, stable `id`, the job `title`, the `industry` and `sector`, a line, tasks and a `jobDescription`. A new `industry` name also appears as an industry in the wizard                                                                                                                                                                                                                                                                                                                                                                                                   |
+| Stillingsmal (a general job) | [`src/data/job-templates.ts`](../src/data/job-templates.ts)                                                     | Add a `JobTemplate` to `builtInJobTemplates`: a new, stable `id`, the job `title`, the `industry` and `sector`, a line, tasks and a `jobDescription`. A new `industry` name also appears as an industry in the wizard                                                                                                                                                                                                                                                                                                                                                          |
 | Legal paragraph              | [`src/data/legal-templates.ts`](../src/data/legal-templates.ts)                                                 | Add a `law(id, jurisdiction, title, description, text, sourceUrl)` to `builtInLegalParagraphs`: a stable `id`, the law and paragraph as `title`, the rule in plain words as `text`, and a link to Lovdata or another official source. The standard template «Rettigheter i ansettelsesprosessen» is built from every paragraph, so it gets the new one too, and counselors can tick it in their own. Have the customer check the wording, and keep within `LEGAL_TEMPLATE_LIMITS` in `src/domain/legalTemplate.ts`. An EU law replaces one of the `legalParagraphPlaceholders` |
 | Avatar                       | An image in `public/avatars/`, and an entry in `AVATARS` in [`src/domain/avatars.ts`](../src/domain/avatars.ts) | The `id` is saved on agents; never rename or remove one that is in use (agents with an unknown id show the default image)                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
 
@@ -390,8 +378,8 @@ The browser never calls RAGdoll; our route does, as the logged-in user.
 
 ## Add a shared helper agent, like the observer
 
-The configurator and the observer are agents in RAGdoll that every counselor shares. Their
-prompts are in this repo, and our server calls them with an access key from the environment.
+The observer is an agent in RAGdoll that every counselor shares. Its prompt is in this repo, and
+our server calls it with an access key from the environment. A new helper works the same way.
 
 1. Write the prompt in `prompts/<name>.nb.md`, following the
    [prompt rules](../CONTRIBUTING.md#prompts).
@@ -407,7 +395,7 @@ prompts are in this repo, and our server calls them with an access key from the 
 
 ## Change a prompt
 
-- **Configurator or observer**: edit `prompts/*.nb.md` following the
+- **The observer**: edit `prompts/observer.nb.md` following the
   [prompt rules](../CONTRIBUTING.md#prompts) (one requirement per bullet; add, don't rewrite; keep
   the fixed formats the parsers read). Then paste the text into the agent in RAGdoll; the repo is
   the source, RAGdoll holds a copy.

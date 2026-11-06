@@ -12,7 +12,7 @@
 }
 
 .list {
-  /* Shared by the bubbles and the answer options under them, so they stay lined up. */
+  /* Shared by the bubbles and the actions under them, so they stay lined up. */
   --message-gap: var(--space-3);
   --bubble-padding-x: 0.875rem;
   --bubble-max-width: 80%;
@@ -110,26 +110,9 @@
   border: 0;
 }
 
-/* The clickable answers under the newest question, indented like the text in the bubble above. */
-.options {
-  align-self: flex-start;
-  width: 100%;
-  max-width: var(--bubble-max-width);
-  padding-inline: var(--bubble-padding-x);
-  /* Sits right under its question instead of a whole message gap below it. */
-  margin-top: calc(-1 * var(--message-gap));
-}
-
-/* Actions under a reply, such as rating it: small, and right under the bubble like the options. */
+/* Actions under a reply, such as rating it: small, and right under the bubble. */
 .replyActions {
   align-self: flex-start;
   max-width: var(--bubble-max-width);
   margin-top: calc(-1 * var(--message-gap) + var(--space-1));
-}
-
-/* MUI's sm breakpoint. Media queries can't read CSS variables. */
-@media (max-width: 600px) {
-  .options {
-    max-width: 100%;
-  }
 }

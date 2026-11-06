@@ -7,8 +7,6 @@ import {
   listPlannedAgentTypes,
   listTemplateAgentTypes,
 } from './registry';
-import { presetFields } from './configurator';
-import type { AgentPresets } from './types';
 
 // @vitest-environment node
 import { describe, expect, it } from 'vitest';
@@ -68,29 +66,27 @@ describe('listPlannedAgentTypes', () => {
   });
 });
 
-// What the pages and the configurator rely on, for every type, including ones added later.
+// What the pages rely on, for every type, including ones added later.
 describe.each(listAgentTypes().map((definition) => [definition.label, definition] as const))(
   'the %s definition',
   (_label, definition) => {
-    it('has a label, a description, and a greeting', () => {
+    it('has a label and a description', () => {
       expect(definition.label.trim()).not.toBe('');
       expect(definition.description.trim()).not.toBe('');
-      expect(definition.configurator.greeting.trim()).not.toBe('');
     });
 
-    it('has fields with unique keys and labels, each with a question', () => {
+    it('has fields with unique keys and labels', () => {
       const keys = definition.fields.map(({ key }) => key);
       const labels = definition.fields.map(({ label }) => label);
       expect(definition.fields.length).toBeGreaterThan(0);
       expect(new Set(keys).size).toBe(keys.length);
       expect(new Set(labels).size).toBe(labels.length);
-      for (const field of definition.fields) expect(field.question.trim()).not.toBe('');
     });
 
     it('only lets presets fill in fields it has', () => {
-      const presets = definition.presets ?? {};
-      for (const kind of Object.keys(presets) as (keyof AgentPresets)[]) {
-        for (const key of presetFields(presets, kind)) expect(keys(definition)).toContain(key);
+      const { template, jobSeekerProfile, legalTemplates } = definition.presets ?? {};
+      for (const key of [template?.field, jobSeekerProfile, legalTemplates]) {
+        if (key) expect(keys(definition)).toContain(key);
       }
     });
 

@@ -8,13 +8,13 @@ This guide takes you from nothing installed to the test the PRs were checked wit
 
 Everything runs on **localhost**. The guide is written for **Windows** and **PowerShell**, and assumes you have never used Unity or Blender.
 
-The PRs being tested:
+The branches to use (the web app and RAGdoll parts of #96 are merged; The Candidate's is not yet):
 
-| Repo          | Branch                         | PR                               |
-| ------------- | ------------------------------ | -------------------------------- |
-| RAGdoll       | `feat/96-publish-to-candidate` | IMTEL/RAGdoll#162                |
-| Our web app   | `feat/96-publish-to-candidate` | IMTEL/team-tdt4290-fall-2026#107 |
-| The Candidate | `feat/publish-to-candidate`    | IMTEL/The-Candidate#38           |
+| Repo          | Branch                      | PR                               |
+| ------------- | --------------------------- | -------------------------------- |
+| RAGdoll       | `tdt4290/main`              | IMTEL/RAGdoll#162                |
+| Our web app   | `main`                      | IMTEL/team-tdt4290-fall-2026#107 |
+| The Candidate | `feat/publish-to-candidate` | IMTEL/The-Candidate#38           |
 
 **Time:** plan for 2–3 hours the first time. Most of it is downloads: Unity alone is several GB, and the first time Unity opens the project takes 20–60 minutes. Make sure you have about **40 GB** of free disk space.
 
@@ -24,11 +24,10 @@ The PRs being tested:
 
 You can't create those keys yourself. Ask for them first, so you don't get stuck halfway.
 
-| What                                                                                                                                               | Where it goes                 | Ask                         |
-| -------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------- | --------------------------- |
-| `IDUN_API_KEY`: the project's IDUN key. Our web app puts it into every agent it saves. Without a working key the agent can't answer.               | `team-tdt4290-fall-2026/.env` | our team                    |
-| `RAGDOLL_CONFIGURATOR_AGENT_ID` and `RAGDOLL_CONFIGURATOR_ACCESS_KEY`: the agent behind **Sett opp en agent**, which you use to create your agent. | `team-tdt4290-fall-2026/.env` | our team                    |
-| `RAGDOLL`: The Candidate's own key for its "Coordinator", which decides which NPC talks. It runs on the production server, not on your machine.    | `The-Candidate/.env`          | Mathias (IMTEL) or our team |
+| What                                                                                                                                            | Where it goes                 | Ask                         |
+| ----------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------- | --------------------------- |
+| `IDUN_API_KEY`: the project's IDUN key. Our web app puts it into every agent it saves. Without a working key the agent can't answer.            | `team-tdt4290-fall-2026/.env` | our team                    |
+| `RAGDOLL`: The Candidate's own key for its "Coordinator", which decides which NPC talks. It runs on the production server, not on your machine. | `The-Candidate/.env`          | Mathias (IMTEL) or our team |
 
 Never commit any of these keys, and never paste them into a chat or a PR.
 
@@ -94,10 +93,10 @@ Projects/
 cd C:\Users\<you>\Projects
 git clone https://github.com/IMTEL/RAGdoll.git
 cd RAGdoll
-git checkout feat/96-publish-to-candidate
+git checkout tdt4290/main
 ```
 
-If you already have RAGdoll, run `git fetch` and then `git checkout feat/96-publish-to-candidate`.
+If you already have RAGdoll, run `git fetch` and then `git checkout tdt4290/main`.
 
 ### 1.2 Create RAGdoll's `.env`
 
@@ -168,7 +167,7 @@ curl.exe -H "Authorization: Bearer wrong" http://localhost:8000/agents/published
 cd C:\Users\<you>\Projects
 git clone https://github.com/IMTEL/team-tdt4290-fall-2026.git
 cd team-tdt4290-fall-2026
-git checkout feat/96-publish-to-candidate
+git checkout main
 npm install
 copy .env.example .env
 ```
@@ -177,11 +176,10 @@ copy .env.example .env
 
 Open `team-tdt4290-fall-2026\.env`. The local addresses are already right. Change these lines:
 
-| Line                                                                    | Set it to                                                                    |
-| ----------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
-| `NEXTAUTH_SECRET=`                                                      | the output of `python -c "import secrets; print(secrets.token_urlsafe(32))"` |
-| `IDUN_API_KEY=`                                                         | the key from the team                                                        |
-| `RAGDOLL_CONFIGURATOR_AGENT_ID=` and `RAGDOLL_CONFIGURATOR_ACCESS_KEY=` | the values from the team                                                     |
+| Line               | Set it to                                                                    |
+| ------------------ | ---------------------------------------------------------------------------- |
+| `NEXTAUTH_SECRET=` | the output of `python -c "import secrets; print(secrets.token_urlsafe(32))"` |
+| `IDUN_API_KEY=`    | the key from the team                                                        |
 
 ### 2.3 Set up the login (first time only) and start
 
@@ -202,8 +200,8 @@ If logging in fails, see the **Troubleshooting** table in the web app's `README.
 
 ### 3.1 Create an agent
 
-1. Click **Sett opp en agent** (or go to <http://localhost:3000/configure>).
-2. Answer the questions about the job and the job seeker, and save the agent with **Lagre agent**.
+1. Click **Ny agent** on the start page (or go to <http://localhost:3000/configure>).
+2. Go through the steps of the form, and on the last step click **Lagre som privat agent**.
 3. Go to your agents (<http://localhost:3000/browse-agents>) and open the new agent.
 
 ### 3.2 Publish it (#96)

@@ -58,7 +58,6 @@ export type WizardDraft = {
   avatar: string | null;
   nameEdited: boolean;
   agentName: string;
-  presetsDone: boolean;
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -148,8 +147,7 @@ function isDraft(value: unknown): value is WizardDraft {
     isSettings(value.settings) &&
     (value.avatar === null || typeof value.avatar === 'string') &&
     typeof value.nameEdited === 'boolean' &&
-    typeof value.agentName === 'string' &&
-    typeof value.presetsDone === 'boolean'
+    typeof value.agentName === 'string'
   );
 }
 

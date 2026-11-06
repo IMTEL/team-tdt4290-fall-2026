@@ -4,12 +4,12 @@
 
 ## Status
 
-| Part                                    | Where it runs today                                                                                   |
-| --------------------------------------- | ----------------------------------------------------------------------------------------------------- |
-| Our frontend                            | **Not deployed yet.** It runs locally (`npm run dev`, see the [README](../README.md#running-locally)) |
-| RAGdoll and Keycloak                    | Deployed by IMTEL at `https://iplvr.it.ntnu.no/backend`, and locally with Docker Compose              |
-| Shared configurator and observer agents | On the deployed RAGdoll (`RAGDOLL_API_URL`)                                                           |
-| The Candidate                           | Unity app built by IMTEL; reads published agents from RAGdoll                                         |
+| Part                  | Where it runs today                                                                                   |
+| --------------------- | ----------------------------------------------------------------------------------------------------- |
+| Our frontend          | **Not deployed yet.** It runs locally (`npm run dev`, see the [README](../README.md#running-locally)) |
+| RAGdoll and Keycloak  | Deployed by IMTEL at `https://iplvr.it.ntnu.no/backend`, and locally with Docker Compose              |
+| Shared observer agent | On the deployed RAGdoll (`RAGDOLL_API_URL`)                                                           |
+| The Candidate         | Unity app built by IMTEL; reads published agents from RAGdoll                                         |
 
 <!-- TODO: fill in the frontend's URL, what triggers a deploy and who has access once IMTEL's test environment is ready (contact: Tobias and Erik). -->
 
@@ -30,17 +30,16 @@ npm run start            # serves on port 3000; use -p to choose another (npx ne
 The build reads no secrets, but `npm run start` needs every variable in
 [`.env.example`](../.env.example), set in the host's environment (not in a committed file):
 
-| Variable                                          | Value in a deployment                                                                                      |
-| ------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| `NEXTAUTH_URL`                                    | The public URL of the app, with `https://`, for example `https://<host>/` (Keycloak sends users back here) |
-| `NEXTAUTH_SECRET`                                 | A new random value (`openssl rand -base64 32`). Never reuse the local one                                  |
-| `BACKEND_API_URL`                                 | The RAGdoll the counselors' agents are stored in, for example `https://iplvr.it.ntnu.no/backend`           |
-| `RAGDOLL_API_URL`                                 | The RAGdoll that holds the shared configurator and observer agents. Usually the same as above              |
-| `RAGDOLL_CONFIGURATOR_AGENT_ID`, `..._ACCESS_KEY` | The shared configurator agent on that RAGdoll                                                              |
-| `RAGDOLL_OBSERVER_AGENT_ID`, `..._ACCESS_KEY`     | The shared observer agent on that RAGdoll                                                                  |
-| `KEYCLOAK_ISSUER`                                 | The deployed Keycloak's realm URL, `https://<keycloak-host>/realms/ragdoll`                                |
-| `KEYCLOAK_CLIENT_ID`, `KEYCLOAK_CLIENT_SECRET`    | The deployed realm's client for this app. The secret is not the local `ragdoll-config-secret`              |
-| `IDUN_API_KEY`                                    | The project's IDUN key                                                                                     |
+| Variable                                       | Value in a deployment                                                                                      |
+| ---------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `NEXTAUTH_URL`                                 | The public URL of the app, with `https://`, for example `https://<host>/` (Keycloak sends users back here) |
+| `NEXTAUTH_SECRET`                              | A new random value (`openssl rand -base64 32`). Never reuse the local one                                  |
+| `BACKEND_API_URL`                              | The RAGdoll the counselors' agents are stored in, for example `https://iplvr.it.ntnu.no/backend`           |
+| `RAGDOLL_API_URL`                              | The RAGdoll that holds the shared observer agent. Usually the same as above                                |
+| `RAGDOLL_OBSERVER_AGENT_ID`, `..._ACCESS_KEY`  | The shared observer agent on that RAGdoll                                                                  |
+| `KEYCLOAK_ISSUER`                              | The deployed Keycloak's realm URL, `https://<keycloak-host>/realms/ragdoll`                                |
+| `KEYCLOAK_CLIENT_ID`, `KEYCLOAK_CLIENT_SECRET` | The deployed realm's client for this app. The secret is not the local `ragdoll-config-secret`              |
+| `IDUN_API_KEY`                                 | The project's IDUN key                                                                                     |
 
 ## Checklist before the first deploy
 
@@ -53,8 +52,8 @@ The build reads no secrets, but `npm run start` needs every variable in
       local Keycloak.
 - [ ] **HTTPS.** Serve the app over HTTPS only. The app sends HSTS, so once a browser has seen it
       over HTTPS it refuses plain HTTP for two years.
-- [ ] **The prompts in RAGdoll match the repo.** Paste `prompts/configurator.nb.md` and
-      `prompts/observer.nb.md` into the shared agents on the deployed RAGdoll.
+- [ ] **The prompt in RAGdoll matches the repo.** Paste `prompts/observer.nb.md` into the shared
+      observer agent on the deployed RAGdoll.
 - [ ] **Feedback in The Candidate.** For «Avslutt intervju» to show feedback, set
       `CANDIDATE_OBSERVER_AGENT_ID` in the deployed RAGdoll's environment and `ObserverAgentId` on
       The Candidate's `PublishedRag` asset to the shared observer agent's id (the same agent as

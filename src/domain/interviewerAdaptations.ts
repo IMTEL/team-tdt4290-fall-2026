@@ -85,7 +85,8 @@ function industry(c: Configuration): Adaptation[] {
 }
 
 function company(c: Configuration): Adaptation[] {
-  // The configurator writes «navn | Visjon og verdier: …»; the wizard writes only the name.
+  // Agents set up in the old configuration chat have «navn | Visjon og verdier: …»; the wizard
+  // writes only the name.
   const [nameAnswer, ...rest] = c.bedrift.split('|');
   const name = cleanAnswer(nameAnswer);
   const values = cleanAnswer(rest.join('|').replace(/^\s*Visjon og verdier:\s*/i, ''));

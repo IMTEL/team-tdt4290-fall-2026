@@ -46,21 +46,20 @@ everything else in a page's folder belongs to that page.
 
 **Chat** (`src/components/chat/`)
 
-| Component                  | Use it for                                                                                                                                         |
-| -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `AgentChat`                | A whole chat with an agent: give it the first messages (`initialMessages`) and a `send` function. Used by the test chat and the configuration chat |
-| `MessageList`, `ChatInput` | Its parts, if a page needs them on their own                                                                                                       |
-| `QuestionOptions`          | Answer options from an `[ALTERNATIVER: …]` block as buttons or checkboxes                                                                          |
+| Component                  | Use it for                                                                                                              |
+| -------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `AgentChat`                | A whole chat with an agent: give it the first messages (`initialMessages`) and a `send` function. Used by the test chat |
+| `MessageList`, `ChatInput` | Its parts, if a page needs them on their own                                                                            |
 
 **Templates** (`src/components/templates/`, `legalTemplates/`, `profiles/`)
 
 | Component                                                                                     | Use it for                                                                                   |
 | --------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
 | `CatalogGrid`, `CatalogCard`, `AddCatalogCard`                                                | The cards on Maler, shaped like agent cards, with a dashed «Ny …» card first                 |
-| `TemplatePicker`, `IndustryPicker`                                                            | Choosing an intervjuermal or a stillingsmal, with «Fortsett uten mal»                        |
+| `TemplatePicker`                                                                              | Choosing an intervjuermal, with «Fortsett uten mal»                                          |
 | `TemplateDetail`                                                                              | A template's details page; built-in ones get the «Følger med appen» mark and no edit buttons |
 | `TemplateForm`, `JobTemplateForm`, `IndustryTemplateForm`, `ProfileForm`, `LegalTemplateForm` | The forms for each kind, used both for new and for saved ones (pass `initial`)               |
-| `LegalTemplateSelect`, `LegalParagraphPicker`, `ProfileSelect`                                | Ticking legal templates, ticking paragraphs, and choosing a jobbsøkermal                     |
+| `LegalTemplateSelect`, `LegalParagraphPicker`                                                 | Ticking legal templates, and ticking paragraphs                                              |
 | `Delete…Button` (one per kind)                                                                | Delete with a confirmation dialog that stays open and shows the error if deleting fails      |
 
 **Wizard** (`src/app/configure/`, shared by the steps but not outside the wizard)

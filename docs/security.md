@@ -16,14 +16,14 @@ server, RAGdoll stores everything) is in [`architecture.md`](architecture.md) an
 
 ## What we protect
 
-| Asset                                               | Why it matters                                                                                  | Where it lives                                                     |
-| --------------------------------------------------- | ----------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
-| The project's IDUN key (`IDUN_API_KEY`)             | Anyone with it can use NTNU's language models on the project's account                          | Our server's environment; RAGdoll keeps a copy on each saved agent |
-| Access keys of the shared configurator and observer | Anyone with them can chat with those agents directly, outside our rate limit                    | Our server's environment                                           |
-| The counselor's login (Keycloak ID token)           | Anyone with it can read, change, publish and delete the counselor's agents                      | NextAuth's encrypted cookie in the browser                         |
-| Counselors' agents, templates and profiles          | A counselor must not see or change another counselor's work                                     | RAGdoll (MongoDB)                                                  |
-| What a counselor writes about a job seeker          | Even without names, notes about a job seeker must not leak to The Candidate or other counselors | RAGdoll (job seeker profiles, and the answers in an agent)         |
-| The Candidate's client key                          | It lets anyone list published agents and chat with them and with the observer                   | RAGdoll's and The Candidate's environment. This app never sees it  |
+| Asset                                      | Why it matters                                                                                  | Where it lives                                                     |
+| ------------------------------------------ | ----------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| The project's IDUN key (`IDUN_API_KEY`)    | Anyone with it can use NTNU's language models on the project's account                          | Our server's environment; RAGdoll keeps a copy on each saved agent |
+| The shared observer agent's access key     | Anyone with it can chat with that agent directly, outside our rate limit                        | Our server's environment                                           |
+| The counselor's login (Keycloak ID token)  | Anyone with it can read, change, publish and delete the counselor's agents                      | NextAuth's encrypted cookie in the browser                         |
+| Counselors' agents, templates and profiles | A counselor must not see or change another counselor's work                                     | RAGdoll (MongoDB)                                                  |
+| What a counselor writes about a job seeker | Even without names, notes about a job seeker must not leak to The Candidate or other counselors | RAGdoll (job seeker profiles, and the answers in an agent)         |
+| The Candidate's client key                 | It lets anyone list published agents and chat with them and with the observer                   | RAGdoll's and The Candidate's environment. This app never sees it  |
 
 ## Countermeasures
 
@@ -79,8 +79,7 @@ server, RAGdoll stores everything) is in [`architecture.md`](architecture.md) an
 
 ### Rate limit on chat messages
 
-Each counselor may send at most 30 chat messages a minute, configuration chat, test chat and
-observer together (`src/server/rateLimit.ts`). Above that the route answers 429 with
+Each counselor may send at most 30 chat messages a minute, test chat and observer together (`src/server/rateLimit.ts`). Above that the route answers 429 with
 `Retry-After`, and RAGdoll and IDUN are not called. This protects the project's IDUN quota from a
 stuck script or a runaway browser tab.
 
@@ -115,8 +114,8 @@ changing dependencies.
 
 ## Personal data
 
-- **No real job seeker data**, in the app, in tests or in demo agents. The forms and the
-  configurator ask only for coarse, non-identifying traits: age group, experience, education,
+- **No real job seeker data**, in the app, in tests or in demo agents. The forms ask only for
+  coarse, non-identifying traits: age group, experience, education,
   language level and what to practise.
 - **Job seeker profiles are private to the counselor**, and their notes never reach an agent:
   only the profile's description fills in `Jobbsøker`. The manual check in

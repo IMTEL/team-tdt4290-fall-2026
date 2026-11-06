@@ -97,11 +97,12 @@ export function JobSeekerStep({
             </h2>
             <FieldHelp
               label="Jobbsøkermal"
-              description="En mal som beskriver en anonym jobbsøker. Uten mal blir du spurt om hvem jobbsøkeren er senere."
+              description="En mal som beskriver en anonym jobbsøker. Uten mal vet intervjueren bare hva jobbsøkeren skal øve på."
             />
           </div>
           <p className={cardStyles.lead}>
-            Malen bestemmer hvem jobbsøkeren er. Uten mal spør assistenten deg om det.
+            Malen bestemmer hvem jobbsøkeren er. Uten mal velger du bare hva jobbsøkeren skal øve
+            på.
           </p>
           {loading ? (
             <p className={cardStyles.lead}>Laster maler …</p>
