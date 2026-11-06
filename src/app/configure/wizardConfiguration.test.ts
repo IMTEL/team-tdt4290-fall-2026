@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { findIndustryTemplate, industryTemplates } from '@/data/industry-templates';
+import { findJobTemplate, builtInJobTemplates } from '@/data/job-templates';
 import { findBuiltInTemplate } from '@/data/templates';
 import type { JobSeekerProfile } from '@/domain/jobSeekerProfile';
 import { EMPTY_INTERVIEW_SETTINGS, type InterviewSettings } from './SettingsStep';
@@ -38,7 +38,7 @@ const profile: JobSeekerProfile = {
 function draft(overrides: Partial<WizardDraft> = {}): WizardDraft {
   return {
     workplace,
-    jobTemplates: industryTemplates,
+    jobTemplates: builtInJobTemplates,
     industryTemplates: [],
     interviewer: null,
     profile: null,
@@ -65,7 +65,7 @@ describe('wizardConfiguration', () => {
     const saved = wizardConfiguration(
       draft({ interviewer, profile, practiceAreas: ['Mestre nervøsitet'] }),
     );
-    const job = findIndustryTemplate('helsefagarbeider');
+    const job = findJobTemplate('helsefagarbeider');
 
     expect(saved?.answers).toEqual({
       stilling: `Barnehageassistent. ${job?.jobDescription}`,

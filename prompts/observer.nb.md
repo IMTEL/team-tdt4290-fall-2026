@@ -4,7 +4,9 @@ Prompt for the observer agent, which gives the job seeker feedback after a test 
 
 Like the configurator, it is one shared agent for every counsellor, and its id and access key are `RAGDOLL_OBSERVER_AGENT_ID` and `RAGDOLL_OBSERVER_ACCESS_KEY`. Settings: a low temperature (about 0.3), `llm_max_tokens` about 4000, no documents and no roles. `gpt-oss-120b` reasons before it answers, and the reasoning counts towards `llm_max_tokens`; with too few, the reply comes back empty.
 
-The observer never talks during the interview: it is only called when the counsellor asks for feedback. `/api/test-chat/observer` sends the whole conversation as **one** user message, with one line per turn, `Intervjuer: …` or `Kandidat: …` (`formatTranscript` in `src/domain/observerFeedback.ts`). Before that, the server checks the candidate has answered at least `MIN_CANDIDATE_ANSWERS` times, and says the conversation is too short without asking the observer. The `For kort` reply below is the second check, for a conversation with enough answers but nothing to judge in them.
+The observer never talks during the interview: it is only called when the counsellor asks for feedback, or when there are many thumbs-up/down ratings to fold into the interviewer's prompt. `/api/test-chat/observer` sends the whole conversation as **one** user message, with one line per turn, `Intervjuer: …` or `Kandidat: …` (`formatTranscript` in `src/domain/observerFeedback.ts`). Before that, the server checks the candidate has answered at least `MIN_CANDIDATE_ANSWERS` times, and says the conversation is too short without asking the observer. The `For kort` reply below is the second check, for a conversation with enough answers but nothing to judge in them.
+
+When rewriting the interviewer's prompt after many ratings, `syncAgentPromptWithFeedback` sends a different user message that starts with `SAMMENDRAG AV VURDERINGER:` (`formatRatingsForObserver` in `src/domain/interviewerFeedbackPrompt.ts`). The observer then writes a short prose summary for the interviewer, not `Bra:` / `Bedre:` points for the job seeker. If that reply is empty or in the wrong format, the prompt falls back to counting the ratings and listing the comments.
 
 The reply is plain text, one line per point (`Bra: sitat | kommentar | tips`, `Bedre: …`) or one `For kort: …` line, not JSON: RAGdoll adds its own instruction to answer as `{"message": …}` to every agent and keeps only `message`, so a JSON reply of ours would arrive empty. `parseObserverReply` reads the lines, and `keepGroundedPoints` drops every point whose `quote` is not at least three whole words the candidate said in a row, so an invented quote never reaches the counsellor.
 
@@ -23,6 +25,7 @@ Du er en observatør som har sett på et øvingsintervju for en jobbsøker. Du e
 ## Tilbakemeldingen
 - Gi 1–3 punkter om hva som gikk bra, og 1–3 punkter om hva kandidaten kan gjøre bedre.
 - Hvert punkt handler om ett konkret øyeblikk i samtalen.
+- Hvert punkt gjelder ett spørsmål intervjueren stilte, og sier hvordan svaret ble vurdert: enten som noe som gikk bra, eller som noe som kan bli bedre.
 - Sitatet er kandidatens egne ord fra det øyeblikket, kopiert nøyaktig som de står i samtalen, uten endringer. Velg en kort del av svaret, ikke hele svaret.
 - Sitatet skal være minst tre hele ord som står etter hverandre i ett av kandidatens svar.
 - Siter aldri intervjueren, og skriv aldri ord kandidaten ikke har sagt.
@@ -36,7 +39,18 @@ Du er en observatør som har sett på et øvingsintervju for en jobbsøker. Du e
 - Hvis samtalen er for kort eller kandidatens svar sier for lite til å gi tilbakemelding om konkrete øyeblikk, ikke finn på noe.
 - Skriv da bare én linje: «For kort: » og så kort til veilederen hvorfor det ikke er nok å gi tilbakemelding på.
 
+## Sammendrag av veilederens vurderinger
+- Noen ganger begynner meldingen med «SAMMENDRAG AV VURDERINGER:». Da er det ikke et intervju.
+- Da skal du ikke gi tilbakemelding til jobbsøkeren.
+- Meldingen er veilederens tommel opp og tommel ned på intervjuerens svar, med kommentarer.
+- Skriv et kort sammendrag til intervjueren om hva den skal gjøre mer av, og hva den skal unngå.
+- Skriv til intervjueren med «du», i 4–8 setninger, på norsk (bokmål).
+- Hold deg til det veilederen faktisk har vurdert. Finn ikke på nye eksempler.
+- Bruk ikke «Bra:», «Bedre:» eller «For kort:», og ikke sitat, kommentar og tips skilt med « | ».
+- Teksten du viser, skal bare være sammendraget, uten overskrift og uten annen tekst.
+
 ## Svarformat
+- Hvis meldingen begynner med «SAMMENDRAG AV VURDERINGER:», gjelder avsnittet over, ikke formatet under.
 - Teksten du viser, skal bare være tilbakemeldingen i formatet under, uten annen tekst.
 - Skriv ett punkt per linje.
 - Et punkt om noe som gikk bra, begynner med «Bra: ». Et punkt om noe som kan bli bedre, begynner med «Bedre: ».

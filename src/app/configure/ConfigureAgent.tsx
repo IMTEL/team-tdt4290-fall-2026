@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import Button from '@mui/material/Button';
@@ -13,12 +13,16 @@ import { fetchLegalTemplates } from '@/components/legalTemplates/api';
 import { LegalTemplateSelect } from '@/components/legalTemplates/LegalTemplateSelect';
 import { fetchProfiles } from '@/components/profiles/api';
 import { ProfileSelect } from '@/components/profiles/ProfileSelect';
-import { IndustryPicker } from '@/components/templates/IndustryPicker';
-import { IndustryPreview } from '@/components/templates/IndustryPreview';
+import { JobTemplatePicker } from '@/components/templates/JobTemplatePicker';
+import { JobTemplatePreview } from '@/components/templates/JobTemplatePreview';
 import { TemplatePicker } from '@/components/templates/TemplatePicker';
 import { useWorkplaceTemplates } from '@/components/templates/useWorkplaceTemplates';
-import { industryTemplates, type IndustryTemplate } from '@/data/industry-templates';
-import { builtInLegalTemplates } from '@/data/legal-templates';
+import { builtInJobTemplates, type JobTemplate } from '@/data/job-templates';
+import {
+  builtInLegalTemplateIds,
+  builtInLegalTemplates,
+  normalizeLegalTemplateIds,
+} from '@/data/legal-templates';
 import { builtInTemplates, type AgentTemplate } from '@/data/templates';
 import {
   getAgentType,
@@ -36,15 +40,34 @@ import {
 } from '@/domain/jobSeekerProfile';
 import type { LegalTemplate } from '@/domain/legalTemplate';
 import { industryNames } from '@/domain/workplaceTemplate';
-import { updateAgent } from '../browse-agents/api';
-import { AGENT_SAVED_FLASH, DRAFT_SAVED_FLASH, setAgentsFlash } from '../browse-agents/flash';
+import { publishAgent, updateAgent } from '../browse-agents/api';
+import {
+  AGENT_PUBLISHED_FLASH,
+  AGENT_SAVED_FLASH,
+  DRAFT_SAVED_FLASH,
+  setAgentsFlash,
+} from '../browse-agents/flash';
 import { fetchSavedTemplates, saveConfiguredAgent } from './api';
 import { ConfigurationChat } from './ConfigurationChat';
 import { JobSeekerStep } from './JobSeekerStep';
+import { AiSettingsStep } from './AiSettingsStep';
 import { EMPTY_INTERVIEW_SETTINGS, SettingsStep, type InterviewSettings } from './SettingsStep';
-import { StillingStep, WizardFrame, type Workplace } from './StillingStep';
+import {
+  ChoiceSummary,
+  StillingStep,
+  WizardFrame,
+  WizardNav,
+  type Workplace,
+} from './StillingStep';
+import { wizardTemplatePeeks } from './templatePeeks';
 import { suggestedAgentName, wizardConfiguration } from './wizardConfiguration';
-import { clearWizardDraft, readWizardDraft, writeWizardDraft } from './wizardDraft';
+import {
+  clearWizardDraft,
+  configureDraftHref,
+  createWizardDraftId,
+  readWizardDraft,
+  writeWizardDraft,
+} from './wizardDraft';
 import styles from './page.module.css';
 import stepStyles from './StillingStep.module.css';
 
@@ -67,22 +90,28 @@ function Steps({ steps, active }: { steps: string[]; active: number }) {
 /**
  * First the counsellor picks the type of agent. Then, for each kind of preset the type has, what
  * fills it in: a job seeker profile, legal templates and an interviewer template in one step, then
- * an industry template in the next. All are optional. The built-in interviewer templates come first, then the
+ * a stillingsmal in the next. All are optional. The built-in interviewer templates come first, then the
  * ones the counsellor has saved. Then the chat starts. Everything type-specific comes from the
  * type's definition, so a new type needs no change here.
  */
 export function ConfigureAgent({
   initialTypeId = null,
   initialStep = null,
+  startNew = false,
+  initialDraftId = null,
 }: {
   initialTypeId?: string | null;
   initialStep?: string | null;
+  /** True when «Ny agent» was chosen: ignore a stored utkast so the wizard starts empty. */
+  startNew?: boolean;
+  /** Opens this utkast. Without it, the newest draft is restored unless `startNew`. */
+  initialDraftId?: string | null;
 }) {
   const [definition, setDefinition] = useState<AgentTypeDefinition | undefined>(() =>
     initialTypeId ? getAgentType(initialTypeId) : undefined,
   );
   const [choice, setChoice] = useState<Choice<AgentTemplate>>(undefined);
-  const [industry, setIndustry] = useState<Choice<IndustryTemplate>>(undefined);
+  const [jobTemplate, setJobTemplate] = useState<Choice<JobTemplate>>(undefined);
   const [saved, setSaved] = useState<AgentTemplate[]>([]);
   const [profiles, setProfiles] = useState<JobSeekerProfile[]>([]);
   const [profilesLoaded, setProfilesLoaded] = useState(false);
@@ -90,7 +119,7 @@ export function ConfigureAgent({
   const [profileId, setProfileId] = useState<string | null>(null);
   const [practiceAreas, setPracticeAreas] = useState<string[]>([]);
   const [savedLegal, setSavedLegal] = useState<LegalTemplate[]>([]);
-  const [legalIds, setLegalIds] = useState<string[]>([]);
+  const [legalIds, setLegalIds] = useState<string[]>(builtInLegalTemplateIds);
   const [otherOpen, setOtherOpen] = useState(false);
   const [otherPractice, setOtherPractice] = useState('');
   const [settings, setSettings] = useState<InterviewSettings>(EMPTY_INTERVIEW_SETTINGS);
@@ -105,13 +134,15 @@ export function ConfigureAgent({
   const router = useRouter();
   // For a type with a profile but no template, where no template card moves the counsellor on.
   const [presetsDone, setPresetsDone] = useState(false);
-  // Which interviewer screen is open. 0 stilling, 1 intervjuer, 2 jobbsøker, 3 innstillinger, 4 fullføre.
-  const [wizardStep, setWizardStep] = useState(
-    initialTypeId === 'interviewer' && initialStep === 'intervjuer' ? 1 : 0,
-  );
+  // Which interviewer screen is open. 0 stilling, 1 intervjuer, 2 jobbsøker, 3 innstillinger,
+  // 4 AI-innstillinger, 5 fullføre.
+  const [wizardStep, setWizardStep] = useState(interviewerStepIndex(initialTypeId, initialStep));
   const [furthestStep, setFurthestStep] = useState(
-    initialTypeId === 'interviewer' && initialStep === 'intervjuer' ? 1 : 0,
+    interviewerStepIndex(initialTypeId, initialStep),
   );
+  // Neste from Innstillinger skips AI-innstillinger. Tilbake from Fullføre returns there only if
+  // the counsellor opened that step.
+  const [openedAiSettings, setOpenedAiSettings] = useState(false);
   const [workplace, setWorkplace] = useState<Workplace>({
     jobTitle: '',
     templateId: null,
@@ -121,63 +152,94 @@ export function ConfigureAgent({
   });
   // False until a stored draft has been read (or found missing), so we do not overwrite it.
   const [draftReady, setDraftReady] = useState(false);
+  const [draftId, setDraftId] = useState<string | null>(initialDraftId);
   const isClient = useIsClient();
 
   const presets = definition?.presets ?? {};
   const usesTemplates = Boolean(presets.template);
   const agentType = definition?.id;
   const usesProfiles = Boolean(presets.jobSeekerProfile);
-  const usesIndustries = Boolean(presets.industryTemplate);
+  const usesJobTemplates = Boolean(presets.jobTemplate);
   const usesLegal = Boolean(presets.legalTemplates);
   // The built-in stillingsmaler and bransjemaler, and the counsellor's own once they have loaded.
   const workplaceTemplates = useWorkplaceTemplates(
-    definition?.id === 'interviewer' || usesIndustries,
+    definition?.id === 'interviewer' || usesJobTemplates,
   );
   const jobTemplates = workplaceTemplates.jobs;
 
   // Restore once after hydration (setState during render when the client flag flips).
   if (isClient && !draftReady) {
-    const draft = readWizardDraft();
-    if (
-      draft &&
-      draft.agentTypeId === 'interviewer' &&
-      (!initialTypeId || initialTypeId === draft.agentTypeId)
-    ) {
-      const type = getAgentType(draft.agentTypeId);
-      if (type) {
-        setDefinition(type);
-        setWorkplace(draft.workplace);
-        setChoice(draft.hasTemplateChoice ? draft.template : undefined);
-        setProfileId(draft.profileId || (draft.furthestStep >= 2 ? '' : null));
-        setPracticeAreas(draft.practiceAreas);
-        setLegalIds(draft.legalIds ?? []);
-        setOtherOpen(draft.otherOpen);
-        setOtherPractice(draft.otherPractice);
-        setSettings(draft.settings);
-        setAvatar(draft.avatar);
-        setNameEdited(draft.nameEdited);
-        setAgentName(draft.agentName);
-        setPresetsDone(draft.presetsDone);
-        // A returnTo link can ask for the intervjuer step; otherwise open where they left off.
-        if (initialTypeId === 'interviewer' && initialStep === 'intervjuer') {
-          setWizardStep(1);
-          setFurthestStep(Math.max(draft.furthestStep, 1));
-        } else {
-          setWizardStep(draft.wizardStep);
-          setFurthestStep(draft.furthestStep);
+    if (startNew) {
+      setDraftId(createWizardDraftId());
+      setLegalIds(builtInLegalTemplateIds());
+    } else {
+      const draft = readWizardDraft(initialDraftId ?? undefined);
+      if (
+        draft &&
+        draft.agentTypeId === 'interviewer' &&
+        (!initialTypeId || initialTypeId === draft.agentTypeId)
+      ) {
+        const type = getAgentType(draft.agentTypeId);
+        if (type) {
+          setDraftId(draft.id);
+          setDefinition(type);
+          setWorkplace(draft.workplace);
+          setChoice(draft.hasTemplateChoice ? draft.template : undefined);
+          setProfileId(draft.profileId || (draft.furthestStep >= 2 ? '' : null));
+          setPracticeAreas(draft.practiceAreas);
+          setLegalIds(normalizeLegalTemplateIds(draft.legalIds ?? builtInLegalTemplateIds()));
+          setOtherOpen(draft.otherOpen);
+          setOtherPractice(draft.otherPractice);
+          setSettings(draft.settings);
+          setAvatar(draft.avatar);
+          setNameEdited(draft.nameEdited);
+          setAgentName(draft.agentName);
+          setPresetsDone(draft.presetsDone);
+          // A returnTo link can ask for a named step; otherwise open where they left off.
+          const namedStep = interviewerStepIndex(initialTypeId, initialStep);
+          if (namedStep > 0) {
+            setWizardStep(namedStep);
+            setFurthestStep(Math.max(draft.furthestStep, namedStep));
+            setOpenedAiSettings(Boolean(draft.openedAiSettings) || namedStep === 4);
+          } else {
+            setWizardStep(draft.wizardStep);
+            setFurthestStep(draft.furthestStep);
+            setOpenedAiSettings(Boolean(draft.openedAiSettings) || draft.wizardStep === 4);
+          }
         }
+      } else if (!draftId) {
+        setDraftId(createWizardDraftId());
       }
     }
     setDraftReady(true);
   }
 
   useEffect(() => {
-    if (!draftReady || definition?.id !== 'interviewer') return;
-    writeWizardDraft({
-      version: 1,
+    if (!draftId || typeof window === 'undefined') return;
+    const url = new URL(window.location.href);
+    let changed = false;
+    if (url.searchParams.has('new')) {
+      url.searchParams.delete('new');
+      changed = true;
+    }
+    if (url.searchParams.get('draft') !== draftId) {
+      url.searchParams.set('draft', draftId);
+      changed = true;
+    }
+    if (!changed) return;
+    const query = url.searchParams.toString();
+    window.history.replaceState(null, '', `${url.pathname}${query ? `?${query}` : ''}${url.hash}`);
+  }, [draftId]);
+
+  const currentDraft = useCallback(() => {
+    if (!draftId) return null;
+    return {
+      version: 2 as const,
+      id: draftId,
       agentTypeId: 'interviewer',
       wizardStep,
       furthestStep,
+      openedAiSettings,
       workplace,
       hasTemplateChoice: choice !== undefined,
       template: choice ?? null,
@@ -191,12 +253,12 @@ export function ConfigureAgent({
       nameEdited,
       agentName,
       presetsDone,
-    });
+    };
   }, [
-    draftReady,
-    definition?.id,
+    draftId,
     wizardStep,
     furthestStep,
+    openedAiSettings,
     workplace,
     choice,
     profileId,
@@ -211,27 +273,16 @@ export function ConfigureAgent({
     presetsDone,
   ]);
 
+  useEffect(() => {
+    if (!draftReady || definition?.id !== 'interviewer') return;
+    const draft = currentDraft();
+    if (draft) writeWizardDraft(draft);
+  }, [draftReady, definition?.id, currentDraft]);
+
   function saveDraft() {
     if (definition?.id !== 'interviewer') return;
-    writeWizardDraft({
-      version: 1,
-      agentTypeId: 'interviewer',
-      wizardStep,
-      furthestStep,
-      workplace,
-      hasTemplateChoice: choice !== undefined,
-      template: choice ?? null,
-      profileId: profileId ?? '',
-      practiceAreas,
-      legalIds,
-      otherOpen,
-      otherPractice,
-      settings,
-      avatar,
-      nameEdited,
-      agentName,
-      presetsDone,
-    });
+    const draft = currentDraft();
+    if (draft) writeWizardDraft(draft);
   }
 
   /** Writes the unfinished wizard and opens the agents list, where the utkast card appears. */
@@ -268,13 +319,13 @@ export function ConfigureAgent({
   }, [agentType, usesTemplates, usesProfiles, usesLegal]);
 
   function chooseType(next: AgentTypeDefinition | undefined) {
-    if (!next) clearWizardDraft();
+    if (!next && draftId) clearWizardDraft(draftId);
     setDefinition(next);
     setChoice(undefined);
-    setIndustry(undefined);
+    setJobTemplate(undefined);
     setProfileId(null);
     setPracticeAreas([]);
-    setLegalIds([]);
+    setLegalIds(next?.presets?.legalTemplates ? builtInLegalTemplateIds() : []);
     setOtherOpen(false);
     setOtherPractice('');
     setProfilesLoaded(false);
@@ -288,6 +339,7 @@ export function ConfigureAgent({
     setPresetsDone(false);
     setWizardStep(0);
     setFurthestStep(0);
+    setOpenedAiSettings(false);
     setWorkplace({ jobTitle: '', templateId: null, industry: '', sector: null, company: '' });
   }
 
@@ -295,6 +347,7 @@ export function ConfigureAgent({
   function goTo(index: number) {
     setWizardStep(index);
     setFurthestStep((reached) => Math.max(reached, index));
+    if (index === 4) setOpenedAiSettings(true);
   }
 
   /** Picks a profile (or '' for without) and starts practice areas from that profile. */
@@ -336,7 +389,9 @@ export function ConfigureAgent({
   const legalOptions = [...builtInLegalTemplates, ...savedLegal];
   // In the order they were chosen. One that is no longer offered is left out.
   const legalTemplates = usesLegal
-    ? legalIds.flatMap((id) => legalOptions.filter((item) => item.id === id))
+    ? normalizeLegalTemplateIds(legalIds).flatMap((id) =>
+        legalOptions.filter((item) => item.id === id),
+      )
     : [];
 
   /** The answers the wizard's choices are saved as, or null while a required choice is missing. */
@@ -354,17 +409,21 @@ export function ConfigureAgent({
   }
 
   /** Creates the agent, or updates it when this wizard has already saved one. */
-  async function persist(): Promise<string | null> {
-    if (!definition || savingLock.current) return savedAgent?.id ?? null;
+  async function persist(): Promise<{ id: string } | { error: string }> {
+    if (!definition || savingLock.current) {
+      return savedAgent ? { id: savedAgent.id } : { error: 'Noe gikk galt. Prøv igjen.' };
+    }
     const trimmed = name.trim();
     if (!trimmed) {
-      setSaveError('Agenten trenger et navn.');
-      return null;
+      const message = 'Agenten trenger et navn.';
+      setSaveError(message);
+      return { error: message };
     }
     const built = builtConfiguration();
     if (!built) {
-      setSaveError('Noen obligatoriske felt mangler. Gå tilbake og fyll dem ut.');
-      return null;
+      const message = 'Noen obligatoriske felt mangler. Gå tilbake og fyll dem ut.';
+      setSaveError(message);
+      return { error: message };
     }
 
     savingLock.current = true;
@@ -374,7 +433,7 @@ export function ConfigureAgent({
       model: settings.model,
       temperature: settings.temperature,
       maxTokens: settings.maxTokens,
-      customPrompt: settings.customPrompt?.trim() ? settings.customPrompt : null,
+      customPrompt: null,
     };
     try {
       const id = savedAgent
@@ -397,11 +456,12 @@ export function ConfigureAgent({
             avatar,
           );
       setSavedAgent({ id, name: trimmed });
-      clearWizardDraft();
-      return id;
+      if (draftId) clearWizardDraft(draftId);
+      return { id };
     } catch (error) {
-      setSaveError(error instanceof Error ? error.message : 'Noe gikk galt. Prøv igjen.');
-      return null;
+      const message = error instanceof Error ? error.message : 'Noe gikk galt. Prøv igjen.';
+      setSaveError(message);
+      return { error: message };
     } finally {
       savingLock.current = false;
       setSaving(false);
@@ -432,6 +492,9 @@ export function ConfigureAgent({
   const fieldLabel = (key: string | undefined) =>
     definition.fields.find((field) => field.key === key)?.label ?? '';
 
+  const wizardHref = (step: string) =>
+    draftId ? configureDraftHref(draftId, step) : `/configure?type=${definition.id}&step=${step}`;
+
   // The steps this type has, e.g. "Velg intervjuer, jobbsøkermal og lovverk", then "Velg bransje".
   const usesPresetStep = usesTemplates || usesProfiles || usesLegal;
   const presetStep = `Velg ${listInNorwegian(
@@ -444,7 +507,7 @@ export function ConfigureAgent({
   const steps = [
     'Velg agenttype',
     ...(usesPresetStep ? [presetStep] : []),
-    ...(usesIndustries ? ['Velg bransje'] : []),
+    ...(usesJobTemplates ? ['Velg stillingsmal'] : []),
     'Svar på spørsmålene',
   ];
 
@@ -459,20 +522,28 @@ export function ConfigureAgent({
     </div>
   );
 
-  const chosenIndustry = (
+  const chosenJobSummary = (
     <div className={styles.chosen}>
       <p>
-        {fieldLabel(presets.industryTemplate?.job)}:{' '}
-        <strong>{industry ? industry.title : 'Ingen bransjemal valgt'}</strong>
+        {fieldLabel(presets.jobTemplate?.job)}:{' '}
+        <strong>{jobTemplate ? jobTemplate.title : 'Ingen stillingsmal valgt'}</strong>
       </p>
-      <Button variant="contained" size="small" onClick={() => setIndustry(undefined)}>
-        {industry ? 'Bytt bransjemal' : 'Velg en bransjemal'}
+      <Button variant="contained" size="small" onClick={() => setJobTemplate(undefined)}>
+        {jobTemplate ? 'Bytt stillingsmal' : 'Velg en stillingsmal'}
       </Button>
     </div>
   );
 
   const profile =
     (usesProfiles && profileId && profiles.find((item) => item.id === profileId)) || null;
+  const peeks = wizardTemplatePeeks({
+    workplace,
+    jobTemplates,
+    industryTemplates: workplaceTemplates.industries,
+    interviewer: choice ?? null,
+    profile,
+    legalTemplates,
+  });
   const template = usesTemplates ? (choice ?? null) : null;
   const choosingPresets = usesTemplates
     ? choice === undefined
@@ -488,17 +559,25 @@ export function ConfigureAgent({
         onNext={() => goTo(1)}
         onGoTo={goTo}
         reached={furthestStep}
+        openedAiSettings={openedAiSettings}
         onSaveDraft={saveDraftAndLeave}
+        peeks={peeks}
       />
     );
   }
 
   if (definition.id === 'interviewer' && wizardStep === 1) {
     return (
-      <WizardFrame current={1} onGoTo={goTo} reached={furthestStep} onSaveDraft={saveDraftAndLeave}>
+      <WizardFrame
+        current={1}
+        onGoTo={goTo}
+        reached={furthestStep}
+        openedAiSettings={openedAiSettings}
+        peeks={peeks}
+      >
         <div className={stepStyles.form}>
           {chosenType}
-          {usesIndustries && industry !== undefined && chosenIndustry}
+          {usesJobTemplates && jobTemplate !== undefined && chosenJobSummary}
           <TemplatePicker
             embedded
             asRadios
@@ -507,34 +586,48 @@ export function ConfigureAgent({
             savedTemplates={saved}
             agentType={definition.id}
             lead={presets.template?.text.pickerLead}
+            returnTo={wizardHref('intervjuer')}
             onSelect={setChoice}
             onDeleted={(id) => setSaved((current) => current.filter((item) => item.id !== id))}
           />
-          {usesLegal && (
-            <LegalTemplateSelect templates={legalOptions} value={legalIds} onChange={setLegalIds} />
-          )}
-          <div className={styles.presetActions}>
+          <div className={styles.choiceActions}>
             <Button
               variant={choice === null ? 'contained' : 'outlined'}
               aria-pressed={choice === null}
               onClick={() => setChoice(null)}
             >
-              Fortsett uten mal
+              Fortsett uten intervjuermal
             </Button>
             <Button
               component={Link}
-              href={`/create-template?agentType=${encodeURIComponent(definition.id)}&returnTo=${encodeURIComponent(`/configure?type=${definition.id}&step=intervjuer`)}`}
+              href={`/create-template?agentType=${encodeURIComponent(definition.id)}&returnTo=${encodeURIComponent(
+                wizardHref('intervjuer'),
+              )}`}
               variant="outlined"
             >
-              Lag en ny mal
+              Lag en ny intervjuermal
             </Button>
-            <div className={stepStyles.nav}>
-              <Button onClick={() => goTo(0)}>Tilbake</Button>
-              <Button variant="contained" onClick={() => goTo(2)}>
-                Neste
-              </Button>
-            </div>
           </div>
+          {usesLegal && (
+            <LegalTemplateSelect templates={legalOptions} value={legalIds} onChange={setLegalIds} />
+          )}
+          <ChoiceSummary
+            lines={[
+              {
+                label: 'Mal',
+                value:
+                  choice === null
+                    ? 'Ingen mal er valgt, så intervjueren er nøytral og profesjonell.'
+                    : (choice?.title ?? ''),
+              },
+              { label: 'Lovverk', value: legalTemplates.map((item) => item.title).join(', ') },
+            ]}
+          />
+          <WizardNav
+            onBack={() => goTo(0)}
+            onNext={() => goTo(2)}
+            onSaveDraft={saveDraftAndLeave}
+          />
         </div>
       </WizardFrame>
     );
@@ -548,6 +641,7 @@ export function ConfigureAgent({
         intro={chosenType}
         onGoTo={goTo}
         reached={furthestStep}
+        openedAiSettings={openedAiSettings}
         onSelect={chooseProfile}
         selectedId={profileId}
         practiceAreas={practiceAreas}
@@ -559,13 +653,41 @@ export function ConfigureAgent({
         onNext={() => goTo(3)}
         onBack={() => goTo(1)}
         onSaveDraft={saveDraftAndLeave}
+        peeks={peeks}
+        returnTo={wizardHref('jobbsøker')}
+        onDeleted={(id) => {
+          setProfiles((current) => current.filter((item) => item.id !== id));
+          if (profileId === id) {
+            setProfileId(null);
+            setPracticeAreas([]);
+            setOtherPractice('');
+            setOtherOpen(false);
+          }
+        }}
       />
     );
   }
 
-  if (definition.id === 'interviewer' && (wizardStep === 3 || wizardStep === 4)) {
+  if (definition.id === 'interviewer' && wizardStep === 4) {
+    return (
+      <AiSettingsStep
+        value={settings}
+        onChange={setSettings}
+        intro={chosenType}
+        onGoTo={goTo}
+        reached={furthestStep}
+        openedAiSettings={openedAiSettings}
+        onBack={() => goTo(3)}
+        onNext={() => goTo(5)}
+        onSaveDraft={saveDraftAndLeave}
+        peeks={peeks}
+      />
+    );
+  }
+
+  if (definition.id === 'interviewer' && (wizardStep === 3 || wizardStep === 5)) {
     // Only the last step shows how the answers shape the interviewer.
-    const built = wizardStep === 4 ? builtConfiguration() : null;
+    const built = wizardStep === 5 ? builtConfiguration() : null;
     return (
       <SettingsStep
         value={settings}
@@ -573,7 +695,8 @@ export function ConfigureAgent({
         intro={chosenType}
         onGoTo={goTo}
         reached={furthestStep}
-        expanded={wizardStep === 4}
+        openedAiSettings={openedAiSettings}
+        expanded={wizardStep === 5}
         overview={{
           workplace,
           jobTemplates,
@@ -595,21 +718,36 @@ export function ConfigureAgent({
         saving={saving}
         saveError={saveError}
         onSave={() => {
-          void persist().then((id) => {
-            if (!id) return;
+          void persist().then((result) => {
+            if (!('id' in result)) return;
             setAgentsFlash(AGENT_SAVED_FLASH);
             router.push('/browse-agents');
           });
         }}
+        onPublish={async (publicName, publicDescription) => {
+          const result = await persist();
+          if (!('id' in result)) throw new Error(result.error);
+          try {
+            await publishAgent(result.id, publicName, publicDescription);
+          } catch (error) {
+            const message = error instanceof Error ? error.message : 'Noe gikk galt. Prøv igjen.';
+            setSaveError(message);
+            throw new Error(message);
+          }
+          setAgentsFlash(AGENT_PUBLISHED_FLASH);
+          router.push('/browse-agents');
+        }}
         onTest={() => {
-          void persist().then((id) => {
-            if (id) router.push(`/test-chat?agent=${encodeURIComponent(id)}`);
+          void persist().then((result) => {
+            if ('id' in result) router.push(`/test-chat?agent=${encodeURIComponent(result.id)}`);
           });
         }}
         onBack={() => goTo(2)}
-        onFinishBack={() => goTo(3)}
-        onNext={() => goTo(4)}
+        onFinishBack={() => goTo(openedAiSettings ? 4 : 3)}
+        onAiSettings={() => goTo(4)}
+        onNext={() => goTo(5)}
         onSaveDraft={saveDraftAndLeave}
+        peeks={peeks}
       />
     );
   }
@@ -620,7 +758,7 @@ export function ConfigureAgent({
         <Steps steps={steps} active={1} />
         {chosenType}
         {/* Kept when the counsellor goes back to change the interviewer. */}
-        {usesIndustries && industry !== undefined && chosenIndustry}
+        {usesJobTemplates && jobTemplate !== undefined && chosenJobSummary}
         {usesProfiles && (
           <ProfileSelect profiles={profiles} value={profileId ?? ''} onChange={setProfileId} />
         )}
@@ -641,14 +779,14 @@ export function ConfigureAgent({
             Fortsett
           </Button>
         )}
-        {usesIndustries && industry === undefined && (
-          <IndustryPreview templates={industryTemplates} />
+        {usesJobTemplates && jobTemplate === undefined && (
+          <JobTemplatePreview templates={builtInJobTemplates} />
         )}
       </>
     );
   }
 
-  // Shown above the industry picker and the chat, so the counsellor can go back and change it.
+  // Shown above the jobTemplate picker and the chat, so the counsellor can go back and change it.
   const chosenPresets = usesPresetStep && (
     <div className={styles.chosen}>
       <p>
@@ -693,38 +831,38 @@ export function ConfigureAgent({
     </div>
   );
 
-  if (usesIndustries && industry === undefined) {
+  if (usesJobTemplates && jobTemplate === undefined) {
     return (
       <>
         <Steps steps={steps} active={steps.length - 2} />
         {chosenType}
         {chosenPresets}
         {/* The chat's server route only knows the built-in stillingsmaler. */}
-        <IndustryPicker templates={industryTemplates} onSelect={setIndustry} />
+        <JobTemplatePicker templates={builtInJobTemplates} onSelect={setJobTemplate} />
       </>
     );
   }
 
-  const chosenIndustryTemplate = usesIndustries ? (industry ?? null) : null;
+  const chosenJobTemplate = usesJobTemplates ? (jobTemplate ?? null) : null;
 
   return (
     <>
       <Steps steps={steps} active={steps.length - 1} />
       {chosenType}
       {chosenPresets}
-      {usesIndustries && chosenIndustry}
+      {usesJobTemplates && chosenJobSummary}
       <ConfigurationChat
         key={JSON.stringify([
           definition.id,
           template?.id,
           profile?.id,
-          chosenIndustryTemplate?.id,
+          chosenJobTemplate?.id,
           legalIds,
         ])}
         definition={definition}
         template={template}
         profile={profile}
-        industry={chosenIndustryTemplate}
+        jobTemplate={chosenJobTemplate}
         legalTemplates={legalTemplates}
       />
     </>
@@ -735,4 +873,15 @@ export function ConfigureAgent({
 function listInNorwegian(items: string[]): string {
   if (items.length <= 1) return items.join('');
   return `${items.slice(0, -1).join(', ')} og ${items[items.length - 1]}`;
+}
+
+/** Named wizard steps from returnTo links, or 0 for the first interviewer screen. */
+function interviewerStepIndex(
+  typeId: string | null | undefined,
+  step: string | null | undefined,
+): number {
+  if (typeId !== 'interviewer') return 0;
+  if (step === 'intervjuer') return 1;
+  if (step === 'jobbsøker') return 2;
+  return 0;
 }

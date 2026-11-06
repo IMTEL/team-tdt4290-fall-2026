@@ -43,7 +43,7 @@ describe('sendConfigurationTurn', () => {
     await expect(
       sendConfigurationTurn(
         interviewer,
-        { templateId: 'teamleder', profileId: null, industryTemplateId: null },
+        { templateId: 'teamleder', profileId: null, jobTemplateId: null },
         messages,
       ),
     ).resolves.toEqual({
@@ -71,14 +71,14 @@ describe('sendConfigurationTurn', () => {
 
     await sendConfigurationTurn(
       interviewer,
-      { templateId: null, profileId: null, industryTemplateId: null },
+      { templateId: null, profileId: null, jobTemplateId: null },
       messages,
     );
 
     const [, init] = fetchMock.mock.calls[0];
     expect(JSON.parse(init?.body as string)).not.toHaveProperty('templateId');
     expect(JSON.parse(init?.body as string)).not.toHaveProperty('profileId');
-    expect(JSON.parse(init?.body as string)).not.toHaveProperty('industryTemplateId');
+    expect(JSON.parse(init?.body as string)).not.toHaveProperty('jobTemplateId');
   });
 
   it('sends the profile id when the counsellor chose a profile', async () => {
@@ -88,7 +88,7 @@ describe('sendConfigurationTurn', () => {
 
     await sendConfigurationTurn(
       interviewer,
-      { templateId: null, profileId: 'profile-1', industryTemplateId: null },
+      { templateId: null, profileId: 'profile-1', jobTemplateId: null },
       messages,
     );
 
@@ -103,12 +103,12 @@ describe('sendConfigurationTurn', () => {
 
     await sendConfigurationTurn(
       interviewer,
-      { templateId: null, profileId: null, industryTemplateId: 'servitor' },
+      { templateId: null, profileId: null, jobTemplateId: 'servitor' },
       messages,
     );
 
     const [, init] = fetchMock.mock.calls[0];
-    expect(JSON.parse(init?.body as string)).toMatchObject({ industryTemplateId: 'servitor' });
+    expect(JSON.parse(init?.body as string)).toMatchObject({ jobTemplateId: 'servitor' });
   });
 
   it('returns the configuration when the server says it is done', async () => {
@@ -116,7 +116,7 @@ describe('sendConfigurationTurn', () => {
 
     const result = await sendConfigurationTurn(
       interviewer,
-      { templateId: 'teamleder', profileId: null, industryTemplateId: null },
+      { templateId: 'teamleder', profileId: null, jobTemplateId: null },
       messages,
     );
 
@@ -138,7 +138,7 @@ describe('sendConfigurationTurn', () => {
 
     const result = await sendConfigurationTurn(
       interviewer,
-      { templateId: 'teamleder', profileId: null, industryTemplateId: null },
+      { templateId: 'teamleder', profileId: null, jobTemplateId: null },
       messages,
     );
 
@@ -153,7 +153,7 @@ describe('sendConfigurationTurn', () => {
     await expect(
       sendConfigurationTurn(
         interviewer,
-        { templateId: 'teamleder', profileId: null, industryTemplateId: null },
+        { templateId: 'teamleder', profileId: null, jobTemplateId: null },
         messages,
       ),
     ).rejects.toMatchObject({
@@ -167,7 +167,7 @@ describe('sendConfigurationTurn', () => {
     await expect(
       sendConfigurationTurn(
         interviewer,
-        { templateId: 'teamleder', profileId: null, industryTemplateId: null },
+        { templateId: 'teamleder', profileId: null, jobTemplateId: null },
         messages,
       ),
     ).rejects.toMatchObject({
@@ -181,7 +181,7 @@ describe('sendConfigurationTurn', () => {
     await expect(
       sendConfigurationTurn(
         interviewer,
-        { templateId: 'teamleder', profileId: null, industryTemplateId: null },
+        { templateId: 'teamleder', profileId: null, jobTemplateId: null },
         messages,
       ),
     ).rejects.toBeInstanceOf(ChatError);

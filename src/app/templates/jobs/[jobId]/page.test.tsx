@@ -57,10 +57,7 @@ describe('/templates/jobs/[jobId]', () => {
       'href',
       '/templates/industries/helse-og-omsorg',
     );
-    expect(screen.getByRole('link', { name: 'Tilbake til malene' })).toHaveAttribute(
-      'href',
-      '/templates',
-    );
+    expect(screen.getByRole('link', { name: 'Tilbake' })).toHaveAttribute('href', '/templates');
   });
 
   it('shows the counsellor’s own job template with buttons to edit and delete it', async () => {

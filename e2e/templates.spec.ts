@@ -1,7 +1,13 @@
 import { test, expect } from '@playwright/test';
 
 import { logIn } from './support/auth';
-import { chooseInterviewer, fillStilling, goToFinish, INTERVIEWER_STEP } from './support/configure';
+import {
+  chooseInterviewer,
+  fillStilling,
+  goToFinish,
+  INTERVIEWER_STEP,
+  INTERVIEWER_STEP_URL,
+} from './support/configure';
 import { createTemplate } from './support/data';
 
 test('a counsellor can make a template from the wizard and choose it there', async ({ page }) => {
@@ -9,7 +15,7 @@ test('a counsellor can make a template from the wizard and choose it there', asy
   await chooseInterviewer(page);
   await fillStilling(page);
 
-  await page.getByRole('link', { name: 'Lag en ny mal', exact: true }).click();
+  await page.getByRole('link', { name: 'Lag en ny intervjuermal', exact: true }).click();
   await expect(
     page.getByRole('heading', { name: 'Lag en mal til å konfigurere en AI-agent', exact: true }),
   ).toBeVisible();
@@ -56,7 +62,7 @@ test('a saved template can be chosen for a new interviewer', async ({ page }) =>
 
   await expect(
     page
-      .getByRole('complementary', { name: 'Seksjoner', exact: true })
+      .getByRole('region', { name: 'Det du har fylt inn' })
       .getByRole('definition')
       .filter({ hasText: 'Butikksjef' }),
   ).toBeVisible();
@@ -73,11 +79,15 @@ test('a saved template can be edited', async ({ page }) => {
   await expect(description).toHaveValue('Gammel beskrivelse.');
 
   await description.fill('Ny beskrivelse.');
+  await expect(page.getByRole('link', { name: 'Avbryt', exact: true })).toHaveAttribute(
+    'href',
+    INTERVIEWER_STEP_URL,
+  );
   await page.getByRole('button', { name: 'Lagre endringene', exact: true }).click();
-  await expect(page).toHaveURL('/templates');
-  await expect(page.getByText('Mal lagret', { exact: true })).toBeVisible();
-
-  await page.goto(INTERVIEWER_STEP);
+  await expect(page).toHaveURL(INTERVIEWER_STEP_URL);
+  await expect(
+    page.getByRole('heading', { level: 2, name: 'Velg en intervjuermal', exact: true }),
+  ).toBeVisible();
   await expect(page.getByText('Ny beskrivelse.')).toBeVisible();
   await expect(page.getByText('Gammel beskrivelse.')).toBeHidden();
 });
@@ -97,7 +107,7 @@ test('a saved template can be deleted after confirming', async ({ page }) => {
   await expect(card).toBeHidden();
   await page.reload();
   await expect(
-    page.getByRole('heading', { level: 2, name: 'Velg en mal', exact: true }),
+    page.getByRole('heading', { level: 2, name: 'Velg en intervjuermal', exact: true }),
   ).toBeVisible();
   await expect(card).toBeHidden();
 });
@@ -106,4 +116,31 @@ test('a template that does not exist shows the not found page', async ({ page })
   await logIn(page, '/templates/000000000000000000000000/edit');
 
   await expect(page.getByText('This page could not be found.')).toBeVisible();
+});
+
+test('administering lovverk jumps to that group on Maler', async ({ page }) => {
+  await logIn(page, INTERVIEWER_STEP);
+  await page.getByRole('link', { name: 'Administrer lovverk', exact: true }).click();
+  await page
+    .getByRole('dialog', { name: 'Forlate uten å lagre?', exact: true })
+    .getByRole('button', { name: 'Forlat', exact: true })
+    .click();
+
+  await expect(page).toHaveURL(/\/templates\?seksjon=lovverk/);
+  const lovverk = page.getByRole('button', { name: 'Lovverk', exact: true });
+  await expect(lovverk).toHaveAttribute('aria-expanded', 'true');
+  await expect(lovverk).toBeInViewport();
+  await expect(
+    page.getByRole('link', { name: /Rettigheter i ansettelsesprosessen/ }),
+  ).toBeInViewport();
+});
+
+test('the old lovverk page jumps to that group on Maler', async ({ page }) => {
+  await logIn(page, '/legal-templates');
+
+  await expect(page).toHaveURL(/\/templates\?seksjon=lovverk/);
+  await expect(page.getByRole('button', { name: 'Lovverk', exact: true })).toBeInViewport();
+  await expect(
+    page.getByRole('link', { name: /Rettigheter i ansettelsesprosessen/ }),
+  ).toBeInViewport();
 });

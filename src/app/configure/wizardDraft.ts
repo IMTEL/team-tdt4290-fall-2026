@@ -4,15 +4,19 @@ import type { InterviewSettings } from './SettingsStep';
 import type { Workplace } from './StillingStep';
 
 const STORAGE_KEY = 'kfi-configure-draft';
-const VERSION = 1;
+const VERSION = 2;
+const STORE_VERSION = 3;
+const LEGACY_ID = 'legacy';
+
+const EMPTY_DRAFTS: WizardDraft[] = [];
 
 const draftListeners = new Set<() => void>();
 
 /** Cached so useSyncExternalStore getSnapshot returns a stable reference between writes. */
 let cachedRaw: string | null | undefined;
-let cachedDraft: WizardDraft | null = null;
+let cachedDrafts: WizardDraft[] = EMPTY_DRAFTS;
 
-/** Lets the agents list refresh when this browser’s draft is written or cleared. */
+/** Lets the agents list refresh when this browser’s drafts are written or cleared. */
 export function subscribeWizardDraft(onStoreChange: () => void): () => void {
   draftListeners.add(onStoreChange);
   return () => {
@@ -20,21 +24,25 @@ export function subscribeWizardDraft(onStoreChange: () => void): () => void {
   };
 }
 
-function emitWizardDraftChange() {
-  cachedRaw = undefined;
-  cachedDraft = null;
+function notifyDraftListeners() {
   for (const listener of draftListeners) listener();
 }
 
 /**
  * What the counsellor has filled in so far for a new interviewer. Kept in the browser so leaving
- * mid-wizard does not lose the work.
+ * mid-wizard does not lose the work. Several drafts can sit side by side.
  */
 export type WizardDraft = {
   version: typeof VERSION;
+  /** Distinguishes this utkast from others in the same browser. */
+  id: string;
+  /** When the draft was last written, newest first on the agents page. */
+  updatedAt?: number;
   agentTypeId: string;
   wizardStep: number;
   furthestStep: number;
+  /** True after the counsellor has opened AI-innstillinger, so Tilbake from Fullføre can return there. */
+  openedAiSettings?: boolean;
   workplace: Workplace;
   /** False until the counsellor picks a template or continues without one. */
   hasTemplateChoice: boolean;
@@ -105,12 +113,27 @@ function isTemplate(value: unknown): value is AgentTemplate {
   );
 }
 
+/** Drafts from before AI-innstillinger used 4 for Fullføre. */
+function migrateDraft(draft: WizardDraft): WizardDraft {
+  const withId = draft.id ? draft : { ...draft, id: LEGACY_ID };
+  if (draft.version === VERSION) return withId;
+  return {
+    ...withId,
+    version: VERSION,
+    wizardStep: draft.wizardStep >= 4 ? draft.wizardStep + 1 : draft.wizardStep,
+    furthestStep: draft.furthestStep >= 4 ? draft.furthestStep + 1 : draft.furthestStep,
+  };
+}
+
 function isDraft(value: unknown): value is WizardDraft {
-  if (!isRecord(value) || value.version !== VERSION) return false;
+  if (!isRecord(value) || (value.version !== 1 && value.version !== VERSION)) return false;
   return (
+    (value.id === undefined || typeof value.id === 'string') &&
+    (value.updatedAt === undefined || typeof value.updatedAt === 'number') &&
     typeof value.agentTypeId === 'string' &&
     typeof value.wizardStep === 'number' &&
     typeof value.furthestStep === 'number' &&
+    (value.openedAiSettings === undefined || typeof value.openedAiSettings === 'boolean') &&
     isWorkplace(value.workplace) &&
     typeof value.hasTemplateChoice === 'boolean' &&
     (value.template === null || isTemplate(value.template)) &&
@@ -130,24 +153,62 @@ function isDraft(value: unknown): value is WizardDraft {
   );
 }
 
-/** The unfinished interviewer draft in this browser, or null when there is none. */
-export function readWizardDraft(): WizardDraft | null {
+function isStore(value: unknown): value is { version: 3; drafts: unknown[] } {
+  return isRecord(value) && value.version === STORE_VERSION && Array.isArray(value.drafts);
+}
+
+function parseDrafts(raw: string): WizardDraft[] {
+  const parsed: unknown = JSON.parse(raw);
+  if (isDraft(parsed)) return [withDefaults(migrateDraft(parsed))];
+  if (isStore(parsed)) {
+    return parsed.drafts.filter(isDraft).map((draft) => withDefaults(migrateDraft(draft)));
+  }
+  return [];
+}
+
+function saveDrafts(drafts: WizardDraft[]): void {
+  if (drafts.length === 0) {
+    localStorage.removeItem(STORAGE_KEY);
+    cachedRaw = null;
+    cachedDrafts = EMPTY_DRAFTS;
+  } else {
+    const raw = JSON.stringify({ version: STORE_VERSION, drafts });
+    localStorage.setItem(STORAGE_KEY, raw);
+    cachedRaw = raw;
+    // The same drafts a later read would parse, so an emptied number field reads as its default.
+    cachedDrafts = drafts.map(withDefaults);
+  }
+  notifyDraftListeners();
+}
+
+/** A new id for an utkast started from «Ny agent». */
+export function createWizardDraftId(): string {
+  return crypto.randomUUID();
+}
+
+/** The unfinished interviewer drafts in this browser, newest first. */
+export function readWizardDrafts(): WizardDraft[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw === cachedRaw) return cachedDraft;
+    if (raw === cachedRaw) return cachedDrafts;
     cachedRaw = raw;
     if (!raw) {
-      cachedDraft = null;
-      return null;
+      cachedDrafts = EMPTY_DRAFTS;
+      return cachedDrafts;
     }
-    const parsed: unknown = JSON.parse(raw);
-    cachedDraft = isDraft(parsed) ? withDefaults(parsed) : null;
-    return cachedDraft;
+    const drafts = parseDrafts(raw);
+    cachedDrafts = drafts.length === 0 ? EMPTY_DRAFTS : drafts;
+    return cachedDrafts;
   } catch {
     cachedRaw = undefined;
-    cachedDraft = null;
-    return null;
+    cachedDrafts = EMPTY_DRAFTS;
+    return cachedDrafts;
   }
+}
+
+/** A number setting with a value. An emptied field is NaN in memory and null once stored. */
+function isNumber(value: unknown): value is number {
+  return typeof value === 'number' && Number.isFinite(value);
 }
 
 /**
@@ -156,33 +217,58 @@ export function readWizardDraft(): WizardDraft | null {
  */
 function withDefaults(draft: WizardDraft): WizardDraft {
   const { temperature, maxTokens } = draft.settings;
-  if (typeof temperature === 'number' && typeof maxTokens === 'number') return draft;
+  if (isNumber(temperature) && isNumber(maxTokens)) return draft;
   return {
     ...draft,
     settings: {
       ...draft.settings,
-      temperature: typeof temperature === 'number' ? temperature : DEFAULT_TEMPERATURE,
-      maxTokens: typeof maxTokens === 'number' ? maxTokens : DEFAULT_MAX_TOKENS,
+      temperature: isNumber(temperature) ? temperature : DEFAULT_TEMPERATURE,
+      maxTokens: isNumber(maxTokens) ? maxTokens : DEFAULT_MAX_TOKENS,
     },
   };
 }
 
-/** Remembers the wizard so far. Private mode or a full disk is ignored. */
+/** One draft by id, or the newest when `id` is omitted. */
+export function readWizardDraft(id?: string): WizardDraft | null {
+  const drafts = readWizardDrafts();
+  if (id) return drafts.find((draft) => draft.id === id) ?? null;
+  return drafts[0] ?? null;
+}
+
+/** Remembers this wizard. Other utkast in the same browser are kept. */
 export function writeWizardDraft(draft: WizardDraft): void {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(draft));
-    emitWizardDraftChange();
+    const next = [
+      { ...draft, updatedAt: Date.now() },
+      ...readWizardDrafts().filter((item) => item.id !== draft.id),
+    ];
+    saveDrafts(next);
   } catch {
     // Private mode, or storage full.
   }
 }
 
-/** Drops the draft after the agent is saved, or when the counsellor starts over. */
-export function clearWizardDraft(): void {
+/**
+ * Drops one utkast, or every draft when `id` is omitted (after the last one is deleted, or when
+ * the counsellor abandons the only wizard).
+ */
+export function clearWizardDraft(id?: string): void {
   try {
-    localStorage.removeItem(STORAGE_KEY);
-    emitWizardDraftChange();
+    if (!id) {
+      localStorage.removeItem(STORAGE_KEY);
+      cachedRaw = null;
+      cachedDrafts = EMPTY_DRAFTS;
+      notifyDraftListeners();
+      return;
+    }
+    saveDrafts(readWizardDrafts().filter((draft) => draft.id !== id));
   } catch {
     // Private mode.
   }
+}
+
+/** Opens the wizard for this utkast, optionally on a named step. */
+export function configureDraftHref(draftId: string, step?: string): string {
+  const href = `/configure?type=interviewer&draft=${encodeURIComponent(draftId)}`;
+  return step ? `${href}&step=${step}` : href;
 }

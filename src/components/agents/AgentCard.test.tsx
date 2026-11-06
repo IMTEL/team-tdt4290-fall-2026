@@ -32,6 +32,13 @@ describe('AgentCard', () => {
     expect(screen.getByText('Privat')).toBeVisible();
   });
 
+  it('shows Publisert when the agent is published to The Candidate', () => {
+    render(<AgentCard agent={{ ...agent, isPublished: true }} />);
+
+    expect(screen.getByText('Publisert')).toBeVisible();
+    expect(screen.queryByText('Privat')).not.toBeInTheDocument();
+  });
+
   it('shows only the name and the status when there is no interviewer line or sentence', () => {
     const unknown = { ...agent, intervjuer: null, intervjutype: null };
 

@@ -10,7 +10,7 @@ import CardContent from '@mui/material/CardContent';
 import Chip from '@mui/material/Chip';
 
 import { builtInLegalTemplates } from '@/data/legal-templates';
-import type { LegalTemplate } from '@/domain/legalTemplate';
+import { LEGAL_JURISDICTION_LABELS, type LegalTemplate } from '@/domain/legalTemplate';
 import styles from '@/components/profiles/ProfileList.module.css';
 import { fetchLegalTemplates } from './api';
 import { DeleteLegalTemplateButton } from './DeleteLegalTemplateButton';
@@ -59,9 +59,12 @@ export function LegalTemplateList() {
               <CardContent className={styles.content}>
                 <h2 className={styles.title}>{template.title}</h2>
                 <p className={styles.summary}>{template.description}</p>
-                {template.builtIn && (
+                {(template.builtIn || template.jurisdiction) && (
                   <div className={styles.chips}>
-                    <Chip label="Følger med appen" size="small" />
+                    {template.builtIn && <Chip label="Følger med appen" size="small" />}
+                    {template.jurisdiction && (
+                      <Chip label={LEGAL_JURISDICTION_LABELS[template.jurisdiction]} size="small" />
+                    )}
                   </div>
                 )}
               </CardContent>

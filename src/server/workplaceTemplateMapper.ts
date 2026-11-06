@@ -1,10 +1,10 @@
-import type { IndustryTemplate, Sector } from '@/data/industry-templates';
+import type { JobTemplate, Sector } from '@/data/job-templates';
 import {
   INDUSTRY_TEMPLATE_LIMITS,
   INDUSTRY_TEMPLATE_TYPE,
   JOB_TEMPLATE_LIMITS,
   JOB_TEMPLATE_TYPE,
-  type IndustryTemplateEntry,
+  type IndustryTemplate,
   type NewIndustryTemplate,
   type NewJobTemplate,
 } from '@/domain/workplaceTemplate';
@@ -74,7 +74,7 @@ export function toRagdollJobTemplate(template: NewJobTemplate): NewRagdollTempla
  * The stillingsmal from what RAGdoll stores, or null if it is a template of another type or its
  * content has the wrong shape.
  */
-export function fromRagdollJobTemplate(stored: RagdollTemplate): IndustryTemplate | null {
+export function fromRagdollJobTemplate(stored: RagdollTemplate): JobTemplate | null {
   if (stored.type !== JOB_TEMPLATE_TYPE) return null;
   const { industry, sector, tasks, jobDescription } = stored.content;
   if (typeof industry !== 'string' || !industry || !isSector(sector)) return null;
@@ -126,7 +126,7 @@ export function toRagdollIndustryTemplate(template: NewIndustryTemplate): NewRag
  * The bransjemal from what RAGdoll stores, or null if it is a template of another type. One saved
  * before bransjemaler had a text for the interviewer gets an empty one.
  */
-export function fromRagdollIndustryTemplate(stored: RagdollTemplate): IndustryTemplateEntry | null {
+export function fromRagdollIndustryTemplate(stored: RagdollTemplate): IndustryTemplate | null {
   if (stored.type !== INDUSTRY_TEMPLATE_TYPE || !stored.name) return null;
   const { context } = stored.content;
   return {
@@ -138,7 +138,7 @@ export function fromRagdollIndustryTemplate(stored: RagdollTemplate): IndustryTe
 }
 
 /** Stillingsmaler, for the routes under /api/job-templates. */
-export const jobTemplateKind: SavedTemplateKind<NewJobTemplate, IndustryTemplate> = {
+export const jobTemplateKind: SavedTemplateKind<NewJobTemplate, JobTemplate> = {
   type: JOB_TEMPLATE_TYPE,
   parse: parseNewJobTemplate,
   toRagdoll: toRagdollJobTemplate,
@@ -146,7 +146,7 @@ export const jobTemplateKind: SavedTemplateKind<NewJobTemplate, IndustryTemplate
 };
 
 /** Bransjemaler, for the routes under /api/industry-templates. */
-export const industryTemplateKind: SavedTemplateKind<NewIndustryTemplate, IndustryTemplateEntry> = {
+export const industryTemplateKind: SavedTemplateKind<NewIndustryTemplate, IndustryTemplate> = {
   type: INDUSTRY_TEMPLATE_TYPE,
   parse: parseNewIndustryTemplate,
   toRagdoll: toRagdollIndustryTemplate,

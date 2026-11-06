@@ -11,6 +11,7 @@ import {
   deleteAgent,
   fetchFullAgent,
   isAgentOwner,
+  listFeedback,
   listLanguageModels,
   RagdollError,
   unpublishAgent,
@@ -29,6 +30,7 @@ vi.mock('@/server/ragdoll', async (importOriginal) => {
     updateAgent: vi.fn(),
     isAgentOwner: vi.fn(),
     deleteAgent: vi.fn(),
+    listFeedback: vi.fn(),
     listLanguageModels: vi.fn(),
     unpublishAgent: vi.fn(),
   };
@@ -41,6 +43,7 @@ const isAgentOwnerMock = vi.mocked(isAgentOwner);
 const deleteAgentMock = vi.mocked(deleteAgent);
 const listLanguageModelsMock = vi.mocked(listLanguageModels);
 const unpublishAgentMock = vi.mocked(unpublishAgent);
+const listFeedbackMock = vi.mocked(listFeedback);
 
 const answers = {
   stilling: 'Butikkmedarbeider',
@@ -96,6 +99,7 @@ beforeEach(() => {
     publicName: 'Kari',
     publicDescription: '',
   });
+  listFeedbackMock.mockResolvedValue([]);
   // The route logs problems on purpose; keep the test output clean.
   vi.spyOn(console, 'error').mockImplementation(() => {});
 });
@@ -110,6 +114,7 @@ afterEach(() => {
   isAgentOwnerMock.mockReset();
   deleteAgentMock.mockReset();
   unpublishAgentMock.mockReset();
+  listFeedbackMock.mockReset();
 });
 
 describe('PUT /api/agents/[agentId]', () => {
@@ -129,6 +134,28 @@ describe('PUT /api/agents/[agentId]', () => {
     // Fields the edit does not touch are sent back unchanged.
     expect(saved.llm_temperature).toBe(0.2);
     expect(saved.llm_max_tokens).toBe(3000);
+  });
+
+  it('writes the counsellor’s ratings back into the rebuilt prompt', async () => {
+    listFeedbackMock.mockResolvedValueOnce([
+      {
+        id: 'feedback-1',
+        agent_id: 'agent-1',
+        rating: 'bad',
+        agent_message: 'Hvorfor søker du her?',
+        user_message: 'Jeg har jobbet i butikk.',
+        comment: 'Spør om erfaring først.',
+        created_at: '2026-11-05T12:00:00',
+      },
+    ]);
+
+    const res = await PUT(putRequest({ name: 'Nytt navn', answers: newAnswers }), params);
+
+    expect(res.status).toBe(200);
+    const [, saved] = updateAgentMock.mock.calls[0];
+    expect(saved.prompt).toContain('vanskelig');
+    expect(saved.prompt).toContain('## Tilbakemeldinger fra veilederen');
+    expect(saved.prompt).toContain('Spør om erfaring først.');
   });
 
   it('stores where answers came from', async () => {

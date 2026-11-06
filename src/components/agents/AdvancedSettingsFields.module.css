@@ -10,6 +10,21 @@
   gap: 24px;
 }
 
+.fieldWithHelp {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.25rem;
+}
+
+.fieldWithHelp > :first-child {
+  flex: 1;
+  min-width: 0;
+}
+
+.fieldWithHelp > :last-child {
+  margin-top: 0.65rem;
+}
+
 .temperature {
   display: grid;
   grid-template-columns: 1fr 120px;

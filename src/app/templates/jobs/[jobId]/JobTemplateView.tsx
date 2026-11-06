@@ -14,17 +14,13 @@ import {
   TemplateDetailSkeleton,
 } from '@/components/templates/TemplateDetail';
 import { deleteJobTemplate, fetchJobTemplate } from '@/components/templates/workplaceApi';
-import {
-  findIndustryTemplate,
-  SECTOR_LABELS,
-  type IndustryTemplate,
-} from '@/data/industry-templates';
+import { findJobTemplate, SECTOR_LABELS, type JobTemplate } from '@/data/job-templates';
 import { industryHref, jobHref, OWN_TEMPLATE_LABEL } from '@/domain/templateCatalog';
 import { setTemplatesFlash, TEMPLATE_DELETED_FLASH } from '../../flash';
 
 type LoadState =
   | { kind: 'loading' }
-  | { kind: 'ready'; job: IndustryTemplate; builtIn: boolean }
+  | { kind: 'ready'; job: JobTemplate; builtIn: boolean }
   | { kind: 'missing' }
   | { kind: 'error'; message: string };
 
@@ -34,7 +30,7 @@ type LoadState =
  */
 export function JobTemplateView({ jobId }: { jobId: string }) {
   const router = useRouter();
-  const builtIn = findIndustryTemplate(jobId);
+  const builtIn = findJobTemplate(jobId);
   const [state, setState] = useState<LoadState>(
     builtIn ? { kind: 'ready', job: builtIn, builtIn: true } : { kind: 'loading' },
   );
@@ -101,7 +97,11 @@ export function JobTemplateView({ jobId }: { jobId: string }) {
         // English translation: Typical tasks
         { label: 'Typiske oppgaver', chips: job.tasks },
         // English translation: What the interviewer is told about the job
-        { label: 'Dette får intervjueren vite om stillingen', text: job.jobDescription },
+        {
+          label: 'Dette får intervjueren vite om stillingen',
+          text: job.jobDescription,
+          boxed: true,
+        },
       ]}
     />
   );

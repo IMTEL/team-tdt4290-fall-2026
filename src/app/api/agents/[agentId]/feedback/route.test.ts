@@ -3,12 +3,14 @@ import { NextRequest } from 'next/server';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { getSessionToken } from '@/lib/session-tokens';
+import { syncAgentPromptWithFeedback } from '@/server/feedbackPrompt';
 import { createFeedback, listFeedback, RagdollError } from '@/server/ragdoll';
 import { GET, POST } from './route';
 
 // The adapter and the mapper have their own tests. Here we only check what the route adds: the
 // session check, validating the id, the body and the limit, and the status codes.
 vi.mock('@/lib/session-tokens', () => ({ getSessionToken: vi.fn() }));
+vi.mock('@/server/feedbackPrompt', () => ({ syncAgentPromptWithFeedback: vi.fn() }));
 vi.mock('@/server/ragdoll', async (importOriginal) => {
   const original = await importOriginal<typeof import('@/server/ragdoll')>();
   return { ...original, createFeedback: vi.fn(), listFeedback: vi.fn() };
@@ -17,6 +19,7 @@ vi.mock('@/server/ragdoll', async (importOriginal) => {
 const getSessionTokenMock = vi.mocked(getSessionToken);
 const createFeedbackMock = vi.mocked(createFeedback);
 const listFeedbackMock = vi.mocked(listFeedback);
+const syncPromptMock = vi.mocked(syncAgentPromptWithFeedback);
 
 const AGENT_ID = '6ac5303839738c407739d9c9';
 const body = {
@@ -50,6 +53,7 @@ beforeEach(() => {
   getSessionTokenMock.mockResolvedValue('session-token');
   createFeedbackMock.mockResolvedValue(stored);
   listFeedbackMock.mockResolvedValue([stored]);
+  syncPromptMock.mockResolvedValue(undefined);
   // The route logs problems on purpose; keep the test output clean.
   vi.spyOn(console, 'error').mockImplementation(() => {});
 });
@@ -59,6 +63,7 @@ afterEach(() => {
   getSessionTokenMock.mockReset();
   createFeedbackMock.mockReset();
   listFeedbackMock.mockReset();
+  syncPromptMock.mockReset();
 });
 
 describe('POST /api/agents/[agentId]/feedback', () => {
@@ -75,6 +80,16 @@ describe('POST /api/agents/[agentId]/feedback', () => {
       user_message: body.userMessage,
       comment: body.comment,
     });
+    expect(syncPromptMock).toHaveBeenCalledWith('session-token', AGENT_ID);
+  });
+
+  it('still saves the rating when writing it into the prompt fails', async () => {
+    syncPromptMock.mockRejectedValueOnce(new Error('RAGdoll timed out'));
+
+    const res = await POST(...request('POST', { body }));
+
+    expect(res.status).toBe(201);
+    expect(createFeedbackMock).toHaveBeenCalled();
   });
 
   it('never passes an author or agent from the browser on to RAGdoll', async () => {

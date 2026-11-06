@@ -46,7 +46,9 @@ describe('PublishAgentButton', () => {
     await user.click(screen.getByRole('button', { name: 'Publiser' }));
     const dialog = screen.getByRole('dialog');
     expect(within(dialog).getByText('Ikke skriv noe om jobbsøkeren her.')).toBeVisible();
-    expect(within(dialog).getByLabelText(/Navn i The Candidate/)).toHaveValue(agent.name);
+    expect(within(dialog).getByRole('textbox', { name: /^Navn i The Candidate/ })).toHaveValue(
+      agent.name,
+    );
 
     await user.type(within(dialog).getByLabelText('Kort beskrivelse'), 'Øv på et første intervju');
     await user.click(within(dialog).getByRole('button', { name: 'Publiser' }));
@@ -85,7 +87,7 @@ describe('PublishAgentButton', () => {
 
     await user.click(screen.getByRole('button', { name: 'Publiser' }));
     const dialog = screen.getByRole('dialog');
-    await user.clear(within(dialog).getByLabelText(/Navn i The Candidate/));
+    await user.clear(within(dialog).getByRole('textbox', { name: /^Navn i The Candidate/ }));
 
     expect(within(dialog).getByRole('button', { name: 'Publiser' })).toBeDisabled();
     expect(within(dialog).getByText('Skriv et navn.')).toBeVisible();

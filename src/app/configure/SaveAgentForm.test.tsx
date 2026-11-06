@@ -125,15 +125,14 @@ describe('SaveAgentForm', () => {
     );
   });
 
-  it('cannot be saved with an empty hand-written prompt', async () => {
-    const { user, saveButton } = setup();
+  it('does not offer writing the system prompt by hand', async () => {
+    const { user } = setup();
 
     await user.click(screen.getByRole('button', { name: /Avanserte innstillinger/ }));
-    await user.click(screen.getByRole('switch', { name: 'Skriv systemprompten selv' }));
-    await user.clear(screen.getByRole('textbox', { name: 'Systemprompt' }));
 
-    expect(saveButton()).toBeDisabled();
-    expect(screen.getByText('Systemprompten kan ikke være tom.')).toBeVisible();
+    expect(
+      screen.queryByRole('switch', { name: 'Skriv systemprompten selv' }),
+    ).not.toBeInTheDocument();
   });
 
   it('cannot be saved without a name', async () => {

@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 
+import { returnPath } from '@/lib/returnTo';
 import { TemplateDetailView } from './TemplateDetailView';
 
 export const metadata: Metadata = {
@@ -8,9 +9,13 @@ export const metadata: Metadata = {
 
 interface TemplatePageProps {
   params: Promise<{ templateId: string }>;
+  searchParams: Promise<{ returnTo?: string | string[] }>;
 }
 
-export default async function TemplatePage({ params }: TemplatePageProps) {
+export default async function TemplatePage({ params, searchParams }: TemplatePageProps) {
   const { templateId } = await params;
-  return <TemplateDetailView templateId={templateId} />;
+  const { returnTo } = await searchParams;
+  return (
+    <TemplateDetailView templateId={templateId} backHref={returnPath(returnTo) ?? '/templates'} />
+  );
 }

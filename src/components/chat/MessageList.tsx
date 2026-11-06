@@ -10,7 +10,7 @@ import styles from './MessageList.module.css';
 
 type MessageListProps = {
   messages: ChatMessage[];
-  /** Shows the "Assistenten skriver …" bubble while waiting for a reply. */
+  /** Shows the thinking bubble while waiting for a reply. */
   isTyping?: boolean;
   /** Sends a clicked answer. Without it, answer options are only shown as text. */
   onAnswer?: (text: string) => void;
@@ -53,6 +53,7 @@ export function MessageList({
       ref={logRef}
       role="log"
       aria-live="polite"
+      aria-busy={isTyping}
       aria-label="Samtale"
       tabIndex={0}
       className={styles.log}
@@ -93,11 +94,15 @@ export function MessageList({
         })}
         {isTyping && (
           <li data-role="assistant" className={cn(styles.message, styles.typing)}>
-            <span className={styles.srOnly}>Assistenten skriver …</span>
-            <span className={styles.dots} aria-hidden="true">
-              <span />
-              <span />
-              <span />
+            <span className={styles.srOnly}>Assistent:</span>
+            {/* English translation: Thinking … */}
+            <span className={styles.thinking}>
+              <span className={styles.dots} aria-hidden="true">
+                <span />
+                <span />
+                <span />
+              </span>
+              Tenker …
             </span>
           </li>
         )}

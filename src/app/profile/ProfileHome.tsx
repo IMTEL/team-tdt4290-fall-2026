@@ -247,9 +247,11 @@ export function ProfileHome() {
             <label className={styles.fieldLabel} htmlFor="language">
               Språk
             </label>
-            <select id="language" className={styles.language} defaultValue="nb">
-              <option value="nb">Norsk bokmål</option>
-            </select>
+            <div className={styles.languageWrap}>
+              <select id="language" className={styles.language} defaultValue="nb">
+                <option value="nb">Norsk bokmål</option>
+              </select>
+            </div>
           </section>
         </div>
 
@@ -257,7 +259,7 @@ export function ProfileHome() {
           <ListCard
             title="Mine agenter"
             action={
-              <Button component={Link} href="/configure?type=interviewer" variant="contained">
+              <Button component={Link} href="/configure?type=interviewer&new=1" variant="contained">
                 Ny agent
               </Button>
             }

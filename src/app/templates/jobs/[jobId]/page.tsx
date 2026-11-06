@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 
-import { findIndustryTemplate } from '@/data/industry-templates';
+import { findJobTemplate } from '@/data/job-templates';
 import { JobTemplateView } from './JobTemplateView';
 
 interface JobTemplatePageProps {
@@ -10,7 +10,7 @@ interface JobTemplatePageProps {
 export async function generateMetadata({ params }: JobTemplatePageProps): Promise<Metadata> {
   const { jobId } = await params;
   // English translation: Job template
-  return { title: findIndustryTemplate(jobId)?.title ?? 'Stillingsmal' };
+  return { title: findJobTemplate(jobId)?.title ?? 'Stillingsmal' };
 }
 
 /** One stillingsmal: built in, or one of the counsellor's own. */

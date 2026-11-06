@@ -413,8 +413,9 @@ On `/configure` the counsellor first chooses the type (`AgentTypePicker`). `regi
 
 For an **interviewer**, setup is a form wizard (not the configuration chat): Stilling og arbeidsplass
 → Intervjuer (template) → Jobbsøker (jobbsøkermal + practice areas) → Innstillinger → Fullføre.
-**Publiser** / **Test agenten** builds the nine answer fields in the browser
-(`wizardConfiguration.ts`) and saves with `POST /api/agents`. **Lagre utkast** keeps progress in
+**Publiser** / **Lagre som privat agent** / **Test agenten** builds the nine answer fields in the
+browser (`wizardConfiguration.ts`) and saves with `POST /api/agents`. **Lagre som privat agent**
+does not publish. **Lagre utkast** keeps progress in
 `localStorage` (`wizardDraft.ts`) and opens `/browse-agents`, where an **Utkast** card can resume
 or delete the draft. Saving a finished agent clears the draft and shows a short toast («Agent
 lagret»). The UI says _jobbsøkermal_; RAGdoll and the code still use _job seeker profile_.
@@ -486,16 +487,23 @@ sources existed have none.
 
 A legal template is a law or rule about hiring, written in plain words by a counsellor: what an
 employer may not ask about in a job interview, and what rights the job seeker has. On
-`/configure` the counsellor ticks up to five of them in the wizard's intervjuer step, under the
-interviewer template. The interviewer follows them, and if the job seeker asks about their
-rights, it answers briefly from the template text only.
+`/configure` the counsellor ticks whole templates in the wizard's intervjuer step, under the
+interviewer template. A new interviewer starts with the standard template, which includes every
+built-in paragraph. To drop some laws, the counsellor makes their own template and unticks the
+ones they want to discard. The interviewer follows the chosen text, and if the job seeker asks
+about their rights, it answers briefly from that text only.
 
 - **Stored as RAGdoll templates** with the type `legal-framework`, so RAGdoll needed no change.
-  `content` is `{text}`. The routes in `/api/legal-templates` only read, change or delete
-  templates of that type, so they never touch an agent type's templates.
-- **One built-in template**, "Rettigheter i ansettelsesprosessen" (`src/data/legal-templates.ts`),
-  sums up likestillings- og diskrimineringsloven § 30 and arbeidsmiljøloven §§ 9-3, 13-1 and 13-4.
-  Built-in templates can't be edited or deleted. The wording should be checked by the customer.
+  `content` is `{text}` and may include `sourceIds` for the ticked paragraphs. The routes in
+  `/api/legal-templates` only read, change or delete templates of that type, so they never touch
+  an agent type's templates.
+- **Built-in paragraphs**, one per law (`src/data/legal-templates.ts`): Norwegian hiring rules
+  (likestillings- og diskrimineringsloven § 30 and arbeidsmiljøloven §§ 9-3, 13-1 and 13-4). Each
+  has a title as law name and paragraph, expandable plain-language text, and a link to the
+  official source. They are ticked on «Legg til lovverk», not on `/configure`. EU titles are
+  shown there as placeholders that cannot be ticked. The standard template "Rettigheter i
+  ansettelsesprosessen" has all the Norwegian paragraphs. Built-in templates can't be edited or
+  deleted. The wording should be checked by the customer.
 - **The `lovverk` answer.** The interviewer has an optional field `lovverk` with
   `presetOnly: true`: only the chosen legal templates fill it in (`presets.legalTemplates`), never
   the configurator, since legal text must not come from a language model. The configurator is
@@ -521,13 +529,23 @@ The configurator chat talks to one shared agent. The test chat talks to the agen
 saved, named in the URL (`/test-chat?agent=<id>`). Before showing the chat, the page loads the
 counsellor's agents (`GET /api/agents`) and checks that the id is one of them; if not (deleted,
 never existed, or someone else's) it says the interviewer was not found. Under the test chat, the
-counsellor can ask a shared observer agent for feedback on the conversation so far.
+counsellor can ask a shared observer agent for feedback on the conversation so far. Each point is
+shown as the question that was asked and how the answer was judged; many points collapse to a
+summary until «Vis hvert spørsmål». The observer's system prompt from
+[`prompts/observer.nb.md`](../prompts/observer.nb.md) is shown under the panel, closed until
+opened. Editing it is not offered (that stays a paste into RAGdoll). Under each interviewer reply
+the counsellor can rate it (thumbs up or down, with an optional comment). The ratings are written
+into the stored system prompt as **Tilbakemeldinger fra veilederen**, so later replies in the test
+chat and in The Candidate follow them. When there are many, the same observer writes a short
+summary of every rating into that block, and only the newest are quoted in full. If the observer
+does not answer, the comments are listed instead. Undoing a rating, or editing the agent, rebuilds
+that block from the ratings that are still stored.
 
-| Agent                   | Used on                                         | Route                             | Prompt source                                                                                            |
-| ----------------------- | ----------------------------------------------- | --------------------------------- | -------------------------------------------------------------------------------------------------------- |
-| configurator (shared)   | `/configure`                                    | `POST /api/configure/turn`        | [`prompts/configurator.nb.md`](../prompts/configurator.nb.md)                                            |
-| the counsellor's agents | `/test-chat?agent=<id>`                         | `POST /api/agents/[agentId]/chat` | [`src/domain/interviewerPrompt.ts`](../src/domain/interviewerPrompt.ts), written when the agent is saved |
-| observer (shared)       | `/test-chat?agent=<id>`, «Be om tilbakemelding» | `POST /api/test-chat/observer`    | [`prompts/observer.nb.md`](../prompts/observer.nb.md)                                                    |
+| Agent                   | Used on                                                                                | Route                                                         | Prompt source                                                                                            |
+| ----------------------- | -------------------------------------------------------------------------------------- | ------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| configurator (shared)   | `/configure`                                                                           | `POST /api/configure/turn`                                    | [`prompts/configurator.nb.md`](../prompts/configurator.nb.md)                                            |
+| the counsellor's agents | `/test-chat?agent=<id>`                                                                | `POST /api/agents/[agentId]/chat`                             | [`src/domain/interviewerPrompt.ts`](../src/domain/interviewerPrompt.ts), written when the agent is saved |
+| observer (shared)       | `/test-chat?agent=<id>`, «Be om tilbakemelding»; also a summary of many thumbs ratings | `POST /api/test-chat/observer`; `syncAgentPromptWithFeedback` | [`prompts/observer.nb.md`](../prompts/observer.nb.md)                                                    |
 
 ```mermaid
 sequenceDiagram
@@ -587,12 +605,19 @@ sequenceDiagram
   two answers from the candidate it says the chat is too short without calling the LLM, and that
   answer does not count against the chat rate limit. A transcript over 40 000 characters gets 413.
   It drops every point whose quote is not at least three whole words the candidate said in a row,
-  and answers 502 if none is left
-  ([`src/domain/observerFeedback.ts`](../src/domain/observerFeedback.ts)).
+  and answers 502 if none is left. The page pairs each remaining point with the interviewer
+  question the candidate was answering, and shows a summary when there are many
+  ([`src/domain/observerFeedback.ts`](../src/domain/observerFeedback.ts)). The test chat also
+  shows the observer's system prompt, closed until opened. After more than ten thumbs ratings,
+  `syncAgentPromptWithFeedback` sends the ratings as a different user message
+  (`SAMMENDRAG AV VURDERINGER:`) and puts the observer's prose into the interviewer prompt
+  ([`src/domain/interviewerFeedbackPrompt.ts`](../src/domain/interviewerFeedbackPrompt.ts),
+  [`src/server/feedbackPrompt.ts`](../src/server/feedbackPrompt.ts)).
 - Code: [`src/app/api/configure/turn/route.ts`](../src/app/api/configure/turn/route.ts),
   [`src/app/api/agents/[agentId]/chat/route.ts`](../src/app/api/agents/[agentId]/chat/route.ts),
   [`src/app/api/test-chat/observer/route.ts`](../src/app/api/test-chat/observer/route.ts),
-  [`src/server/ragdoll.ts`](../src/server/ragdoll.ts).
+  [`src/server/ragdoll.ts`](../src/server/ragdoll.ts),
+  [`src/server/feedbackPrompt.ts`](../src/server/feedbackPrompt.ts).
 
 ### Logging out
 
@@ -632,19 +657,19 @@ All settings are environment variables, listed with dummy values in
 [`.env.example`](../.env.example). None has the `NEXT_PUBLIC_` prefix, so none is bundled into the
 browser code.
 
-| Variable                                | Used by                                                      | Secret? |
-| --------------------------------------- | ------------------------------------------------------------ | ------- |
-| `BACKEND_API_URL`                       | Login, refresh, logout, `/api/agents/*` (test chat included) | No      |
-| `RAGDOLL_API_URL`                       | `/api/configure/turn`, `/api/test-chat/observer`             | No      |
-| `RAGDOLL_CONFIGURATOR_AGENT_ID`         | `/api/configure/turn`                                        | No      |
-| `RAGDOLL_CONFIGURATOR_ACCESS_KEY`       | `/api/configure/turn`                                        | Yes     |
-| `RAGDOLL_OBSERVER_AGENT_ID`             | `/api/test-chat/observer`                                    | No      |
-| `RAGDOLL_OBSERVER_ACCESS_KEY`           | `/api/test-chat/observer`                                    | Yes     |
-| `IDUN_API_KEY`                          | `POST /api/agents` (written onto the saved agent)            | Yes     |
-| `NEXTAUTH_URL`                          | NextAuth                                                     | No      |
-| `NEXTAUTH_SECRET`                       | NextAuth (cookie encryption)                                 | Yes     |
-| `KEYCLOAK_CLIENT_ID`, `KEYCLOAK_ISSUER` | NextAuth Keycloak provider                                   | No      |
-| `KEYCLOAK_CLIENT_SECRET`                | NextAuth Keycloak provider                                   | Yes     |
+| Variable                                | Used by                                                           | Secret? |
+| --------------------------------------- | ----------------------------------------------------------------- | ------- |
+| `BACKEND_API_URL`                       | Login, refresh, logout, `/api/agents/*` (test chat included)      | No      |
+| `RAGDOLL_API_URL`                       | `/api/configure/turn`, `/api/test-chat/observer`, rating summary  | No      |
+| `RAGDOLL_CONFIGURATOR_AGENT_ID`         | `/api/configure/turn`                                             | No      |
+| `RAGDOLL_CONFIGURATOR_ACCESS_KEY`       | `/api/configure/turn`                                             | Yes     |
+| `RAGDOLL_OBSERVER_AGENT_ID`             | `/api/test-chat/observer`, rating summary into interviewer prompt | No      |
+| `RAGDOLL_OBSERVER_ACCESS_KEY`           | `/api/test-chat/observer`, rating summary into interviewer prompt | Yes     |
+| `IDUN_API_KEY`                          | `POST /api/agents` (written onto the saved agent)                 | Yes     |
+| `NEXTAUTH_URL`                          | NextAuth                                                          | No      |
+| `NEXTAUTH_SECRET`                       | NextAuth (cookie encryption)                                      | Yes     |
+| `KEYCLOAK_CLIENT_ID`, `KEYCLOAK_ISSUER` | NextAuth Keycloak provider                                        | No      |
+| `KEYCLOAK_CLIENT_SECRET`                | NextAuth Keycloak provider                                        | Yes     |
 
 The client key The Candidate uses for published agents is not ours: it is `CANDIDATE_CLIENT_KEY`
 in RAGdoll's environment and `CANDIDATE` in The Candidate's `.env`, and this app never sees it.

@@ -31,6 +31,7 @@ describe('/test-chat', () => {
     expect(screen.getByRole('heading', { level: 1, name: 'Test intervjueren' })).toBeVisible();
     expect(await screen.findByRole('log', { name: 'Samtale' })).toBeInTheDocument();
     expect(screen.getByRole('textbox', { name: 'Melding' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Observatørens systemprompt' })).toBeInTheDocument();
   });
 
   it('asks the counsellor to pick an agent when the URL has none', async () => {

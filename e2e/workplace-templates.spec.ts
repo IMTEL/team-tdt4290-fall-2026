@@ -27,6 +27,7 @@ test('a counsellor can add a bransjemal and a stillingsmal in it, and choose the
   await page.getByRole('link', { name: /Ny stillingsmal/ }).click();
   await page.getByRole('textbox', { name: 'Stilling', exact: true }).fill('Lagermedarbeider natt');
   await page.getByRole('combobox', { name: 'Bransje' }).fill('Logistikk');
+  await page.getByRole('option', { name: 'Logistikk', exact: true }).click();
   await page.getByRole('button', { name: 'Privat', exact: true }).click();
   await page.getByRole('textbox', { name: 'Kort beskrivelse' }).fill('Plukk om natten.');
   await page

@@ -13,7 +13,7 @@ const STEPS = [
   },
   {
     title: 'Publiser agenten',
-    text: 'Trykk på «Publiser» for å lagre agenten. Du finner den igjen under Agenter.',
+    text: 'Trykk på «Publiser» og skriv navn og en kort beskrivelse. Da blir agenten tilgjengelig i The Candidate, og du finner den under Agenter.',
   },
 ] as const;
 
@@ -29,7 +29,7 @@ export default function Home() {
         Sett opp en intervjuer, test den i en chat og publiser den til VR-appen The Candidate.
       </p>
       <div className={styles.actions}>
-        <Link href="/configure?type=interviewer" className={styles.primary}>
+        <Link href="/configure?type=interviewer&new=1" className={styles.primary}>
           Ny agent
         </Link>
         <Link href="/browse-agents" className={styles.secondary}>

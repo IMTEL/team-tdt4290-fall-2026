@@ -56,7 +56,7 @@ function errorFor(res: Response): ChatError {
 export type ConfigurationChoices = {
   templateId: string | null;
   profileId: string | null;
-  industryTemplateId: string | null;
+  jobTemplateId: string | null;
   legalTemplateIds?: string[];
 };
 
@@ -67,7 +67,7 @@ export type ConfigurationChoices = {
  */
 export async function sendConfigurationTurn(
   definition: AgentTypeDefinition,
-  { templateId, profileId, industryTemplateId, legalTemplateIds = [] }: ConfigurationChoices,
+  { templateId, profileId, jobTemplateId, legalTemplateIds = [] }: ConfigurationChoices,
   messages: ChatMessage[],
   signal?: AbortSignal,
 ): Promise<TurnResult> {
@@ -79,7 +79,7 @@ export async function sendConfigurationTurn(
       agentType: definition.id,
       templateId: templateId ?? undefined,
       profileId: profileId ?? undefined,
-      industryTemplateId: industryTemplateId ?? undefined,
+      jobTemplateId: jobTemplateId ?? undefined,
       legalTemplateIds: legalTemplateIds.length > 0 ? legalTemplateIds : undefined,
       messages: history,
     },

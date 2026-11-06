@@ -29,7 +29,7 @@ export function Navbar() {
   return (
     <AppBar
       component="header"
-      position="static"
+      position="sticky"
       color="transparent"
       elevation={0}
       className={styles.header}

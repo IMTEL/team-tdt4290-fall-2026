@@ -22,12 +22,14 @@ describe('MessageList', () => {
     ]);
   });
 
-  it('shows a typing bubble only while the assistant is answering', () => {
+  it('shows a thinking bubble only while the assistant is answering', () => {
     const { rerender } = render(<MessageList messages={messages} />);
-    expect(screen.queryByText('Assistenten skriver …')).not.toBeInTheDocument();
+    expect(screen.queryByText('Tenker …')).not.toBeInTheDocument();
+    expect(screen.getByRole('log', { name: 'Samtale' })).toHaveAttribute('aria-busy', 'false');
 
     rerender(<MessageList messages={messages} isTyping />);
-    expect(screen.getByText('Assistenten skriver …')).toBeInTheDocument();
+    expect(screen.getByText('Tenker …')).toBeInTheDocument();
+    expect(screen.getByRole('log', { name: 'Samtale' })).toHaveAttribute('aria-busy', 'true');
   });
 
   it('shows reply actions under assistant replies, with the user message each one answered', () => {

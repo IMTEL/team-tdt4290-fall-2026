@@ -1,18 +1,49 @@
-/* About five lines, then the list scrolls inside its box, so what is under it is still seen. */
-.area {
-  max-height: 8rem;
+.wrap {
+  container-type: inline-size;
 }
 
 .list {
+  margin: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
+  gap: 0.7rem;
+}
+
+.item {
   margin: 0;
+  min-width: 0;
+  break-inside: avoid;
+}
+
+.item dt {
+  margin: 0 0 0.1rem;
+}
+
+.item dd {
+  margin: 0;
+  text-wrap: pretty;
+}
+
+/* Pack top-to-bottom so a tall item does not leave a hole beside a short one. */
+@container (min-width: 32rem) {
+  .list {
+    display: block;
+    column-count: 2;
+    column-gap: 1.25rem;
+  }
+
+  .item {
+    margin: 0 0 0.7rem;
+  }
+
+  .item:last-child {
+    margin-bottom: 0;
+  }
 }
 
 /* The effects of one answer, as a short list under its label. */
 .effects {
   margin: 0;
-  padding-left: 1.25rem;
+  padding-left: 1.15rem;
   list-style: disc;
 }

@@ -3,6 +3,7 @@ import type { NextRequest } from 'next/server';
 import { getSessionToken } from '@/lib/session-tokens';
 import { ragdollErrorResponse } from '@/server/errorResponse';
 import { fromRagdollFeedback, parseNewFeedback, toRagdollFeedback } from '@/server/feedbackMapper';
+import { syncAgentPromptWithFeedback } from '@/server/feedbackPrompt';
 import { createFeedback, listFeedback } from '@/server/ragdoll';
 
 type Params = { params: Promise<{ agentId: string }> };
@@ -63,6 +64,11 @@ export async function POST(req: NextRequest, { params }: Params) {
 
   try {
     const stored = await createFeedback(sessionToken, agentId, toRagdollFeedback(feedback));
+    // Best effort: the rating is stored even if rewriting the prompt fails. The next rating or
+    // edit writes the whole list in.
+    await syncAgentPromptWithFeedback(sessionToken, agentId).catch((error) => {
+      console.error('Could not write the rating into the interviewer prompt:', error);
+    });
     return Response.json({ feedback: fromRagdollFeedback(stored) }, { status: 201 });
   } catch (error) {
     return ragdollErrorResponse(error);

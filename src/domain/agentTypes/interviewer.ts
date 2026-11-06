@@ -129,7 +129,7 @@ export const interviewer: AgentTypeDefinition = {
       },
     },
     jobSeekerProfile: 'jobbsoker',
-    industryTemplate: { job: 'stilling', industry: 'bransje' },
+    jobTemplate: { job: 'stilling', industry: 'bransje' },
     legalTemplates: 'lovverk',
   },
   // Safe cast: answers are checked with hasAllAnswers before a prompt is built.

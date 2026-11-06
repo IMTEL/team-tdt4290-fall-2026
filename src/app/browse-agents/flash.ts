@@ -4,6 +4,7 @@ import { setFlash, takeFlash } from '@/lib/flash';
 const FLASH_KEY = 'kfi-agents-flash';
 
 export const AGENT_SAVED_FLASH = 'agent-lagret';
+export const AGENT_PUBLISHED_FLASH = 'agent-publisert';
 export const DRAFT_SAVED_FLASH = 'utkast-lagret';
 
 export function setAgentsFlash(message: string) {

@@ -14,6 +14,17 @@ export type ObserverFeedback =
 /** How many answers the candidate must give before there is anything to give feedback on. */
 export const MIN_CANDIDATE_ANSWERS = 2;
 
+/** Show a summary instead of every question when the observer returned this many points or more. */
+export const SUMMARY_POINT_THRESHOLD = 4;
+
+export type FeedbackKind = 'wentWell' | 'toImprove';
+
+/** One observer point, tied to the interviewer question the candidate was answering. */
+export type EvaluatedItem = { kind: FeedbackKind; point: ObserverPoint };
+
+/** One interviewer question and the observer's judgement of the answer. */
+export type EvaluatedTurn = { question: string | null; items: EvaluatedItem[] };
+
 /** The longest transcript the observer reads, in characters: about 10 000 tokens. */
 export const MAX_TRANSCRIPT_LENGTH = 40_000;
 
@@ -105,16 +116,80 @@ export function keepGroundedPoints(
     .map(({ content }) => ` ${words(content).join(' ')} `);
   const isGrounded = ({ quote }: ObserverPoint) => {
     const quoted = words(quote);
-    return (
-      quoted.length >= MIN_QUOTE_WORDS &&
-      said.some((answer) => answer.includes(` ${quoted.join(' ')} `))
-    );
+    return quoted.length >= MIN_QUOTE_WORDS && said.some((answer) => containsQuote(answer, quoted));
   };
   return {
     kind: 'feedback',
     wentWell: feedback.wentWell.filter(isGrounded),
     toImprove: feedback.toImprove.filter(isGrounded),
   };
+}
+
+/**
+ * Pairs each observer point with the interviewer question the candidate was answering, in the
+ * order the questions were asked. A point whose quote is not in the chat is kept at the end,
+ * without a question, so the counsellor still sees the judgement.
+ */
+export function evaluatedTurns(
+  feedback: Extract<ObserverFeedback, { kind: 'feedback' }>,
+  messages: TranscriptMessage[],
+): EvaluatedTurn[] {
+  const remaining: EvaluatedItem[] = [
+    ...feedback.wentWell.map((point) => ({ kind: 'wentWell' as const, point })),
+    ...feedback.toImprove.map((point) => ({ kind: 'toImprove' as const, point })),
+  ];
+  const used = new Set<number>();
+  const turns: EvaluatedTurn[] = [];
+  let question: string | null = null;
+
+  for (const message of messages) {
+    if (message.role === 'assistant') {
+      question = message.content;
+      continue;
+    }
+    const items: EvaluatedItem[] = [];
+    remaining.forEach((item, index) => {
+      if (used.has(index)) return;
+      if (!answerContainsQuote(message.content, item.point.quote)) return;
+      used.add(index);
+      items.push(item);
+    });
+    if (items.length > 0) turns.push({ question, items });
+  }
+
+  const leftover = remaining.filter((_, index) => !used.has(index));
+  if (leftover.length > 0) turns.push({ question: null, items: leftover });
+  return turns;
+}
+
+/** True when there are enough points that listing every question would be long to read. */
+export function hasManyEvaluations(
+  feedback: Extract<ObserverFeedback, { kind: 'feedback' }>,
+): boolean {
+  return feedback.wentWell.length + feedback.toImprove.length >= SUMMARY_POINT_THRESHOLD;
+}
+
+/**
+ * A short Norwegian summary of how many answers went well and how many can be better. Shown
+ * instead of every question when there are many points.
+ */
+export function summarizeObserverFeedback(
+  feedback: Extract<ObserverFeedback, { kind: 'feedback' }>,
+): string {
+  const well = feedback.wentWell.length;
+  const improve = feedback.toImprove.length;
+  const total = well + improve;
+  if (well > 0 && improve > 0) {
+    return `Observatøren vurderte ${total} svar: ${well} gikk bra, og ${improve} kan bli bedre.`;
+  }
+  if (well > 0) {
+    return well === 1
+      ? 'Observatøren vurderte 1 svar, og det gikk bra.'
+      : `Observatøren vurderte ${well} svar, og alle gikk bra.`;
+  }
+  return improve === 1
+    ? 'Observatøren vurderte 1 svar, og det kan bli bedre.'
+    : `Observatøren vurderte ${improve} svar, og alle kan bli bedre.`;
 }
 
 function toPoints(value: unknown): ObserverPoint[] | null {
@@ -129,6 +204,17 @@ function toPoints(value: unknown): ObserverPoint[] | null {
     points.push({ quote, comment, tip });
   }
   return points;
+}
+
+/** True if `quote` is whole words that appear in this answer, in that order. */
+function answerContainsQuote(answer: string, quote: string): boolean {
+  const quoted = words(quote);
+  if (quoted.length === 0) return false;
+  return containsQuote(` ${words(answer).join(' ')} `, quoted);
+}
+
+function containsQuote(normalizedAnswer: string, quoted: string[]): boolean {
+  return normalizedAnswer.includes(` ${quoted.join(' ')} `);
 }
 
 /** The words of a text in lower case, without punctuation or quote marks. */

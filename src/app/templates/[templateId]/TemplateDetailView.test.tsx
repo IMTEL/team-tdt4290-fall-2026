@@ -46,10 +46,7 @@ describe('TemplateDetailView', () => {
       '/templates/saved-1/edit',
     );
     expect(screen.getByRole('button', { name: 'Slett Min butikksjef' })).toBeVisible();
-    expect(screen.getByRole('link', { name: 'Tilbake til malene' })).toHaveAttribute(
-      'href',
-      '/templates',
-    );
+    expect(screen.getByRole('link', { name: 'Tilbake' })).toHaveAttribute('href', '/templates');
   });
 
   it('shows a built-in template without loading it, and without edit or delete', () => {
@@ -60,6 +57,13 @@ describe('TemplateDetailView', () => {
     expect(screen.queryByRole('link', { name: 'Rediger' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Slett/ })).not.toBeInTheDocument();
     expect(fetchTemplateMock).not.toHaveBeenCalled();
+  });
+
+  it('sends Tilbake to the wizard when opened from configure', () => {
+    const backTo = '/configure?type=interviewer&step=intervjuer';
+    render(<TemplateDetailView templateId="teamleder" backHref={backTo} />);
+
+    expect(screen.getByRole('link', { name: 'Tilbake' })).toHaveAttribute('href', backTo);
   });
 
   it('goes back to the templates once the template is deleted', async () => {

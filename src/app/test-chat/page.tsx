@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 
+import { loadObserverPrompt } from '@/server/observerPrompt';
 import { TestChat } from './TestChat';
 import styles from './page.module.css';
 
@@ -16,6 +17,7 @@ export default async function TestChatPage({ searchParams }: Props) {
   const { agent } = await searchParams;
   // `?agent=a&agent=b` gives an array; take the first one.
   const agentId = Array.isArray(agent) ? agent[0] : agent;
+  const observerPrompt = loadObserverPrompt();
 
   return (
     <div className={styles.page}>
@@ -30,7 +32,7 @@ export default async function TestChatPage({ searchParams }: Props) {
       </header>
 
       {agentId ? (
-        <TestChat agentId={agentId} />
+        <TestChat agentId={agentId} observerPrompt={observerPrompt} />
       ) : (
         <p className={styles.empty}>
           {/* English translation: Choose which interviewer to test from your agents. */}

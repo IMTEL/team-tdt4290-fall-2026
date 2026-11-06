@@ -58,6 +58,20 @@ describe('EditTemplate', () => {
     expect(sessionStorage.getItem('kfi-templates-flash')).toBe('mal-lagret');
   });
 
+  it('goes back to the wizard when that is where the form was opened', async () => {
+    fetchMock.mockResolvedValue(template);
+    updateMock.mockResolvedValue();
+    const user = userEvent.setup();
+    const backTo = '/configure?type=interviewer&step=intervjuer';
+    render(<EditTemplate templateId="template-1" cancelHref={backTo} />);
+
+    expect(await screen.findByRole('link', { name: 'Avbryt' })).toHaveAttribute('href', backTo);
+    await user.click(screen.getByRole('button', { name: 'Lagre endringene' }));
+
+    await vi.waitFor(() => expect(push).toHaveBeenCalledWith(backTo));
+    expect(sessionStorage.getItem('kfi-templates-flash')).toBeNull();
+  });
+
   it('shows the not-found page when the counsellor has no such template', async () => {
     fetchMock.mockResolvedValue(null);
     render(<EditTemplate templateId="template-1" />);

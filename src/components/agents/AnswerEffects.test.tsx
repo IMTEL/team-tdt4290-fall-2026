@@ -25,6 +25,7 @@ describe('AnswerEffects', () => {
       'Enkle og åpne spørsmål.',
       '6 spørsmål i alt.',
     ]);
+    expect(document.querySelectorAll('dl')).toHaveLength(1);
   });
 
   it('says the answers change nothing when the prompt was written by hand', () => {

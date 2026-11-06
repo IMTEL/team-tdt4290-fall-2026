@@ -78,11 +78,13 @@ test('the observer gives feedback that only quotes what the candidate said', asy
   await page.getByRole('button', { name: 'Be om tilbakemelding', exact: true }).click();
 
   // The mock observer quotes the first answer, and makes up a quote the app must drop.
-  const wentWell = page.getByRole('region', { name: 'Dette gikk bra', exact: true });
-  await expect(wentWell).toContainText('«Jeg har jobbet i butikk i tre år.»');
-  await expect(wentWell).toContainText('Tips: Mock-tips.');
+  const card = page.getByRole('article', { name: 'Spørsmål og vurdering', exact: true });
+  await expect(card).toContainText('Spørsmålet som ble stilt');
+  await expect(card).toContainText('fortelle litt om deg selv');
+  await expect(card).toContainText('Slik ble det vurdert');
+  await expect(card).toContainText('«Jeg har jobbet i butikk i tre år.»');
+  await expect(card).toContainText('Tips: Mock-tips.');
   await expect(page.getByText('Jeg er verdens beste selger')).toBeHidden();
-  await expect(page.getByRole('region', { name: 'Dette kan bli bedre', exact: true })).toBeHidden();
 });
 
 test('the observer says when the conversation is too short', async ({ page }) => {

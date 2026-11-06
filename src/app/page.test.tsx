@@ -17,7 +17,7 @@ describe('/', () => {
     ).toBeVisible();
     expect(screen.getByRole('link', { name: 'Ny agent' })).toHaveAttribute(
       'href',
-      '/configure?type=interviewer',
+      '/configure?type=interviewer&new=1',
     );
     expect(screen.getByRole('link', { name: 'Se agentene dine' })).toHaveAttribute(
       'href',

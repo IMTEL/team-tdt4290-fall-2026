@@ -88,4 +88,79 @@ describe('TemplatePicker', () => {
     expect(screen.getAllByRole('link', { name: /^Rediger/ })).toHaveLength(1);
     expect(screen.getAllByRole('button', { name: /^Slett/ })).toHaveLength(1);
   });
+
+  it('opens editing from the focus pills on a saved template', async () => {
+    const saved = {
+      id: 'saved-1',
+      agentType: 'interviewer',
+      title: 'Min mal',
+      description: 'Lagret av meg.',
+      focus: ['Service'],
+      persona: 'Intervjueren er butikksjef.',
+    };
+    const onSelect = vi.fn();
+    const user = userEvent.setup();
+    render(
+      <TemplatePicker
+        templates={interviewerTemplates}
+        savedTemplates={[saved]}
+        onSelect={onSelect}
+        returnTo="/configure?type=interviewer&step=intervjuer"
+      />,
+    );
+
+    const pill = screen.getByRole('link', { name: 'Service: rediger Min mal' });
+    expect(pill).toHaveAttribute(
+      'href',
+      '/templates/saved-1/edit?returnTo=%2Fconfigure%3Ftype%3Dinterviewer%26step%3Dintervjuer',
+    );
+    await user.click(pill);
+    expect(onSelect).not.toHaveBeenCalled();
+  });
+
+  it('opens the built-in template from its focus pills', () => {
+    render(<TemplatePicker templates={interviewerTemplates} onSelect={vi.fn()} />);
+
+    expect(screen.getByRole('link', { name: 'Motivasjon: se Daglig leder' })).toHaveAttribute(
+      'href',
+      '/templates/daglig-leder',
+    );
+  });
+
+  it('shows the interviewer text on the card and in a hover tip', async () => {
+    const user = userEvent.setup();
+    render(<TemplatePicker templates={interviewerTemplates} onSelect={vi.fn()} />);
+
+    expect(screen.getByText(/Intervjueren er daglig leder i en mindre bedrift/)).toBeVisible();
+    await user.hover(screen.getByRole('heading', { level: 3, name: 'Daglig leder' }));
+    expect(await screen.findByRole('tooltip')).toHaveTextContent(
+      /Intervjueren er daglig leder i en mindre bedrift/,
+    );
+  });
+
+  it('sends Rediger back to the wizard that opened the picker', () => {
+    const saved = {
+      id: 'saved-1',
+      agentType: 'interviewer',
+      title: 'Min mal',
+      description: 'Lagret av meg.',
+      focus: [],
+      persona: 'Hen er butikksjef.',
+    };
+    render(
+      <TemplatePicker
+        templates={interviewerTemplates}
+        savedTemplates={[saved]}
+        onSelect={vi.fn()}
+        returnTo="/configure?type=interviewer&step=intervjuer"
+      />,
+    );
+
+    expect(screen.getByRole('link', { name: 'Rediger Min mal' })).toHaveAttribute(
+      'href',
+      '/templates/saved-1/edit?returnTo=%2Fconfigure%3Ftype%3Dinterviewer%26step%3Dintervjuer',
+    );
+    expect(screen.getAllByRole('link', { name: /^Rediger/ })).toHaveLength(1);
+    expect(screen.getAllByRole('button', { name: /^Slett/ })).toHaveLength(1);
+  });
 });

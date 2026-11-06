@@ -9,6 +9,13 @@ const startsWith = (text: string) => new RegExp(`^${text.replace(/[.*+?^${}()|[\
 /** The wizard's Intervjuer step, opened straight from a link. Saved templates are shown there. */
 export const INTERVIEWER_STEP = '/configure?type=interviewer&step=intervjuer';
 
+/**
+ * The interviewer step after the wizard has a draft id in the query. `type` and `step` stay;
+ * `draft` may sit between them or after `step`.
+ */
+export const INTERVIEWER_STEP_URL =
+  /\/configure\?(?=.*\btype=interviewer\b)(?=.*\bstep=intervjuer\b)/;
+
 /** Picks the interviewer on /configure, the only agent type that can be set up so far. */
 export async function chooseInterviewer(page: Page): Promise<void> {
   await page.getByRole('button', { name: /^Intervjuer/ }).click();
@@ -51,12 +58,12 @@ export async function pickTemplate(page: Page, title: string | null): Promise<vo
   if (title) {
     await page.getByRole('radio', { name: startsWith(title) }).click();
   } else {
-    await page.getByRole('button', { name: 'Fortsett uten mal', exact: true }).click();
+    await page.getByRole('button', { name: /^Fortsett uten/ }).click();
   }
   await page.getByRole('button', { name: 'Neste', exact: true }).click();
 }
 
-/** Fills in the required settings, with the easiest choices, and goes on to the last step. */
+/** Fills in the required settings and goes straight to Fullføre, skipping AI-innstillinger. */
 export async function fillSettings(page: Page): Promise<void> {
   await page.getByRole('button', { name: 'Første intervju', exact: true }).click();
   await page.getByRole('button', { name: 'Lett', exact: true }).click();
@@ -84,6 +91,14 @@ export async function goToFinish(
   await expect(
     page.getByRole('heading', { level: 2, name: 'Fullføre', exact: true }),
   ).toBeVisible();
+}
+
+/** Confirms Publiser on Fullføre. Same dialog as on the agent's page. */
+export async function publishFromFinish(page: Page): Promise<void> {
+  await page.getByRole('button', { name: 'Publiser', exact: true }).click();
+  const dialog = page.getByRole('dialog', { name: 'Publiser til The Candidate' });
+  await expect(dialog).toBeVisible();
+  await dialog.getByRole('button', { name: 'Publiser', exact: true }).click();
 }
 
 /** Sends a message in the chat on the page. */

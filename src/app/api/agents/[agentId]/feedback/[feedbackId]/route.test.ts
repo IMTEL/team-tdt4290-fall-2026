@@ -3,10 +3,12 @@ import { NextRequest } from 'next/server';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { getSessionToken } from '@/lib/session-tokens';
+import { syncAgentPromptWithFeedback } from '@/server/feedbackPrompt';
 import { deleteFeedback, RagdollError } from '@/server/ragdoll';
 import { DELETE } from './route';
 
 vi.mock('@/lib/session-tokens', () => ({ getSessionToken: vi.fn() }));
+vi.mock('@/server/feedbackPrompt', () => ({ syncAgentPromptWithFeedback: vi.fn() }));
 vi.mock('@/server/ragdoll', async (importOriginal) => {
   const original = await importOriginal<typeof import('@/server/ragdoll')>();
   return { ...original, deleteFeedback: vi.fn() };
@@ -14,6 +16,7 @@ vi.mock('@/server/ragdoll', async (importOriginal) => {
 
 const getSessionTokenMock = vi.mocked(getSessionToken);
 const deleteFeedbackMock = vi.mocked(deleteFeedback);
+const syncPromptMock = vi.mocked(syncAgentPromptWithFeedback);
 
 const AGENT_ID = '6ac5303839738c407739d9c9';
 const FEEDBACK_ID = '3f2b8c1e-5a4d-4e0f-9b7a-2c1d0e9f8a7b';
@@ -28,6 +31,7 @@ function remove(agentId = AGENT_ID, feedbackId = FEEDBACK_ID) {
 beforeEach(() => {
   getSessionTokenMock.mockResolvedValue('session-token');
   deleteFeedbackMock.mockResolvedValue(undefined);
+  syncPromptMock.mockResolvedValue(undefined);
   vi.spyOn(console, 'error').mockImplementation(() => {});
 });
 
@@ -35,6 +39,7 @@ afterEach(() => {
   vi.restoreAllMocks();
   getSessionTokenMock.mockReset();
   deleteFeedbackMock.mockReset();
+  syncPromptMock.mockReset();
 });
 
 describe('DELETE /api/agents/[agentId]/feedback/[feedbackId]', () => {
@@ -43,6 +48,7 @@ describe('DELETE /api/agents/[agentId]/feedback/[feedbackId]', () => {
 
     expect(res.status).toBe(204);
     expect(deleteFeedbackMock).toHaveBeenCalledWith('session-token', AGENT_ID, FEEDBACK_ID);
+    expect(syncPromptMock).toHaveBeenCalledWith('session-token', AGENT_ID);
   });
 
   it('answers 401 and never calls RAGdoll without a session', async () => {
