@@ -20,7 +20,7 @@ For **IMTEL**, or whoever takes over the app after the course (TDT4290, autumn 2
 | --------------------------------------- | -------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
 | This app (frontend and BFF)             | `IMTEL/team-tdt4290-fall-2026`, branch `main`                                          | Works locally; not deployed ([`deployment.md`](deployment.md))                                                                   |
 | Our changes to RAGdoll                  | `IMTEL/RAGdoll`, branch `tdt4290/main`                                                 | Needed by the app; not merged into IMTEL's `main` ([future plans](future-plans.md#merge-our-ragdoll-and-the-candidate-branches)) |
-| Our changes to The Candidate            | `IMTEL/The-Candidate`, branch `feat/publish-to-candidate` (#38)                        | Lists only published agents; not merged                                                                                          |
+| Our changes to The Candidate            | `IMTEL/The-Candidate`, branch `tdt4290/main` (#38, #39)                                | Lists only published agents, and shows the observer's feedback when the interview ends; not merged into IMTEL's `main`           |
 | Shared configurator and observer agents | Agents on the RAGdoll at `RAGDOLL_API_URL`; their prompts in [`prompts/`](../prompts/) | Running on the deployed RAGdoll                                                                                                  |
 | CI                                      | GitHub Actions: `.github/workflows/ci.yml` and `playwright.yml`                        | Runs on every pull request and push to `main`. Nothing deploys automatically                                                     |
 
@@ -52,7 +52,7 @@ commit is not enough.
 | `KEYCLOAK_CLIENT_SECRET`                                         | Keycloak, the app's client in the realm | Regenerate it under the client's **Credentials** in Keycloak, then set it and restart. Logging in fails until both match                                                                                                                                                              |
 | `RAGDOLL_CONFIGURATOR_ACCESS_KEY`, `RAGDOLL_OBSERVER_ACCESS_KEY` | RAGdoll, on the shared agents           | Make a new access key for the agent in RAGdoll, then set it and restart. The configuration chat or the observer fails until both match                                                                                                                                                |
 | `IDUN_API_KEY`                                                   | IDUN (NTNU)                             | Set the new key and restart. **New** agents get it. Agents saved earlier keep the key they were saved with, because RAGdoll stores a copy on each agent and our edits leave it as it is. If the old key is revoked, those agents stop answering until their key is updated in RAGdoll |
-| The Candidate's client key                                       | RAGdoll                                 | Not used by this app. It is set in RAGdoll's and The Candidate's environment ([decision 0003](decisions/0003-publish-to-the-candidate.md))                                                                                                                                            |
+| The Candidate's client key                                       | RAGdoll                                 | Not used by this app. It is set in RAGdoll's and The Candidate's environment ([decision 0003](decisions/0003-publish-to-the-candidate.md)). It lets The Candidate chat with published agents and with the observer agent, nothing else                                                |
 
 <!-- TODO: check with IMTEL how to update the IDUN key on saved agents in RAGdoll (a script or a database update), and write it here. -->
 
@@ -67,6 +67,13 @@ commit is not enough.
 - **Formats the code reads from the language model**: `KONFIGURASJON`, `[ALTERNATIVER: …]`,
   `[VALGFRITT]`, and the observer's `Bra:`, `Bedre:` and `For kort:` lines. Change the prompt and
   the parser together.
+- **The observer's format is read in two repos.** The Candidate parses the same `Bra:` / `Bedre:` /
+  `For kort:` lines and checks the quotes in `Assets/Scripts/Core/ObserverFeedback.cs`, a copy of
+  `src/domain/observerFeedback.ts`. A change to `prompts/observer.nb.md` or to one parser needs the
+  same change in the other.
+- **The observer agent's id in RAGdoll and The Candidate.** The Candidate asks the observer with
+  its client key, so RAGdoll's `CANDIDATE_OBSERVER_AGENT_ID` and `ObserverAgentId` on The
+  Candidate's `PublishedRag` asset must name the same agent as `RAGDOLL_OBSERVER_AGENT_ID` here.
 - **Keycloak's redirect URIs and `NEXTAUTH_URL`.** When the app's address changes, update the
   client's redirect URIs in Keycloak
   ([checklist](deployment.md#checklist-before-the-first-deploy)).

@@ -52,14 +52,14 @@ Click **Ny agent** on the start page (or the «Ny agent» card under **Agenter**
 six steps, shown at the top. Fields marked with a star must be filled in before you can go on.
 Not sure what a field means? Hover the question mark next to it.
 
-| Step                         | What you decide                                                                                                                                                                                          |
-| ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Stilling og arbeidsplass** | The job the job seeker is practising for, the industry, whether the employer is public or private, and optionally the company. Pick a ready-made job (_stillingsmal_) to fill most of it in              |
-| **Intervjuer**               | Who interviews, for example «Daglig leder» or «HR-medarbeider» (_intervjuermal_). You can continue without one. Under **Lovverk**, the standard template with all the built-in laws is ticked from start |
-| **Jobbsøker**                | Who the job seeker is (_jobbsøkermal_), and what they want to practise, such as nervousness or explaining a gap in the CV. Changing the practice areas here only applies to this agent, not the template |
-| **Innstillinger**            | First or second interview, difficulty, number of questions, follow-up questions, your own questions, and anything else the interviewer should know                                                       |
-| **AI-innstillinger**         | The language model and the temperature (how varied the replies are). You can skip this step: the standard values work well for most interviews                                                           |
-| **Fullføre**                 | An overview of your choices, **«Slik former svarene dine agenten»** (how each answer changes the interviewer), an avatar picture and a name                                                              |
+| Step                         | What you decide                                                                                                                                                                                                                                                                               |
+| ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Stilling og arbeidsplass** | The job the job seeker is practising for, the industry, whether the employer is public or private, and optionally the company. Pick a ready-made job (_stillingsmal_) to fill most of it in                                                                                                   |
+| **Intervjuer**               | Who interviews, for example «Daglig leder» or «HR-medarbeider» (_intervjuermal_). You can continue without one. Under **Lovverk**, the standard template with all the built-in laws is ticked from start                                                                                      |
+| **Jobbsøker**                | Who the job seeker is (_jobbsøkermal_), and what they want to practise, such as nervousness or explaining a gap in the CV. Changing the practice areas here only applies to this agent, not the template                                                                                      |
+| **Innstillinger**            | First or second interview, difficulty, number of questions, follow-up questions, your own questions, and anything else the interviewer should know                                                                                                                                            |
+| **AI-innstillinger**         | The language model, the temperature (how varied the replies are) and **Maks antall tokens** (how long one reply may be). You can skip this step: the standard values work well for most interviews. A high temperature or many tokens can make the replies much slower, and the app warns you |
+| **Fullføre**                 | An overview of your choices, **«Slik former svarene dine agenten»** (how each answer changes the interviewer), an avatar picture and a name                                                                                                                                                   |
 
 The templates you have chosen are shown as small bubbles beside the steps. Click one to see what is
 in it. To change something you chose earlier, click that step at the top.
@@ -147,7 +147,7 @@ The buttons at the top:
 | **Slett**                     | Delete it for good, after you confirm. This can't be undone                                  |
 
 **Advanced settings** (for experienced users): under **Avanserte innstillinger** in the edit form
-you can change the language model and the temperature you chose in **AI-innstillinger**, and even
+you can change the language model, the temperature and the max tokens you chose in **AI-innstillinger**, and even
 write the system prompt yourself. Writing your own prompt is only possible here, not in the set-up. A prompt you write yourself does not get the built-in safety rules, such as
 never asking about health or religion, so add them yourself.
 

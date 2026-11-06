@@ -28,10 +28,10 @@ first deploy, is in [`deployment.md`](deployment.md). What is still to be agreed
 
 **Today:** the app needs changes we made in the other two repos, and they live on our own branches:
 
-| Repo          | Our branch                  | What it adds                                                                                                                       |
-| ------------- | --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
-| RAGdoll       | `tdt4290/main`              | Saved templates, job seeker profiles, publishing to The Candidate, ratings of replies, and the fix that makes temperature work     |
-| The Candidate | `feat/publish-to-candidate` | Listing only published agents, read with the client key ([IMTEL/The-Candidate#38](https://github.com/IMTEL/The-Candidate/pull/38)) |
+| Repo          | Our branch     | What it adds                                                                                                                                                                                                                                                                                                  |
+| ------------- | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| RAGdoll       | `tdt4290/main` | Saved templates, job seeker profiles, publishing to The Candidate, ratings of replies, the fix that makes temperature work, and letting The Candidate's client key chat with the observer agent ([IMTEL/RAGdoll#164](https://github.com/IMTEL/RAGdoll/pull/164))                                              |
+| The Candidate | `tdt4290/main` | Listing only published agents, read with the client key ([IMTEL/The-Candidate#38](https://github.com/IMTEL/The-Candidate/pull/38)), and «Avslutt intervju» in the pause menu, which shows the observer's feedback on the interview ([IMTEL/The-Candidate#39](https://github.com/IMTEL/The-Candidate/pull/39)) |
 
 On IMTEL's `main` of RAGdoll, the app starts but these features fail.
 

@@ -114,7 +114,7 @@ what steps 1 to 4 ask for is the type's own.
 | 2    | **Intervjuer**: interviewer template and legal templates (inline in `ConfigureAgent.tsx`)                                                                                    | **Sensor**: a template for who examines, and how strictly     |
 | 3    | **Jobbsøker**: job seeker profile and practice areas (`JobSeekerStep`)                                                                                                       | **Elev**: a student profile and what to practise              |
 | 4    | **Innstillinger**: interview type, difficulty, number of questions, follow-up, own questions, tillegg (`SettingsStep`)                                                       | **Innstillinger**: exam form, difficulty, number of questions |
-| 5    | **AI-innstillinger**: language model and temperature, optional (`AiSettingsStep`)                                                                                            | The same                                                      |
+| 5    | **AI-innstillinger**: language model, temperature and max tokens, optional (`AiSettingsStep`)                                                                                | The same                                                      |
 | 6    | **Fullføre**: overview, «Slik former svarene dine agenten», avatar, name, **Publiser** / **Lagre som privat agent** / **Test agenten** (`FinishActions` in `FinishStep.tsx`) | The same                                                      |
 
 **What stays shared** (write it once, for every type):
@@ -122,7 +122,7 @@ what steps 1 to 4 ask for is the type's own.
 - the frame: the step bar, jumping back to a step already reached, **Tilbake**/**Neste** and
   **Lagre utkast** (`WizardFrame` and `WizardNav` in `StillingStep.tsx`), the question-mark help on
   fields (`FieldHelp`), and the bubbles for the chosen templates (`TemplatePeekBubbles`);
-- **AI-innstillinger** (`AiSettingsStep`): model and temperature are the same for every type;
+- **AI-innstillinger** (`AiSettingsStep`): model, temperature and max tokens are the same for every type;
 - the last step, **Fullføre** (`FinishActions`): `definition.explainAnswers`, the avatar, the name
   and the three buttons. Saving goes through `persist()` and `POST /api/agents`, and **Publiser**
   through `PublishToCandidateDialog` and `POST /api/agents/[agentId]/publish`, which already work

@@ -58,7 +58,9 @@ Demo mode runs the real app against the **mock backend** our end-to-end tests us
 (`e2e/support/mock-backend.mjs`): a stand-in for Keycloak and RAGdoll that keeps everything in
 memory. You need only **Node.js 24** and npm. No account, `.env` file, Docker or API key.
 
-1. Get the code and install:
+1. Get the code and install. The repository is **private**: if you can't open it on GitHub, use
+   the code from the delivery (unzip it and run `npm ci` in that folder), or ask the team for
+   access.
 
    ```bash
    git clone https://github.com/IMTEL/team-tdt4290-fall-2026.git

@@ -32,17 +32,17 @@ everything else in a page's folder belongs to that page.
 
 **Agents** (`src/components/agents/`)
 
-| Component                        | Use it for                                                                                               |
-| -------------------------------- | -------------------------------------------------------------------------------------------------------- |
-| `AgentCardGrid`, `AgentCard`     | The grid of cards on Agenter and Min profil (one column on a phone, up to four on a wide screen)         |
-| `NewAgentCard`, `DraftAgentCard` | The «Ny agent» card first in the grid, and one card per local draft                                      |
-| `AgentStatusChip`                | The Utkast / Privat / Publisert pill                                                                     |
-| `AgentAvatar`, `AvatarPicker`    | An agent's picture, and choosing one (radio buttons, so the keyboard works)                              |
-| `AgentFilters`                   | The filter fields above the agent list                                                                   |
-| `AgentTypePicker`                | Choosing the agent type, with planned types shown as «Kommer snart»                                      |
-| `AnswerList`, `AnswerEffects`    | An agent's answers as label and value, and «Slik former svarene dine agenten»                            |
-| `AdvancedSettingsFields`         | Language model, temperature and, when editing, a hand-written prompt. `allowCustomPrompt` turns that off |
-| `PublishToCandidateDialog`       | The public name and description before publishing, on the wizard's last step and on the agent page       |
+| Component                        | Use it for                                                                                                           |
+| -------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| `AgentCardGrid`, `AgentCard`     | The grid of cards on Agenter and Min profil (one column on a phone, up to four on a wide screen)                     |
+| `NewAgentCard`, `DraftAgentCard` | The «Ny agent» card first in the grid, and one card per local draft                                                  |
+| `AgentStatusChip`                | The Utkast / Privat / Publisert pill                                                                                 |
+| `AgentAvatar`, `AvatarPicker`    | An agent's picture, and choosing one (radio buttons, so the keyboard works)                                          |
+| `AgentFilters`                   | The filter fields above the agent list                                                                               |
+| `AgentTypePicker`                | Choosing the agent type, with planned types shown as «Kommer snart»                                                  |
+| `AnswerList`, `AnswerEffects`    | An agent's answers as label and value, and «Slik former svarene dine agenten»                                        |
+| `AdvancedSettingsFields`         | Language model, temperature, max tokens and, when editing, a hand-written prompt. `allowCustomPrompt` turns that off |
+| `PublishToCandidateDialog`       | The public name and description before publishing, on the wizard's last step and on the agent page                   |
 
 **Chat** (`src/components/chat/`)
 

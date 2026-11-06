@@ -55,6 +55,10 @@ The build reads no secrets, but `npm run start` needs every variable in
       over HTTPS it refuses plain HTTP for two years.
 - [ ] **The prompts in RAGdoll match the repo.** Paste `prompts/configurator.nb.md` and
       `prompts/observer.nb.md` into the shared agents on the deployed RAGdoll.
+- [ ] **Feedback in The Candidate.** For «Avslutt intervju» to show feedback, set
+      `CANDIDATE_OBSERVER_AGENT_ID` in the deployed RAGdoll's environment and `ObserverAgentId` on
+      The Candidate's `PublishedRag` asset to the shared observer agent's id (the same agent as
+      `RAGDOLL_OBSERVER_AGENT_ID`), and build The Candidate from its `tdt4290/main`.
 - [ ] **One instance.** The chat rate limit is kept in the server's memory. With more than one
       instance each counts on its own ([Known gaps](security.md#known-gaps)).
 - [ ] **Smoke test.** Run the [manual end-to-end check](testing.md#manual-end-to-end-check)

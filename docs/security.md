@@ -23,7 +23,7 @@ server, RAGdoll stores everything) is in [`architecture.md`](architecture.md) an
 | The counselor's login (Keycloak ID token)           | Anyone with it can read, change, publish and delete the counselor's agents                      | NextAuth's encrypted cookie in the browser                         |
 | Counselors' agents, templates and profiles          | A counselor must not see or change another counselor's work                                     | RAGdoll (MongoDB)                                                  |
 | What a counselor writes about a job seeker          | Even without names, notes about a job seeker must not leak to The Candidate or other counselors | RAGdoll (job seeker profiles, and the answers in an agent)         |
-| The Candidate's client key                          | It lets anyone list published agents and chat with them                                         | RAGdoll's and The Candidate's environment. This app never sees it  |
+| The Candidate's client key                          | It lets anyone list published agents and chat with them and with the observer                   | RAGdoll's and The Candidate's environment. This app never sees it  |
 
 ## Countermeasures
 
@@ -73,7 +73,9 @@ server, RAGdoll stores everything) is in [`architecture.md`](architecture.md) an
 - IDs are always URL-encoded before they are put into a RAGdoll URL
   (`encodeURIComponent` in `src/server/ragdoll.ts`). The chat and rating routes also check that the
   agent id looks like a MongoDB ID, and answer 404 without calling RAGdoll when it does not.
-- The chosen language model must be one RAGdoll lists, and the temperature must be between 0 and 2.
+- The chosen language model must be one RAGdoll lists, the temperature must be between 0 and 1.5,
+  and the max tokens a whole number from 256 to 8000. Higher values let one reply run until the
+  chat times out (#132).
 
 ### Rate limit on chat messages
 
@@ -142,8 +144,9 @@ changing dependencies.
 - **The rate limit lives in the server's memory.** It resets when the server restarts, and is
   counted per server instance if the app ever runs on more than one.
 - **One client key for all of The Candidate.** Anyone who extracts it from the app can list
-  published agents and chat with them. That is accepted because published agents hold no personal
-  data; see decision 0003.
+  published agents and chat with them, and with the observer agent. That is accepted because
+  published agents hold no personal data, and the observer only judges the transcript it is sent;
+  see decision 0003.
 - **The Content Security Policy only covers framing, base URI and plugins.** It does not yet limit
   where scripts may load from, because MUI and Next.js inline styles and scripts would need nonces.
 

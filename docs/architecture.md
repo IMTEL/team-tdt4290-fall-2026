@@ -389,7 +389,7 @@ places:
 | Call                                        | What it gives The Candidate                                                                                                                                         |
 | ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `GET /agents/published`                     | `[{agent_id, name, description}]` for every published agent. `name` and `description` are the public ones. No prompt, no job seeker answers, no role names, no keys |
-| `POST /api/chat/ask` (and the speech chats) | A chat with a **published** agent, as its first role. A hidden agent answers 403 at once                                                                            |
+| `POST /api/chat/ask` (and the speech chats) | A chat with a **published** agent, as its first role, or with the observer agent named in `CANDIDATE_OBSERVER_AGENT_ID`. Any other agent answers 403 at once        |
 
 The key is deliberately not accepted anywhere else, so it can't read an agent's configuration
 (`GET /agents/[agentId]` answers 403).
@@ -417,6 +417,15 @@ The Candidate still uses its own **Coordinator** agent (on the deployed RAGdoll)
 talks. Our published agent only writes what the interviewer NPC says. The picker, the spawning of
 the one NPC and the RAGdoll calls are in The Candidate's `InterviewerSelectionManager`,
 `SpawnManager` and `PublishedRagService`.
+
+**Feedback in VR** (#118). «Avslutt intervju» in The Candidate's pause menu ends the interview and
+asks the same shared observer agent as our test chat for feedback, with the client key
+(`PublishedRagService.AskObserver`). RAGdoll lets the client key chat with that one agent through
+`CANDIDATE_OBSERVER_AGENT_ID` (IMTEL/RAGdoll#164); the observer is not published, so it never shows
+in the list of interviewers. The Candidate builds the transcript, reads the `Bra:` / `Bedre:` /
+`For kort:` lines and drops invented quotes in `ObserverFeedback.cs`, a copy of
+[`src/domain/observerFeedback.ts`](../src/domain/observerFeedback.ts) (IMTEL/The-Candidate#39).
+Nothing from the interview is kept.
 
 Why it works this way, and what we chose not to do, is in
 [decision 0003](decisions/0003-publish-to-the-candidate.md). How to test the whole flow on your
@@ -449,13 +458,13 @@ On `/configure` the counselor first chooses the type (`AgentTypePicker`). `regis
 For an **interviewer**, setup is a form wizard, not the configuration chat
 ([decision 0005](decisions/0005-form-wizard-instead-of-configuration-chat.md)): Stilling og
 arbeidsplass → Intervjuer (template + legal templates) → Jobbsøker (jobbsøkermal + practice areas)
-→ Innstillinger → AI-innstillinger (model and temperature, optional) → Fullføre. The chosen
+→ Innstillinger → AI-innstillinger (model, temperature and max tokens, optional) → Fullføre. The chosen
 templates are shown as bubbles beside the steps (`TemplatePeekBubbles`, `templatePeeks.ts`), and
 fields have a question mark with a short explanation (`FieldHelp`).
 
 - **Saving.** **Publiser**, **Lagre som privat agent** and **Test agenten** all build the answer
   fields in the browser (`wizardConfiguration.ts`) and save with `POST /api/agents`, with the
-  model and temperature as advanced settings. **Publiser** first asks for the public name and
+  model, temperature and max tokens as advanced settings. **Publiser** first asks for the public name and
   description (`PublishToCandidateDialog`, shared with the details page), then publishes the saved
   agent with `POST /api/agents/[agentId]/publish`. If publishing fails, the agent stays saved as
   private. A hand-written system prompt is only possible in the edit form, not in the wizard.
