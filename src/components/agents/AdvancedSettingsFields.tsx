@@ -187,22 +187,27 @@ export function AdvancedSettingsFields({
         </FormHelperText>
       </div>
 
-      <TextField
-        // English translation: Max number of tokens
-        label="Maks antall tokens"
-        value={maxTokensText}
-        onChange={(event) => handleMaxTokensText(event.target.value)}
-        disabled={disabled}
-        error={Boolean(errors.maxTokens)}
-        helperText={
-          errors.maxTokens ??
-          // English translation: How long one answer may be, the model's reasoning included.
-          // Between <min> and <max>.
-          `Hvor langt ett svar kan bli, medregnet modellens resonnering. Mellom ${MIN_MAX_TOKENS} og ${MAX_MAX_TOKENS}.`
-        }
-        slotProps={{ htmlInput: { inputMode: 'numeric' } }}
-        className={styles.maxTokens}
-      />
+      <div className={`${styles.fieldWithHelp} ${styles.maxTokens}`}>
+        <TextField
+          // English translation: Max number of tokens
+          label="Maks antall tokens"
+          value={maxTokensText}
+          onChange={(event) => handleMaxTokensText(event.target.value)}
+          disabled={disabled}
+          error={Boolean(errors.maxTokens)}
+          helperText={
+            errors.maxTokens ??
+            // English translation: How long one answer may be, the model's reasoning included.
+            // Between <min> and <max>.
+            `Hvor langt ett svar kan bli, medregnet modellens resonnering. Mellom ${MIN_MAX_TOKENS} og ${MAX_MAX_TOKENS}.`
+          }
+          slotProps={{ htmlInput: { inputMode: 'numeric' } }}
+        />
+        <FieldHelp
+          label="Maks antall tokens"
+          description="Hvor langt ett svar kan bli. Høyere tall kan gjøre at agenten svarer tregere."
+        />
+      </div>
 
       {isSlow(value) && (
         <Alert severity="warning">
