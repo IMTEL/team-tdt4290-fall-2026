@@ -1,15 +1,14 @@
 # KFI: Konfigurator for intervjuagenter — TDT4290 Group 3 (autumn 2026)
 
-Web application for career counsellors to configure AI interviewer agents, try them out in a chat, and publish them to the VR app **The Candidate**, where job seekers practise job interviews.
+Web application for career counselors to configure AI interviewer agents, try them out in a chat, and publish them to the VR app **The Candidate**, where job seekers practise job interviews.
 
 Customer: **IMTEL** (Innovative Immersive Technologies for Learning, NTNU) with NAV and Trøndelag fylkeskommune.
 Course: TDT4290 Customer Driven Project, NTNU, autumn 2026. Group 3.
 
-<!-- TODO: replace with the final product name once agreed with the customer -->
-
 ## Contents
 
 - [What it does](#what-it-does)
+- [Documentation](#documentation)
 - [Where things live](#where-things-live)
 - [Tech stack](#tech-stack)
 - [Running locally](#running-locally)
@@ -29,12 +28,41 @@ Course: TDT4290 Customer Driven Project, NTNU, autumn 2026. Group 3.
 
 ## What it does
 
-1. A counsellor logs in and sets up an interviewer in a short form wizard (stilling, intervjuer, jobbsøkermal, innstillinger), with optional templates from **Maler**.
-2. Progress can be saved as a local **utkast** and finished later from **Agenter**.
-3. Publishing builds a system prompt and stores the agent in **RAGdoll**.
-4. The counsellor tests the agent in a chat and, when satisfied, can publish it to **The Candidate**.
+1. A counselor logs in and sets up an interviewer in a six-step form wizard (stilling, intervjuer, jobbsøker, innstillinger, AI-innstillinger, fullføre), with optional templates from **Maler**.
+2. Progress can be saved as local **utkast** (several at once) and finished later from **Agenter**.
+3. Saving builds a system prompt from the answers and stores the agent, private to the counselor, in **RAGdoll**.
+4. The counselor tests the agent in a chat, rates its replies (the ratings are written into the agent's prompt), can ask an observer agent for feedback on the conversation, and edits the agent until satisfied. A help page explains each step.
+5. **Publiser**, on the wizard's last step or on the agent's page, makes it available in **The Candidate**; **Gjem agent** hides it again.
 
-The product is an _agent configurator_ for career counsellors; the job interview is the first scenario, and the architecture should allow other scenarios later.
+The product is an _agent configurator_ for career counselors; the job interview is the first scenario, and the architecture allows other scenarios as new agent types ([`docs/extending.md`](docs/extending.md)).
+
+## Documentation
+
+| If you are…                          | Start with                                                                                                                                      |
+| ------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| A counselor or other new user        | [`docs/user-guide.md`](docs/user-guide.md): getting started with the app                                                                        |
+| The sensor, or assessing the project | [`docs/sensor-guide.md`](docs/sensor-guide.md): where to look, and running the app in five minutes without secrets                              |
+| A new developer                      | This README ([Running locally](#running-locally)), then [`docs/architecture.md`](docs/architecture.md) and [`CONTRIBUTING.md`](CONTRIBUTING.md) |
+| Taking over the app (IMTEL)          | [`docs/handover.md`](docs/handover.md): what you own, the secrets, what must stay in step, and what to do first                                 |
+| Adding a feature                     | [`docs/extending.md`](docs/extending.md): how to add an agent type, a template, a wizard choice, a page or a route, and what else must follow   |
+
+All documentation:
+
+| File                                                                                   | What is in it                                                             |
+| -------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| [`docs/architecture.md`](docs/architecture.md)                                         | The parts of the system, the flows, and where data is stored              |
+| [`docs/extending.md`](docs/extending.md)                                               | How to add new things                                                     |
+| [`docs/decisions/`](docs/decisions/README.md)                                          | One page per design decision (ADR)                                        |
+| [`docs/design-guide.md`](docs/design-guide.md)                                         | Shared components, tokens, colours and contrast                           |
+| [`docs/testing.md`](docs/testing.md), [`docs/e2e-testing.md`](docs/e2e-testing.md)     | Unit, component and end-to-end tests, and the manual checks before a demo |
+| [`docs/security.md`](docs/security.md)                                                 | What we protect, countermeasures, personal data, known gaps               |
+| [`docs/deployment.md`](docs/deployment.md)                                             | Deployment status and what a deployment needs                             |
+| [`docs/testing-publish-to-the-candidate.md`](docs/testing-publish-to-the-candidate.md) | Testing publishing all the way into The Candidate, Unity included         |
+| [`docs/mcp-github-setup.md`](docs/mcp-github-setup.md)                                 | Optional: letting an AI coding assistant work with GitHub                 |
+| [`docs/handover.md`](docs/handover.md)                                                 | Handing the app over: what there is, secrets, contacts, first steps       |
+| [`docs/future-plans.md`](docs/future-plans.md)                                         | What we would do next if the project continued                            |
+| [`docs/plans/`](docs/plans/)                                                           | Working plans for finished features, kept for history                     |
+| [`prompts/`](prompts/)                                                                 | The prompts of the shared configurator and observer agents                |
 
 ## Where things live
 
@@ -45,8 +73,8 @@ The product is an _agent configurator_ for career counsellors; the job interview
 | LLMs                   | IDUN (NTNU HPC), accessed **only through RAGdoll**                                                |
 | VR app                 | The Candidate (contact: Mathias, IMTEL)                                                           |
 | Backlog & sprint board | [GitHub Project #6](https://github.com/orgs/IMTEL/projects/6)                                     |
-| Report                 | Overleaf <!-- TODO: link -->                                                                      |
-| Customer contact       | Slack (product owners: <!-- TODO: idk, Tobias and Ekaterina? -->)                                 |
+| Report                 | [Overleaf](https://www.overleaf.com/project/6a9fb636f4a3e478a7f3653c)                             |
+| Customer contact       | Slack (product owners: Mikhail, Ekaterina, Mathias, Erik and Tobias)                              |
 
 ## Tech stack
 
@@ -69,7 +97,7 @@ We use the stack the customer proposed in the project brief, and reuse existing 
 
 The palette, the spacing and type scale, and the rules for using the components are in [`docs/design-guide.md`](docs/design-guide.md). Read it before writing UI code. Why the stack looks like this is recorded in [`docs/decisions/`](docs/decisions/), for example [0002: MUI with CSS Modules](docs/decisions/0002-mui-with-css-modules.md).
 
-Accessibility is part of the brief: counsellors are non-technical users, and the report has a diversity chapter. Keep contrast, keyboard navigation and readable font sizes in mind from the first component.
+Accessibility is part of the brief: counselors are non-technical users, and the report has a diversity chapter. Keep contrast, keyboard navigation and readable font sizes in mind from the first component.
 
 ## Running locally
 
@@ -298,22 +326,27 @@ Never commit `.env`. The IDUN key must not appear anywhere in this repo.
 
 ## Deployment
 
+The frontend is not deployed yet; RAGdoll is, at `https://iplvr.it.ntnu.no/backend`. What a
+deployment needs, and the checklist before the first one, is in
+[`docs/deployment.md`](docs/deployment.md).
+
 ## Repository layout
 
 ```
-.github/workflows/    CI (lint, format check, typecheck, tests, build on every pull request)
+.github/workflows/    CI (lint, format check, typecheck, tests, build) and Playwright e2e tests, on every pull request
 .github/              issue templates and pull request template
-docs/design-guide.md  colour palette, component library, CSS rules
-docs/decisions/       one page per design decision (ADR)
-public/               static assets served at the site root
+docs/                 architecture, guides, decisions (ADRs), testing, security, deployment; see Documentation above
+e2e/                  Playwright end-to-end tests; e2e/support/mock-backend.mjs stands in for Keycloak and RAGdoll
+prompts/              prompts of the shared configurator and observer agents (RAGdoll holds a copy)
+public/               static assets served at the site root, including the agent avatars
 scripts/              developer scripts, e.g. keycloak-setup.mjs (npm run keycloak:setup)
-src/app/              routes (App Router) and API routes (src/app/api/); globals.css holds the tokens and reset
+src/app/              pages (App Router) and API routes (src/app/api/); globals.css holds the tokens and reset
 src/components/       our own components, built from MUI and the primitives, with their own *.module.css
 src/components/ui/    low-level primitives (button, dropdown menu) built on Radix
-src/data/             mock agents, interviewer and industry templates
-src/lib/              helpers: api.ts (backend client), login (auth-options.ts, session-tokens.ts), mui-theme.ts, utils.ts (cn)
-src/domain/           pure functions: read the KONFIGURASJON block, build the interviewer prompt
-src/server/           server-only code: the RAGdoll adapter, agent mapper, error responses
+src/data/             built-in templates: interviewer, job (stillingsmaler) and legal templates
+src/domain/           pure logic: agent types (agentTypes/), the interviewer's prompt, summary and adaptations, templates, profiles
+src/lib/              helpers: login (auth-options.ts, session-tokens.ts), mui-theme.ts, securityHeaders.ts, utils.ts (cn)
+src/server/           server-only code: the RAGdoll adapter (ragdoll.ts), mappers, rate limit, error responses
 ```
 
 Conventions worth knowing before adding code:
@@ -339,6 +372,8 @@ var(--border)`, so `border-width: 1px` is enough to get the themed colour.
 - **Navbar links** come from the `NAV_LINKS` array in
   [`src/components/Navbar.tsx`](src/components/Navbar.tsx). Add a route there and
   active highlighting comes for free.
+- **Adding something bigger**, such as an agent type, a template kind or an API route:
+  follow [`docs/extending.md`](docs/extending.md).
 
 ## Team
 
@@ -346,7 +381,7 @@ var(--border)`, so `border-width: 1px` is enough to get the themed colour.
 | ------------------- | --------------------------- |
 | Christian Bjørnaas  | Team Leader (whole project) |
 | Emma Ruhcheva       | Scrum Master                |
-| Gina Bjøralt Giske  | Quality Asurance            |
+| Gina Bjøralt Giske  | Quality Assurance           |
 | Sergi Torres Albert | Product Owner               |
 
 Supervisor: August Solli Middelkoop. Roles other than Team Leader rotate every sprint.
@@ -357,6 +392,9 @@ See [CONTRIBUTING.md](CONTRIBUTING.md): branch naming, commit convention, pull r
 
 ## License
 
-<!-- TODO: ask IMTEL before adding a LICENSE file -->
+[MIT](LICENSE). Copyright © 2026 IMTEL NTNU.
+
+Built on [RAGdoll](https://github.com/IMTEL/RAGdoll) (MIT). The Candidate (GPL-3.0) is a separate
+program and shares no code with this repository.
 
 <!-- IF you have read all of this, hi :D>

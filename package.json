@@ -2,6 +2,7 @@
   "name": "team-tdt4290-fall-2026",
   "version": "0.1.0",
   "private": true,
+  "license": "MIT",
   "scripts": {
     "dev": "next dev",
     "build": "next build",

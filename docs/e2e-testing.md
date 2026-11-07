@@ -119,16 +119,18 @@ the mock, copying the request and response shapes from `src/server/ragdoll.ts`.
 
 In `e2e/`, named `*.spec.ts`, one file per flow or page:
 
-| File                    | Covers                                                                     |
-| ----------------------- | -------------------------------------------------------------------------- |
-| `home.spec.ts`          | Start page, navbar links, theme toggle, help page (also on a phone)        |
-| `auth.spec.ts`          | Login, logout, protected pages, login errors                               |
-| `agents.spec.ts`        | Agent list, agent page, edit, clone, delete, publish, hide                 |
-| `configure.spec.ts`     | The interviewer wizard: every step, publishing, testing, drafts, help link |
-| `templates.spec.ts`     | Create, edit, delete and use interviewer templates                         |
-| `profiles.spec.ts`      | Create, edit, delete job seeker templates, form validation                 |
-| `test-chat.spec.ts`     | Testing an agent in the chat: greeting, sending, starting over             |
-| `accessibility.spec.ts` | axe on every page, dialog, menu and error state, light and dark            |
+| File                          | Covers                                                                       |
+| ----------------------------- | ---------------------------------------------------------------------------- |
+| `home.spec.ts`                | Start page, navbar links, theme toggle, help page (also on a phone)          |
+| `auth.spec.ts`                | Login, logout, protected pages, login errors                                 |
+| `agents.spec.ts`              | Agent list, agent page, edit, clone, delete, publish, hide                   |
+| `configure.spec.ts`           | The interviewer wizard: every step, publishing, testing, drafts, help link   |
+| `templates.spec.ts`           | Create, edit, delete and use interviewer templates                           |
+| `profiles.spec.ts`            | Create, edit, delete job seeker templates, form validation                   |
+| `test-chat.spec.ts`           | Testing an agent in the chat: greeting, sending, starting over               |
+| `workplace-templates.spec.ts` | Stillings- and bransjemaler: create, edit, rename, delete, use in the wizard |
+| `security-headers.spec.ts`    | The security headers on real responses                                       |
+| `accessibility.spec.ts`       | axe on every page, dialog, menu and error state, light and dark              |
 
 Helpers and the mock backend are in `e2e/support/`: `auth.ts` logs in, `data.ts` creates test
 data through our API, `configure.ts` clicks through the wizard on `/configure` (`goToFinish` goes

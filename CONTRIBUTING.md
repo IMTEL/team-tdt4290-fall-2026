@@ -1,6 +1,6 @@
 # Contributing
 
-How we work in this repository. Short on purpose: if something here does not match what we do, change the file.
+The following describes how the team works in this repository.
 
 ## 1. Workflow in one picture
 
@@ -117,15 +117,16 @@ What a reviewer checks: does it do what the issue says, can I run it, are the "r
 
 Every pull request runs, and all of them must pass before merging:
 
-| Check      | Command                           |
-| ---------- | --------------------------------- |
-| Lint       | `npm run lint` (ESLint)           |
-| Formatting | `npm run format:check` (Prettier) |
-| Types      | `npm run typecheck` (TypeScript)  |
-| Tests      | `npm run test` (Vitest)           |
-| Build      | `npm run build`                   |
+| Check      | Command                                                                         |
+| ---------- | ------------------------------------------------------------------------------- |
+| Lint       | `npm run lint` (ESLint)                                                         |
+| Formatting | `npm run format:check` (Prettier)                                               |
+| Types      | `npm run typecheck` (TypeScript)                                                |
+| Tests      | `npm run test` (Vitest)                                                         |
+| Build      | `npm run build`                                                                 |
+| End-to-end | Playwright in Chromium, Firefox and WebKit (`.github/workflows/playwright.yml`) |
 
-Run them locally first with `npm run check` (everything except the build) — a red pipeline blocks your reviewer too. Never merge with CI red, and never disable a check to get a PR through: if a check is wrong, fix the check in its own PR.
+Run them locally first with `npm run check` (everything except the build and the end-to-end tests; run `npm run test:e2e` for those, see [`docs/e2e-testing.md`](docs/e2e-testing.md)) — a red pipeline blocks your reviewer too. Never merge with CI red, and never disable a check to get a PR through: if a check is wrong, fix the check in its own PR.
 
 ### Branch protection on `main`
 
@@ -146,7 +147,7 @@ A user story is **done** when every box holds. Tasks use the first four.
 - [ ] CI is green (build, lint, tests)
 - [ ] Automated tests cover the new behaviour where it is reasonable to test <!-- TODO: agree the test scope (unit / integration / e2e) -->
 - [ ] No known technical debt hidden — if something is left, it is written as an issue
-- [ ] Documentation touched by the change is updated (README, docs/, code comments)
+- [ ] Documentation touched by the change is updated (README, docs/, code comments). A change counselors see updates [`docs/user-guide.md`](docs/user-guide.md); a new way to extend the app updates [`docs/extending.md`](docs/extending.md)
 - [ ] Deployed to the test environment <!-- TODO: depends on IMTEL infrastructure being ready; until then, "runs locally with docker compose" -->
 - [ ] Every "resolved when" criterion in the issue is checked by someone other than the author
 - [ ] The story can be demoed following its "How to demo" text
@@ -166,19 +167,25 @@ Read [`docs/design-guide.md`](docs/design-guide.md) before writing UI. In short:
 
 - **MUI**: use MUI components (and MUI X Data Grid for tables) for standard controls. Change their look through the theme in `src/lib/mui-theme.ts`, not per page. See [decision 0002](docs/decisions/0002-mui-with-css-modules.md).
 - **Modular CSS**: each component has its own `Component.module.css` next to it. No global stylesheet other than the design tokens; no inline styles for anything reusable.
-- **Component library**: build screens out of the shared components in `src/components/`. If a screen needs something new, add it to the library instead of styling one page ad hoc.
-- **Colour palette**: colours are the agreed tokens (`var(--color-...)`). A raw hex value in a component is a review comment.
-- Same for spacing and font sizes: use the scale, not arbitrary pixel values.
-- Prefer configuration over hard-coding: questionnaire, templates and scenario definitions live in data files, not in components.
+- **Component library**: build screens out of the shared components in `src/components/` (listed in [Shared components](docs/design-guide.md#shared-components)). If a screen needs something new, add it to the library instead of styling one page ad hoc.
+- **Colour palette**: colours are the agreed tokens in `src/app/globals.css` (`var(--primary)`, `var(--muted-foreground)`, …). A raw hex value in a component is a review comment.
+- Same for spacing: use the scale (`var(--space-1)` … `var(--space-6)`), not arbitrary pixel values. For font sizes, see [Tokens](docs/design-guide.md#tokens).
+- Prefer configuration over hard-coding: agent types are defined in `src/domain/agentTypes/` and built-in templates live in `src/data/`, not in components. How to add to them: [`docs/extending.md`](docs/extending.md).
 
 ### Prompts
 
-The agent prompts live in `prompts/` (for example `prompts/configurator.nb.md`). The prompt text itself is in Norwegian (bokmål), because that is what the agents answer in. This applies to people and to AI coding assistants alike:
+There are two kinds of prompt, kept in different places:
 
-- **One requirement per bullet.** Every section of a prompt is a bullet list, so requirements can be added one by one.
+- **The shared agents' prompts** are in `prompts/`: `configurator.nb.md` (the configuration chat on `/configure`) and `observer.nb.md` (the test chat's «Be om tilbakemelding»). Each file explains the agent and its settings; the prompt itself is the ` ```text ` block.
+- **The prompts of the agents counselors make** are built in code when the agent is saved, from the agent type's definition. For the interviewer that is `src/domain/interviewerPrompt.ts` and `src/domain/interviewerAdaptations.ts`. See [Change a prompt](docs/extending.md#change-a-prompt).
+
+The prompt text itself is in Norwegian (bokmål), because that is what the agents answer in. These rules apply to people and to AI coding assistants alike:
+
+- **One requirement per bullet.** Requirements are written as bullets under the section they belong to, so they can be added one by one. Examples and short framing text may sit between them.
 - **Add, don't rewrite.** A new requirement is a new bullet in the section it belongs to. Do not reword, merge or delete existing bullets unless the change is meant to replace that requirement, and say so in the commit message.
-- **Keep the fixed formats exact.** Blocks the code reads (such as `[ALTERNATIVER: …]` and `KONFIGURASJON`) must match the parsers in `src/domain/`. Change both in the same commit.
-- **RAGdoll holds a copy.** After changing a prompt, paste the text inside the ` ```text ` block into the agent in RAGdoll.
+- **The configurator prompt is shared by every agent type.** It must never name a type, a field or a question. What is special about one type goes in that type's definition in `src/domain/agentTypes/` (`configurator.rules`, or a field's `hint` and `format`), which the server sends as the briefing.
+- **Keep the fixed formats exact.** Text the code writes or reads must match it: the briefing header `OPPSETT FRA VERKTØYET` and «Allerede bestemt før samtalen» (`buildBriefing` in `src/domain/agentTypes/configurator.ts`), `KONFIGURASJON` (`parseAnswers`, same file), `[ALTERNATIVER: ett|flere]` and `[VALGFRITT]` (`src/domain/questionOptions.ts`), and the observer's `Bra:`, `Bedre:` and `For kort:` lines (`parseObserverReply` in `src/domain/observerFeedback.ts`). Change the prompt and the code in the same commit.
+- **RAGdoll holds a copy.** After changing a file in `prompts/`, paste the text inside its ` ```text ` block into the agent's **General Agent Prompt** in the RAGdoll at `RAGDOLL_API_URL`, and check the settings the file lists (such as temperature and `llm_max_tokens`). The repo is the source; never change the prompt only in RAGdoll.
 
 ## 8. Secrets and personal data
 
@@ -188,4 +195,4 @@ The agent prompts live in `prompts/` (for example `prompts/configurator.nb.md`).
 
 ## 9. Decisions
 
-Anything that changes how we build (stack, reuse of RAGdollChat, questionnaire driven by LLM or by UI, auth) gets a one-page note in `docs/decisions/NNNN-<slug>.md`: context, options, decision, consequences. Date it and link the issue.
+Anything that changes how we build (stack, reuse of RAGdollChat, questionnaire driven by LLM or by UI, auth) gets a one-page note in `docs/decisions/NNNN-<slug>.md`: context, options, decision, consequences. Date it, link the issue, and add it to the list in [`docs/decisions/README.md`](docs/decisions/README.md).
