@@ -52,7 +52,7 @@ type. How is described in
 
 Agents used to be set up in a configuration chat with a shared configurator agent. The wizard
 replaced it ([decision 0005](decisions/0005-form-wizard-instead-of-configuration-chat.md)), and the
-chat was removed in #135.
+chat was removed in #135 ([decision 0006](decisions/0006-remove-configuration-chat.md)).
 
 ## Add a new agent type
 

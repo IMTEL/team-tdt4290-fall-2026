@@ -7,13 +7,14 @@ weighed, what we chose and what follows from it. They are short on purpose, and 
 rewritten when things change later. A decision that is replaced gets a new file, and the old one's
 status says which file replaced it.
 
-| #                                                         | Decision                                                                          | Date       | Status   |
-| --------------------------------------------------------- | --------------------------------------------------------------------------------- | ---------- | -------- |
-| [0001](0001-own-chat-component.md)                        | Our own chat component instead of RAGdollChat's                                   | 2026-09-28 | Accepted |
-| [0002](0002-mui-with-css-modules.md)                      | MUI with CSS Modules for the UI                                                   | 2026-09-22 | Accepted |
-| [0003](0003-publish-to-the-candidate.md)                  | Publishing is a flag in RAGdoll, read by The Candidate with one shared client key | 2026-10-22 | Accepted |
-| [0004](0004-stateless-backend-for-frontend.md)            | Our server is a stateless backend for the frontend; RAGdoll stores everything     | 2026-09-30 | Accepted |
-| [0005](0005-form-wizard-instead-of-configuration-chat.md) | Counselors set up an agent in a form wizard, not in a configuration chat          | 2026-10-23 | Accepted |
+| #                                                         | Decision                                                                          | Date       | Status                                                                  |
+| --------------------------------------------------------- | --------------------------------------------------------------------------------- | ---------- | ----------------------------------------------------------------------- |
+| [0001](0001-own-chat-component.md)                        | Our own chat component instead of RAGdollChat's                                   | 2026-09-28 | Accepted                                                                |
+| [0002](0002-mui-with-css-modules.md)                      | MUI with CSS Modules for the UI                                                   | 2026-09-22 | Accepted                                                                |
+| [0003](0003-publish-to-the-candidate.md)                  | Publishing is a flag in RAGdoll, read by The Candidate with one shared client key | 2026-10-22 | Accepted                                                                |
+| [0004](0004-stateless-backend-for-frontend.md)            | Our server is a stateless backend for the frontend; RAGdoll stores everything     | 2026-09-30 | Accepted                                                                |
+| [0005](0005-form-wizard-instead-of-configuration-chat.md) | Counselors set up an agent in a form wizard, not in a configuration chat          | 2026-10-23 | Accepted; fallback removed in [0006](0006-remove-configuration-chat.md) |
+| [0006](0006-remove-configuration-chat.md)                 | The configuration chat is removed; every agent type is set up in a wizard         | 2026-11-06 | Accepted                                                                |
 
 ## Adding a decision
 
