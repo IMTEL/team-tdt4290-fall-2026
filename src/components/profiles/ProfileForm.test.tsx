@@ -92,9 +92,7 @@ describe('ProfileForm for a new profile', () => {
     setup();
 
     expect(screen.getByText(/Ikke bruk jobbsøkerens ekte navn/)).toBeInTheDocument();
-    expect(
-      screen.getByText(/Notatene sendes ikke til assistenten eller intervjueren/),
-    ).toBeInTheDocument();
+    expect(screen.getByText(/Notatene sendes ikke til intervjueren/)).toBeInTheDocument();
   });
 
   it('labels name and notes on the field, and groups the other sections', () => {

@@ -19,22 +19,10 @@ export type AnswerSources = Record<string, AnswerSource>;
 /** One thing the counsellor decides about an agent. */
 export type AgentField = {
   key: string;
-  /** Shown on the details page, and the line's label in the KONFIGURASJON block. */
+  /** Shown on the details page and in the edit form. */
   label: string;
-  /** What the configurator asks the counsellor, e.g. "Hvilken stilling skal jobbsøkeren øve til?" */
-  question: string;
-  /** More for the configurator about what to find out, such as examples or a default. */
-  hint?: string;
-  /** How the configurator writes the answer in the block, e.g. "første/andre intervju". */
-  format?: string;
-  /** The counsellor may leave it empty, e.g. Tillegg. Its line in the block may be missing. */
+  /** The counsellor may leave it empty, e.g. Tillegg. */
   optional?: boolean;
-  /**
-   * Only filled in from a preset before the chat, never by the configurator, e.g. Lovverk: legal
-   * text must come from the counsellor's templates, not from a language model. Empty when no
-   * preset fills it in. Must also be optional.
-   */
-  presetOnly?: boolean;
 };
 
 /** How one answer changes the agent's behaviour, in sentences for the counsellor. */
@@ -42,20 +30,6 @@ export type AnswerEffect = { key: string; label: string; effects: string[] };
 
 /** A role. The mapper turns it into a RAGdoll role. */
 export type AgentRole = { name: string; description: string };
-
-/**
- * What the configuration chat needs to know about an agent type. The server turns it into a
- * briefing for the shared configurator agent, so the configurator's prompt in RAGdoll never names
- * a type or a question.
- */
-export type ConfiguratorSetup = {
-  /** Who the agent talks to and why, e.g. job seekers practising a job interview. */
-  purpose: string;
-  /** The opening line of the chat, before the first question, e.g. "Hei! Jeg hjelper deg …". */
-  greeting: string;
-  /** Rules that only this agent type has. The configurator's prompt has the shared ones. */
-  rules: string[];
-};
 
 /** How the template form and picker talk about this type's templates. */
 export type TemplateText = {
@@ -72,8 +46,8 @@ export type TemplateText = {
 };
 
 /**
- * Which field a ready-made text fills in, when the counsellor picks one before the chat. Such a
- * field is not asked about, and the edit form offers the same choice.
+ * Which field a ready-made text fills in, when the counsellor picks one in the wizard. The edit
+ * form offers the same choice.
  */
 export type AgentPresets = {
   /**
@@ -83,15 +57,13 @@ export type AgentPresets = {
   template?: { field: string; text: TemplateText };
   /** The field a job seeker profile's description fills in. */
   jobSeekerProfile?: string;
-  /** The fields a job template (stillingsmal) fills in: the job, and the industry with its sector. */
-  jobTemplate?: { job: string; industry: string };
-  /** The field the chosen legal templates fill in, together. The field should be presetOnly. */
+  /** The field the chosen legal templates fill in, together. The field should be optional. */
   legalTemplates?: string;
 };
 
 /**
- * Everything that is special about one kind of agent. Adding a type is one file with one of
- * these, and one line in registry.ts: the pages, routes and configurator read everything from here.
+ * Everything that is special about one kind of agent. The pages and routes read everything from
+ * here; only the form wizard on /configure is still written for each type (see docs/extending.md).
  */
 export type AgentTypeDefinition = {
   id: string;
@@ -99,9 +71,8 @@ export type AgentTypeDefinition = {
   label: string;
   /** One sentence for the type chooser on /configure. */
   description: string;
-  /** In the order the configurator asks about them. */
+  /** In the order the details page and the edit form show them. */
   fields: AgentField[];
-  configurator: ConfiguratorSetup;
   presets?: AgentPresets;
   buildPrompt: (answers: Answers) => string;
   /**

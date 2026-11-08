@@ -40,7 +40,6 @@ const draft: WizardDraft = {
   avatar: null,
   nameEdited: false,
   agentName: '',
-  presetsDone: false,
 };
 
 afterEach(() => {

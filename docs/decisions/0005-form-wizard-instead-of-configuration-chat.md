@@ -1,6 +1,7 @@
 # 0005. Counselors set up an agent in a form wizard, not in a configuration chat
 
-- **Status:** Accepted
+- **Status:** Accepted. The chat kept as a fallback was removed in
+  [0006](0006-remove-configuration-chat.md)
 - **Date:** 2026-10-23
 - **Issues:** #104 (PR #106)
 

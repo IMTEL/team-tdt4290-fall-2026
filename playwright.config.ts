@@ -50,8 +50,6 @@ export default defineConfig({
       env: {
         BACKEND_API_URL: mockUrl,
         RAGDOLL_API_URL: mockUrl,
-        RAGDOLL_CONFIGURATOR_AGENT_ID: 'mock-configurator',
-        RAGDOLL_CONFIGURATOR_ACCESS_KEY: 'mock-access-key',
         RAGDOLL_OBSERVER_AGENT_ID: 'mock-observer',
         RAGDOLL_OBSERVER_ACCESS_KEY: 'mock-access-key',
         NEXTAUTH_URL: appUrl,

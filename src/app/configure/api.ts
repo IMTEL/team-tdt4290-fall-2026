@@ -1,31 +1,18 @@
-import { ChatError, TOO_MANY_MESSAGES } from '@/components/chat/sendToAgent';
-import type { ChatMessage } from '@/components/chat/types';
+import { ChatError } from '@/components/chat/sendToAgent';
 import type { AgentTemplate } from '@/data/templates';
 import type { AdvancedSettings } from '@/domain/advancedSettings';
-import { hasAllAnswers } from '@/domain/agentTypes/registry';
-import { cleanSources } from '@/domain/agentTypes/storedAnswers';
 import type { AgentTypeDefinition, AnswerSources, Answers } from '@/domain/agentTypes/types';
 
 const GENERIC_ERROR = 'Noe gikk galt. Prøv igjen.';
 
-export type TurnResult = {
-  reply: string;
-  /** The agent's answers. Set only when this reply finished the configuration. */
-  configuration: Answers | null;
-  /** The template and profile the finished configuration's answers came from. */
-  sources: AnswerSources;
-};
-
-async function postJson(url: string, body: unknown, signal?: AbortSignal): Promise<Response> {
+async function postJson(url: string, body: unknown): Promise<Response> {
   try {
     return await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
-      signal,
     });
   } catch (cause) {
-    if (signal?.aborted) throw cause;
     throw new ChatError('Fikk ikke kontakt med serveren. Sjekk nettverket og prøv igjen.', {
       cause,
     });
@@ -40,9 +27,6 @@ function errorFor(res: Response): ChatError {
   if (res.status === 504) {
     return new ChatError('Det tok for lang tid å få svar. Prøv igjen.');
   }
-  if (res.status === 429) {
-    return new ChatError(TOO_MANY_MESSAGES);
-  }
   if (res.status === 400) {
     return new ChatError('Agenten ble ikke godtatt. Sjekk navnet og de avanserte innstillingene.');
   }
@@ -50,59 +34,10 @@ function errorFor(res: Response): ChatError {
 }
 
 /**
- * What the counsellor chose before the chat: an interviewer template, a job seeker profile, an
- * industry template and legal templates. null (or none) for one they didn't choose.
- */
-export type ConfigurationChoices = {
-  templateId: string | null;
-  profileId: string | null;
-  jobTemplateId: string | null;
-  legalTemplateIds?: string[];
-};
-
-/**
- * Sends the conversation to the configurator through /api/configure/turn, with the agent type and
- * the ids of the chosen templates and profile (left out when not chosen). Throws ChatError on
- * failure. If `signal` is aborted, the fetch's AbortError is rethrown as is.
- */
-export async function sendConfigurationTurn(
-  definition: AgentTypeDefinition,
-  { templateId, profileId, jobTemplateId, legalTemplateIds = [] }: ConfigurationChoices,
-  messages: ChatMessage[],
-  signal?: AbortSignal,
-): Promise<TurnResult> {
-  // The server only needs role and content, not our UI ids.
-  const history = messages.map(({ role, content }) => ({ role, content }));
-  const res = await postJson(
-    '/api/configure/turn',
-    {
-      agentType: definition.id,
-      templateId: templateId ?? undefined,
-      profileId: profileId ?? undefined,
-      jobTemplateId: jobTemplateId ?? undefined,
-      legalTemplateIds: legalTemplateIds.length > 0 ? legalTemplateIds : undefined,
-      messages: history,
-    },
-    signal,
-  );
-  if (!res.ok) throw errorFor(res);
-
-  const data = await res.json().catch(() => null);
-  if (typeof data?.reply !== 'string') throw new ChatError(GENERIC_ERROR);
-  const configuration = hasAllAnswers(definition, data.configuration) ? data.configuration : null;
-  return {
-    reply: data.reply,
-    configuration,
-    sources: configuration ? cleanSources(definition, data.sources) : {},
-  };
-}
-
-/**
-/**
- * Saves the finished configuration as a new agent owned by the logged-in counsellor, with the
- * template and profile the interviewer and job seeker came from. Without `advanced` the server
- * uses the default model, temperature, max tokens and built prompt. Without `avatar` (or with null)
- * the agent shows the default image.
+ * Saves the wizard's answers as a new agent owned by the logged-in counsellor, with the template
+ * and profile the interviewer and job seeker came from. Without `advanced` the server uses the
+ * default model, temperature, max tokens and built prompt. Without `avatar` (or with null) the
+ * agent shows the default image.
  */
 export async function saveConfiguredAgent(
   name: string,

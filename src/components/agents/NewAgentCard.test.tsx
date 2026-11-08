@@ -24,7 +24,7 @@ describe('NewAgentCard', () => {
     expect(teacher.querySelector('button')).toBeNull();
   });
 
-  it('opens the configurator with the chosen type', async () => {
+  it('opens /configure with the chosen type', async () => {
     const user = userEvent.setup();
     render(<NewAgentCard />);
 

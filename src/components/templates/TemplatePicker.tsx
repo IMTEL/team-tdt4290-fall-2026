@@ -40,9 +40,7 @@ type TemplatePickerProps = {
 };
 
 // For an agent type without its own lead.
-const DEFAULT_LEAD =
-  'Malen fyller inn en del av oppsettet. Resten setter du opp i samtalen. Uten mal spør ' +
-  'assistenten deg om alt.';
+const DEFAULT_LEAD = 'Malen fyller inn en del av oppsettet.';
 
 export function TemplatePicker({
   templates,
@@ -175,7 +173,7 @@ export function TemplatePicker({
         </h2>
         <FieldHelp
           label="Intervjuermal"
-          description="Hvem som intervjuer jobbsøkeren, og hvordan hen er. Uten mal blir du spurt om dette senere."
+          description="Hvem som intervjuer jobbsøkeren, og hvordan hen er. Uten mal er intervjueren nøytral og profesjonell."
         />
       </div>
       <p className={styles.lead}>{lead}</p>

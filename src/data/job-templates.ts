@@ -125,14 +125,3 @@ export const builtInJobTemplates: JobTemplate[] = [
 export function findJobTemplate(id: string): JobTemplate | undefined {
   return builtInJobTemplates.find((template) => template.id === id);
 }
-
-/** The Stilling and Bransje fields of the configuration, decided by the job template (stillingsmal). */
-export function jobConfiguration(template: JobTemplate): {
-  stilling: string;
-  bransje: string;
-} {
-  return {
-    stilling: `${template.title}. ${template.jobDescription}`,
-    bransje: `${template.industry} (${template.sector})`,
-  };
-}

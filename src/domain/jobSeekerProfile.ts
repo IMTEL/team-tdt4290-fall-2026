@@ -1,5 +1,5 @@
 // Anonymous job seeker profiles. A counsellor describes a kind of job seeker once, and chooses the
-// profile on /configure instead of answering the configurator's questions about the job seeker.
+// profile in the wizard on /configure instead of describing the job seeker each time.
 // Profiles never hold names or other data that identifies a person. They are stored in RAGdoll.
 
 /** The age ranges RAGdoll accepts. */
@@ -95,7 +95,7 @@ export type JobSeekerProfile = {
   /** Languages with a level if the counsellor gives one, such as «Norsk B1». */
   languages: string[];
   practiceAreas: string[];
-  /** Only for the counsellor. Never sent to the configurator or the interviewer. */
+  /** Only for the counsellor. Never sent to the interviewer. */
   notes: string;
 };
 
@@ -110,8 +110,8 @@ export function isExperienceLevel(value: unknown): value is ExperienceLevel {
 }
 
 /**
- * The profile as one line for the Jobbsøker field of the configuration, in the same style the
- * configurator writes it. Leaves out empty fields and the counsellor's notes.
+ * The profile as one line for the Jobbsøker field of the configuration. Leaves out empty fields
+ * and the counsellor's notes.
  */
 export function describeJobSeeker(profile: NewJobSeekerProfile): string {
   const experience = [

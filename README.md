@@ -62,7 +62,7 @@ All documentation:
 | [`docs/handover.md`](docs/handover.md)                                                 | Handing the app over: what there is, secrets, contacts, first steps       |
 | [`docs/future-plans.md`](docs/future-plans.md)                                         | What we would do next if the project continued                            |
 | [`docs/plans/`](docs/plans/)                                                           | Working plans for finished features, kept for history                     |
-| [`prompts/`](prompts/)                                                                 | The prompts of the shared configurator and observer agents                |
+| [`prompts/`](prompts/)                                                                 | The prompt of the shared observer agent                                   |
 
 ## Where things live
 
@@ -233,12 +233,11 @@ cp .env.example .env
 
 Open `.env`. The values in `.env.example` already match the local RAGdoll, except:
 
-| Variable                                                           | What to do                                                                                                                                                                                                            |
-| ------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `NEXTAUTH_SECRET`                                                  | Replace with the output of `openssl rand -base64 32`. It encrypts the login cookie.                                                                                                                                   |
-| `RAGDOLL_CONFIGURATOR_AGENT_ID`, `RAGDOLL_CONFIGURATOR_ACCESS_KEY` | The shared configurator agent behind `/configure`. It lives on the RAGdoll at `RAGDOLL_API_URL` (the deployed one by default). Ask the team. Not needed to log in.                                                    |
-| `RAGDOLL_OBSERVER_AGENT_ID`, `RAGDOLL_OBSERVER_ACCESS_KEY`         | The shared observer agent behind «Be om tilbakemelding» in the test chat, and behind summaries of many thumbs ratings, on the same RAGdoll as the configurator. Ask the team. Its prompt is `prompts/observer.nb.md`. |
-| `IDUN_API_KEY`                                                     | The project's IDUN key. Our server puts it into every agent it saves. Needed to save agents; ask the team.                                                                                                            |
+| Variable                                                   | What to do                                                                                                                                                                                                                                               |
+| ---------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `NEXTAUTH_SECRET`                                          | Replace with the output of `openssl rand -base64 32`. It encrypts the login cookie.                                                                                                                                                                      |
+| `RAGDOLL_OBSERVER_AGENT_ID`, `RAGDOLL_OBSERVER_ACCESS_KEY` | The shared observer agent behind «Be om tilbakemelding» in the test chat, and behind summaries of many thumbs ratings. It lives on the RAGdoll at `RAGDOLL_API_URL` (the deployed one by default). Ask the team. Its prompt is `prompts/observer.nb.md`. |
+| `IDUN_API_KEY`                                             | The project's IDUN key. Our server puts it into every agent it saves. Needed to save agents; ask the team.                                                                                                                                               |
 
 For reference, the login settings for local testing are:
 
@@ -337,7 +336,7 @@ deployment needs, and the checklist before the first one, is in
 .github/              issue templates and pull request template
 docs/                 architecture, guides, decisions (ADRs), testing, security, deployment; see Documentation above
 e2e/                  Playwright end-to-end tests; e2e/support/mock-backend.mjs stands in for Keycloak and RAGdoll
-prompts/              prompts of the shared configurator and observer agents (RAGdoll holds a copy)
+prompts/              prompt of the shared observer agent (RAGdoll holds a copy)
 public/               static assets served at the site root, including the agent avatars
 scripts/              developer scripts, e.g. keycloak-setup.mjs (npm run keycloak:setup)
 src/app/              pages (App Router) and API routes (src/app/api/); globals.css holds the tokens and reset

@@ -120,8 +120,6 @@ export const deleteJobTemplate = (id: string) => remove(JOBS, id);
 
 /** The bransjemaler the counsellor has saved, newest first. */
 export const fetchIndustryTemplates = (signal?: AbortSignal) => list(INDUSTRIES, signal);
-/** One of the counsellor's bransjemaler, or null if they have none with this id. */
-export const fetchIndustryTemplate = (id: string) => get(INDUSTRIES, id);
 /** Saves a new bransjemal and returns its id. */
 export const saveIndustryTemplate = (template: NewIndustryTemplate) => create(INDUSTRIES, template);
 export const updateIndustryTemplate = (id: string, template: NewIndustryTemplate) =>

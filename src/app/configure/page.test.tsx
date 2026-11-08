@@ -1045,7 +1045,6 @@ describe('/configure', () => {
         avatar: null,
         nameEdited: false,
         agentName: '',
-        presetsDone: false,
       }),
     );
 
@@ -1094,7 +1093,6 @@ describe('/configure', () => {
         avatar: null,
         nameEdited: false,
         agentName: '',
-        presetsDone: false,
       }),
     );
 

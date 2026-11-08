@@ -1,4 +1,4 @@
-// What the configurator writes when it has nothing to say. Not worth a sentence.
+// What an answer says when there is nothing to say, such as «ingen». Not worth a sentence.
 const NOTHING = /^(ingen|ingen opplysninger.*|ikke oppgitt|ukjent|[-–])$/i;
 
 /** The answer without spaces or a final full stop, or "" if it says nothing. */

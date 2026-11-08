@@ -4,20 +4,13 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import Button from '@mui/material/Button';
-import Step from '@mui/material/Step';
-import StepLabel from '@mui/material/StepLabel';
-import Stepper from '@mui/material/Stepper';
 
 import { AgentTypePicker } from '@/components/agents/AgentTypePicker';
 import { fetchLegalTemplates } from '@/components/legalTemplates/api';
 import { LegalTemplateSelect } from '@/components/legalTemplates/LegalTemplateSelect';
 import { fetchProfiles } from '@/components/profiles/api';
-import { ProfileSelect } from '@/components/profiles/ProfileSelect';
-import { JobTemplatePicker } from '@/components/templates/JobTemplatePicker';
-import { JobTemplatePreview } from '@/components/templates/JobTemplatePreview';
 import { TemplatePicker } from '@/components/templates/TemplatePicker';
 import { useWorkplaceTemplates } from '@/components/templates/useWorkplaceTemplates';
-import { builtInJobTemplates, type JobTemplate } from '@/data/job-templates';
 import {
   builtInLegalTemplateIds,
   builtInLegalTemplates,
@@ -48,7 +41,6 @@ import {
   setAgentsFlash,
 } from '../browse-agents/flash';
 import { fetchSavedTemplates, saveConfiguredAgent } from './api';
-import { ConfigurationChat } from './ConfigurationChat';
 import { JobSeekerStep } from './JobSeekerStep';
 import { AiSettingsStep } from './AiSettingsStep';
 import { EMPTY_INTERVIEW_SETTINGS, SettingsStep, type InterviewSettings } from './SettingsStep';
@@ -74,25 +66,9 @@ import stepStyles from './StillingStep.module.css';
 // undefined: the counsellor hasn't chosen yet. null: they chose to continue without one.
 type Choice<T> = T | null | undefined;
 
-/** Shows where the counsellor is, so they know what comes before the chat. */
-function Steps({ steps, active }: { steps: string[]; active: number }) {
-  return (
-    <Stepper activeStep={active} alternativeLabel className={styles.steps}>
-      {steps.map((label, index) => (
-        <Step key={label} aria-current={index === active ? 'step' : undefined}>
-          <StepLabel>{label}</StepLabel>
-        </Step>
-      ))}
-    </Stepper>
-  );
-}
-
 /**
- * First the counsellor picks the type of agent. Then, for each kind of preset the type has, what
- * fills it in: a job seeker profile, legal templates and an interviewer template in one step, then
- * a stillingsmal in the next. All are optional. The built-in interviewer templates come first, then the
- * ones the counsellor has saved. Then the chat starts. Everything type-specific comes from the
- * type's definition, so a new type needs no change here.
+ * First the counsellor picks the type of agent, then sets it up in that type's form wizard. Only the
+ * interviewer has a wizard so far; see docs/extending.md for how to give a new type one.
  */
 export function ConfigureAgent({
   initialTypeId = null,
@@ -111,7 +87,6 @@ export function ConfigureAgent({
     initialTypeId ? getAgentType(initialTypeId) : undefined,
   );
   const [choice, setChoice] = useState<Choice<AgentTemplate>>(undefined);
-  const [jobTemplate, setJobTemplate] = useState<Choice<JobTemplate>>(undefined);
   const [saved, setSaved] = useState<AgentTemplate[]>([]);
   const [profiles, setProfiles] = useState<JobSeekerProfile[]>([]);
   const [profilesLoaded, setProfilesLoaded] = useState(false);
@@ -132,8 +107,6 @@ export function ConfigureAgent({
   const [saveError, setSaveError] = useState<string | null>(null);
   const savingLock = useRef(false);
   const router = useRouter();
-  // For a type with a profile but no template, where no template card moves the counsellor on.
-  const [presetsDone, setPresetsDone] = useState(false);
   // Which interviewer screen is open. 0 stilling, 1 intervjuer, 2 jobbsøker, 3 innstillinger,
   // 4 AI-innstillinger, 5 fullføre.
   const [wizardStep, setWizardStep] = useState(interviewerStepIndex(initialTypeId, initialStep));
@@ -159,12 +132,9 @@ export function ConfigureAgent({
   const usesTemplates = Boolean(presets.template);
   const agentType = definition?.id;
   const usesProfiles = Boolean(presets.jobSeekerProfile);
-  const usesJobTemplates = Boolean(presets.jobTemplate);
   const usesLegal = Boolean(presets.legalTemplates);
   // The built-in stillingsmaler and bransjemaler, and the counsellor's own once they have loaded.
-  const workplaceTemplates = useWorkplaceTemplates(
-    definition?.id === 'interviewer' || usesJobTemplates,
-  );
+  const workplaceTemplates = useWorkplaceTemplates(definition?.id === 'interviewer');
   const jobTemplates = workplaceTemplates.jobs;
 
   // Restore once after hydration (setState during render when the client flag flips).
@@ -194,7 +164,6 @@ export function ConfigureAgent({
           setAvatar(draft.avatar);
           setNameEdited(draft.nameEdited);
           setAgentName(draft.agentName);
-          setPresetsDone(draft.presetsDone);
           // A returnTo link can ask for a named step; otherwise open where they left off.
           const namedStep = interviewerStepIndex(initialTypeId, initialStep);
           if (namedStep > 0) {
@@ -252,7 +221,6 @@ export function ConfigureAgent({
       avatar,
       nameEdited,
       agentName,
-      presetsDone,
     };
   }, [
     draftId,
@@ -270,7 +238,6 @@ export function ConfigureAgent({
     avatar,
     nameEdited,
     agentName,
-    presetsDone,
   ]);
 
   useEffect(() => {
@@ -322,7 +289,6 @@ export function ConfigureAgent({
     if (!next && draftId) clearWizardDraft(draftId);
     setDefinition(next);
     setChoice(undefined);
-    setJobTemplate(undefined);
     setProfileId(null);
     setPracticeAreas([]);
     setLegalIds(next?.presets?.legalTemplates ? builtInLegalTemplateIds() : []);
@@ -336,7 +302,6 @@ export function ConfigureAgent({
     setSavedAgent(null);
     setSaving(false);
     setSaveError(null);
-    setPresetsDone(false);
     setWizardStep(0);
     setFurthestStep(0);
     setOpenedAiSettings(false);
@@ -474,10 +439,8 @@ export function ConfigureAgent({
         <header className={styles.header}>
           <h1 className={styles.title}>Sett opp en agent</h1>
           <p className={styles.lead}>
-            Velg hva slags agent du vil sette opp, og svar så på spørsmålene fra assistenten. Da
-            lager vi en AI-agent som jobbsøkeren kan øve med. For en intervjuer kan du også velge
-            maler for intervjueren og bransjen og en jobbsøkermal, eller la assistenten spørre deg
-            om alt.
+            Velg hva slags agent du vil sette opp, og fyll så ut skjemaet steg for steg. Da lager vi
+            en AI-agent som jobbsøkeren kan øve med.
           </p>
         </header>
         <AgentTypePicker
@@ -489,27 +452,8 @@ export function ConfigureAgent({
     );
   }
 
-  const fieldLabel = (key: string | undefined) =>
-    definition.fields.find((field) => field.key === key)?.label ?? '';
-
   const wizardHref = (step: string) =>
     draftId ? configureDraftHref(draftId, step) : `/configure?type=${definition.id}&step=${step}`;
-
-  // The steps this type has, e.g. "Velg intervjuer, jobbsøkermal og lovverk", then "Velg bransje".
-  const usesPresetStep = usesTemplates || usesProfiles || usesLegal;
-  const presetStep = `Velg ${listInNorwegian(
-    [
-      usesTemplates && fieldLabel(presets.template?.field).toLowerCase(),
-      usesProfiles && 'jobbsøkermal',
-      usesLegal && 'lovverk',
-    ].filter((item): item is string => Boolean(item)),
-  )}`;
-  const steps = [
-    'Velg agenttype',
-    ...(usesPresetStep ? [presetStep] : []),
-    ...(usesJobTemplates ? ['Velg stillingsmal'] : []),
-    'Svar på spørsmålene',
-  ];
 
   const chosenType = (
     <div className={styles.chosen}>
@@ -518,18 +462,6 @@ export function ConfigureAgent({
       </p>
       <Button variant="outlined" size="small" onClick={() => chooseType(undefined)}>
         Bytt agenttype
-      </Button>
-    </div>
-  );
-
-  const chosenJobSummary = (
-    <div className={styles.chosen}>
-      <p>
-        {fieldLabel(presets.jobTemplate?.job)}:{' '}
-        <strong>{jobTemplate ? jobTemplate.title : 'Ingen stillingsmal valgt'}</strong>
-      </p>
-      <Button variant="contained" size="small" onClick={() => setJobTemplate(undefined)}>
-        {jobTemplate ? 'Bytt stillingsmal' : 'Velg en stillingsmal'}
       </Button>
     </div>
   );
@@ -544,10 +476,6 @@ export function ConfigureAgent({
     profile,
     legalTemplates,
   });
-  const template = usesTemplates ? (choice ?? null) : null;
-  const choosingPresets = usesTemplates
-    ? choice === undefined
-    : (usesProfiles || usesLegal) && !presetsDone;
 
   if (definition.id === 'interviewer' && wizardStep <= 0) {
     return (
@@ -577,7 +505,6 @@ export function ConfigureAgent({
       >
         <div className={stepStyles.form}>
           {chosenType}
-          {usesJobTemplates && jobTemplate !== undefined && chosenJobSummary}
           <TemplatePicker
             embedded
             asRadios
@@ -752,127 +679,13 @@ export function ConfigureAgent({
     );
   }
 
-  if (choosingPresets) {
-    return (
-      <>
-        <Steps steps={steps} active={1} />
-        {chosenType}
-        {/* Kept when the counsellor goes back to change the interviewer. */}
-        {usesJobTemplates && jobTemplate !== undefined && chosenJobSummary}
-        {usesProfiles && (
-          <ProfileSelect profiles={profiles} value={profileId ?? ''} onChange={setProfileId} />
-        )}
-        {usesLegal && (
-          <LegalTemplateSelect templates={legalOptions} value={legalIds} onChange={setLegalIds} />
-        )}
-        {usesTemplates ? (
-          <TemplatePicker
-            templates={builtInTemplates(definition.id)}
-            savedTemplates={saved}
-            agentType={definition.id}
-            lead={presets.template?.text.pickerLead}
-            onSelect={setChoice}
-            onDeleted={(id) => setSaved((current) => current.filter((item) => item.id !== id))}
-          />
-        ) : (
-          <Button variant="contained" onClick={() => setPresetsDone(true)}>
-            Fortsett
-          </Button>
-        )}
-        {usesJobTemplates && jobTemplate === undefined && (
-          <JobTemplatePreview templates={builtInJobTemplates} />
-        )}
-      </>
-    );
-  }
-
-  // Shown above the jobTemplate picker and the chat, so the counsellor can go back and change it.
-  const chosenPresets = usesPresetStep && (
-    <div className={styles.chosen}>
-      <p>
-        {usesTemplates && (
-          <>
-            {fieldLabel(presets.template?.field)}:{' '}
-            <strong>{template ? template.title : 'Ingen mal valgt'}</strong>
-          </>
-        )}
-        {usesTemplates && usesProfiles && <br />}
-        {usesProfiles && (
-          <>
-            {fieldLabel(presets.jobSeekerProfile)}:{' '}
-            <strong>{profile ? profile.label : 'Ingen mal valgt'}</strong>
-          </>
-        )}
-        {(usesTemplates || usesProfiles) && usesLegal && <br />}
-        {usesLegal && (
-          <>
-            {fieldLabel(presets.legalTemplates)}:{' '}
-            <strong>
-              {legalTemplates.length > 0
-                ? legalTemplates.map(({ title }) => title).join(', ')
-                : 'Ikke valgt'}
-            </strong>
-          </>
-        )}
-      </p>
-      {/* Changing the choices starts the conversation over, since the chat was set up for them. */}
-      <Button
-        variant="contained"
-        size="small"
-        onClick={() => {
-          setChoice(undefined);
-          setPresetsDone(false);
-        }}
-      >
-        {[usesTemplates, usesProfiles, usesLegal].filter(Boolean).length > 1
-          ? 'Bytt maler'
-          : 'Bytt mal'}
-      </Button>
-    </div>
-  );
-
-  if (usesJobTemplates && jobTemplate === undefined) {
-    return (
-      <>
-        <Steps steps={steps} active={steps.length - 2} />
-        {chosenType}
-        {chosenPresets}
-        {/* The chat's server route only knows the built-in stillingsmaler. */}
-        <JobTemplatePicker templates={builtInJobTemplates} onSelect={setJobTemplate} />
-      </>
-    );
-  }
-
-  const chosenJobTemplate = usesJobTemplates ? (jobTemplate ?? null) : null;
-
+  // A type without a wizard of its own can't be set up yet.
   return (
     <>
-      <Steps steps={steps} active={steps.length - 1} />
       {chosenType}
-      {chosenPresets}
-      {usesJobTemplates && chosenJobSummary}
-      <ConfigurationChat
-        key={JSON.stringify([
-          definition.id,
-          template?.id,
-          profile?.id,
-          chosenJobTemplate?.id,
-          legalIds,
-        ])}
-        definition={definition}
-        template={template}
-        profile={profile}
-        jobTemplate={chosenJobTemplate}
-        legalTemplates={legalTemplates}
-      />
+      <p className={styles.lead}>Denne agenttypen kan ikke settes opp ennå.</p>
     </>
   );
-}
-
-/** «a», «a og b», «a, b og c». */
-function listInNorwegian(items: string[]): string {
-  if (items.length <= 1) return items.join('');
-  return `${items.slice(0, -1).join(', ')} og ${items[items.length - 1]}`;
 }
 
 /** Named wizard steps from returnTo links, or 0 for the first interviewer screen. */

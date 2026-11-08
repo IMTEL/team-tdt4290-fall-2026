@@ -156,7 +156,7 @@ describe('askSavedAgent', () => {
   const fetchMock = vi.fn<typeof fetch>();
 
   beforeEach(() => {
-    // Different RAGdolls on purpose, like in .env.example: the configurator is on the deployed
+    // Different RAGdolls on purpose, like in .env.example: the observer is on the deployed
     // one, while the user's agents are saved in the one they logged in to.
     vi.stubEnv('RAGDOLL_API_URL', RAGDOLL_URL);
     vi.stubEnv('BACKEND_API_URL', `${BACKEND_URL}/`);
@@ -169,7 +169,7 @@ describe('askSavedAgent', () => {
     fetchMock.mockReset();
   });
 
-  it('asks the RAGdoll the agent was saved in, not the configurator’s', async () => {
+  it('asks the RAGdoll the agent was saved in, not the observer’s', async () => {
     fetchMock.mockResolvedValue(ragdollReply('Hvorfor søker du?'));
 
     await expect(askSavedAgent({ ...agent, roleName: 'Butikksjef' }, messages)).resolves.toBe(

@@ -80,7 +80,6 @@ memory. You need only **Node.js 24** and npm. No account, `.env` file, Docker or
 
    ```bash
    export BACKEND_API_URL=http://localhost:8181 RAGDOLL_API_URL=http://localhost:8181 \
-     RAGDOLL_CONFIGURATOR_AGENT_ID=mock-configurator RAGDOLL_CONFIGURATOR_ACCESS_KEY=mock-access-key \
      RAGDOLL_OBSERVER_AGENT_ID=mock-observer RAGDOLL_OBSERVER_ACCESS_KEY=mock-access-key \
      NEXTAUTH_URL=http://localhost:3100 NEXTAUTH_SECRET=demo-only-secret \
      KEYCLOAK_CLIENT_ID=ragdoll-config KEYCLOAK_CLIENT_SECRET=mock-client-secret \
@@ -92,7 +91,6 @@ memory. You need only **Node.js 24** and npm. No account, `.env` file, Docker or
 
    ```powershell
    $env:BACKEND_API_URL="http://localhost:8181"; $env:RAGDOLL_API_URL="http://localhost:8181"
-   $env:RAGDOLL_CONFIGURATOR_AGENT_ID="mock-configurator"; $env:RAGDOLL_CONFIGURATOR_ACCESS_KEY="mock-access-key"
    $env:RAGDOLL_OBSERVER_AGENT_ID="mock-observer"; $env:RAGDOLL_OBSERVER_ACCESS_KEY="mock-access-key"
    $env:NEXTAUTH_URL="http://localhost:3100"; $env:NEXTAUTH_SECRET="demo-only-secret"
    $env:KEYCLOAK_CLIENT_ID="ragdoll-config"; $env:KEYCLOAK_CLIENT_SECRET="mock-client-secret"

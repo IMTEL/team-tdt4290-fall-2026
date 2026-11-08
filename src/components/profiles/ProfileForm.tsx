@@ -155,7 +155,7 @@ export function ProfileForm({
             <TextField
               size="small"
               label="Notater"
-              helperText="Bare for deg. Notatene sendes ikke til assistenten eller intervjueren."
+              helperText="Bare for deg. Notatene sendes ikke til intervjueren."
               value={notes}
               onChange={(event) => setNotes(event.target.value)}
               disabled={isSaving}

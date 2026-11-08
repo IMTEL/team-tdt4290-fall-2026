@@ -1,8 +1,8 @@
 # Observer agent: prompt (#101)
 
-Prompt for the observer agent, which gives the job seeker feedback after a test chat (`/test-chat`, the «Be om tilbakemelding» button). Paste the text in the block below into **General Agent Prompt** of the agent in RAGdoll, in the RAGdoll at `RAGDOLL_API_URL` (the same one as the configurator). This file is the source; RAGdoll holds a copy, so change it here first.
+Prompt for the observer agent, which gives the job seeker feedback after a test chat (`/test-chat`, the «Be om tilbakemelding» button). Paste the text in the block below into **General Agent Prompt** of the agent in RAGdoll, in the RAGdoll at `RAGDOLL_API_URL`. This file is the source; RAGdoll holds a copy, so change it here first.
 
-Like the configurator, it is one shared agent for every counselor, and its id and access key are `RAGDOLL_OBSERVER_AGENT_ID` and `RAGDOLL_OBSERVER_ACCESS_KEY`. Settings: a low temperature (about 0.3), `llm_max_tokens` about 4000, no documents and no roles. `gpt-oss-120b` reasons before it answers, and the reasoning counts towards `llm_max_tokens`; with too few, the reply comes back empty.
+It is one shared agent for every counselor, and its id and access key are `RAGDOLL_OBSERVER_AGENT_ID` and `RAGDOLL_OBSERVER_ACCESS_KEY`. Settings: a low temperature (about 0.3), `llm_max_tokens` about 4000, no documents and no roles. `gpt-oss-120b` reasons before it answers, and the reasoning counts towards `llm_max_tokens`; with too few, the reply comes back empty.
 
 The observer never talks during the interview: it is only called when the counselor asks for feedback, or when there are many thumbs-up/down ratings to fold into the interviewer's prompt. `/api/test-chat/observer` sends the whole conversation as **one** user message, with one line per turn, `Intervjuer: …` or `Kandidat: …` (`formatTranscript` in `src/domain/observerFeedback.ts`). Before that, the server checks the candidate has answered at least `MIN_CANDIDATE_ANSWERS` times, and says the conversation is too short without asking the observer. The `For kort` reply below is the second check, for a conversation with enough answers but nothing to judge in them.
 

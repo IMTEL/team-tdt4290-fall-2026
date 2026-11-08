@@ -176,15 +176,14 @@ Read [`docs/design-guide.md`](docs/design-guide.md) before writing UI. In short:
 
 There are two kinds of prompt, kept in different places:
 
-- **The shared agents' prompts** are in `prompts/`: `configurator.nb.md` (the configuration chat on `/configure`) and `observer.nb.md` (the test chat's «Be om tilbakemelding»). Each file explains the agent and its settings; the prompt itself is the ` ```text ` block.
+- **The shared observer agent's prompt** is `prompts/observer.nb.md` (the test chat's «Be om tilbakemelding», and the summary of many ratings). The file explains the agent and its settings; the prompt itself is the ` ```text ` block.
 - **The prompts of the agents counselors make** are built in code when the agent is saved, from the agent type's definition. For the interviewer that is `src/domain/interviewerPrompt.ts` and `src/domain/interviewerAdaptations.ts`. See [Change a prompt](docs/extending.md#change-a-prompt).
 
 The prompt text itself is in Norwegian (bokmål), because that is what the agents answer in. These rules apply to people and to AI coding assistants alike:
 
 - **One requirement per bullet.** Requirements are written as bullets under the section they belong to, so they can be added one by one. Examples and short framing text may sit between them.
 - **Add, don't rewrite.** A new requirement is a new bullet in the section it belongs to. Do not reword, merge or delete existing bullets unless the change is meant to replace that requirement, and say so in the commit message.
-- **The configurator prompt is shared by every agent type.** It must never name a type, a field or a question. What is special about one type goes in that type's definition in `src/domain/agentTypes/` (`configurator.rules`, or a field's `hint` and `format`), which the server sends as the briefing.
-- **Keep the fixed formats exact.** Text the code writes or reads must match it: the briefing header `OPPSETT FRA VERKTØYET` and «Allerede bestemt før samtalen» (`buildBriefing` in `src/domain/agentTypes/configurator.ts`), `KONFIGURASJON` (`parseAnswers`, same file), `[ALTERNATIVER: ett|flere]` and `[VALGFRITT]` (`src/domain/questionOptions.ts`), and the observer's `Bra:`, `Bedre:` and `For kort:` lines (`parseObserverReply` in `src/domain/observerFeedback.ts`). Change the prompt and the code in the same commit.
+- **Keep the fixed formats exact.** Text the code writes or reads must match it: the observer's `Bra:`, `Bedre:` and `For kort:` lines (`parseObserverReply` in `src/domain/observerFeedback.ts`), and `SAMMENDRAG AV VURDERINGER:` and the heading `## Tilbakemeldinger fra veilederen` for ratings (`src/domain/interviewerFeedbackPrompt.ts`). Change the prompt and the code in the same commit.
 - **RAGdoll holds a copy.** After changing a file in `prompts/`, paste the text inside its ` ```text ` block into the agent's **General Agent Prompt** in the RAGdoll at `RAGDOLL_API_URL`, and check the settings the file lists (such as temperature and `llm_max_tokens`). The repo is the source; never change the prompt only in RAGdoll.
 
 ## 8. Secrets and personal data
