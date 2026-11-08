@@ -27,6 +27,7 @@ function isAgent(value: unknown): value is Agent {
     typeof agent.lastUpdated === 'string' &&
     typeof agent.llmModel === 'string' &&
     (typeof agent.temperature === 'number' || agent.temperature === null) &&
+    (typeof agent.maxTokens === 'number' || agent.maxTokens === null) &&
     typeof agent.prompt === 'string' &&
     (agent.isPublished === undefined || typeof agent.isPublished === 'boolean') &&
     isOptionalText(agent.publicName) &&

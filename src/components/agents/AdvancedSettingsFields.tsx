@@ -3,6 +3,7 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import Accordion from '@mui/material/Accordion';
 import AccordionDetails from '@mui/material/AccordionDetails';
 import AccordionSummary from '@mui/material/AccordionSummary';
+import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
 import FormControl from '@mui/material/FormControl';
 import FormControlLabel from '@mui/material/FormControlLabel';
@@ -22,8 +23,11 @@ import {
   type AdvancedSettingsErrors,
   DEFAULT_ADVANCED_SETTINGS,
   formatTemperature,
+  isSlow,
+  MAX_MAX_TOKENS,
   MAX_PROMPT_LENGTH,
   MAX_TEMPERATURE,
+  MIN_MAX_TOKENS,
   MIN_TEMPERATURE,
 } from '@/domain/advancedSettings';
 import styles from './AdvancedSettingsFields.module.css';
@@ -46,9 +50,9 @@ type AdvancedSettingsFieldsProps = {
 };
 
 /**
- * "Advanced settings" for experienced counsellors: the language model, the temperature and, when
- * editing, a system prompt written by hand. Closed until opened, so other counsellors are not
- * bothered.
+ * "Advanced settings" for experienced counsellors: the language model, the temperature, the most
+ * tokens in a reply and, when editing, a system prompt written by hand. Closed until opened, so
+ * other counsellors are not bothered.
  */
 export function AdvancedSettingsFields({
   value,
@@ -63,6 +67,8 @@ export function AdvancedSettingsFields({
   const modelLabelId = useId();
   // The text in the number field, kept apart so "0," can be typed on the way to "0,5".
   const [temperatureText, setTemperatureText] = useState(formatTemperature(value.temperature));
+  // The same for the max tokens, so the field can be emptied on the way to a new number.
+  const [maxTokensText, setMaxTokensText] = useState(formatMaxTokens(value.maxTokens));
   // The last hand-written prompt, so turning the switch off and on again does not lose it.
   const [lastCustomPrompt, setLastCustomPrompt] = useState(value.customPrompt);
   const writesPrompt = value.customPrompt !== null;
@@ -80,6 +86,11 @@ export function AdvancedSettingsFields({
     onChange({ ...value, temperature: parsed });
   }
 
+  function handleMaxTokensText(text: string) {
+    setMaxTokensText(text);
+    onChange({ ...value, maxTokens: parseMaxTokens(text) });
+  }
+
   function setWritesPrompt(writes: boolean) {
     if (!writes) setLastCustomPrompt(value.customPrompt);
     onChange({ ...value, customPrompt: writes ? (lastCustomPrompt ?? builtPrompt) : null });
@@ -87,6 +98,7 @@ export function AdvancedSettingsFields({
 
   function reset() {
     setTemperatureText(formatTemperature(DEFAULT_ADVANCED_SETTINGS.temperature));
+    setMaxTokensText(formatMaxTokens(DEFAULT_ADVANCED_SETTINGS.maxTokens));
     setLastCustomPrompt(null);
     onChange(DEFAULT_ADVANCED_SETTINGS);
   }
@@ -150,8 +162,8 @@ export function AdvancedSettingsFields({
             max={MAX_TEMPERATURE}
             step={SLIDER_STEP}
             marks={[
-              { value: MIN_TEMPERATURE, label: MIN_TEMPERATURE },
-              { value: MAX_TEMPERATURE, label: MAX_TEMPERATURE },
+              { value: MIN_TEMPERATURE, label: formatTemperature(MIN_TEMPERATURE) },
+              { value: MAX_TEMPERATURE, label: formatTemperature(MAX_TEMPERATURE) },
             ]}
             valueLabelDisplay="auto"
             disabled={disabled}
@@ -174,6 +186,37 @@ export function AdvancedSettingsFields({
             'Lav gir mer forutsigbare svar, høy gir mer varierte svar.'}
         </FormHelperText>
       </div>
+
+      <div className={`${styles.fieldWithHelp} ${styles.maxTokens}`}>
+        <TextField
+          // English translation: Max number of tokens
+          label="Maks antall tokens"
+          value={maxTokensText}
+          onChange={(event) => handleMaxTokensText(event.target.value)}
+          disabled={disabled}
+          error={Boolean(errors.maxTokens)}
+          helperText={
+            errors.maxTokens ??
+            // English translation: How long one answer may be, the model's reasoning included.
+            // Between <min> and <max>.
+            `Hvor langt ett svar kan bli, medregnet modellens resonnering. Mellom ${MIN_MAX_TOKENS} og ${MAX_MAX_TOKENS}.`
+          }
+          slotProps={{ htmlInput: { inputMode: 'numeric' } }}
+        />
+        <FieldHelp
+          label="Maks antall tokens"
+          description="Hvor langt ett svar kan bli. Høyere tall kan gjøre at agenten svarer tregere."
+        />
+      </div>
+
+      {isSlow(value) && (
+        <Alert severity="warning">
+          {/* English translation: A high temperature and many tokens can make the agent answer much
+              more slowly, and long answers may time out. */}
+          Høy temperatur og mange tokens kan gjøre at agenten svarer mye tregere, og lange svar kan
+          bli avbrutt.
+        </Alert>
+      )}
 
       {allowCustomPrompt && (
         <div>
@@ -273,11 +316,26 @@ function sliderValue(temperature: number): number {
   return Math.min(MAX_TEMPERATURE, Math.max(MIN_TEMPERATURE, Number(rounded.toFixed(1))));
 }
 
+/**
+ * The max tokens typed in the field. Norwegians write thousands with a space ("2 000"), so spaces
+ * are left out. Anything but digits, such as "1e3" or "0x200", is not a number.
+ */
+function parseMaxTokens(text: string): number {
+  const digits = text.replace(/\s/g, '');
+  return /^\d+$/.test(digits) ? Number(digits) : Number.NaN;
+}
+
+/** The max tokens as the field shows it. Empty for a value that is not a number. */
+function formatMaxTokens(maxTokens: number): string {
+  return Number.isFinite(maxTokens) ? String(maxTokens) : '';
+}
+
 /** One line under the heading, so the settings can be checked without opening the section. */
 function summaryText(settings: AdvancedSettings, allowCustomPrompt: boolean): string {
-  const base = `${settings.model} · temperatur ${formatTemperature(settings.temperature)}`;
+  // English translation: <model> · temperature <t> · <n> tokens
+  const base = `${settings.model} · temperatur ${formatTemperature(settings.temperature)} · ${formatMaxTokens(settings.maxTokens)} tokens`;
   if (!allowCustomPrompt) return base;
-  // English translation: <model> · temperature <t> · own system prompt / prompt from the answers
+  // English translation: <base> · own system prompt / prompt from the answers
   const prompt = settings.customPrompt !== null ? 'egen systemprompt' : 'prompt fra svarene';
   return `${base} · ${prompt}`;
 }

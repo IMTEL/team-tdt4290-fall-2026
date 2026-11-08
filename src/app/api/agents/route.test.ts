@@ -92,7 +92,7 @@ describe('POST /api/agents', () => {
     expect(JSON.parse(saved.description).type).toBe('interviewer');
   });
 
-  it('uses the default model and temperature without advanced settings', async () => {
+  it('uses the default model, temperature and max tokens without advanced settings', async () => {
     saveAgentMock.mockResolvedValue('new-agent-1');
 
     await POST(postRequest({ name: 'Testintervjuer', configuration }));
@@ -100,12 +100,18 @@ describe('POST /api/agents', () => {
     const [, agent] = saveAgentMock.mock.calls[0];
     expect(agent.llm_model).toBe(DEFAULT_MODEL);
     expect(agent.llm_temperature).toBe(0.7);
+    expect(agent.llm_max_tokens).toBe(1000);
     expect(listLanguageModelsMock).not.toHaveBeenCalled();
   });
 
   it('saves the agent with the chosen advanced settings', async () => {
     saveAgentMock.mockResolvedValue('new-agent-1');
-    const advanced = { model: 'meta/llama-3.3-70b', temperature: 0.3, customPrompt: 'Du er Kari.' };
+    const advanced = {
+      model: 'meta/llama-3.3-70b',
+      temperature: 0.3,
+      maxTokens: 3000,
+      customPrompt: 'Du er Kari.',
+    };
 
     const res = await POST(postRequest({ name: 'Testintervjuer', configuration, advanced }));
 
@@ -113,13 +119,19 @@ describe('POST /api/agents', () => {
     const [, agent] = saveAgentMock.mock.calls[0];
     expect(agent.llm_model).toBe('meta/llama-3.3-70b');
     expect(agent.llm_temperature).toBe(0.3);
+    expect(agent.llm_max_tokens).toBe(3000);
     expect(agent.prompt).toBe('Du er Kari.');
     expect(readStoredAnswers(agent.description)?.customPrompt).toBe(true);
   });
 
   it('does not ask RAGdoll for the models when the default model is kept', async () => {
     saveAgentMock.mockResolvedValue('new-agent-1');
-    const advanced = { model: DEFAULT_MODEL, temperature: 0.2, customPrompt: null };
+    const advanced = {
+      model: DEFAULT_MODEL,
+      temperature: 0.2,
+      maxTokens: 1000,
+      customPrompt: null,
+    };
 
     const res = await POST(postRequest({ name: 'Testintervjuer', configuration, advanced }));
 
@@ -130,7 +142,12 @@ describe('POST /api/agents', () => {
   it('answers 502 and saves nothing when another model cannot be checked', async () => {
     // RAGdoll answers 401 when IDUN rejects the key: that must not look like a logout.
     listLanguageModelsMock.mockRejectedValue(new RagdollError('unauthorized', 'IDUN said 401'));
-    const advanced = { model: 'meta/llama-3.3-70b', temperature: 0.7, customPrompt: null };
+    const advanced = {
+      model: 'meta/llama-3.3-70b',
+      temperature: 0.7,
+      maxTokens: 1000,
+      customPrompt: null,
+    };
 
     const res = await POST(postRequest({ name: 'Testintervjuer', configuration, advanced }));
 
@@ -139,7 +156,7 @@ describe('POST /api/agents', () => {
   });
 
   it('answers 400 and saves nothing for invalid advanced settings', async () => {
-    const advanced = { model: 'gpt-5', temperature: 0.7, customPrompt: null };
+    const advanced = { model: 'gpt-5', temperature: 0.7, maxTokens: 1000, customPrompt: null };
 
     const res = await POST(postRequest({ name: 'Testintervjuer', configuration, advanced }));
 
@@ -255,6 +272,7 @@ describe('GET /api/agents', () => {
       lastUpdated: 'x',
       llmModel: DEFAULT_MODEL,
       temperature: 0.7,
+      maxTokens: 1000,
       prompt: 'Du er en intervjuer.',
     };
     listAgentsMock.mockResolvedValue([agent]);
@@ -305,6 +323,7 @@ describe('GET /api/agents avatar', () => {
       lastUpdated: 'x',
       llmModel: DEFAULT_MODEL,
       temperature: 0.7,
+      maxTokens: 1000,
       prompt: 'Du er en intervjuer.',
     };
     listAgentsMock.mockResolvedValue([withAvatar]);

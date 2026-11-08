@@ -21,7 +21,11 @@ import { AgentAvatar } from '@/components/agents/AgentAvatar';
 import { AnswerEffects } from '@/components/agents/AnswerEffects';
 import { AnswerList } from '@/components/agents/AnswerList';
 import { ScrollArea } from '@/components/ui/ScrollArea';
-import { DEFAULT_TEMPERATURE, formatTemperature } from '@/domain/advancedSettings';
+import {
+  DEFAULT_MAX_TOKENS,
+  DEFAULT_TEMPERATURE,
+  formatTemperature,
+} from '@/domain/advancedSettings';
 import { readStoredAnswers } from '@/domain/agentTypes/storedAnswers';
 import { formatDate } from '@/lib/format';
 import { useOnceInBrowser } from '@/lib/useOnceInBrowser';
@@ -35,8 +39,8 @@ type TabId = 'config' | 'advanced' | 'prompt';
 
 /**
  * One saved agent: a summary in sentences, the actions, then tabs for the configuration, the
- * advanced settings (model and temperature) and the system prompt RAGdoll has stored. They are
- * changed on the edit page.
+ * advanced settings (model, temperature and max tokens) and the system prompt RAGdoll has stored.
+ * They are changed on the edit page.
  */
 export function AgentDetail({ agentId }: { agentId: string }) {
   const state = useAgent(agentId);
@@ -257,6 +261,11 @@ export function AgentDetail({ agentId }: { agentId: string }) {
             <Field
               label="Temperatur"
               value={formatTemperature(agent.temperature ?? DEFAULT_TEMPERATURE)}
+            />
+            {/* English translation: Max number of tokens */}
+            <Field
+              label="Maks antall tokens"
+              value={String(agent.maxTokens ?? DEFAULT_MAX_TOKENS)}
             />
           </dl>
         </TabPanel>

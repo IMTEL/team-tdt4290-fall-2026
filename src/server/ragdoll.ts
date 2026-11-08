@@ -108,6 +108,7 @@ export type NewRagdollAgent = {
   llm_provider: string;
   llm_model: string;
   llm_temperature: number;
+  llm_max_tokens: number;
   llm_api_key: string;
   embedding_model: string;
   embedding_api_key: string;
@@ -127,10 +128,12 @@ export type RagdollAgentSummary = {
   name: string;
   description: string;
   lastUpdated: string;
-  /** The advanced settings. Safe: the owner may see the model, temperature and prompt. */
+  /** The advanced settings. Safe: the owner may see the model, temperature, max tokens and prompt. */
   llmModel: string;
   /** Null for agents that RAGdoll returns without one. */
   temperature: number | null;
+  /** Null for agents that RAGdoll returns without one. */
+  maxTokens: number | null;
   prompt: string;
   /** Whether The Candidate lists the agent. Optional so older summaries still fit. */
   isPublished?: boolean;
@@ -631,6 +634,7 @@ function toSummary(agent: Record<string, unknown>): RagdollAgentSummary {
     lastUpdated: String(agent.last_updated),
     llmModel: typeof agent.llm_model === 'string' ? agent.llm_model : '',
     temperature: typeof agent.llm_temperature === 'number' ? agent.llm_temperature : null,
+    maxTokens: typeof agent.llm_max_tokens === 'number' ? agent.llm_max_tokens : null,
     prompt: typeof agent.prompt === 'string' ? agent.prompt : '',
     // Agents saved before RAGdoll had these fields come without them.
     isPublished: agent.is_published === true,

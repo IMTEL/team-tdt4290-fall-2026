@@ -34,6 +34,7 @@ const agent = {
   llm_provider: 'idun',
   llm_model: 'openai/gpt-oss-120b',
   llm_temperature: 0.7,
+  llm_max_tokens: 1000,
   llm_api_key: '',
   embedding_model: '',
   embedding_api_key: '',
@@ -61,6 +62,7 @@ beforeEach(() => {
     lastUpdated: '2026-11-05T12:00:00.000Z',
     llmModel: agent.llm_model,
     temperature: 0.7,
+    maxTokens: 1000,
     prompt: agent.prompt,
   });
 });

@@ -254,7 +254,7 @@ export function EditAgentForm({
   }
 
   const isSaving = status.kind === 'saving';
-  const settingsChanges = (['model', 'temperature', 'customPrompt'] as const).filter(
+  const settingsChanges = (['model', 'temperature', 'maxTokens', 'customPrompt'] as const).filter(
     (key) => settings[key] !== initialSettings[key],
   ).length;
   // Unchanged settings are not sent, so settings saved by another client that our form would not

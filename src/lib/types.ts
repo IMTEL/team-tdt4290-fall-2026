@@ -7,6 +7,8 @@ export interface Agent {
   llmModel: string;
   /** Null for agents that RAGdoll returns without one. */
   temperature: number | null;
+  /** Null for agents that RAGdoll returns without one. */
+  maxTokens: number | null;
   prompt: string;
   /** Whether The Candidate lists the agent. */
   isPublished?: boolean;

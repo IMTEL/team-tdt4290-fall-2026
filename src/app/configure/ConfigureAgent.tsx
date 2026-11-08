@@ -432,6 +432,7 @@ export function ConfigureAgent({
     const advanced: AdvancedSettings = {
       model: settings.model,
       temperature: settings.temperature,
+      maxTokens: settings.maxTokens,
       customPrompt: null,
     };
     try {

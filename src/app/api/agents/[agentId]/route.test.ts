@@ -64,6 +64,7 @@ const existing = {
   ...toRagdollAgent('Gammelt navn', interviewer, answers, 'idun-key'),
   id: 'agent-1',
   llm_temperature: 0.2,
+  llm_max_tokens: 3000,
 };
 
 function putRequest(body: unknown) {
@@ -86,6 +87,7 @@ beforeEach(() => {
     lastUpdated: '2026-10-06T12:00:00.000Z',
     llmModel: DEFAULT_MODEL,
     temperature: 0.2,
+    maxTokens: 1000,
     prompt: 'Du er en intervjuer.',
   });
   listLanguageModelsMock.mockResolvedValue([DEFAULT_MODEL, 'meta/llama-3.3-70b']);
@@ -131,6 +133,7 @@ describe('PUT /api/agents/[agentId]', () => {
     expect(readStoredAnswers(saved.description)?.answers).toEqual(newAnswers);
     // Fields the edit does not touch are sent back unchanged.
     expect(saved.llm_temperature).toBe(0.2);
+    expect(saved.llm_max_tokens).toBe(3000);
   });
 
   it('writes the counsellor’s ratings back into the rebuilt prompt', async () => {
@@ -216,7 +219,12 @@ describe('PUT /api/agents/[agentId]', () => {
   });
 
   it('saves new advanced settings', async () => {
-    const advanced = { model: 'meta/llama-3.3-70b', temperature: 1.1, customPrompt: 'Du er Kari.' };
+    const advanced = {
+      model: 'meta/llama-3.3-70b',
+      temperature: 1.1,
+      maxTokens: 4000,
+      customPrompt: 'Du er Kari.',
+    };
 
     const res = await PUT(putRequest({ name: 'Nytt navn', answers, advanced }), params);
 
@@ -224,6 +232,7 @@ describe('PUT /api/agents/[agentId]', () => {
     const [, saved] = updateAgentMock.mock.calls[0];
     expect(saved.llm_model).toBe('meta/llama-3.3-70b');
     expect(saved.llm_temperature).toBe(1.1);
+    expect(saved.llm_max_tokens).toBe(4000);
     expect(saved.prompt).toBe('Du er Kari.');
     expect(readStoredAnswers(saved.description)?.customPrompt).toBe(true);
   });
@@ -290,18 +299,19 @@ describe('PUT /api/agents/[agentId]', () => {
     expect(updateAgentMock).not.toHaveBeenCalled();
   });
 
-  it('keeps the model and temperature when no advanced settings are sent', async () => {
+  it('keeps the model, temperature and max tokens when no advanced settings are sent', async () => {
     await PUT(putRequest({ name: 'Nytt navn', answers: newAnswers }), params);
 
     const [, saved] = updateAgentMock.mock.calls[0];
     expect(saved.llm_model).toBe(DEFAULT_MODEL);
     expect(saved.llm_temperature).toBe(0.2);
+    expect(saved.llm_max_tokens).toBe(3000);
     expect(listLanguageModelsMock).not.toHaveBeenCalled();
   });
 
   it('accepts the current model of the agent without asking RAGdoll', async () => {
     fetchFullAgentMock.mockResolvedValue({ ...existing, llm_model: 'old/model' });
-    const advanced = { model: 'old/model', temperature: 0.5, customPrompt: null };
+    const advanced = { model: 'old/model', temperature: 0.5, maxTokens: 1000, customPrompt: null };
 
     const res = await PUT(putRequest({ name: 'Nytt navn', answers, advanced }), params);
 
@@ -311,7 +321,12 @@ describe('PUT /api/agents/[agentId]', () => {
 
   it('answers 502 and saves nothing when a new model cannot be checked', async () => {
     listLanguageModelsMock.mockRejectedValue(new RagdollError('unreachable', 'IDUN is down'));
-    const advanced = { model: 'meta/llama-3.3-70b', temperature: 0.7, customPrompt: null };
+    const advanced = {
+      model: 'meta/llama-3.3-70b',
+      temperature: 0.7,
+      maxTokens: 1000,
+      customPrompt: null,
+    };
 
     const res = await PUT(putRequest({ name: 'Nytt navn', answers, advanced }), params);
 
@@ -320,9 +335,22 @@ describe('PUT /api/agents/[agentId]', () => {
   });
 
   it.each([
-    ['a model that is not offered', { model: 'gpt-5', temperature: 0.7, customPrompt: null }],
-    ['a temperature above 2', { model: DEFAULT_MODEL, temperature: 3, customPrompt: null }],
-    ['an empty hand-written prompt', { model: DEFAULT_MODEL, temperature: 0.7, customPrompt: ' ' }],
+    [
+      'a model that is not offered',
+      { model: 'gpt-5', temperature: 0.7, maxTokens: 1000, customPrompt: null },
+    ],
+    [
+      'a temperature above 1.5',
+      { model: DEFAULT_MODEL, temperature: 2, maxTokens: 1000, customPrompt: null },
+    ],
+    [
+      'too many max tokens',
+      { model: DEFAULT_MODEL, temperature: 0.7, maxTokens: 9000, customPrompt: null },
+    ],
+    [
+      'an empty hand-written prompt',
+      { model: DEFAULT_MODEL, temperature: 0.7, maxTokens: 1000, customPrompt: ' ' },
+    ],
     ['settings that are not an object', 'fast'],
   ])('answers 400 and saves nothing for %s', async (_, advanced) => {
     const res = await PUT(putRequest({ name: 'Nytt navn', answers, advanced }), params);

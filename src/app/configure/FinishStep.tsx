@@ -112,6 +112,8 @@ export function configurationLines(overview: FinishOverview): { label: string; v
     [
       { label: 'Språkmodell', value: settings.model },
       { label: 'Temperatur', value: formatTemperature(settings.temperature) },
+      // English translation: Max number of tokens
+      { label: 'Maks antall tokens', value: String(settings.maxTokens) },
     ],
     [],
   ];

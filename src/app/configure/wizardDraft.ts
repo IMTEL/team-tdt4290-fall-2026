@@ -1,4 +1,5 @@
 import type { AgentTemplate } from '@/data/templates';
+import { DEFAULT_MAX_TOKENS, DEFAULT_TEMPERATURE } from '@/domain/advancedSettings';
 import type { InterviewSettings } from './SettingsStep';
 import type { Workplace } from './StillingStep';
 
@@ -89,7 +90,12 @@ function isSettings(value: unknown): value is InterviewSettings {
     typeof value.ownQuestions === 'string' &&
     typeof value.extra === 'string' &&
     typeof value.model === 'string' &&
-    typeof value.temperature === 'number' &&
+    // An emptied number field is NaN, which JSON stores as null. Max tokens are missing in drafts
+    // from before that setting. readWizardDraft fills in the defaults for both.
+    (value.temperature === null || typeof value.temperature === 'number') &&
+    (value.maxTokens === undefined ||
+      value.maxTokens === null ||
+      typeof value.maxTokens === 'number') &&
     (value.customPrompt === null || typeof value.customPrompt === 'string')
   );
 }
@@ -153,8 +159,10 @@ function isStore(value: unknown): value is { version: 3; drafts: unknown[] } {
 
 function parseDrafts(raw: string): WizardDraft[] {
   const parsed: unknown = JSON.parse(raw);
-  if (isDraft(parsed)) return [migrateDraft(parsed)];
-  if (isStore(parsed)) return parsed.drafts.filter(isDraft).map(migrateDraft);
+  if (isDraft(parsed)) return [withDefaults(migrateDraft(parsed))];
+  if (isStore(parsed)) {
+    return parsed.drafts.filter(isDraft).map((draft) => withDefaults(migrateDraft(draft)));
+  }
   return [];
 }
 
@@ -167,7 +175,8 @@ function saveDrafts(drafts: WizardDraft[]): void {
     const raw = JSON.stringify({ version: STORE_VERSION, drafts });
     localStorage.setItem(STORAGE_KEY, raw);
     cachedRaw = raw;
-    cachedDrafts = drafts;
+    // The same drafts a later read would parse, so an emptied number field reads as its default.
+    cachedDrafts = drafts.map(withDefaults);
   }
   notifyDraftListeners();
 }
@@ -195,6 +204,28 @@ export function readWizardDrafts(): WizardDraft[] {
     cachedDrafts = EMPTY_DRAFTS;
     return cachedDrafts;
   }
+}
+
+/** A number setting with a value. An emptied field is NaN in memory and null once stored. */
+function isNumber(value: unknown): value is number {
+  return typeof value === 'number' && Number.isFinite(value);
+}
+
+/**
+ * The draft with the default for a number setting that has no value: the field was empty when the
+ * draft was saved, or the draft is from before the setting existed.
+ */
+function withDefaults(draft: WizardDraft): WizardDraft {
+  const { temperature, maxTokens } = draft.settings;
+  if (isNumber(temperature) && isNumber(maxTokens)) return draft;
+  return {
+    ...draft,
+    settings: {
+      ...draft.settings,
+      temperature: isNumber(temperature) ? temperature : DEFAULT_TEMPERATURE,
+      maxTokens: isNumber(maxTokens) ? maxTokens : DEFAULT_MAX_TOKENS,
+    },
+  };
 }
 
 /** One draft by id, or the newest when `id` is omitted. */

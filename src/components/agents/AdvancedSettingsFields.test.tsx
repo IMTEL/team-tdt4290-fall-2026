@@ -53,7 +53,7 @@ describe('AdvancedSettingsFields', () => {
     render(<Harness />);
 
     expect(
-      screen.getByText('openai/gpt-oss-120b · temperatur 0,7 · prompt fra svarene'),
+      screen.getByText('openai/gpt-oss-120b · temperatur 0,7 · 1000 tokens · prompt fra svarene'),
     ).toBeVisible();
     // Role queries skip hidden elements: the fields are not reachable while the section is closed.
     expect(screen.queryByRole('combobox', { name: 'Språkmodell' })).not.toBeInTheDocument();
@@ -108,7 +108,7 @@ describe('AdvancedSettingsFields', () => {
     await user.clear(screen.getByRole('textbox', { name: 'Verdi' }));
 
     expect(screen.getByText('Noe i innstillingene må rettes')).toBeVisible();
-    expect(screen.getByText(/Temperaturen må være et tall mellom 0 og 2/)).toBeVisible();
+    expect(screen.getByText(/Temperaturen må være et tall mellom 0 og 1,5/)).toBeVisible();
   });
 
   it('goes back to the defaults', async () => {
@@ -116,7 +116,12 @@ describe('AdvancedSettingsFields', () => {
     const user = userEvent.setup();
     render(
       <Harness
-        initial={{ model: 'meta/llama-3.3-70b', temperature: 1.5, customPrompt: 'Du er Kari.' }}
+        initial={{
+          model: 'meta/llama-3.3-70b',
+          temperature: 1.5,
+          maxTokens: 4000,
+          customPrompt: 'Du er Kari.',
+        }}
         onChange={onChange}
       />,
     );
@@ -126,6 +131,54 @@ describe('AdvancedSettingsFields', () => {
 
     expect(onChange).toHaveBeenLastCalledWith(DEFAULT_ADVANCED_SETTINGS);
     expect(screen.getByRole('textbox', { name: 'Verdi' })).toHaveValue('0,7');
+    expect(screen.getByRole('textbox', { name: 'Maks antall tokens' })).toHaveValue('1000');
+  });
+
+  it('changes the max tokens, and says when the number is out of range', async () => {
+    const onChange = vi.fn();
+    const user = userEvent.setup();
+    render(<Harness onChange={onChange} />);
+    await open(user);
+    const field = screen.getByRole('textbox', { name: 'Maks antall tokens' });
+
+    await user.clear(field);
+    await user.paste('1500');
+    expect(onChange).toHaveBeenLastCalledWith({ ...DEFAULT_ADVANCED_SETTINGS, maxTokens: 1500 });
+
+    // Norwegians write thousands with a space.
+    await user.clear(field);
+    await user.paste('2 500');
+    expect(onChange).toHaveBeenLastCalledWith({ ...DEFAULT_ADVANCED_SETTINGS, maxTokens: 2500 });
+
+    await user.clear(field);
+    await user.paste('0x200');
+    expect(screen.getByText('Antall tokens må være et heltall mellom 256 og 8000.')).toBeVisible();
+
+    await user.clear(field);
+    await user.paste('9000');
+    expect(screen.getByText('Antall tokens må være et heltall mellom 256 og 8000.')).toBeVisible();
+    expect(screen.getByText('Noe i innstillingene må rettes')).toBeVisible();
+  });
+
+  it('warns that replies can get slow only when the temperature or the max tokens are high', async () => {
+    const user = userEvent.setup();
+    render(<Harness />);
+    await open(user);
+    const warning = /kan gjøre at agenten svarer mye tregere/;
+
+    expect(screen.queryByText(warning)).not.toBeInTheDocument();
+
+    await user.clear(screen.getByRole('textbox', { name: 'Verdi' }));
+    await user.paste('1,2');
+    expect(screen.getByText(warning)).toBeVisible();
+
+    await user.clear(screen.getByRole('textbox', { name: 'Verdi' }));
+    await user.paste('0,7');
+    expect(screen.queryByText(warning)).not.toBeInTheDocument();
+
+    await user.clear(screen.getByRole('textbox', { name: 'Maks antall tokens' }));
+    await user.paste('3000');
+    expect(screen.getByText(warning)).toBeVisible();
   });
 
   it('shows the fields without an accordion when always open', () => {
@@ -151,7 +204,7 @@ describe('AdvancedSettingsFields', () => {
     const user = userEvent.setup();
     render(<Harness allowCustomPrompt={false} />);
 
-    expect(screen.getByText('openai/gpt-oss-120b · temperatur 0,7')).toBeVisible();
+    expect(screen.getByText('openai/gpt-oss-120b · temperatur 0,7 · 1000 tokens')).toBeVisible();
     expect(screen.queryByText(/prompt fra svarene/)).not.toBeInTheDocument();
 
     await open(user);

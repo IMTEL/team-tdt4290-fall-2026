@@ -44,6 +44,7 @@ export function AiSettingsStep({
   const advanced: AdvancedSettings = {
     model: value.model,
     temperature: value.temperature,
+    maxTokens: value.maxTokens,
     customPrompt: null,
   };
   const errors = advancedSettingsErrors(advanced, languageModels.models);
@@ -80,6 +81,7 @@ export function AiSettingsStep({
           lines={[
             { label: 'Språkmodell', value: value.model },
             { label: 'Temperatur', value: formatTemperature(value.temperature) },
+            { label: 'Maks antall tokens', value: String(value.maxTokens) },
           ]}
         />
         <WizardNav

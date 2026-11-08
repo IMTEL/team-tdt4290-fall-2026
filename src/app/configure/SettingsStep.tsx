@@ -8,7 +8,7 @@ import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
 
 import { FieldHelp } from '@/components/ui/FieldHelp';
 import helpStyles from '@/components/ui/FieldHelp.module.css';
-import { DEFAULT_MODEL, DEFAULT_TEMPERATURE } from '@/domain/advancedSettings';
+import { DEFAULT_MAX_TOKENS, DEFAULT_MODEL, DEFAULT_TEMPERATURE } from '@/domain/advancedSettings';
 import type { AnswerEffect } from '@/domain/agentTypes/types';
 import stepStyles from './StillingStep.module.css';
 import { ChoiceSummary, WizardFrame, WizardNav } from './StillingStep';
@@ -39,6 +39,7 @@ export type InterviewSettings = {
   extra: string;
   model: string;
   temperature: number;
+  maxTokens: number;
   customPrompt: string | null;
 };
 
@@ -52,6 +53,7 @@ export const EMPTY_INTERVIEW_SETTINGS: InterviewSettings = {
   extra: '',
   model: DEFAULT_MODEL,
   temperature: DEFAULT_TEMPERATURE,
+  maxTokens: DEFAULT_MAX_TOKENS,
   customPrompt: null,
 };
 

@@ -65,6 +65,31 @@ describe('wizardDraft', () => {
     expect(readWizardDraft()).toBeNull();
   });
 
+  it('keeps a draft saved before the max tokens setting, with the default filled in', () => {
+    const oldSettings: Record<string, unknown> = { ...EMPTY_INTERVIEW_SETTINGS };
+    delete oldSettings.maxTokens;
+    localStorage.setItem(
+      'kfi-configure-draft',
+      JSON.stringify({ ...draft, settings: { ...oldSettings, temperature: 0.4 } }),
+    );
+
+    expect(readWizardDraft()?.settings).toEqual({
+      ...EMPTY_INTERVIEW_SETTINGS,
+      temperature: 0.4,
+      maxTokens: 1000,
+    });
+  });
+
+  it('keeps a draft saved while a number field was empty, with the defaults filled in', () => {
+    // An emptied field is NaN, and JSON.stringify writes NaN as null.
+    writeWizardDraft({
+      ...draft,
+      settings: { ...EMPTY_INTERVIEW_SETTINGS, temperature: Number.NaN, maxTokens: Number.NaN },
+    });
+
+    expect(readWizardDraft()?.settings).toEqual(EMPTY_INTERVIEW_SETTINGS);
+  });
+
   it('moves Fullføre from step 4 to 5 in drafts from before AI-innstillinger', () => {
     localStorage.setItem(
       'kfi-configure-draft',

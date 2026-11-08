@@ -20,7 +20,8 @@ import { cleanName } from '@/domain/agentName';
 
 /**
  * Saves a new agent of the chosen type, owned by the logged-in counsellor. Returns its id.
- * `advanced` (model, temperature, hand-written prompt) is optional: without it the defaults apply.
+ * `advanced` (model, temperature, max tokens, hand-written prompt) is optional: without it the
+ * defaults apply.
  * So is `avatar`, the id of one of our avatars: without it the agent shows the default image.
  */
 export async function POST(req: NextRequest) {
