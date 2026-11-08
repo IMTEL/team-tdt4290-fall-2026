@@ -1,12 +1,18 @@
 # Plan: Publish agents to The Candidate (issues #96 and #97)
 
+> **Status: done.** This is the working plan the feature was built from, kept for history and for
+> the report. The paths below are from one team member's machine. For how publishing works now,
+> read [Publishing to The Candidate](../architecture.md#publishing-to-the-candidate) and
+> [decision 0003](../decisions/0003-publish-to-the-candidate.md). One thing changed after the plan:
+> editing a published agent now hides it until it is published again (#122).
+
 ## Step 0
 
 Copy this plan to `docs/plans/publish-to-the-candidate.md` in the frontend repo so Emma can read it later. Then stop and wait for her go-ahead before step 1.
 
 ## Context
 
-Counsellors build interviewer agents in our web app, and the agents are stored in RAGdoll. Today The Candidate (Unity VR) cannot see them.
+Counselors build interviewer agents in our web app, and the agents are stored in RAGdoll. Today The Candidate (Unity VR) cannot see them.
 
 It uses **one hardcoded RAGdoll agent**: `6a997572550ef6deab1c149d` in `Assets/Scripts/Providers/MainRag.asset`. That agent's roles are app machinery:
 
@@ -96,7 +102,7 @@ Goal:
    - Change the Candidate edge from "access key: /agent-info-by-accesskey, /api/chat/ask" to "client key: /agents/published, /api/chat/ask".
    - Mark the new RAGdoll endpoints.
 3. **Table 16, Modifiability** says "RAGdoll is used as is". That is no longer true: we extend RAGdoll with publish fields and endpoints, as the team already did for templates and profiles. **C1** still holds.
-4. **Figure 6**: change "Publish to The Candidate (access key)" to "Publish (flag in RAGdoll)". The counsellor never handles a key.
+4. **Figure 6**: change "Publish to The Candidate (access key)" to "Publish (flag in RAGdoll)". The counselor never handles a key.
 5. **§7.2.1** says "RAGdoll's agent model has no field for other applications' data". This is now partly false, because the publish fields exist. The answers still live in `description`.
 6. **§7.6**: move publishing from "still open" to done, and record the decision as an ADR in `docs/decisions/`.
 7. **§9 Security**:

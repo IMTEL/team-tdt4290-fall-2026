@@ -7,7 +7,7 @@ The prompt is the same for every agent type. It has the tone and the rules every
 An **interviewer** is set up in a form wizard on `/configure` (stilling → intervjuer → jobbsøker →
 innstillinger → fullføre); that path does not use this chat. This prompt is for `ConfigurationChat`
 and `/api/configure/turn` (other agent types, or when the chat path is used). Before the chat, the
-counsellor picks the agent type and any presets the type has: an interviewer template
+counselor picks the agent type and any presets the type has: an interviewer template
 (`src/data/interviewer-templates.ts`), a job seeker profile / jobbsøkermal (`/profiles`), and an
 industry template (`src/data/industry-templates.ts`). The type's `presets` say which fields each
 fills in: the interviewer template `Intervjuer`, the profile `Jobbsøker`, and the industry template
@@ -26,9 +26,9 @@ With an industry template, the job and industry are decided, so the first questi
 
 RAGdoll puts the conversation history before this prompt, so the **Samtalen så langt** section tells the agent not to greet again.
 
-The final `KONFIGURASJON` block uses the labels in the type's definition, and `parseAnswers` (`src/domain/agentTypes/configurator.ts`) reads it. For an interviewer, `src/domain/interviewerPrompt.ts` turns it into the interviewer's prompt. Fields with `optional: true` are marked «(valgfritt)» in the briefing, so the configurator offers «Hopp over» and may leave their line out. Rules that only one type has, such as which questions take several answers, go in that field's `hint`, not in this prompt. With a template, the server fills in `Intervjuer` from it, and with a profile it fills in `Jobbsøker` (`describeJobSeeker` in `src/domain/jobSeekerProfile.ts`), whatever the configurator writes. The profile's notes are never sent. `Tillegg` is optional: it holds what the counsellor added at the end (or along the way), and the line is left out when nothing was added.
+The final `KONFIGURASJON` block uses the labels in the type's definition, and `parseAnswers` (`src/domain/agentTypes/configurator.ts`) reads it. For an interviewer, `src/domain/interviewerPrompt.ts` turns it into the interviewer's prompt. Fields with `optional: true` are marked «(valgfritt)» in the briefing, so the configurator offers «Hopp over» and may leave their line out. Rules that only one type has, such as which questions take several answers, go in that field's `hint`, not in this prompt. With a template, the server fills in `Intervjuer` from it, and with a profile it fills in `Jobbsøker` (`describeJobSeeker` in `src/domain/jobSeekerProfile.ts`), whatever the configurator writes. The profile's notes are never sent. `Tillegg` is optional: it holds what the counselor added at the end (or along the way), and the line is left out when nothing was added.
 
-Answer options are written in an `[ALTERNATIVER: ett]` or `[ALTERNATIVER: flere]` block at the end of a question. `src/domain/questionOptions.ts` reads it, and the chat shows the options as buttons (`ett`) or checkboxes (`flere`), always with a field for an answer of the counsellor's own. A `[VALGFRITT]` line adds a «Hopp over» button, which sends `Hopp over`. A clicked answer is sent as an ordinary message, e.g. `2. Privat` or `1. HR, 3. Kollega. Annet: …`.
+Answer options are written in an `[ALTERNATIVER: ett]` or `[ALTERNATIVER: flere]` block at the end of a question. `src/domain/questionOptions.ts` reads it, and the chat shows the options as buttons (`ett`) or checkboxes (`flere`), always with a field for an answer of the counselor's own. A `[VALGFRITT]` line adds a «Hopp over» button, which sends `Hopp over`. A clicked answer is sent as an ordinary message, e.g. `2. Privat` or `1. HR, 3. Kollega. Annet: …`.
 
 When you change the agent's behaviour, add each requirement as its own bullet in the section it belongs to (see "Prompts" in `CONTRIBUTING.md`). Do not rewrite or merge existing bullets unless the change is meant to replace them.
 
