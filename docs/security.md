@@ -1,6 +1,6 @@
 # Security
 
-<!-- Threat model, assets worth protecting, countermeasures, and how we handle personal data (no real job seeker data). Feeds chapter 11 of the report. -->
+<!-- Threat model, assets worth protecting, countermeasures, and how we handle personal data (no real job seeker data). -->
 
 What we protect, from whom, and how. The design behind most of it (the browser only talks to our
 server, RAGdoll stores everything) is in [`architecture.md`](architecture.md) and

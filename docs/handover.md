@@ -2,7 +2,9 @@
 
 For **IMTEL**, or whoever takes over the app after the course (TDT4290, autumn 2026). This document gathers what you need to own and run the app in one place: where everything is, which secrets exist and how to change them, what has to stay in step between the repos, and what to do first. The details are in the other docs; this page links to them.
 
-<!-- TODO: fill in who at IMTEL takes over, the handover date, and how to reach the team afterwards. -->
+The app was handed over to IMTEL when the course ended, on 20 November 2026. The team is listed
+in the [README](../README.md#team); after the course, reach us through the project's Slack channel
+with IMTEL.
 
 ## Contents
 
@@ -35,7 +37,7 @@ counselor's browser.
 | --------------------------------------- | -------------------------------------------------------------------------------------- |
 | The Candidate and how it shows agents   | Mathias (IMTEL)                                                                        |
 | Deployment and IMTEL's test environment | Tobias and Erik (IMTEL)                                                                |
-| What the product should do              | The product owners <!-- TODO: the same names as in the README once agreed -->          |
+| What the product should do              | The product owners: Mikhail, Ekaterina, Mathias, Erik and Tobias (IMTEL)               |
 | Why the code looks the way it does      | [`decisions/`](decisions/README.md) first, then the team ([README](../README.md#team)) |
 
 ## Secrets
@@ -54,7 +56,8 @@ commit is not enough.
 | `IDUN_API_KEY`                | IDUN (NTNU)                             | Set the new key and restart. **New** agents get it. Agents saved earlier keep the key they were saved with, because RAGdoll stores a copy on each agent and our edits leave it as it is. If the old key is revoked, those agents stop answering until their key is updated in RAGdoll |
 | The Candidate's client key    | RAGdoll                                 | Not used by this app. It is set in RAGdoll's and The Candidate's environment ([decision 0003](decisions/0003-publish-to-the-candidate.md)). It lets The Candidate chat with published agents and with the observer agent, nothing else                                                |
 
-<!-- TODO: check with IMTEL how to update the IDUN key on saved agents in RAGdoll (a script or a database update), and write it here. -->
+**Open question:** we have not found out how to update the IDUN key on agents that are already
+saved in RAGdoll (a script or a database update). Ask Mathias or Erik before you revoke an old key.
 
 ## Things that must be changed together
 
@@ -97,12 +100,11 @@ commit is not enough.
 ## What to do first
 
 1. **Merge our RAGdoll and The Candidate branches** into IMTEL's `main`.
-2. **Deploy the app** following [`deployment.md`](deployment.md), and fill in its TODOs (URL,
-   what triggers a deploy, who has access).
+2. **Deploy the app** following [`deployment.md`](deployment.md), and write down there the URL,
+   what triggers a deploy and who has access.
 3. **Have the legal texts checked** by the customer or a legal expert, and replace the EU
    placeholders ([future plans](future-plans.md#replace-the-eu-placeholders-with-real-eu-laws)).
-4. **Decide the open TODOs in the README**: the product name, the product owners and the licence.
-5. **Then the rest of [`future-plans.md`](future-plans.md)**, such as new agent types
+4. **Then the rest of [`future-plans.md`](future-plans.md)**, such as new agent types
    ([`extending.md`](extending.md#add-a-new-agent-type)).
 
 ## Where to read more
