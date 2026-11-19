@@ -11,7 +11,8 @@
 | Shared observer agent | On the deployed RAGdoll (`RAGDOLL_API_URL`)                                                           |
 | The Candidate         | Unity app built by IMTEL; reads published agents from RAGdoll                                         |
 
-<!-- TODO: fill in the frontend's URL, what triggers a deploy and who has access once IMTEL's test environment is ready (contact: Tobias and Erik). -->
+The frontend was not deployed at handover (November 2026), so it has no URL, deploy trigger or
+access list yet. Ask Tobias and Erik about IMTEL's test environment.
 
 Nothing deploys automatically. CI only checks pull requests and pushes to `main`
 ([`CONTRIBUTING.md`](../CONTRIBUTING.md#what-ci-checks)).

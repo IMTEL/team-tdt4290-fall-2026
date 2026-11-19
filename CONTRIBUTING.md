@@ -145,10 +145,10 @@ A user story is **done** when every box holds. Tasks use the first four.
 
 - [ ] Code is on `main` through a reviewed pull request
 - [ ] CI is green (build, lint, tests)
-- [ ] Automated tests cover the new behaviour where it is reasonable to test <!-- TODO: agree the test scope (unit / integration / e2e) -->
+- [ ] Automated tests cover the new behaviour where it is reasonable to test: unit and component tests with Vitest, end-to-end tests with Playwright ([`docs/testing.md`](docs/testing.md))
 - [ ] No known technical debt hidden — if something is left, it is written as an issue
 - [ ] Documentation touched by the change is updated (README, docs/, code comments). A change counselors see updates [`docs/user-guide.md`](docs/user-guide.md); a new way to extend the app updates [`docs/extending.md`](docs/extending.md)
-- [ ] Deployed to the test environment <!-- TODO: depends on IMTEL infrastructure being ready; until then, "runs locally with docker compose" -->
+- [ ] Runs locally against RAGdoll in Docker Compose. Once IMTEL's test environment is ready: deployed there ([`docs/deployment.md`](docs/deployment.md))
 - [ ] Every "resolved when" criterion in the issue is checked by someone other than the author
 - [ ] The story can be demoed following its "How to demo" text
 

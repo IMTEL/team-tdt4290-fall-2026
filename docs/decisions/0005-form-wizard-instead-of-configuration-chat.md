@@ -61,3 +61,6 @@ frame and last step, with only the content of the steps differing by type. How t
 - The configurator prompt (`prompts/configurator.nb.md`), the chat route and `ConfigurationChat`
   are kept and tested, but only used by a type without a wizard. If the team decides all types get
   a wizard for good, they can be removed (see the TODO in `extending.md`).
+
+> **Note (2026-11-19):** they were removed in [0006](0006-remove-configuration-chat.md), so the
+> TODO in `extending.md` no longer exists.

@@ -396,4 +396,4 @@ See [CONTRIBUTING.md](CONTRIBUTING.md): branch naming, commit convention, pull r
 Built on [RAGdoll](https://github.com/IMTEL/RAGdoll) (MIT). The Candidate (GPL-3.0) is a separate
 program and shares no code with this repository.
 
-<!-- IF you have read all of this, hi :D>
+<!-- IF you have read all of this, hi :D -->
